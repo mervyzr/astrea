@@ -6,10 +6,9 @@ import slope_limiters as limiters
 
 # Piecewise constant Lax-Friedrichs solver (1st-order stable)
 class LFSolver:
-    def __init__(self, config, domain, g):
+    def __init__(self, g):
         self.gamma = g
         self.eigmax = 0
-        self.qLs, self.qRs = fn.makeBoundaryCondition(config, domain)
 
     # Jacobian matrix using primitive variables
     def makeJacobian(self, tube):
@@ -26,8 +25,8 @@ class LFSolver:
                      vecs[:,0] * ((.5*rhos*np.linalg.norm(vecs, axis=1)**2) + ((self.gamma*pressures)/(self.gamma-1)))]
 
     # Calculate Riemann flux
-    def calculateRiemannFlux(self):
-        wLs, wRs = fn.convertConservative(self.qLs, self.gamma), fn.convertConservative(self.qRs, self.gamma)
+    def calculateRiemannFlux(self, qLs, qRs):
+        wLs, wRs = fn.convertConservative(qLs, self.gamma), fn.convertConservative(qRs, self.gamma)
         fLs, fRs = self.makeFlux(wLs), self.makeFlux(wRs)
 
         AL, AR = np.nan_to_num(self.makeJacobian(wLs), copy=False), np.nan_to_num(self.makeJacobian(wRs), copy=False)
@@ -37,15 +36,14 @@ class LFSolver:
         if eigval > self.eigmax:
             self.eigmax = eigval  # Compute the maximum wave speed; the maximum wave speed is the max eigenvalue between all cells i and i-1
 
-        return .5 * ((fLs+fRs) - (eigval*(self.qRs-self.qLs)))
+        return .5 * ((fLs+fRs) - (eigval*(qRs-qLs)))
     
 
 # Piecewise linear Godunov solver (2nd-order stable)
 class GSolver:
-    def __init__(self, config, domain, g):
+    def __init__(self, g):
         self.gamma = g
         self.eigmax = 0
-        self.qLs, self.qRs = fn.makeBoundaryCondition(config, domain)
 
     # Jacobian matrix using primitive variables
     def makeJacobian(self, tube):
@@ -62,10 +60,10 @@ class GSolver:
                      vecs[:,0] * ((.5*rhos*np.linalg.norm(vecs, axis=1)**2) + ((self.gamma*pressures)/(self.gamma-1)))]
 
     # Calculate Riemann flux
-    def calculateRiemannFlux(self):
-        gradients = limiters.minmod(self.qLs, self.qRs)
+    def calculateRiemannFlux(self, qLs, qRs):
+        gradients = limiters.minmod(qLs, qRs)
 
-        interfaceLefts, interfaceRights = self.qRs[:-1]+gradients, self.qLs[1:]-gradients
+        interfaceLefts, interfaceRights = qRs[:-1]+gradients, qLs[1:]-gradients
 
         wLs, wRs = fn.convertConservative(qLs, self.gamma), fn.convertConservative(qRs, self.gamma)
         fLs, fRs = self.makeFlux(wLs), self.makeFlux(wRs)

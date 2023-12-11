@@ -13,7 +13,3 @@ def minmod(qLs, qRs):
     arr[mask] = b[mask]
 
     return arr
-
-
-def vanLeer():
-    pass
