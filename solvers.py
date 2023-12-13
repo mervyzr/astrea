@@ -46,6 +46,7 @@ class LFSolver:
         return .5 * ((fLs+fRs) - (eigval*(qRs-qLs)))
     
 
+
 # Piecewise linear Godunov with minmod limiter solver (2nd-order stable)
 class GodunovSolver:
     def __init__(self, domain, config, g):
@@ -76,7 +77,7 @@ class GodunovSolver:
             qLs, qRs = np.concatenate(([self.domain[0]],self.domain)), np.concatenate((self.domain,[self.domain[-1]]))  # Use outflow boundary for edge cells        
 
         gradients = limiters.minmod(qLs, qRs)  # implement limiter here
-        qLefts, qRights = np.copy(self.domain)-gradients, np.copy(self.domain)+gradients
+        qLefts, qRights = np.copy(self.domain)-gradients, np.copy(self.domain)+gradients  # reconstruction step
         #avg_values = .5 * (qLefts+qRights)
 
         if self.config == "sin":
@@ -99,3 +100,31 @@ class GodunovSolver:
             self.eigmax = eigval  # Compute the maximum wave speed; the maximum wave speed is the max eigenvalue between all cells i and i-1
 
         return .5 * ((fLs+fRs) - (eigval*(leftInterfaces-rightInterfaces)))
+
+
+
+# Piecewise parabolic method solver (3rd-order stable for uneven grid; 4th-order stable for even grid)
+class ppmSolver:
+    def __init__(self, domain, config, g):
+        self.domain = domain
+        self.config = config
+        self.gamma = gamma
+        self.eigmax = 0
+
+    # Jacobian matrix using primitive variables
+    def makeJacobian(self, tube):
+        rho, vx, pressure = tube[:,0], tube[:,1], tube[:,4]
+        arr = np.zeros((len(tube), 5, 5))  # create empty square arrays for each cell
+        i,j = np.diag_indices(5)
+        arr[:,i,j], arr[:,0,1], arr[:,1,4], arr[:,4,1] = vx[:,None], rho, 1/rho, self.gamma*pressure  # replace matrix with values
+        return arr
+
+    # Make f_i based on initial conditions and primitive variables
+    def makeFlux(self, tube):
+        rhos, vecs, pressures = tube[:,0], tube[:,1:4], tube[:,4]
+        return np.c_[rhos*vecs[:,0], rhos*(vecs[:,0]**2) + pressures, rhos*vecs[:,0]*vecs[:,1], rhos*vecs[:,0]*vecs[:,2],\
+                     vecs[:,0] * ((.5*rhos*np.linalg.norm(vecs, axis=1)**2) + ((self.gamma*pressures)/(self.gamma-1)))]
+
+    # Calculate Riemann flux
+    def calculateRiemannFlux(self):
+        pass
