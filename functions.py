@@ -19,13 +19,3 @@ def convertConservative(tube, g):
 def calculateSolutionError(simulation, start, end):
     dx = abs(end-start)/len(simulation[0])
     return dx * np.sum(np.abs(simulation[0] - simulation[list(simulation.keys())[-1]]), axis=0)
-
-
-# Function for returning configuration with boundary conditions
-def makeBoundaryCondition(config, arr):
-    if config == "sin":
-        # Use periodic boundary for edge cells
-        return np.concatenate(([arr[-1]],arr)), np.concatenate((arr,[arr[0]]))
-    else:
-        # Use outflow boundary for edge cells
-        return np.concatenate(([arr[0]],arr)), np.concatenate((arr,[arr[-1]]))
