@@ -1,7 +1,7 @@
 import numpy as np
 
 import functions as fn
-import slope_limiters as limiters
+import flux_limiters as limiters
 
 
 # Piecewise constant Lax-Friedrichs solver (1st-order stable)
