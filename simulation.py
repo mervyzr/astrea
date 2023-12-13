@@ -96,14 +96,8 @@ def runSimulation(N, _config=config, _cfl=cfl, _gamma=gamma, _startPos=startPos,
             fig.canvas.flush_events()
 
         # Compute the numerical fluxes at each interface
-        if _config == "sin":
-            # Use periodic boundary for edge cells
-            qLs, qRs = np.concatenate(([domain[-1]],domain)), np.concatenate((domain,[domain[0]]))
-        else:
-            # Use outflow boundary for edge cells
-            qLs, qRs = np.concatenate(([domain[0]],domain)), np.concatenate((domain,[domain[-1]]))
-        hydroTube = solver.LFSolver(_gamma)
-        fluxes = hydroTube.calculateRiemannFlux(qLs, qRs)
+        hydroTube = solver.LFSolver(domain, _config, _gamma)
+        fluxes = hydroTube.calculateRiemannFlux()
 
         # Compute new time step
         dt = _cfl * dx/hydroTube.eigmax

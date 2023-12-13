@@ -6,7 +6,13 @@ import slope_limiters as limiters
 
 # Piecewise constant Lax-Friedrichs solver (1st-order stable)
 class LFSolver:
-    def __init__(self, g):
+    def __init__(self, domain, config, g):
+        if config == "sin":
+            # Use periodic boundary for edge cells
+            self.qLs, self.qRs = np.concatenate(([domain[-1]],domain)), np.concatenate((domain,[domain[0]]))
+        else:
+            # Use outflow boundary for edge cells
+            self.qLs, self.qRs = np.concatenate(([domain[0]],domain)), np.concatenate((domain,[domain[-1]]))
         self.gamma = g
         self.eigmax = 0
 
@@ -25,8 +31,8 @@ class LFSolver:
                      vecs[:,0] * ((.5*rhos*np.linalg.norm(vecs, axis=1)**2) + ((self.gamma*pressures)/(self.gamma-1)))]
 
     # Calculate Riemann flux
-    def calculateRiemannFlux(self, qLs, qRs):
-        wLs, wRs = fn.convertConservative(qLs, self.gamma), fn.convertConservative(qRs, self.gamma)
+    def calculateRiemannFlux(self):
+        wLs, wRs = fn.convertConservative(self.qLs, self.gamma), fn.convertConservative(self.qRs, self.gamma)
         fLs, fRs = self.makeFlux(wLs), self.makeFlux(wRs)
 
         AL, AR = np.nan_to_num(self.makeJacobian(wLs), copy=False), np.nan_to_num(self.makeJacobian(wRs), copy=False)
@@ -36,7 +42,7 @@ class LFSolver:
         if eigval > self.eigmax:
             self.eigmax = eigval  # Compute the maximum wave speed; the maximum wave speed is the max eigenvalue between all cells i and i-1
 
-        return .5 * ((fLs+fRs) - (eigval*(qRs-qLs)))
+        return .5 * ((fLs+fRs) - (eigval*(self.qRs-self.qLs)))
     
 
 # Piecewise linear Godunov solver (2nd-order stable)
