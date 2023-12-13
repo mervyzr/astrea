@@ -15,7 +15,19 @@ def minmod(qLs, qRs):
     return .5*arr
 
 
-# Calculate the van Leer parameter. Returns an array of gradients for each parameter in each cell
-def vanLeer(qLs, qRs):
-    a, b = qLs[1:] - qLs[:-1], qRs[1:] - qRs[:-1]
-    return (a/b + np.abs(a/b))/(1 + np.abs(a/b))
+# Calculate the van Leer/harmonic parameter. Returns an array of gradients for each parameter in each cell
+def harmonic(qLs, qRs):
+    r = np.nan_to_num((qLs[1:] - qLs[:-1])/(qRs[1:] - qRs[:-1]))
+    return (r + np.abs(r))/(1 + np.abs(r))
+
+
+# Calculate the ospre parameter. Returns an array of gradients for each parameter in each cell
+def ospre(qLs, qRs):
+    r = np.nan_to_num((qLs[1:] - qLs[:-1])/(qRs[1:] - qRs[:-1]))
+    return 1.5 * ((r**2 + r)/(r**2 + r + 1))
+
+
+# Calculate the van Albada parameter. Returns an array of gradients for each parameter in each cell
+def vanAlbada(qLs, qRs):
+    r = np.nan_to_num((qLs[1:] - qLs[:-1])/(qRs[1:] - qRs[:-1]))
+    return (r**2 + r)/(r**2 + 1)
