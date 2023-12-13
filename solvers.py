@@ -98,4 +98,4 @@ class GodunovSolver:
         if eigval > self.eigmax:
             self.eigmax = eigval  # Compute the maximum wave speed; the maximum wave speed is the max eigenvalue between all cells i and i-1
 
-        return .5 * ((fLs+fRs) - (eigval*(leftInterfaces-rightInterfaces)))    
+        return .5 * ((fLs+fRs) - (eigval*(leftInterfaces-rightInterfaces)))
