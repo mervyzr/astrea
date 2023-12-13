@@ -75,7 +75,7 @@ class GodunovSolver:
         else:
             qLs, qRs = np.concatenate(([self.domain[0]],self.domain)), np.concatenate((self.domain,[self.domain[-1]]))  # Use outflow boundary for edge cells        
 
-        gradients = limiters.minmod(qLs, qRs)  # implement minmod limiter here
+        gradients = limiters.minmod(qLs, qRs)  # implement limiter here
         qLefts, qRights = np.copy(self.domain)-gradients, np.copy(self.domain)+gradients
         #avg_values = .5 * (qLefts+qRights)
 
