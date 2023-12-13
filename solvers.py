@@ -45,9 +45,15 @@ class LFSolver:
         return .5 * ((fLs+fRs) - (eigval*(self.qRs-self.qLs)))
     
 
-# Piecewise linear Godunov solver (2nd-order stable)
-class GSolver:
-    def __init__(self, g):
+# Piecewise linear Godunov with minmod limiter solver (2nd-order stable)
+class GodunovSolver:
+    def __init__(self, domain, config, g):
+        if config == "sin":
+            # Use periodic boundary for edge cells
+            self.qLs, self.qRs = np.concatenate(([domain[-1]],domain)), np.concatenate((domain,[domain[0]]))
+        else:
+            # Use outflow boundary for edge cells
+            self.qLs, self.qRs = np.concatenate(([domain[0]],domain)), np.concatenate((domain,[domain[-1]]))
         self.gamma = g
         self.eigmax = 0
 
