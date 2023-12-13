@@ -8,7 +8,7 @@ import moviepy.video.io.ImageSequenceClip
 import functions as fn
 
 
-show = True
+save = False
 
 
 # Initiate the live plot feature
@@ -73,7 +73,7 @@ def updatePlot(arr, t, fig, ax, plots):
 
 
 # Plot q as a snapshot
-def plotQuantities(*args, **kwargs):
+def plotQuantities(runs, *args, **kwargs):
     try:
         start, end = kwargs["start"], kwargs["end"]
     except Exception as e:
@@ -97,7 +97,7 @@ def plotQuantities(*args, **kwargs):
     ax[1,0].grid(linestyle='--', linewidth=0.5)
     ax[1,1].grid(linestyle='--', linewidth=0.5)
 
-    for simulation in args:
+    for simulation in runs:
         y1 = simulation[list(simulation.keys())[index]][:, 0]  # density
         y2 = simulation[list(simulation.keys())[index]][:, 4]  # pressure
         y3 = simulation[list(simulation.keys())[index]][:, 1]  # vx
@@ -114,15 +114,15 @@ def plotQuantities(*args, **kwargs):
     handles, labels = plt.gca().get_legend_handles_labels()
     fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
 
-    if show:
-        plt.show(block=True)
-    else:
+    if save:
         try:
             kwargs['test']
         except Exception as e:
             plt.savefig(f"{os.getcwd()}/quantitiesPlot.png", dpi=330, facecolor="w")
         else:
             plt.savefig(f"{os.getcwd()}/quantitiesPlot_{kwargs['test']}.png", dpi=330, facecolor="w")
+    else:
+        plt.show(block=True)
 
     plt.cla()
     plt.clf()
@@ -130,7 +130,7 @@ def plotQuantities(*args, **kwargs):
     return None
 
 
-def plotSolutionErrors(*args, **kwargs):
+def plotSolutionErrors(runs, *args, **kwargs):
     try:
         start, end = kwargs["start"], kwargs["end"]
     except Exception as e:
@@ -147,7 +147,7 @@ def plotSolutionErrors(*args, **kwargs):
     ax[1,1].grid(linestyle='--', linewidth=0.5)
 
     x, y1, y2, y3, y4 = [], [], [], [], []
-    for simulation in args:
+    for simulation in runs:
         solutionErrors = fn.calculateSolutionError(simulation, start, end)
         x.append(len(simulation[0]))
         y1.append(solutionErrors[0])  # density
@@ -164,15 +164,15 @@ def plotSolutionErrors(*args, **kwargs):
     fig.text(0.5, 0.04, r"Resolution $\log_{10}{[N_\nu]}$", fontsize=18, ha='center')
     fig.text(0.04, 0.5, r"Solution errors $\log_{10}{[\epsilon_\nu(q)]}$", fontsize=18, va='center', rotation='vertical')
 
-    if show:
-        plt.show(block=True)
-    else:
+    if save:
         try:
             kwargs['test']
         except Exception as e:
-            plt.savefig(f"{os.getcwd()}/quantitiesPlot.png", dpi=330, facecolor="w")
+            plt.savefig(f"{os.getcwd()}/solutionErrors.png", dpi=330, facecolor="w")
         else:
-            plt.savefig(f"{os.getcwd()}/quantitiesPlot_{kwargs['test']}.png", dpi=330, facecolor="w")
+            plt.savefig(f"{os.getcwd()}/solutionErrors_{kwargs['test']}.png", dpi=330, facecolor="w")
+    else:
+        plt.show(block=True)
 
     plt.cla()
     plt.clf()

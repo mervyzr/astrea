@@ -108,7 +108,7 @@ class ppmSolver:
     def __init__(self, domain, config, g):
         self.domain = domain
         self.config = config
-        self.gamma = gamma
+        self.gamma = g
         self.eigmax = 0
 
     # Jacobian matrix using primitive variables

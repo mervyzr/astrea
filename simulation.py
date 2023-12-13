@@ -1,4 +1,5 @@
 import time
+from datetime import timedelta
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -76,8 +77,18 @@ def runSimulation(N, _config=config, _cfl=cfl, _gamma=gamma, _startPos=startPos,
 
 lap = time.time()
 run = runSimulation(cells, config)
-print(time.time() - lap, len(run))
+print(f"[Test={config}, N={cells}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
 
-#plotter.plotQuantities(run, index=-1, start=startPos, end=endPos)
-#plotter.plotSolutionErrors(run, start=startPos, end=endPos)
+
+"""runs = []
+for n in [20, 100, 300, 1000, 10000]:
+    config = "sod"
+    lap = time.time()
+    run = runSimulation(n, config)
+    print(f"[Test={config}, N={n}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
+    runs.append(run)
+
+#plotter.plotQuantities(runs, index=-1, start=startPos, end=endPos)
+#plotter.plotSolutionErrors(runs, start=startPos, end=endPos)
 #plotter.makeVideo(run, start=startPos, end=endPos)
+"""
