@@ -10,6 +10,69 @@ import functions as fn
 
 show = True
 
+
+# Initiate the live plot feature
+def initiateLivePlot(startPos, endPos, N):
+    plot_x = np.linspace(startPos, endPos, N)
+    plt.ion()
+
+    fig, ax = plt.subplots(nrows=2, ncols=2)
+    ax[0,0].set_ylabel(r"density $\rho$")
+    ax[0,1].set_ylabel(r"pressure $P$")
+    ax[1,0].set_ylabel(r"velocity $v_x$")
+    ax[1,1].set_ylabel(r"thermal energy $P/\rho$")
+
+    ax[0,1].yaxis.set_label_position("right")
+    ax[1,1].yaxis.set_label_position("right")
+
+    ax[0,1].yaxis.tick_right()
+    ax[1,1].yaxis.tick_right()
+
+    ax[0,0].set_xlim([startPos, endPos])
+    ax[0,1].set_xlim([startPos, endPos])
+    ax[1,0].set_xlim([startPos, endPos])
+    ax[1,1].set_xlim([startPos, endPos])
+
+    ax[0,0].grid(linestyle='--', linewidth=0.5)
+    ax[0,1].grid(linestyle='--', linewidth=0.5)
+    ax[1,0].grid(linestyle='--', linewidth=0.5)
+    ax[1,1].grid(linestyle='--', linewidth=0.5)
+
+    graphTL, = ax[0,0].plot(plot_x, plot_x, linewidth=2, color="blue")  # density
+    graphTR, = ax[0,1].plot(plot_x, plot_x, linewidth=2, color="red")  # pressure
+    graphBL, = ax[1,0].plot(plot_x, plot_x, linewidth=2, color="green")  # vx
+    graphBR, = ax[1,1].plot(plot_x, plot_x, linewidth=2, color="black")  # thermal energy
+
+    return fig, ax, [graphTL, graphTR, graphBL, graphBR]
+
+
+# Update live plot
+def updatePlot(arr, t, fig, ax, plots):
+    graphTL, graphTR, graphBL, graphBR = plots
+
+    graphTL.set_ydata(arr[:,0])  # density
+    graphTR.set_ydata(arr[:,4])  # pressure
+    graphBL.set_ydata(arr[:,1])  # vx
+    graphBR.set_ydata(arr[:,4]/arr[:,0])  # thermal energy
+
+    ax[0,0].relim()
+    ax[0,0].autoscale_view()
+    ax[0,1].relim()
+    ax[0,1].autoscale_view()
+    ax[1,0].relim()
+    ax[1,0].autoscale_view()
+    ax[1,1].relim()
+    ax[1,1].autoscale_view()
+
+    plt.suptitle(rf"Quantities $q$ against cell position $x$ at $t = {round(t,4)}$")
+    fig.text(0.5, 0.04, r"Cell position $x$", ha='center')
+    fig.canvas.draw()
+    fig.canvas.flush_events()
+
+    pass
+
+
+# Plot q as a snapshot
 def plotQuantities(*args, **kwargs):
     try:
         start, end = kwargs["start"], kwargs["end"]
