@@ -12,4 +12,4 @@ def minmod(qLs, qRs):
     mask = np.where((np.abs(a) >= np.abs(b)) & (a*b > 0))
     arr[mask] = b[mask]
 
-    return arr
+    return .5*arr

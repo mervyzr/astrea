@@ -12,7 +12,7 @@ import plotting_functions as plotter
 
 config = "sod"
 cells = 100
-cfl = .5
+cfl = .8
 gamma = 1.4
 
 livePlot = True
@@ -99,7 +99,7 @@ def runSimulation(N, _config=config, _cfl=cfl, _gamma=gamma, _startPos=startPos,
             fig.canvas.flush_events()
 
         # Compute the numerical fluxes at each interface
-        hydroTube = solver.LFSolver(domain, _config, _gamma)
+        hydroTube = solver.GodunovSolver(domain, _config, _gamma)
         fluxes = hydroTube.calculateRiemannFlux()
 
         # Compute new time step
