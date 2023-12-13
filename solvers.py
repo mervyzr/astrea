@@ -7,12 +7,8 @@ import slope_limiters as limiters
 # Piecewise constant Lax-Friedrichs solver (1st-order stable)
 class LFSolver:
     def __init__(self, domain, config, g):
-        if config == "sin":
-            # Use periodic boundary for edge cells
-            self.qLs, self.qRs = np.concatenate(([domain[-1]],domain)), np.concatenate((domain,[domain[0]]))
-        else:
-            # Use outflow boundary for edge cells
-            self.qLs, self.qRs = np.concatenate(([domain[0]],domain)), np.concatenate((domain,[domain[-1]]))
+        self.domain = domain
+        self.config = config
         self.gamma = g
         self.eigmax = 0
 
@@ -32,7 +28,12 @@ class LFSolver:
 
     # Calculate Riemann flux
     def calculateRiemannFlux(self):
-        wLs, wRs = fn.convertConservative(self.qLs, self.gamma), fn.convertConservative(self.qRs, self.gamma)
+        if self.config == "sin":
+            qLs, qRs = np.concatenate(([self.domain[-1]],self.domain)), np.concatenate((self.domain,[self.domain[0]]))  # Use periodic boundary for edge cells
+        else:
+            qLs, qRs = np.concatenate(([self.domain[0]],self.domain)), np.concatenate((self.domain,[self.domain[-1]]))  # Use outflow boundary for edge cells
+
+        wLs, wRs = fn.convertConservative(qLs, self.gamma), fn.convertConservative(qRs, self.gamma)
         fLs, fRs = self.makeFlux(wLs), self.makeFlux(wRs)
 
         AL, AR = np.nan_to_num(self.makeJacobian(wLs), copy=False), np.nan_to_num(self.makeJacobian(wRs), copy=False)
@@ -42,18 +43,14 @@ class LFSolver:
         if eigval > self.eigmax:
             self.eigmax = eigval  # Compute the maximum wave speed; the maximum wave speed is the max eigenvalue between all cells i and i-1
 
-        return .5 * ((fLs+fRs) - (eigval*(self.qRs-self.qLs)))
+        return .5 * ((fLs+fRs) - (eigval*(qRs-qLs)))
     
 
 # Piecewise linear Godunov with minmod limiter solver (2nd-order stable)
 class GodunovSolver:
     def __init__(self, domain, config, g):
-        if config == "sin":
-            # Use periodic boundary for edge cells
-            self.qLs, self.qRs = np.concatenate(([domain[-1]],domain)), np.concatenate((domain,[domain[0]]))
-        else:
-            # Use outflow boundary for edge cells
-            self.qLs, self.qRs = np.concatenate(([domain[0]],domain)), np.concatenate((domain,[domain[-1]]))
+        self.domain = domain
+        self.config = config
         self.gamma = g
         self.eigmax = 0
 
@@ -72,10 +69,24 @@ class GodunovSolver:
                      vecs[:,0] * ((.5*rhos*np.linalg.norm(vecs, axis=1)**2) + ((self.gamma*pressures)/(self.gamma-1)))]
 
     # Calculate Riemann flux
-    def calculateRiemannFlux(self, qLs, qRs):
-        gradients = limiters.minmod(qLs, qRs)
+    def calculateRiemannFlux(self):
+        if self.config == "sin":
+            qLs, qRs = np.concatenate(([self.domain[-1]],self.domain)), np.concatenate((self.domain,[self.domain[0]]))  # Use periodic boundary for edge cells
+        else:
+            qLs, qRs = np.concatenate(([self.domain[0]],self.domain)), np.concatenate((self.domain,[self.domain[-1]]))  # Use outflow boundary for edge cells        
 
-        interfaceLefts, interfaceRights = qRs[:-1]+gradients, qLs[1:]-gradients
+        gradients = limiters.minmod(qLs, qRs)  # implement minmod limiter here
+        qLefts, qRights = np.copy(self.domain)-gradients, np.copy(self.domain)+gradients
+        #avg_values = .5 * (qLefts+qRights)
+
+        if self.config == "sin":
+            # Use periodic boundary for edge cells
+            leftInterfaces, rightInterfaces = np.concatenate((qLefts,[qLefts[0]])), np.concatenate(([qRights[-1]],qRights))
+            #qLs, qRs = np.concatenate(([avg_values[-1]],avg_values)), np.concatenate((avg_values,[avg_values[0]]))
+        else:
+            # Use outflow boundary for edge cells
+            leftInterfaces, rightInterfaces = np.concatenate((qLefts,[qRights[-1]])), np.concatenate(([qLefts[0]],qRights))
+            #qLs, qRs = np.concatenate(([avg_values[0]],avg_values)), np.concatenate((avg_values,[avg_values[-1]]))
 
         wLs, wRs = fn.convertConservative(qLs, self.gamma), fn.convertConservative(qRs, self.gamma)
         fLs, fRs = self.makeFlux(wLs), self.makeFlux(wRs)
@@ -87,4 +98,4 @@ class GodunovSolver:
         if eigval > self.eigmax:
             self.eigmax = eigval  # Compute the maximum wave speed; the maximum wave speed is the max eigenvalue between all cells i and i-1
 
-        return .5 * ((fLs+fRs) - (eigval*(qRs-qLs)))    
+        return .5 * ((fLs+fRs) - (eigval*(leftInterfaces-rightInterfaces)))    
