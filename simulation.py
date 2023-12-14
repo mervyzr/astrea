@@ -2,7 +2,6 @@ import time
 from datetime import timedelta
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import configs as cfg
 import functions as fn
