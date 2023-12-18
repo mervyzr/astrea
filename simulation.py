@@ -10,12 +10,12 @@ import plotting_functions as plotter
 
 ##############################################################################
 
-config = "sin"
-cells = 50
+config = "sod"
+cells = 100
 cfl = .5
 gamma = 1.4
 
-livePlot = False
+livePlot = True
 
 ##############################################################################
 
@@ -77,7 +77,7 @@ def runSimulation(N, _config=config, _cfl=cfl, _gamma=gamma, _startPos=startPos,
 lap = time.time()
 run = runSimulation(cells, config)
 print(f"[Test={config}, N={cells}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
-plotter.makeVideo([run], start=startPos, end=endPos)
+#plotter.makeVideo([run], start=startPos, end=endPos)
 
 """runs = []
 for n in [20, 100, 300, 1000, 4096]:
