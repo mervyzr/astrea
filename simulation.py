@@ -11,8 +11,8 @@ import plotting_functions as plotter
 ##############################################################################
 
 config = "sod"
-cells = 2**5
-cfl = .8
+cells = 300
+cfl = .5
 gamma = 1.4
 
 livePlot = False
