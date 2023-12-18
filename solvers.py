@@ -5,7 +5,7 @@ import flux_limiters as limiters
 
 
 # Piecewise constant Lax-Friedrichs solver (1st-order stable)
-class LFSolver:
+class pcmSolver:
     def __init__(self, domain, config, g):
         self.domain = domain
         self.config = config
@@ -48,7 +48,7 @@ class LFSolver:
 
 
 # Piecewise linear Godunov with minmod limiter solver (2nd-order stable)
-class GodunovSolver:
+class plmSolver:
     def __init__(self, domain, config, g):
         self.domain = domain
         self.config = config

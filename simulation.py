@@ -11,7 +11,7 @@ import plotting_functions as plotter
 ##############################################################################
 
 config = "sin"
-cells = 100
+cells = 50
 cfl = .5
 gamma = 1.4
 
@@ -61,7 +61,7 @@ def runSimulation(N, _config=config, _cfl=cfl, _gamma=gamma, _startPos=startPos,
             plotter.updatePlot(tube, t, fig, ax, plots)
 
         # Compute the numerical fluxes at each interface
-        hydroTube = solver.GodunovSolver(domain, _config, _gamma)
+        hydroTube = solver.plmSolver(domain, _config, _gamma)
         fluxes = hydroTube.calculateRiemannFlux()
 
         # Compute new time step
