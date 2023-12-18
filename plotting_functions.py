@@ -189,31 +189,31 @@ def writeVideo(image_folder, *args):
         test = f"_{args[0]}"
 
     try:
-        os.system(f"ffmpeg -framerate 24 -pattern_type glob -i '{image_folder}/*.png' -c:v libx264 -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' -pix_fmt yuv420p vid{test}.mp4")
+        os.system(f"ffmpeg -framerate 24 -pattern_type glob -i '{image_folder}/*.png' -c:v libx264 -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' -pix_fmt yuv420p ../vid{test}.mp4")
     except Exception as e:
         print(f"ffmpeg failed: {e}")
         try:
-            images = [os.path.join(f"{os.getcwd()}/{image_folder}",img) for img in os.listdir(image_folder) if img.endswith(".png")]
+            images = [os.path.join(image_folder,img) for img in os.listdir(image_folder) if img.endswith(".png")]
             images.sort()
 
             video = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(images, fps=24)
-            video.write_videofile(f"{os.getcwd()}/vid{test}.mp4")
+            video.write_videofile(f"{image_folder}/vid{test}.mp4")
         except Exception as e:
             print(f"moviepy failed: {e}")
             pass
 
 
-def makeVideo(*args, **kwargs):
+def makeVideo(runs, *args, **kwargs):
     try:
         start, end = kwargs["start"], kwargs["end"]
     except Exception as e:
         start, end = 0, 1
 
-    for simulation in args:
+    for simulation in runs:
         N = len(simulation[0])
         counter = 0
 
-        path = f"{os.getcwd()}/plots"
+        path = f"{os.getcwd()}/../vidplots"
         if os.path.exists(path):
             shutil.rmtree(path)
         os.makedirs(path)
@@ -261,7 +261,7 @@ def makeVideo(*args, **kwargs):
         try:
             kwargs['test']
         except Exception as e:
-            writeVideo("plots")
+            writeVideo(path)
         else:
-            writeVideo("plots", kwargs['test'])
+            writeVideo(path, kwargs['test'])
     return None
