@@ -118,9 +118,9 @@ def plotQuantities(runs, *args, **kwargs):
         try:
             kwargs['test']
         except Exception as e:
-            plt.savefig(f"{os.getcwd()}/quantitiesPlot.png", dpi=330, facecolor="w")
+            plt.savefig(f"{os.getcwd()}/../quantitiesPlot.png", dpi=330, facecolor="w")
         else:
-            plt.savefig(f"{os.getcwd()}/quantitiesPlot_{kwargs['test']}.png", dpi=330, facecolor="w")
+            plt.savefig(f"{os.getcwd()}/../quantitiesPlot_{kwargs['test']}.png", dpi=330, facecolor="w")
     else:
         plt.show(block=True)
 
@@ -168,9 +168,9 @@ def plotSolutionErrors(runs, *args, **kwargs):
         try:
             kwargs['test']
         except Exception as e:
-            plt.savefig(f"{os.getcwd()}/solutionErrors.png", dpi=330, facecolor="w")
+            plt.savefig(f"{os.getcwd()}/../solutionErrors.png", dpi=330, facecolor="w")
         else:
-            plt.savefig(f"{os.getcwd()}/solutionErrors_{kwargs['test']}.png", dpi=330, facecolor="w")
+            plt.savefig(f"{os.getcwd()}/../solutionErrors_{kwargs['test']}.png", dpi=330, facecolor="w")
     else:
         plt.show(block=True)
 

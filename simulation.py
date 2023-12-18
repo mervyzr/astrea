@@ -10,8 +10,8 @@ import plotting_functions as plotter
 
 ##############################################################################
 
-config = "sod"
-cells = 300
+config = "sin"
+cells = 100
 cfl = .5
 gamma = 1.4
 
@@ -80,7 +80,7 @@ print(f"[Test={config}, N={cells}; {len(run)} files]  Elapsed: {str(timedelta(se
 plotter.makeVideo([run], start=startPos, end=endPos)
 
 """runs = []
-for n in [20, 100, 300, 1000, 10000]:
+for n in [20, 100, 300, 1000, 4096]:
     config = "sod"
     lap = time.time()
     run = runSimulation(n, config)
