@@ -247,8 +247,8 @@ def makeVideo(runs, *args, **kwargs):
 
             plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t = {round(t,4)}$", fontsize=24)
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
-            handles, labels = plt.gca().get_legend_handles_labels()
-            fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
+            #handles, labels = plt.gca().get_legend_handles_labels()
+            #fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
 
             plt.savefig(f"{path}/{str(counter).zfill(4)}.png", dpi=330, facecolor="w")
 
