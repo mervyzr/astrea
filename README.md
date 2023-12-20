@@ -4,7 +4,7 @@ hydro_shock is a 1D-hydrodynamical code for the purpose of simulating shocks and
 
 # Description
 
-The code is written entirely in Python 3. It begins by simulating an evenly-spaced grid, which then updates the variables with an Eulerian approach. There are multiple solvers and flux limiters in place, but some are still works-in-progress. This code is created as part of the Master's thesis project at the University of Cologne.
+The code is written entirely in Python 3. It begins by simulating an evenly-spaced grid, which then updates the variables with an Eulerian approach. There are multiple solvers and flux limiters in place, but some are still works-in-progress. Currently the Riemann solver with the piecewise-constant method (PCM) is working. This code is created as part of the Master's thesis project at the University of Cologne.
 
 # Installation
 Ideally the code can be in its own folder and should be run inside a Python environment. The dependencies can be found in the requirements.txt file.
