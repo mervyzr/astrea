@@ -50,6 +50,9 @@ lap = time.time()
 run = runSimulation(cfg.cells, cfg.config, cfg.cfl, cfg.gamma, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
 print(f"[Test={cfg.config}, N={cfg.cells}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
 
+if cfg.finalPlot:
+    pass
+
 """runs = []
 for n in [20, 100, 300, 1000, 4096]:
     lap = time.time()

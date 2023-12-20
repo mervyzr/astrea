@@ -8,7 +8,9 @@ cfl = .5
 gamma = 1.4
 
 livePlot = True
+finalPlot = False
 saveFile = False
+
 
 if config == "sin":
     # sin-wave
