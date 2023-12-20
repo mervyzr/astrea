@@ -17,6 +17,23 @@ def convertConservative(tube, g):
     return np.c_[rhos, vecs, pressures]
 
 
+# Jacobian matrix using primitive variables
+def makeJacobian(tube, g):
+    rho, vx, pressure = tube[:,0], tube[:,1], tube[:,4]
+    gridLength, variables = len(tube), len(tube[0])
+    arr = np.zeros((gridLength, variables, variables))  # create empty square arrays for each cell
+    i,j = np.diag_indices(variables)
+    arr[:,i,j], arr[:,0,1], arr[:,1,4], arr[:,4,1] = vx[:,None], rho, 1/rho, g*pressure  # replace matrix with values
+    return arr
+
+
+# Make f_i based on initial conditions and primitive variables
+def makeFlux(tube, g):
+    rhos, vecs, pressures = tube[:,0], tube[:,1:4], tube[:,4]
+    return np.c_[rhos*vecs[:,0], rhos*(vecs[:,0]**2) + pressures, rhos*vecs[:,0]*vecs[:,1], rhos*vecs[:,0]*vecs[:,2],\
+                    vecs[:,0] * ((.5*rhos*np.linalg.norm(vecs, axis=1)**2) + ((g*pressures)/(g-1)))]
+
+
 # Function for solution error calculation for all variables
 def calculateSolutionError(simulation, start, end):
     dx = abs(end-start)/len(simulation[0])

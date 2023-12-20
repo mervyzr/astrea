@@ -2,12 +2,14 @@
 
 ##############################################################################
 
-config = "sod"
-cells = 100
-cfl = .5
+config = "sin"
+cells = 50
+cfl = .8
 gamma = 1.4
+solver = "linear"
 
 livePlot = True
+
 finalPlot = False
 saveFile = False
 

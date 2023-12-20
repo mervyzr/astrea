@@ -12,7 +12,7 @@ import plotting_functions as plotter
 ##############################################################################
 
 # Run code
-def runSimulation(_N, _config, _cfl, _gamma, _startPos, _endPos, _shockPos, _tEnd):
+def runSimulation(_N, _config, _cfl, _gamma, _solver, _startPos, _endPos, _shockPos, _tEnd):
     simulation = {}
     _N += (_N%2)  # Make N into an even number
     domain = fn.initialise(_N, _config, _gamma, _startPos, _endPos, _shockPos)
@@ -33,8 +33,8 @@ def runSimulation(_N, _config, _cfl, _gamma, _startPos, _endPos, _shockPos, _tEn
             plotter.updatePlot(tube, t, fig, ax, plots)
 
         # Compute the numerical fluxes at each interface
-        hydroTube = solver.plmSolver(domain, _config, _gamma)
-        fluxes = hydroTube.calculateRiemannFlux()
+        hydroTube = solver.RiemannSolver(domain, _config, _gamma)
+        fluxes = hydroTube.calculateRiemannFlux(_solver)
 
         # Compute new time step
         dt = _cfl * dx/hydroTube.eigmax
@@ -47,7 +47,7 @@ def runSimulation(_N, _config, _cfl, _gamma, _startPos, _endPos, _shockPos, _tEn
 ##############################################################################
 
 lap = time.time()
-run = runSimulation(cfg.cells, cfg.config, cfg.cfl, cfg.gamma, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
+run = runSimulation(cfg.cells, cfg.config, cfg.cfl, cfg.gamma, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
 print(f"[Test={cfg.config}, N={cfg.cells}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
 
 if cfg.finalPlot:
@@ -56,7 +56,7 @@ if cfg.finalPlot:
 """runs = []
 for n in [20, 100, 300, 1000, 4096]:
     lap = time.time()
-    run = runSimulation(n, cfg.config, cfg.cfl, cfg.gamma, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
+    run = runSimulation(n, cfg.config, cfg.cfl, cfg.gamma, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
     print(f"[Test={cfg.config}, N={n}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
     runs.append(run)
 
