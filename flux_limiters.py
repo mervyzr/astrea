@@ -1,5 +1,7 @@
 import numpy as np
 
+##############################################################################
+
 
 # Calculate minmod parameter. Returns an array of gradients for each parameter in each cell
 def minmod(qLs, qRs):

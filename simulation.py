@@ -8,56 +8,28 @@ import functions as fn
 import solvers as solver
 import plotting_functions as plotter
 
-##############################################################################
-
-config = "sod"
-cells = 100
-cfl = .5
-gamma = 1.4
-
-livePlot = True
 
 ##############################################################################
 
-if config == "sin":
-    # sin-wave
-    startPos = 0
-    endPos = 1
-    shockPos = 1
-    tEnd = 2
-elif config == "sedov":
-    # sedov shock
-    startPos = -10
-    endPos = 10
-    shockPos = 1
-    tEnd = .6
-else:
-    # sod shock
-    startPos = 0
-    endPos = 1
-    shockPos = .5
-    tEnd = .2
-
-
-# Main code
-def runSimulation(N, _config=config, _cfl=cfl, _gamma=gamma, _startPos=startPos, _endPos=endPos, _shockPos=shockPos, _tEnd=tEnd):
+# Run code
+def runSimulation(_N, _config, _cfl, _gamma, _startPos, _endPos, _shockPos, _tEnd):
     simulation = {}
-    N += (N%2)  # Make N into an even number
-    domain = cfg.initialise(N, _config, _gamma, _startPos, _endPos, _shockPos)
+    _N += (_N%2)  # Make N into an even number
+    domain = fn.initialise(_N, _config, _gamma, _startPos, _endPos, _shockPos)
     
     # Compute dx and set t = 0
-    dx = abs(_endPos-_startPos)/N
+    dx = abs(_endPos-_startPos)/_N
     t = 0
 
-    if livePlot:
-        fig, ax, plots = plotter.initiateLivePlot(_startPos, _endPos, N)
+    if cfg.livePlot:
+        fig, ax, plots = plotter.initiateLivePlot(_startPos, _endPos, _N)
 
     while t <= _tEnd:
         # Saves each instance of the system at time t
         tube = fn.convertConservative(domain, _gamma)
         simulation[t] = np.copy(tube)
 
-        if livePlot:
+        if cfg.livePlot:
             plotter.updatePlot(tube, t, fig, ax, plots)
 
         # Compute the numerical fluxes at each interface
@@ -75,9 +47,8 @@ def runSimulation(N, _config=config, _cfl=cfl, _gamma=gamma, _startPos=startPos,
 ##############################################################################
 
 lap = time.time()
-run = runSimulation(cells, config)
-print(f"[Test={config}, N={cells}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
-#plotter.makeVideo([run], start=startPos, end=endPos)
+run = runSimulation(cfg.cells, cfg.config, cfg.cfl, cfg.gamma, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
+print(f"[Test={cfg.config}, N={cfg.cells}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
 
 """runs = []
 for n in [20, 100, 300, 1000, 4096]:

@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 import moviepy.video.io.ImageSequenceClip
 
 import functions as fn
+import configs as cfg
 
-
-save = False
+##############################################################################
 
 
 # Initiate the live plot feature
@@ -114,7 +114,7 @@ def plotQuantities(runs, *args, **kwargs):
     handles, labels = plt.gca().get_legend_handles_labels()
     fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
 
-    if save:
+    if cfg.saveFile:
         try:
             kwargs['test']
         except Exception as e:
@@ -164,7 +164,7 @@ def plotSolutionErrors(runs, *args, **kwargs):
     fig.text(0.5, 0.04, r"Resolution $\log_{10}{[N_\nu]}$", fontsize=18, ha='center')
     fig.text(0.04, 0.5, r"Solution errors $\log_{10}{[\epsilon_\nu(q)]}$", fontsize=18, va='center', rotation='vertical')
 
-    if save:
+    if cfg.saveFile:
         try:
             kwargs['test']
         except Exception as e:
