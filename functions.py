@@ -40,7 +40,7 @@ def calculateSolutionError(simulation, start, end):
     return dx * np.sum(np.abs(simulation[0] - simulation[list(simulation.keys())[-1]]), axis=0)
 
 
-# Initialise the solution array with initial conditions and primitive variables
+# Initialise the solution array with initial conditions and primitive variables w, and return array with conserved variables
 def initialise(N, config, g, start, end, shock):
     if config == "sod":
         initialLeft = np.array([1,0,0,0,1])  # primitive variables
