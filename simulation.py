@@ -52,10 +52,9 @@ print(f"[Test={cfg.config}, N={cfg.cells}; {len(run)} files]  Elapsed: {str(time
 
 """runs = []
 for n in [20, 100, 300, 1000, 4096]:
-    config = "sod"
     lap = time.time()
-    run = runSimulation(n, config)
-    print(f"[Test={config}, N={n}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
+    run = runSimulation(n, cfg.config, cfg.cfl, cfg.gamma, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
+    print(f"[Test={cfg.config}, N={n}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
     runs.append(run)
 
 #plotter.plotQuantities(runs, index=-1, start=startPos, end=endPos)
