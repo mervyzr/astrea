@@ -8,10 +8,10 @@ cfl = .8
 gamma = 1.4
 solver = "linear"
 
-livePlot = False
+livePlot = True
 
 finalPlot = False
-saveFile = True
+saveFile = False
 
 
 if config == "sin":
