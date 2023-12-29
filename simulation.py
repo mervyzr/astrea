@@ -61,6 +61,6 @@ for n in [20, 100, 300, 1000, 4096]:
     print(f"[Test={cfg.config}, N={n}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
     runs.append(run)
 
-plotter.plotQuantities(runs, index=-1, start=startPos, end=endPos)
-plotter.plotSolutionErrors(runs, start=startPos, end=endPos)
+plotter.plotQuantities(runs, index=-1, start=cfg.startPos, end=cfg.endPos)
+plotter.plotSolutionErrors(runs, start=cfg.startPos, end=cfg.endPos)
 #plotter.makeVideo(run, start=startPos, end=endPos)
