@@ -46,21 +46,21 @@ def runSimulation(_N, _config, _cfl, _gamma, _solver, _startPos, _endPos, _shock
 
 ##############################################################################
 
-lap = time.time()
+"""lap = time.time()
 run = runSimulation(cfg.cells, cfg.config, cfg.cfl, cfg.gamma, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
 print(f"[Test={cfg.config}, N={cfg.cells}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
+"""
 
 if cfg.finalPlot:
     pass
 
-"""runs = []
+runs = []
 for n in [20, 100, 300, 1000, 4096]:
     lap = time.time()
     run = runSimulation(n, cfg.config, cfg.cfl, cfg.gamma, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
     print(f"[Test={cfg.config}, N={n}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
     runs.append(run)
 
-#plotter.plotQuantities(runs, index=-1, start=startPos, end=endPos)
-#plotter.plotSolutionErrors(runs, start=startPos, end=endPos)
+plotter.plotQuantities(runs, index=-1, start=startPos, end=endPos)
+plotter.plotSolutionErrors(runs, start=startPos, end=endPos)
 #plotter.makeVideo(run, start=startPos, end=endPos)
-"""
