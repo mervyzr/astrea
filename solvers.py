@@ -26,7 +26,7 @@ class RiemannSolver:
             pass
 
         elif solver.lower() == "plm" or solver.lower() == "linear":
-            # Piecewise linear Godunov with minmod limiter solver (2nd-order stable)
+            # Piecewise linear method with minmod limiter (2nd-order stable)
             gradients = limiters.minmod(qLs, qRs)  # implement limiter here
             qLefts, qRights = np.copy(self.domain)-gradients, np.copy(self.domain)+gradients  # reconstruction step
             #avg_values = .5 * (qLefts+qRights)
@@ -54,7 +54,7 @@ class RiemannSolver:
             return .5 * ((fLs+fRs) - (eigval*(leftInterfaces-rightInterfaces)))
 
         else:
-            # Piecewise constant method solver (1st-order stable)
+            # Piecewise constant method (1st-order stable)
             wLs, wRs = fn.convertConservative(qLs, self.gamma), fn.convertConservative(qRs, self.gamma)
             fLs, fRs = fn.makeFlux(wLs, self.gamma), fn.makeFlux(wRs, self.gamma)
 
