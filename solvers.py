@@ -54,7 +54,7 @@ class RiemannSolver:
             return .5 * ((fLs+fRs) - (eigval*(leftInterfaces-rightInterfaces)))
 
         else:
-            # Piecewise constant Lax-Friedrichs solver (1st-order stable)
+            # Piecewise constant method solver (1st-order stable)
             wLs, wRs = fn.convertConservative(qLs, self.gamma), fn.convertConservative(qRs, self.gamma)
             fLs, fRs = fn.makeFlux(wLs, self.gamma), fn.makeFlux(wRs, self.gamma)
 
