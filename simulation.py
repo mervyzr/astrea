@@ -62,5 +62,5 @@ for n in [20, 100, 300, 1000, 4096]:
 
 plotter.plotQuantities(runs, index=-1, start=cfg.startPos, end=cfg.endPos)
 plotter.plotSolutionErrors(runs, start=cfg.startPos, end=cfg.endPos)
-#plotter.makeVideo(run, start=startPos, end=endPos)
+#plotter.makeVideo(runs, start=cfg.startPos, end=cfg.endPos)
 """
