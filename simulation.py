@@ -49,7 +49,7 @@ def runSimulation(_N, _config, _cfl, _gamma, _solver, _startPos, _endPos, _shock
 runs = []
 if cfg.runType[0].lower() == "m":
     cfg.livePlot = False
-    for n in [20, 100, 300, 1000]:
+    for n in [20, 100, 300, 1000, 5000]:
         lap = time.time()
         run = runSimulation(n, cfg.config, cfg.cfl, cfg.gamma, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
         print(f"[Test={cfg.config}, N={n}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
