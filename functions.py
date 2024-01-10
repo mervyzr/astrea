@@ -17,7 +17,7 @@ def convertConservative(tube, g):
     return np.c_[rhos, vecs, pressures]
 
 
-# Jacobian matrix using primitive variables
+# Jacobian matrix using primitive variables (Roe solver)
 def makeJacobian(tube, g):
     rho, vx, pressure = tube[:,0], tube[:,1], tube[:,4]
     gridLength, variables = len(tube), len(tube[0])
