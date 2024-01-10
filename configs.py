@@ -8,11 +8,12 @@ cfl = .8
 gamma = 1.4
 solver = "linear"
 
+runType = "single"
 livePlot = True
 
-finalPlot = False
 saveFile = False
-
+snapshots = 1
+makeVideo = False
 
 if config == "sin":
     # sin-wave
