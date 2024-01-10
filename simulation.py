@@ -46,21 +46,25 @@ def runSimulation(_N, _config, _cfl, _gamma, _solver, _startPos, _endPos, _shock
 
 ##############################################################################
 
-lap = time.time()
-run = runSimulation(cfg.cells, cfg.config, cfg.cfl, cfg.gamma, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
-print(f"[Test={cfg.config}, N={cfg.cells}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
-
-if cfg.finalPlot:
-    pass
-
-"""runs = []
-for n in [20, 100, 300, 1000, 4096]:
+runs = []
+if cfg.runType[0].lower() == "m":
+    cfg.livePlot = False
+    for n in [20, 100, 300, 1000]:
+        lap = time.time()
+        run = runSimulation(n, cfg.config, cfg.cfl, cfg.gamma, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
+        print(f"[Test={cfg.config}, N={n}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
+        runs.append(run)
+    if cfg.saveFile:
+        plotter.plotQuantities(runs, cfg.snapshots)
+        plotter.plotSolutionErrors(runs)
+else:
+    if cfg.saveFile:
+        cfg.livePlot = False
     lap = time.time()
-    run = runSimulation(n, cfg.config, cfg.cfl, cfg.gamma, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
-    print(f"[Test={cfg.config}, N={n}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
+    run = runSimulation(cfg.cells, cfg.config, cfg.cfl, cfg.gamma, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
+    print(f"[Test={cfg.config}, N={cfg.cells}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
     runs.append(run)
-
-plotter.plotQuantities(runs, index=-1, start=cfg.startPos, end=cfg.endPos)
-plotter.plotSolutionErrors(runs, start=cfg.startPos, end=cfg.endPos)
-#plotter.makeVideo(runs, start=cfg.startPos, end=cfg.endPos)
-"""
+    if cfg.saveFile:
+        plotter.plotQuantities(runs, cfg.snapshots)
+    if cfg.makeVideo:
+        plotter.makeSimVideo(runs)

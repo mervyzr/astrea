@@ -51,3 +51,6 @@ docs/_build/
 
 # macOS
 .DS_Store
+
+# custom files
+configs.py
