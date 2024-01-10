@@ -27,7 +27,7 @@ def makeJacobian(tube, g):
     return arr
 
 
-# Make f_i based on initial conditions and primitive variables
+# Make f_i based on initial conditions and primitive variables (Roe solver)
 def makeFlux(tube, g):
     rhos, vecs, pressures = tube[:,0], tube[:,1:4], tube[:,4]
     return np.c_[rhos*vecs[:,0], rhos*(vecs[:,0]**2) + pressures, rhos*vecs[:,0]*vecs[:,1], rhos*vecs[:,0]*vecs[:,2],\
