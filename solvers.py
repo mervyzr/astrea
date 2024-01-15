@@ -12,7 +12,7 @@ class RiemannSolver:
         self.gamma = g
         self.eigmax = 0
 
-    # Calculate Riemann flux (Lax-Friedrichs)
+    # Calculate Riemann flux (Lax-Friedrichs; similar to Roe)
     def calculateRiemannFlux(self, solver):
         # Impose boundary conditions
         if self.config == "sin":

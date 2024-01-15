@@ -110,6 +110,14 @@ def plotQuantities(runs, snapshots):
             y4 = y2/y1                      # thermal energy
             x = np.linspace(cfg.startPos, cfg.endPos, len(y1))
 
+            last_time = list(simulation.keys())[-1]
+            differences = np.abs(np.diff(simulation[last_time][:,0]))
+            import scipy
+            peaks = scipy.signal.find_peaks(differences, height=1.5e-3)[0] * .001
+            print(peaks)
+            for xc in peaks:
+                ax[0,0].axvline(x=xc)
+
             ax[0,0].plot(x, y1, linewidth=2, color="blue")   # density
             ax[0,1].plot(x, y2, linewidth=2, color="red")    # pressure
             ax[1,0].plot(x, y3, linewidth=2, color="green")  # vx
