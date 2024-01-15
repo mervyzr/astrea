@@ -39,7 +39,7 @@ def runSimulation(_N, _config, _cfl, _gamma, _solver, _startPos, _endPos, _shock
         # Compute new time step
         dt = _cfl * dx/hydroTube.eigmax
 
-        # Update the new solution with the computed time step and the numerical fluxes (Lax-Friedrichs)
+        # Update the new solution with the computed time step and the numerical fluxes
         domain -= ((dt/dx) * np.diff(fluxes, axis=0))
         t += dt
     return simulation
