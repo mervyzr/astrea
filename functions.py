@@ -17,7 +17,7 @@ def convertConservative(tube, g):
     return np.c_[rhos, vecs, pressures]
 
 
-# Jacobian matrix using primitive variables (Roe solver)
+# Jacobian matrix using primitive variables
 def makeJacobian(tube, g):
     rho, vx, pressure = tube[:,0], tube[:,1], tube[:,4]
     gridLength, variables = len(tube), len(tube[0])
@@ -27,7 +27,7 @@ def makeJacobian(tube, g):
     return arr
 
 
-# Make f_i based on initial conditions and primitive variables (Roe solver)
+# Make f_i based on initial conditions and primitive variables
 def makeFlux(tube, g):
     rhos, vecs, pressures = tube[:,0], tube[:,1:4], tube[:,4]
     return np.c_[rhos*vecs[:,0], rhos*(vecs[:,0]**2) + pressures, rhos*vecs[:,0]*vecs[:,1], rhos*vecs[:,0]*vecs[:,2],\
@@ -43,39 +43,56 @@ def calculateSolutionError(simulation, start, end):
 # Initialise the solution array with initial conditions and primitive variables w, and return array with conserved variables
 def initialise(N, config, g, start, end, shock):
     if config == "sod":
-        initialLeft = np.array([1,0,0,0,1])  # primitive variables
-        initialRight = np.array([.125,0,0,0,.1])  # primitive variables
-
         cellsLeft = int(shock/(end-start) * N)
-        arrL, arrR = np.tile(initialLeft, (cellsLeft, 1)), np.tile(initialRight, (N - cellsLeft, 1))  # Initialise 1D grid with initial conditions
+        arrL, arrR = np.tile(np.array([1,0,0,0,1]), (cellsLeft, 1)), np.tile(np.array([.125,0,0,0,.1]), (N - cellsLeft, 1))
         arr = np.concatenate((arrL, arrR)).astype(float)
         return convertPrimitive(arr, g)  # convert domain to conservative variables q
     
     elif config == "sin":
-        initialLeft = np.array([0,1,1,1,1])  # primitive variables
-        initialRight = np.array([0,0,0,0,0])  # primitive variables
-
         cellsLeft = int(shock/(end-start) * N)
-        arrL, arrR = np.tile(initialLeft, (cellsLeft, 1)), np.tile(initialRight, (N - cellsLeft, 1))  # Initialise 1D grid with initial conditions
+        arrL, arrR = np.tile(np.array([0,1,1,1,1]), (cellsLeft, 1)), np.tile(np.array([0,0,0,0,0]), (N - cellsLeft, 1))
         arr = np.concatenate((arrL, arrR)).astype(float)
         xi = np.linspace(start, end, N)
         arr[:, 0] = 1 + (.1 * np.sin(2*np.pi*xi))
         return convertPrimitive(arr, g)  # convert domain to conservative variables q
     
     elif config == "sedov":
-        initialLeft = np.array([1,0,0,0,100])  # primitive variables
-        initialRight = np.array([1,0,0,0,1])  # primitive variables
-
         cellsLeft = int(shock/(end-0) * N/2)
-        arrL, arrR = np.tile(initialLeft, (cellsLeft, 1)).astype(float), np.tile(initialRight, (int(N/2 - cellsLeft), 1)).astype(float)  # Initialise 1D grid with initial conditions
+        arrL, arrR = np.tile(np.array([1,0,0,0,100]), (cellsLeft, 1)).astype(float), np.tile(np.array([1,0,0,0,1]), (int(N/2 - cellsLeft), 1)).astype(float)
         arr = np.concatenate((arrR, arrL, arrL, arrR))
         return convertPrimitive(arr, g)  # convert domain to conservative variables q
     
     else:
-        initialLeft = np.array([1,0,0,0,1])  # primitive variables
-        initialRight = np.array([.125,0,0,0,.1])  # primitive variables
-
         cellsLeft = int(shock/(end-start) * N)
-        arrL, arrR = np.tile(initialLeft, (cellsLeft, 1)), np.tile(initialRight, (N - cellsLeft, 1))  # Initialise 1D grid with initial conditions
+        arrL, arrR = np.tile(np.array([1,0,0,0,1]), (cellsLeft, 1)), np.tile(np.array([.125,0,0,0,.1]), (N - cellsLeft, 1))
         arr = np.concatenate((arrL, arrR)).astype(float)
         return convertPrimitive(arr, g)  # convert domain to conservative variables q
+
+
+
+
+
+
+
+
+# Determine the analytical solution for a Sod shock test
+def analyticalSod(tube, tolerance=.1):
+    discontinuities = np.where(np.diff(tube[:,0]) <= tolerance)[0]+1  # locate the regions of the tube based on density
+    rarefaction1, rarefaction2, contact, shock = discontinuities[0], discontinuities[-3], discontinuities[-2], discontinuities[-1]
+    region1, region2, region3, region4, region5 = tube[:rarefaction1], tube[rarefaction1:rarefaction2], tube[rarefaction2:contact], tube[contact:shock], tube[shock:]
+    pass
+
+
+# Determine the analytical solution for a Sod shock test
+def getSodAnalyticalSolution(wL, wR, gamma):
+    cs1, cs2 = np.sqrt(gamma*(wL[4]/wL[0])), np.sqrt(gamma*(wR[4]/wR[0]))
+    Gamma, beta = (gamma-1)/(gamma+1), (gamma-1)/(2*gamma)
+    pass
+
+
+# Determine the analytical solution for a Sod shock test
+def analyticalSod(tube, tolerance=5e-9):
+    discontinuities = np.where(np.abs(np.diff(tube[:,0])) >= tolerance)[0]+1  # locate the regions of the tube based on density
+    rarefaction1, rarefaction2, contact, shock = discontinuities[0], discontinuities[-3], discontinuities[-2], discontinuities[-1]
+    region1, region2, region3, region4, region5 = tube[0], tube[rarefaction1:rarefaction2], tube[rarefaction2:contact], tube[contact:shock], tube[-1]
+    pass
