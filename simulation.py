@@ -12,10 +12,10 @@ import plotting_functions as plotter
 ##############################################################################
 
 # Run code
-def runSimulation(_N, _config, _cfl, _gamma, _solver, _startPos, _endPos, _shockPos, _tEnd):
+def runSimulation(_N, _config, _cfl, _gamma, _wL, _wR, _solver, _startPos, _endPos, _shockPos, _tEnd):
     simulation = {}
     _N += (_N%2)  # Make N into an even number
-    domain = fn.initialise(_N, _config, _gamma, _startPos, _endPos, _shockPos)
+    domain = fn.initialise(_N, _config, _gamma, _wL, _wR, _startPos, _endPos, _shockPos)
     
     # Compute dx and set t = 0
     dx = abs(_endPos-_startPos)/_N
@@ -51,7 +51,7 @@ if cfg.runType[0].lower() == "m":
     cfg.livePlot = False
     for n in [20, 100, 300, 1000, 5000]:
         lap = time.time()
-        run = runSimulation(n, cfg.config, cfg.cfl, cfg.gamma, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
+        run = runSimulation(n, cfg.config, cfg.cfl, cfg.gamma, cfg.initialLeft, cfg.initialRight, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
         print(f"[Test={cfg.config}, N={n}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
         runs.append(run)
     if cfg.saveFile:
@@ -61,7 +61,7 @@ else:
     if cfg.saveFile:
         cfg.livePlot = False
     lap = time.time()
-    run = runSimulation(cfg.cells, cfg.config, cfg.cfl, cfg.gamma, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
+    run = runSimulation(cfg.cells, cfg.config, cfg.cfl, cfg.gamma, cfg.initialLeft, cfg.initialRight, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
     print(f"[Test={cfg.config}, N={cfg.cells}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
     runs.append(run)
     if cfg.saveFile:

@@ -113,10 +113,11 @@ def plotQuantities(runs, snapshots):
             last_time = list(simulation.keys())[-1]
             differences = np.abs(np.diff(simulation[last_time][:,0]))
             import scipy
-            peaks = scipy.signal.find_peaks(differences, height=1.5e-3)[0] * .001
+            print(differences)
+            peaks = scipy.signal.find_peaks(differences, height=1e-3)[0] * ((cfg.endPos-cfg.startPos)/len(simulation[last_time]))
             print(peaks)
             for xc in peaks:
-                ax[0,0].axvline(x=xc)
+                ax[0,0].axvline(x=xc, color="brown", linewidth="1")
 
             ax[0,0].plot(x, y1, linewidth=2, color="blue")   # density
             ax[0,1].plot(x, y2, linewidth=2, color="red")    # pressure
@@ -158,10 +159,6 @@ def plotQuantities(runs, snapshots):
 
 
 def plotSolutionErrors(runs):
-    try:
-        start, end = kwargs["start"], kwargs["end"]
-    except Exception as e:
-        start, end = 0, 1
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
 
     ax[0,0].set_ylabel(r"density $\rho$", fontsize=18)  # density

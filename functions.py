@@ -1,4 +1,5 @@
 import numpy as np
+import scipy as sp
 
 
 ##############################################################################
@@ -41,16 +42,16 @@ def calculateSolutionError(simulation, start, end):
 
 
 # Initialise the solution array with initial conditions and primitive variables w, and return array with conserved variables
-def initialise(N, config, g, start, end, shock):
+def initialise(N, config, g, wL, wR, start, end, shock):
     if config == "sod":
         cellsLeft = int(shock/(end-start) * N)
-        arrL, arrR = np.tile(np.array([1,0,0,0,1]), (cellsLeft, 1)), np.tile(np.array([.125,0,0,0,.1]), (N - cellsLeft, 1))
+        arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (N - cellsLeft, 1))
         arr = np.concatenate((arrL, arrR)).astype(float)
         return convertPrimitive(arr, g)  # convert domain to conservative variables q
     
     elif config == "sin":
         cellsLeft = int(shock/(end-start) * N)
-        arrL, arrR = np.tile(np.array([0,1,1,1,1]), (cellsLeft, 1)), np.tile(np.array([0,0,0,0,0]), (N - cellsLeft, 1))
+        arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (N - cellsLeft, 1))
         arr = np.concatenate((arrL, arrR)).astype(float)
         xi = np.linspace(start, end, N)
         arr[:, 0] = 1 + (.1 * np.sin(2*np.pi*xi))
@@ -58,13 +59,13 @@ def initialise(N, config, g, start, end, shock):
     
     elif config == "sedov":
         cellsLeft = int(shock/(end-0) * N/2)
-        arrL, arrR = np.tile(np.array([1,0,0,0,100]), (cellsLeft, 1)).astype(float), np.tile(np.array([1,0,0,0,1]), (int(N/2 - cellsLeft), 1)).astype(float)
-        arr = np.concatenate((arrR, arrL, arrL, arrR))
+        arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (int(N/2 - cellsLeft), 1))
+        arr = np.concatenate((arrR, arrL, arrL, arrR)).astype(float)
         return convertPrimitive(arr, g)  # convert domain to conservative variables q
     
     else:
         cellsLeft = int(shock/(end-start) * N)
-        arrL, arrR = np.tile(np.array([1,0,0,0,1]), (cellsLeft, 1)), np.tile(np.array([.125,0,0,0,.1]), (N - cellsLeft, 1))
+        arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (N - cellsLeft, 1))
         arr = np.concatenate((arrL, arrR)).astype(float)
         return convertPrimitive(arr, g)  # convert domain to conservative variables q
 
@@ -75,24 +76,25 @@ def initialise(N, config, g, start, end, shock):
 
 
 
-# Determine the analytical solution for a Sod shock test
-def analyticalSod(tube, tolerance=.1):
-    discontinuities = np.where(np.diff(tube[:,0]) <= tolerance)[0]+1  # locate the regions of the tube based on density
-    rarefaction1, rarefaction2, contact, shock = discontinuities[0], discontinuities[-3], discontinuities[-2], discontinuities[-1]
-    region1, region2, region3, region4, region5 = tube[:rarefaction1], tube[rarefaction1:rarefaction2], tube[rarefaction2:contact], tube[contact:shock], tube[shock:]
-    pass
 
 
 # Determine the analytical solution for a Sod shock test
-def getSodAnalyticalSolution(wL, wR, gamma):
+def analyticalSod(tube,t,  gamma, wL, wR, start, end, tolerance=1e-3):
     cs1, cs2 = np.sqrt(gamma*(wL[4]/wL[0])), np.sqrt(gamma*(wR[4]/wR[0]))
     Gamma, beta = (gamma-1)/(gamma+1), (gamma-1)/(2*gamma)
-    pass
+    arr = np.zeros((len(tube), len(tube[0])))
 
+    # locate the regions of the tube based on density
+    differences = np.abs(np.diff(tube[:,0]))
+    peaks = sp.signal.find_peaks(differences, height=tolerance)[0]+1
 
-# Determine the analytical solution for a Sod shock test
-def analyticalSod(tube, tolerance=5e-9):
-    discontinuities = np.where(np.abs(np.diff(tube[:,0])) >= tolerance)[0]+1  # locate the regions of the tube based on density
-    rarefaction1, rarefaction2, contact, shock = discontinuities[0], discontinuities[-3], discontinuities[-2], discontinuities[-1]
-    region1, region2, region3, region4, region5 = tube[0], tube[rarefaction1:rarefaction2], tube[rarefaction2:contact], tube[contact:shock], tube[-1]
-    pass
+    # Region 1
+
+    # Region 2
+    u2 = 2/(gamma+1) * (cs1 + 1/t)
+    
+    if len(peaks) <= 4:
+        arr[:peaks[0]] = wL
+        arr[peaks[3]:] = wR
+    else:
+        pass
