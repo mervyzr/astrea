@@ -158,10 +158,6 @@ def plotQuantities(runs, snapshots):
 
 
 def plotSolutionErrors(runs):
-    try:
-        start, end = kwargs["start"], kwargs["end"]
-    except Exception as e:
-        start, end = 0, 1
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
 
     ax[0,0].set_ylabel(r"density $\rho$", fontsize=18)  # density
