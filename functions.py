@@ -4,18 +4,46 @@ import scipy as sp
 
 ##############################################################################
 
-# Converting primitive variables w to conservative variables q
-def convertPrimitive(tube, g):
+# Point-converting primitive variables w to conservative variables q
+def pointConvertPrimitive(tube, g):
     rhos, vecs, pressures = tube[:,0], tube[:,1:4], tube[:,4]
     energies = (pressures/(g-1)) + (.5*rhos*np.linalg.norm(vecs, axis=1)**2)
     return np.c_[rhos, np.multiply(vecs, rhos[:, np.newaxis]), energies]
 
 
-# Converting conservative variables q to primitive variables w
-def convertConservative(tube, g):
+# Point-converting conservative variables q to primitive variables w
+def pointConvertConservative(tube, g):
     rhos, vecs, energies = tube[:,0], np.divide(tube[:,1:4], tube[:,0][:, np.newaxis]), tube[:,4]
     pressures = (g-1) * (energies - (.5*rhos*np.linalg.norm(vecs, axis=1)**2))
     return np.c_[rhos, vecs, pressures]
+
+
+# Converting primitive variables w to conservative variables q through a higher-order approx.
+def convertPrimitive(tube, g, config):
+    q = pointConvertPrimitive(tube, g)
+    if config == "sin":
+        wLs, wRs = np.concatenate(([tube[-1]],tube))[:-1], np.concatenate((tube,[tube[0]]))[1:]
+        qLs, qRs = np.concatenate(([q[-1]],q))[:-1], np.concatenate((q,[q[0]]))[1:]
+    else:
+        wLs, wRs = np.concatenate(([tube[0]],tube))[:-1], np.concatenate((tube,[tube[-1]]))[1:]
+        qLs, qRs = np.concatenate(([q[0]],q))[:-1], np.concatenate((q,[q[-1]]))[1:]
+
+    U_i = tube - ((wLs - (2*tube) + wRs) / 24)  # 2nd-order Taylor expansion (Laplacian)
+    return pointConvertConservative(U_i, g) + ((qLs - (2*q) + qRs) / 24)
+    
+
+# Converting conservative variables q to primitive variables w through a higher-order approx.
+def convertConservative(tube, g, config):
+    w = pointConvertConservative(tube, g)
+    if config == "sin":
+        qLs, qRs = np.concatenate(([tube[-1]],tube))[:-1], np.concatenate((tube,[tube[0]]))[1:]
+        wLs, wRs = np.concatenate(([w[-1]],w))[:-1], np.concatenate((w,[w[0]]))[1:]
+    else:
+        qLs, qRs = np.concatenate(([tube[0]],tube))[:-1], np.concatenate((tube,[tube[-1]]))[1:]
+        wLs, wRs = np.concatenate(([w[0]],w))[:-1], np.concatenate((w,[w[-1]]))[1:]
+
+    U_i = tube - ((qLs - (2*tube) + qRs) / 24)  # 2nd-order Taylor expansion (Laplacian)
+    return pointConvertConservative(U_i, g) + ((wLs - (2*w) + wRs) / 24)
 
 
 # Jacobian matrix using primitive variables
@@ -47,7 +75,7 @@ def initialise(N, config, g, wL, wR, start, end, shock):
         cellsLeft = int(shock/(end-start) * N)
         arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (N - cellsLeft, 1))
         arr = np.concatenate((arrL, arrR)).astype(float)
-        return convertPrimitive(arr, g)  # convert domain to conservative variables q
+        return pointConvertPrimitive(arr, g)  # convert domain to conservative variables q
     
     elif config == "sin":
         cellsLeft = int(shock/(end-start) * N)
@@ -55,19 +83,19 @@ def initialise(N, config, g, wL, wR, start, end, shock):
         arr = np.concatenate((arrL, arrR)).astype(float)
         xi = np.linspace(start, end, N)
         arr[:, 0] = 1 + (.1 * np.sin(2*np.pi*xi))
-        return convertPrimitive(arr, g)  # convert domain to conservative variables q
+        return pointConvertPrimitive(arr, g)  # convert domain to conservative variables q
     
     elif config == "sedov":
         cellsLeft = int(shock/(end-0) * N/2)
         arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (int(N/2 - cellsLeft), 1))
         arr = np.concatenate((arrR, arrL, arrL, arrR)).astype(float)
-        return convertPrimitive(arr, g)  # convert domain to conservative variables q
+        return pointConvertPrimitive(arr, g)  # convert domain to conservative variables q
     
     else:
         cellsLeft = int(shock/(end-start) * N)
         arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (N - cellsLeft, 1))
         arr = np.concatenate((arrL, arrR)).astype(float)
-        return convertPrimitive(arr, g)  # convert domain to conservative variables q
+        return pointConvertPrimitive(arr, g)  # convert domain to conservative variables q
 
 
 
