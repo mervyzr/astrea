@@ -26,7 +26,7 @@ def runSimulation(_N, _config, _cfl, _gamma, _wL, _wR, _solver, _startPos, _endP
 
     while t <= _tEnd:
         # Saves each instance of the system at time t
-        tube = fn.convertConservative(domain, _gamma)
+        tube = fn.pointConvertConservative(domain, _gamma)
         simulation[t] = np.copy(tube)
 
         if cfg.livePlot:
