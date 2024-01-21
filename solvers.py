@@ -1,7 +1,7 @@
 import numpy as np
 
+import limiters
 import functions as fn
-import flux_limiters as limiters
 
 ##############################################################################
 
