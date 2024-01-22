@@ -4,6 +4,16 @@ import scipy as sp
 
 ##############################################################################
 
+# Make boundary conditions
+def makeBoundary(tube, config):
+    if config == "sin":
+        # Use periodic boundary for ghost boxes
+        return np.concatenate(([tube[-1]],tube)), np.concatenate((tube,[tube[0]]))
+    else:
+        # Use outflow boundary for ghost boxes
+        return np.concatenate(([tube[0]],tube)), np.concatenate((tube,[tube[-1]]))
+
+
 # Point-converting primitive variables w to conservative variables q
 def pointConvertPrimitive(tube, g):
     rhos, vecs, pressures = tube[:,0], tube[:,1:4], tube[:,4]
@@ -20,30 +30,28 @@ def pointConvertConservative(tube, g):
 
 # Converting primitive variables w to conservative variables q through a higher-order approx.
 def convertPrimitive(tube, g, config):
-    q = pointConvertPrimitive(tube, g)
-    if config == "sin":
-        wLs, wRs = np.concatenate(([tube[-1]],tube))[:-1], np.concatenate((tube,[tube[0]]))[1:]
-        qLs, qRs = np.concatenate(([q[-1]],q))[:-1], np.concatenate((q,[q[0]]))[1:]
-    else:
-        wLs, wRs = np.concatenate(([tube[0]],tube))[:-1], np.concatenate((tube,[tube[-1]]))[1:]
-        qLs, qRs = np.concatenate(([q[0]],q))[:-1], np.concatenate((q,[q[-1]]))[1:]
+    wLs, wRs = makeBoundary(tube, config)
+    wLs, wRs = wLs[:-1], wRs[1:]
 
-    U_i = tube - ((wLs - (2*tube) + wRs) / 24)  # 2nd-order Taylor expansion (Laplacian)
-    return pointConvertConservative(U_i, g) + ((qLs - (2*q) + qRs) / 24)
+    q = pointConvertPrimitive(tube, g)
+    qLs, qRs = makeBoundary(q, config)
+    qLs, qRs = qLs[:-1], qRs[1:]
+
+    w = tube - ((wLs - (2*tube) + wRs) / 24)  # 2nd-order Taylor expansion (Laplacian)
+    return pointConvertPrimitive(w, g) + ((qLs - (2*q) + qRs) / 24)
     
 
 # Converting conservative variables q to primitive variables w through a higher-order approx.
 def convertConservative(tube, g, config):
-    w = pointConvertConservative(tube, g)
-    if config == "sin":
-        qLs, qRs = np.concatenate(([tube[-1]],tube))[:-1], np.concatenate((tube,[tube[0]]))[1:]
-        wLs, wRs = np.concatenate(([w[-1]],w))[:-1], np.concatenate((w,[w[0]]))[1:]
-    else:
-        qLs, qRs = np.concatenate(([tube[0]],tube))[:-1], np.concatenate((tube,[tube[-1]]))[1:]
-        wLs, wRs = np.concatenate(([w[0]],w))[:-1], np.concatenate((w,[w[-1]]))[1:]
+    qLs, qRs = makeBoundary(tube, config)
+    qLs, qRs = qLs[:-1], qRs[1:]
 
-    U_i = tube - ((qLs - (2*tube) + qRs) / 24)  # 2nd-order Taylor expansion (Laplacian)
-    return pointConvertConservative(U_i, g) + ((wLs - (2*w) + wRs) / 24)
+    w = pointConvertConservative(tube, g)
+    wLs, wRs = makeBoundary(w, config)
+    wLs, wRs = wLs[:-1], wRs[1:]
+
+    q = tube - ((qLs - (2*tube) + qRs) / 24)  # 2nd-order Taylor expansion (Laplacian)
+    return pointConvertConservative(q, g) + ((wLs - (2*w) + wRs) / 24)
 
 
 # Jacobian matrix using primitive variables
