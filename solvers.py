@@ -39,7 +39,7 @@ class RiemannSolver:
                 wF_limit = 0
 
             wF_limit_L = makeBoundary(wF_limit, self.config)[:-1]
-            if (wS - wF_limit_L)*(wF_limit - wS) < 0:
+            if (wS - wF_limit_L)*(wF_limit - wS) < 0 or np.abs(wS - wF_limit_L) > 2*np.abs(wF_limit - wS) or np.abs(wF_limit - wS) > 2*np.abs(wS - wF_limit_L):
                 pass
             else:
                 pass
