@@ -32,7 +32,7 @@ class RiemannSolver:
             #wF = (7/12 * (wLs[:-1] + wS)) - (1/12 * (wRs[1:] + wL2s[:-1]))  # Compute face-averaged values (i-1/2)
             wF = (7/12 * (wS + wRs[1:])) - (1/12 * (wR2s[1:] + wLs[:-1]))  # Compute face-averaged values (i+1/2)
             
-            # Apply limiters to avoid spurious oscillations at discontinuities
+            """# Apply limiters to avoid spurious oscillations at discontinuities
             if (wF - wS)*(wRs[1:] - wF) < 0:
                 wF_limit = limiters.faceValueLimit(wS, wF, wLs, wRs, wL2s, wR2s)
             else:
@@ -54,7 +54,7 @@ class RiemannSolver:
                 pass
             else:
                 pass
-            
+            """
             
 
 

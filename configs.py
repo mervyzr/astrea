@@ -4,7 +4,7 @@ import numpy as np
 ##############################################################################
 
 config = "sod"
-cells = 100
+cells = 20
 cfl = .8
 gamma = 1.4
 solver = "linear"
