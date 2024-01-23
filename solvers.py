@@ -33,17 +33,28 @@ class RiemannSolver:
             wF = (7/12 * (wS + wRs[1:])) - (1/12 * (wR2s[1:] + wLs[:-1]))  # Compute face-averaged values (i+1/2)
             
             # Apply limiters to avoid spurious oscillations at discontinuities
-            """if (wF - wS)*(wRs[1:] - wF) < 0:
+            if (wF - wS)*(wRs[1:] - wF) < 0:
                 wF_limit = limiters.faceValueLimit(wS, wF, wLs, wRs, wL2s, wR2s)
             else:
                 wF_limit = 0
 
-            wF_limit_L = makeBoundary(wF_limit, self.config)[:-1]
+            # Determine the limited parabolic interpolation
+            wF_limit_L, wF_limit_R = fn.makeBoundary(wF_limit, self.config)
+            if self.config == "sin":
+                wF_limit_L2, wF_limit_R2 = np.concatenate(([wF_limit_L[-2]],wF_limit_L))[:-1], np.concatenate((wF_limit_R,[wF_limit_R[1]]))[1:]
+            else:
+                wF_limit_L2, wF_limit_R2 = np.concatenate(([wF_limit_L[0]],wF_limit_L))[:-1], np.concatenate((wF_limit_R,[wF_limit_R[-1]]))[1:]
+            d_wF_minmod = np.minimum(np.abs(wF_limit_L[:-1] - wF_limit_L2[:-1]), np.abs(wF_limit_R[1:] - wF_limit))
+            d_wS_minmod = np.minimum(np.abs(wS - wLs[:-1]), np.abs(wRs[1:] - wS))
+
+            if ((d_wF_minmod >= d_wS_minmod) and ((wF_limit_L[:-1] - wF_limit_L2[:-1])*(wF_limit_R[1:] - wF_limit) < 0)) or ((d_wS_minmod >= d_wF_minmod) and ((wS - wLs[:-1])*(wRs[1:] - wS) < 0)):
+                pass
+            
             if (wS - wF_limit_L)*(wF_limit - wS) < 0 or np.abs(wS - wF_limit_L) > 2*np.abs(wF_limit - wS) or np.abs(wF_limit - wS) > 2*np.abs(wS - wF_limit_L):
                 pass
             else:
                 pass
-            """
+            
             
 
 
