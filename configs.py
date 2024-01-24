@@ -4,15 +4,15 @@ import numpy as np
 ##############################################################################
 
 config = "sod"
-cells = 20
-cfl = .8
+cells = 5000
+cfl = .5
 gamma = 1.4
-solver = "linear"
+solver = "plm"
 
 runType = "single"
 livePlot = True
 
-saveFile = False
+saveFile = True
 snapshots = 1
 makeVideo = False
 
