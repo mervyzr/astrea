@@ -3,19 +3,21 @@ from datetime import timedelta
 
 import numpy as np
 
-import configs as cfg
+import tests as tst
+import settings as cfg
 import functions as fn
-import solvers as solver
+import solvers as solv
 import plotting_functions as plotter
 
 
 ##############################################################################
 
 # Run code
-def runSimulation(_config, _N, _cfl, _gamma, _solver, _startPos, _endPos, _shockPos, _tEnd, _boundary, _wL, _wR):
+def runSimulation(_config, _N, _cfl, _gamma, _solver, _variables):
     simulation = {}
     _N += (_N%2)  # Make N into an even number
-    domain = fn.initialise(_config, _N, _gamma, _startPos, _endPos, _shockPos, _wL, _wR)
+    _startPos, _endPos, _shockPos, _tEnd, _boundary, _wL, _wR = _variables
+    domain = tst.initialise(_config, _N, _gamma, _startPos, _endPos, _shockPos, _wL, _wR)
     
     # Compute dx and set t = 0
     dx = abs(_endPos-_startPos)/_N
@@ -33,7 +35,7 @@ def runSimulation(_config, _N, _cfl, _gamma, _solver, _startPos, _endPos, _shock
             plotter.updatePlot(tube, t, fig, ax, plots)
 
         # Compute the numerical fluxes at each interface
-        hydroTube = solver.RiemannSolver(domain, _boundary, _gamma)
+        hydroTube = solv.RiemannSolver(domain, _boundary, _gamma)
         fluxes = hydroTube.calculateRiemannFlux(_solver)
 
         # Compute new time step
@@ -51,20 +53,20 @@ if cfg.runType[0].lower() == "m":
     cfg.livePlot = False
     for n in [20, 100, 300, 1000, 5000]:
         lap = time.time()
-        run = runSimulation(cfg.config, n, cfg.cfl, cfg.gamma, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd, cfg.boundary, cfg.initialLeft, cfg.initialRight)
-        print(f"[Test={cfg.config}, N={n}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
+        run = runSimulation(cfg.config, n, cfg.cfl, cfg.gamma, cfg.solver, tst.variables)
+        print(f"[Test={cfg.config}, N={n}; {len(run)} timesteps]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
         runs.append(run)
     if cfg.saveFile:
-        plotter.plotQuantities(runs, cfg.snapshots)
-        plotter.plotSolutionErrors(runs)
+        plotter.plotQuantities(runs, cfg.snapshots, cfg.config, tst.startPos, tst.endPos)
+        plotter.plotSolutionErrors(runs, cfg.config, tst.startPos, tst.endPos)
 else:
     if cfg.saveFile:
         cfg.livePlot = False
     lap = time.time()
-    run = runSimulation(cfg.config, cfg.cells, cfg.cfl, cfg.gamma, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd, cfg.boundary, cfg.initialLeft, cfg.initialRight)
-    print(f"[Test={cfg.config}, N={cfg.cells}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
+    run = runSimulation(cfg.config, cfg.cells, cfg.cfl, cfg.gamma, cfg.solver, tst.variables)
+    print(f"[Test={cfg.config}, N={cfg.cells}; {len(run)} timesteps]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
     runs.append(run)
     if cfg.saveFile:
-        plotter.plotQuantities(runs, cfg.snapshots)
+        plotter.plotQuantities(runs, cfg.snapshots, cfg.config, tst.startPos, tst.endPos)
     if cfg.saveVideo:
-        plotter.makeVideo(runs)
+        plotter.makeVideo(runs, cfg.config, tst.startPos, tst.endPos)

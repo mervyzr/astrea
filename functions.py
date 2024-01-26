@@ -77,35 +77,6 @@ def calculateSolutionError(simulation, start, end):
     return dx * np.sum(np.abs(simulation[0] - simulation[list(simulation.keys())[-1]]), axis=0)
 
 
-# Initialise the solution array with initial conditions and primitive variables w, and return array with conserved variables
-def initialise(config, N, g, start, end, shock, wL, wR):
-    if config == "sod":
-        cellsLeft = int(shock/(end-start) * N)
-        arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (N - cellsLeft, 1))
-        arr = np.concatenate((arrL, arrR)).astype(float)
-        return pointConvertPrimitive(arr, g)  # convert domain to conservative variables q
-    
-    elif config == "sin":
-        cellsLeft = int(shock/(end-start) * N)
-        arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (N - cellsLeft, 1))
-        arr = np.concatenate((arrL, arrR)).astype(float)
-        xi = np.linspace(start, end, N)
-        arr[:, 0] = 1 + (.1 * np.sin(2*np.pi*xi))
-        return pointConvertPrimitive(arr, g)  # convert domain to conservative variables q
-    
-    elif config == "sedov":
-        cellsLeft = int(shock/(end-0) * N/2)
-        arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (int(N/2 - cellsLeft), 1))
-        arr = np.concatenate((arrR, arrL, arrL, arrR)).astype(float)
-        return pointConvertPrimitive(arr, g)  # convert domain to conservative variables q
-    
-    else:
-        cellsLeft = int(shock/(end-start) * N)
-        arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (N - cellsLeft, 1))
-        arr = np.concatenate((arrL, arrR)).astype(float)
-        return pointConvertPrimitive(arr, g)  # convert domain to conservative variables q
-
-
 
 
 

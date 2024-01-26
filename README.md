@@ -16,7 +16,7 @@ This code is created as part of the Master's thesis project at the University of
 Clone this repository and create a new Python environment. The dependencies for the environment can be found in *`requirements.txt`*. Initialise the environment and navigate to this folder on your local machine.
 
 # Usage
-To run the simulation, set your configurations in *`configs.py`* and run *`simulation.py`*.
+To run the simulation, set your configurations in *`settings.py`* and run *`simulation.py`*.
 
 ## Organisation
 There are several files in this code for different purposes:
@@ -25,5 +25,6 @@ There are several files in this code for different purposes:
 - solvers.py: Functions for the reconstruction methods
 - limiters.py: Implements flux/slope limiters to prevent spurious oscillations in the reconstructed states
 - functions.py: Generic functions that can be used throughout the code
+- tests.py: Hydrodynamics test configurations
 - plotting_functions.py: Functions for (live-)plotting
-- configs.py: Configurations for the simulation
+- settings.py: Settings for the simulation

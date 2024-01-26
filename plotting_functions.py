@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import moviepy.video.io.ImageSequenceClip
 
 import functions as fn
-import configs as cfg
 
 ##############################################################################
 
@@ -72,7 +71,7 @@ def updatePlot(arr, t, fig, ax, plots):
 
 
 # Plot snapshots of quantities for multiple runs
-def plotQuantities(runs, snapshots):
+def plotQuantities(runs, snapshots, config, startPos, endPos):
     try:
         int(snapshots)
     except Exception as e:
@@ -93,10 +92,10 @@ def plotQuantities(runs, snapshots):
         ax[0,1].set_ylabel(r"Pressure $P$", fontsize=18)
         ax[1,0].set_ylabel(r"Velocity $v_x$", fontsize=18)
         ax[1,1].set_ylabel(r"Thermal energy $P/\rho$", fontsize=18)
-        ax[0,0].set_xlim([cfg.startPos, cfg.endPos])
-        ax[0,1].set_xlim([cfg.startPos, cfg.endPos])
-        ax[1,0].set_xlim([cfg.startPos, cfg.endPos])
-        ax[1,1].set_xlim([cfg.startPos, cfg.endPos])
+        ax[0,0].set_xlim([startPos, endPos])
+        ax[0,1].set_xlim([startPos, endPos])
+        ax[1,0].set_xlim([startPos, endPos])
+        ax[1,1].set_xlim([startPos, endPos])
         ax[0,0].grid(linestyle='--', linewidth=0.5)
         ax[0,1].grid(linestyle='--', linewidth=0.5)
         ax[1,0].grid(linestyle='--', linewidth=0.5)
@@ -108,13 +107,13 @@ def plotQuantities(runs, snapshots):
             y2 = simulation[time[i]][:, 4]  # pressure
             y3 = simulation[time[i]][:, 1]  # vx
             y4 = y2/y1                      # thermal energy
-            x = np.linspace(cfg.startPos, cfg.endPos, len(y1))
+            x = np.linspace(startPos, endPos, len(y1))
 
             """last_time = list(simulation.keys())[-1]
             differences = np.abs(np.diff(simulation[last_time][:,0]))
             import scipy
             print(differences)
-            peaks = scipy.signal.find_peaks(differences, height=1e-3)[0] * ((cfg.endPos-cfg.startPos)/len(simulation[last_time]))
+            peaks = scipy.signal.find_peaks(differences, height=1e-3)[0] * ((endPos-startPos)/len(simulation[last_time]))
             print(peaks)
             for xc in peaks:
                 ax[0,0].axvline(x=xc, color="brown", linewidth="1")
@@ -128,7 +127,7 @@ def plotQuantities(runs, snapshots):
             plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(timing,3)}$ ($N = {len(y1)}$)", fontsize=24)
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
 
-            plt.savefig(f"{os.getcwd()}/../quantitiesPlot_{cfg.config}_{round(timing,3)}.png", dpi=330, facecolor="w")
+            plt.savefig(f"{os.getcwd()}/../quantitiesPlot_{config}_{round(timing,3)}.png", dpi=330, facecolor="w")
 
             plt.cla()
             plt.clf()
@@ -139,7 +138,7 @@ def plotQuantities(runs, snapshots):
                 y2 = simulation[indexes[j][i]][:, 4]  # pressure
                 y3 = simulation[indexes[j][i]][:, 1]  # vx
                 y4 = y2/y1                            # thermal energy
-                x = np.linspace(cfg.startPos, cfg.endPos, len(y1))
+                x = np.linspace(startPos, endPos, len(y1))
 
                 ax[0,0].plot(x, y1, linewidth=2, label=f"N = {len(y1)}")  # density
                 ax[0,1].plot(x, y2, linewidth=2, label=f"N = {len(y1)}")  # pressure
@@ -151,7 +150,7 @@ def plotQuantities(runs, snapshots):
             handles, labels = plt.gca().get_legend_handles_labels()
             fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
 
-            plt.savefig(f"{os.getcwd()}/../quantitiesPlot_{cfg.config}_{round(timing,3)}.png", dpi=330, facecolor="w")
+            plt.savefig(f"{os.getcwd()}/../quantitiesPlot_{config}_{round(timing,3)}.png", dpi=330, facecolor="w")
 
             plt.cla()
             plt.clf()
@@ -159,7 +158,7 @@ def plotQuantities(runs, snapshots):
     return None
 
 
-def plotSolutionErrors(runs):
+def plotSolutionErrors(runs, config, startPos, endPos):
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
 
     ax[0,0].set_ylabel(r"density $\rho$", fontsize=18)  # density
@@ -173,7 +172,7 @@ def plotSolutionErrors(runs):
 
     x, y1, y2, y3, y4 = [], [], [], [], []
     for simulation in runs:
-        solutionErrors = fn.calculateSolutionError(simulation, cfg.startPos, cfg.endPos)
+        solutionErrors = fn.calculateSolutionError(simulation, startPos, endPos)
         x.append(len(simulation[0]))
         y1.append(solutionErrors[0])                    # density
         y2.append(solutionErrors[4])                    # pressure
@@ -189,7 +188,7 @@ def plotSolutionErrors(runs):
     fig.text(0.5, 0.04, r"Resolution $\log_{10}{[N_\nu]}$", fontsize=18, ha='center')
     fig.text(0.04, 0.5, r"Solution errors $\log_{10}{[\epsilon_\nu(q)]}$", fontsize=18, va='center', rotation='vertical')
 
-    plt.savefig(f"{os.getcwd()}/../solutionErrors_{cfg.config}.png", dpi=330, facecolor="w")
+    plt.savefig(f"{os.getcwd()}/../solutionErrors_{config}.png", dpi=330, facecolor="w")
 
     plt.cla()
     plt.clf()
@@ -197,7 +196,7 @@ def plotSolutionErrors(runs):
     return None
 
 
-def makeVideo(runs):
+def makeVideo(runs, config, startPos, endPos):
     for simulation in runs:
         counter = 0
 
@@ -213,10 +212,10 @@ def makeVideo(runs):
             ax[0,1].set_ylabel(r"Pressure $P$", fontsize=18)
             ax[1,0].set_ylabel(r"Velocity $v_x$", fontsize=18)
             ax[1,1].set_ylabel(r"Thermal energy $P/\rho$", fontsize=18)
-            ax[0,0].set_xlim([cfg.startPos, cfg.endPos])
-            ax[0,1].set_xlim([cfg.startPos, cfg.endPos])
-            ax[1,0].set_xlim([cfg.startPos, cfg.endPos])
-            ax[1,1].set_xlim([cfg.startPos, cfg.endPos])
+            ax[0,0].set_xlim([startPos, endPos])
+            ax[0,1].set_xlim([startPos, endPos])
+            ax[1,0].set_xlim([startPos, endPos])
+            ax[1,1].set_xlim([startPos, endPos])
             ax[0,0].grid(linestyle='--', linewidth=0.5)
             ax[0,1].grid(linestyle='--', linewidth=0.5)
             ax[1,0].grid(linestyle='--', linewidth=0.5)
@@ -226,7 +225,7 @@ def makeVideo(runs):
             y2 = domain[:, 4]               # pressure
             y3 = domain[:, 1]               # vx
             y4 = domain[:, 4]/domain[:, 0]  # thermal energy
-            x = np.linspace(cfg.startPos, cfg.endPos, len(y1))
+            x = np.linspace(startPos, endPos, len(y1))
 
             ax[0,0].plot(x, y1, linewidth=2, color="blue")   # density
             ax[0,1].plot(x, y2, linewidth=2, color="red")    # pressure
@@ -245,7 +244,7 @@ def makeVideo(runs):
             counter += 1
 
         try:
-            os.system(f"ffmpeg -framerate 30 -pattern_type glob -i '{path}/*.png' -c:v libx264 -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' -pix_fmt yuv420p ../vid{cfg.config}.mp4")
+            os.system(f"ffmpeg -framerate 30 -pattern_type glob -i '{path}/*.png' -c:v libx264 -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' -pix_fmt yuv420p ../vid{config}.mp4")
         except Exception as e:
             print(f"ffmpeg failed: {e}")
             try:
@@ -253,7 +252,7 @@ def makeVideo(runs):
                 images.sort()
 
                 video = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(images, fps=30)
-                video.write_videofile(f"{path}/vid{cfg.config}.mp4")
+                video.write_videofile(f"{path}/vid{config}.mp4")
             except Exception as e:
                 print(f"moviepy failed: {e}")
                 pass

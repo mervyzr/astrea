@@ -17,6 +17,7 @@ class RiemannSolver:
         # Impose boundary conditions
         qLs, qRs = fn.makeBoundary(self.domain, self.boundary)
 
+
         # Piecewise parabolic method solver (3rd-order stable for uneven grid; 4th-order stable for even grid)
         if solver.lower() == "ppm" or solver.lower() == "parabolic":
             # Conversion of conservative variables to primitive variables
@@ -66,6 +67,7 @@ class RiemannSolver:
 
             return .5 * ((fLs+fRs) - (eigval*(qLs-qRs)))
 
+
         # Piecewise linear method with minmod limiter (2nd-order stable)
         elif solver.lower() == "plm" or solver.lower() == "linear":
             gradients = limiters.minmod(qLs, qRs)  # implement limiter here
@@ -89,6 +91,7 @@ class RiemannSolver:
                 self.eigmax = eigval  # Compute the maximum wave speed; the maximum wave speed is the max eigenvalue between all cells i and i-1
 
             return .5 * ((fLs+fRs) - (eigval*(leftInterfaces-rightInterfaces)))
+
 
         # Piecewise constant method (1st-order stable)
         else:

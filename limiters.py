@@ -1,5 +1,6 @@
-import numpy as np
 import sys
+
+import numpy as np
 
 ##############################################################################
 
@@ -16,24 +17,6 @@ def minmod(qLs, qRs):
     arr[mask] = b[mask]
 
     return .5*arr
-
-
-# Calculate the van Leer/harmonic parameter. Returns an array of gradients for each parameter in each cell
-def harmonic(qLs, qRs):
-    r = np.nan_to_num((qLs[1:] - qLs[:-1])/(qRs[1:] - qRs[:-1]))
-    return (r + np.abs(r))/(1 + np.abs(r))
-
-
-# Calculate the ospre parameter. Returns an array of gradients for each parameter in each cell
-def ospre(qLs, qRs):
-    r = np.nan_to_num((qLs[1:] - qLs[:-1])/(qRs[1:] - qRs[:-1]))
-    return 1.5 * ((r**2 + r)/(r**2 + r + 1))
-
-
-# Calculate the van Albada parameter. Returns an array of gradients for each parameter in each cell
-def vanAlbada(qLs, qRs):
-    r = np.nan_to_num((qLs[1:] - qLs[:-1])/(qRs[1:] - qRs[:-1]))
-    return (r**2 + r)/(r**2 + 1)
 
 
 # Calculate the limited face-values
@@ -111,3 +94,21 @@ def limitParabolicInterpolants(wS, wF, wLs, wRs, wL2s, wR2s, wF_limit, wF_limit_
         return wS - d_uL_bar*(d2_wS_bar/d2_wS), wS + d_uR_bar*(d2_wS_bar/d2_wS)
     else:
         return wF_limit_L[:-1], wF_limit_R[1:]
+
+
+# Calculate the van Leer/harmonic parameter. Returns an array of gradients for each parameter in each cell
+def harmonic(qLs, qRs):
+    r = np.nan_to_num((qLs[1:] - qLs[:-1])/(qRs[1:] - qRs[:-1]))
+    return (r + np.abs(r))/(1 + np.abs(r))
+
+
+# Calculate the ospre parameter. Returns an array of gradients for each parameter in each cell
+def ospre(qLs, qRs):
+    r = np.nan_to_num((qLs[1:] - qLs[:-1])/(qRs[1:] - qRs[:-1]))
+    return 1.5 * ((r**2 + r)/(r**2 + r + 1))
+
+
+# Calculate the van Albada parameter. Returns an array of gradients for each parameter in each cell
+def vanAlbada(qLs, qRs):
+    r = np.nan_to_num((qLs[1:] - qLs[:-1])/(qRs[1:] - qRs[:-1]))
+    return (r**2 + r)/(r**2 + 1)
