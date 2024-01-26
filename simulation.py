@@ -66,5 +66,5 @@ else:
     runs.append(run)
     if cfg.saveFile:
         plotter.plotQuantities(runs, cfg.snapshots)
-    if cfg.makeVideo:
-        plotter.makeSimVideo(runs)
+    if cfg.saveVideo:
+        plotter.makeVideo(runs)

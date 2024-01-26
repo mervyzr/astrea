@@ -197,7 +197,7 @@ def plotSolutionErrors(runs):
     return None
 
 
-def makeSimVideo(runs):
+def makeVideo(runs):
     for simulation in runs:
         counter = 0
 

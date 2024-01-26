@@ -14,7 +14,7 @@ livePlot = True
 
 saveFile = False
 snapshots = 1
-makeVideo = False
+saveVideo = False
 
 
 if config == "sod":
