@@ -12,10 +12,10 @@ import plotting_functions as plotter
 ##############################################################################
 
 # Run code
-def runSimulation(_N, _config, _cfl, _gamma, _wL, _wR, _solver, _startPos, _endPos, _shockPos, _tEnd):
+def runSimulation(_config, _N, _cfl, _gamma, _solver, _startPos, _endPos, _shockPos, _tEnd, _boundary, _wL, _wR):
     simulation = {}
     _N += (_N%2)  # Make N into an even number
-    domain = fn.initialise(_N, _config, _gamma, _wL, _wR, _startPos, _endPos, _shockPos)
+    domain = fn.initialise(_config, _N, _gamma, _startPos, _endPos, _shockPos, _wL, _wR)
     
     # Compute dx and set t = 0
     dx = abs(_endPos-_startPos)/_N
@@ -33,7 +33,7 @@ def runSimulation(_N, _config, _cfl, _gamma, _wL, _wR, _solver, _startPos, _endP
             plotter.updatePlot(tube, t, fig, ax, plots)
 
         # Compute the numerical fluxes at each interface
-        hydroTube = solver.RiemannSolver(domain, _config, _gamma)
+        hydroTube = solver.RiemannSolver(domain, _boundary, _gamma)
         fluxes = hydroTube.calculateRiemannFlux(_solver)
 
         # Compute new time step
@@ -51,7 +51,7 @@ if cfg.runType[0].lower() == "m":
     cfg.livePlot = False
     for n in [20, 100, 300, 1000, 5000]:
         lap = time.time()
-        run = runSimulation(n, cfg.config, cfg.cfl, cfg.gamma, cfg.initialLeft, cfg.initialRight, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
+        run = runSimulation(cfg.config, n, cfg.cfl, cfg.gamma, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd, cfg.boundary, cfg.initialLeft, cfg.initialRight)
         print(f"[Test={cfg.config}, N={n}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
         runs.append(run)
     if cfg.saveFile:
@@ -61,7 +61,7 @@ else:
     if cfg.saveFile:
         cfg.livePlot = False
     lap = time.time()
-    run = runSimulation(cfg.cells, cfg.config, cfg.cfl, cfg.gamma, cfg.initialLeft, cfg.initialRight, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd)
+    run = runSimulation(cfg.config, cfg.cells, cfg.cfl, cfg.gamma, cfg.solver, cfg.startPos, cfg.endPos, cfg.shockPos, cfg.tEnd, cfg.boundary, cfg.initialLeft, cfg.initialRight)
     print(f"[Test={cfg.config}, N={cfg.cells}; {len(run)} files]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
     runs.append(run)
     if cfg.saveFile:

@@ -5,8 +5,8 @@ import scipy as sp
 ##############################################################################
 
 # Make boundary conditions
-def makeBoundary(tube, config):
-    if config == "sin":
+def makeBoundary(tube, boundary):
+    if boundary == "periodic":
         # Use periodic boundary for ghost boxes
         return np.concatenate(([tube[-1]],tube)), np.concatenate((tube,[tube[0]]))
     else:
@@ -29,12 +29,12 @@ def pointConvertConservative(tube, g):
 
 
 # Converting primitive variables w to conservative variables q through a higher-order approx.
-def convertPrimitive(tube, g, config):
-    wLs, wRs = makeBoundary(tube, config)
+def convertPrimitive(tube, g, boundary):
+    wLs, wRs = makeBoundary(tube, boundary)
     wLs, wRs = wLs[:-1], wRs[1:]
 
     q = pointConvertPrimitive(tube, g)
-    qLs, qRs = makeBoundary(q, config)
+    qLs, qRs = makeBoundary(q, boundary)
     qLs, qRs = qLs[:-1], qRs[1:]
 
     w = tube - ((wLs - (2*tube) + wRs) / 24)  # 2nd-order Taylor expansion (Laplacian)
@@ -42,12 +42,12 @@ def convertPrimitive(tube, g, config):
     
 
 # Converting conservative variables q to primitive variables w through a higher-order approx.
-def convertConservative(tube, g, config):
-    qLs, qRs = makeBoundary(tube, config)
+def convertConservative(tube, g, boundary):
+    qLs, qRs = makeBoundary(tube, boundary)
     qLs, qRs = qLs[:-1], qRs[1:]
 
     w = pointConvertConservative(tube, g)
-    wLs, wRs = makeBoundary(w, config)
+    wLs, wRs = makeBoundary(w, boundary)
     wLs, wRs = wLs[:-1], wRs[1:]
 
     q = tube - ((qLs - (2*tube) + qRs) / 24)  # 2nd-order Taylor expansion (Laplacian)
@@ -78,7 +78,7 @@ def calculateSolutionError(simulation, start, end):
 
 
 # Initialise the solution array with initial conditions and primitive variables w, and return array with conserved variables
-def initialise(N, config, g, wL, wR, start, end, shock):
+def initialise(config, N, g, start, end, shock, wL, wR):
     if config == "sod":
         cellsLeft = int(shock/(end-start) * N)
         arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (N - cellsLeft, 1))

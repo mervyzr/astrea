@@ -4,15 +4,15 @@ import numpy as np
 ##############################################################################
 
 config = "sod"
-cells = 5000
+cells = 100
 cfl = .5
 gamma = 1.4
-solver = "plm"
+solver = "ppm"
 
 runType = "single"
 livePlot = True
 
-saveFile = True
+saveFile = False
 snapshots = 1
 makeVideo = False
 
@@ -22,6 +22,7 @@ if config == "sod":
     endPos = 1
     shockPos = .5
     tEnd = .2
+    boundary = "outflow"
 
     initialLeft = np.array([1,0,0,0,1])  # primitive variables
     initialRight = np.array([.125,0,0,0,.1])  # primitive variables
@@ -30,6 +31,7 @@ elif config == "sin":
     endPos = 1
     shockPos = 1
     tEnd = 2
+    boundary = "periodic"
 
     initialLeft = np.array([0,1,1,1,1])  # primitive variables
     initialRight = np.array([0,0,0,0,0])  # primitive variables
@@ -38,6 +40,7 @@ elif config == "sedov":
     endPos = 10
     shockPos = 1
     tEnd = .6
+    boundary = "outflow"
 
     initialLeft = np.array([1,0,0,0,100])  # primitive variables
     initialRight = np.array([1,0,0,0,1])  # primitive variables
@@ -46,6 +49,7 @@ else:
     endPos = 1
     shockPos = .5
     tEnd = .2
+    boundary = "outflow"
 
     initialLeft = np.array([1,0,0,0,1])  # primitive variables
     initialRight = np.array([.125,0,0,0,.1])  # primitive variables
