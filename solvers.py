@@ -22,7 +22,7 @@ class RiemannSolver:
             # Conversion of conservative variables to primitive variables
             wS = np.copy(fn.convertConservative(self.domain, self.gamma, self.config))
 
-            # Reconstruction in primitive variables
+            # Reconstruction in primitive variables to 4th-order
             wLs, wRs = fn.makeBoundary(wS, self.config)
             if self.config == "sin":
                 wL2s, wR2s = np.concatenate(([wLs[-2]],wLs))[:-1], np.concatenate((wRs,[wRs[1]]))[1:]  # Use periodic boundary for additional ghost box
@@ -40,7 +40,6 @@ class RiemannSolver:
                 wF_limit_L2, wF_limit_R2 = np.concatenate(([wF_limit_L[-2]],wF_limit_L))[:-1], np.concatenate((wF_limit_R,[wF_limit_R[1]]))[1:]
             else:
                 wF_limit_L2, wF_limit_R2 = np.concatenate(([wF_limit_L[0]],wF_limit_L))[:-1], np.concatenate((wF_limit_R,[wF_limit_R[-1]]))[1:]
-
             wLefts, wRights = limiters.limitParabolicInterpolants(wS, wF, wLs, wRs, wL2s, wR2s, wF_limit, wF_limit_L, wF_limit_R, wF_limit_L2, wF_limit_R2)
 
             if self.config == "sin":
@@ -50,6 +49,11 @@ class RiemannSolver:
                 # Use outflow boundary for ghost boxes
                 leftInterfaces, rightInterfaces = np.concatenate((wLefts,[wRights[-1]])), np.concatenate(([wLefts[0]],wRights))
 
+            # Compute the 4th-order interface-averaged fluxes
+            # Because the simulation is only 1D, the "normal" Laplacian (Taylor expansion) of the face-averaged states and fluxes are zero
+            # Thus, the conversion between face-averaged and face-centred states and fluxes can be pointwise conversion
+                
+            # Solve the Riemann problem
             qLs, qRs = fn.pointConvertPrimitive(leftInterfaces, self.gamma), fn.pointConvertPrimitive(rightInterfaces, self.gamma)
             fLs, fRs = fn.makeFlux(leftInterfaces, self.gamma), fn.makeFlux(rightInterfaces, self.gamma)
 
