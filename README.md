@@ -4,7 +4,7 @@ hydro_shock is a 1D-hydrodynamics code for the purpose of simulating shocks and 
 # Description
 The code is written entirely in Python 3 and employs a finite volume method (Eulerian) with a fixed evenly-spaced grid. The simulation allows for periodic boundary conditions or outflows.
 
-The code can currently employ a piecewise constant method, a piecewise linear reconstruction method (Derigs et al., 2018) with a *min-mod* limiter (Roe, 1986), or a piecewise parabolic reconstruction method (Felker & Stones, 2017) with an *interface* and *parabolic interpolant* limiter (Colella et al., 2011). 
+The code can currently employ a piecewise constant method, a piecewise linear reconstruction method (Derigs et al., 2018) with a *min-mod* limiter (Roe, 1986), or a piecewise parabolic reconstruction method (Felker & Stone, 2017) with an *interface* and *parabolic interpolant* limiter (Colella et al., 2011). 
 
 The Lax-Friedrichs method (LeVeque, 1992) is used for solving the Riemann problem at each interface for all reconstruction methods, although this method is highly dissipative and only first-order accurate. The simulation is also only first-order accurate in time as the states are evolved in full time-steps.
 
