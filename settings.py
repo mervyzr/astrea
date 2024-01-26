@@ -2,10 +2,10 @@
 ##############################################################################
 
 config = "sod"
-cells = 1000
+cells = 50
 cfl = .5
 gamma = 1.4
-solver = "ppm"
+solver = "pcm"
 
 runType = "single"
 livePlot = True
