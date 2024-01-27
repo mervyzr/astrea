@@ -26,7 +26,7 @@ elif cfg.config == "sin":
 elif cfg.config == "sedov":
     startPos = -10
     endPos = 10
-    shockPos = 1
+    shockPos = 1  # blast boundary from midpoint
     tEnd = .6
     boundary = "outflow"
 
@@ -38,7 +38,7 @@ elif cfg.config == "shu-osher":
     shockPos = .125
     tEnd = .18
     boundary = "outflow"
-    freq = 8
+    freq = 5
 
     initialLeft = np.array([3.857143,2.629369,0,0,10.3333])  # primitive variables
     initialRight = np.array([0,0,0,0,1])  # primitive variables
@@ -92,42 +92,21 @@ variables = [startPos, endPos, shockPos, tEnd, boundary, initialLeft, initialRig
 
 # Initialise the solution array with initial conditions and primitive variables w, and return array with conserved variables
 def initialise(config, N, g, start, end, shock, wL, wR):
-    if config == "sod":
-        cellsLeft = int(shock/(end-start) * N)
-        arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (N - cellsLeft, 1))
-        arr = np.concatenate((arrL, arrR)).astype(float)
-        return fn.pointConvertPrimitive(arr, g)  # convert domain to conservative variables q
-    
-    elif config == "sin":
-        cellsLeft = int(shock/(end-start) * N)
-        arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (N - cellsLeft, 1))
-        arr = np.concatenate((arrL, arrR)).astype(float)
-        xi = np.linspace(start, end, N)
-        arr[:, 0] = 1 + (.1 * np.sin(2*np.pi*xi))
-        return fn.pointConvertPrimitive(arr, g)  # convert domain to conservative variables q
-    
-    elif config == "sedov":
-        cellsLeft = int(shock/(end-0) * N/2)
+    if config == "sedov":
+        midpoint = start + (end-start)/2
+        cellsLeft = int((N/2) * (shock/(end-midpoint)))
         arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (int(N/2 - cellsLeft), 1))
         arr = np.concatenate((arrR, arrL, arrL, arrR)).astype(float)
-        return fn.pointConvertPrimitive(arr, g)  # convert domain to conservative variables q
-    
-    elif config == "shu-osher":
-        cellsLeft = int(shock/(end-start) * N)
+    else:
+        cellsLeft = int(N * ((shock-start)/(end-start)))
         arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (N - cellsLeft, 1))
         arr = np.concatenate((arrL, arrR)).astype(float)
+
+    if config == "sin":
+        xi = np.linspace(start, end, N)
+        arr[:, 0] = 1 + (.1 * np.sin(2*np.pi*xi))
+    elif config == "shu-osher":
         xi = np.linspace(shock, end, N - cellsLeft)
         arr[cellsLeft:, 0] = 1 + (.2 * np.sin(freq*np.pi*xi))
-        return fn.pointConvertPrimitive(arr, g)  # convert domain to conservative variables q
     
-    elif "toro" in config:
-        cellsLeft = int(shock/(end-start) * N)
-        arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (N - cellsLeft, 1))
-        arr = np.concatenate((arrL, arrR)).astype(float)
-        return fn.pointConvertPrimitive(arr, g)  # convert domain to conservative variables q
-    
-    else:
-        cellsLeft = int(shock/(end-start) * N)
-        arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (N - cellsLeft, 1))
-        arr = np.concatenate((arrL, arrR)).astype(float)
-        return fn.pointConvertPrimitive(arr, g)  # convert domain to conservative variables q
+    return fn.pointConvertPrimitive(arr, g)  # convert domain to conservative variables q
