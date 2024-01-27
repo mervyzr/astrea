@@ -33,10 +33,10 @@ elif cfg.config == "sedov":
     initialLeft = np.array([1,0,0,0,100])  # primitive variables
     initialRight = np.array([1,0,0,0,1])  # primitive variables
 elif cfg.config == "shu-osher":
-    startPos = 0
+    startPos = -1
     endPos = 1
-    shockPos = .125
-    tEnd = .18
+    shockPos = -.8
+    tEnd = .47
     boundary = "outflow"
     freq = 5
 

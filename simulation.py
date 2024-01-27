@@ -54,7 +54,7 @@ if cfg.runType[0].lower() == "m":
     for n in [20, 100, 300, 1000, 5000]:
         lap = time.time()
         run = runSimulation(cfg.config, n, cfg.cfl, cfg.gamma, cfg.solver, tst.variables)
-        print(f"[Test={cfg.config}, N={n}; {len(run)} timesteps]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
+        print(f"[Test={cfg.config}, N={n}, solver={cfg.solver}; {len(run)} timesteps]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
         runs.append(run)
     if cfg.saveFile:
         plotter.plotQuantities(runs, cfg.snapshots, cfg.config, tst.startPos, tst.endPos)
@@ -64,7 +64,7 @@ else:
         cfg.livePlot = False
     lap = time.time()
     run = runSimulation(cfg.config, cfg.cells, cfg.cfl, cfg.gamma, cfg.solver, tst.variables)
-    print(f"[Test={cfg.config}, N={cfg.cells}; {len(run)} timesteps]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
+    print(f"[Test={cfg.config}, N={cfg.cells}, solver={cfg.solver}; {len(run)} timesteps]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
     runs.append(run)
     if cfg.saveFile:
         plotter.plotQuantities(runs, cfg.snapshots, cfg.config, tst.startPos, tst.endPos)
