@@ -86,8 +86,14 @@ def calculateSolutionError(simulation, start, end):
 
 
 # Determine the analytical solution for a Sod shock test
-def analyticalSod(tube,t,  gamma, wL, wR, start, end, tolerance=1e-3):
-    cs1, cs2 = np.sqrt(gamma*(wL[4]/wL[0])), np.sqrt(gamma*(wR[4]/wR[0]))
+def calculateSodAnalytical(tube, t, gamma, wL, wR, start, end, tolerance=1e-3):
+    wL, wR = tube[0], tube[-1]
+    cs1, cs5 = np.sqrt(gamma * (wL[4]/wL[0])), np.sqrt(gamma * (wR[4]/wR[0]))
+    mu2 = (gamma - 1)/(gamma + 1)
+    
+    
+    
+
     Gamma, beta = (gamma-1)/(gamma+1), (gamma-1)/(2*gamma)
     arr = np.zeros((len(tube), len(tube[0])))
 
