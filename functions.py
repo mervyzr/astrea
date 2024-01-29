@@ -77,37 +77,53 @@ def calculateSolutionError(simulation, start, end):
     return dx * np.sum(np.abs(simulation[0] - simulation[list(simulation.keys())[-1]]), axis=0)
 
 
-
-
-
-
-
-
-
-
 # Determine the analytical solution for a Sod shock test
-def calculateSodAnalytical(tube, t, gamma, wL, wR, start, end, tolerance=1e-3):
-    wL, wR = tube[0], tube[-1]
-    cs1, cs5 = np.sqrt(gamma * (wL[4]/wL[0])), np.sqrt(gamma * (wR[4]/wR[0]))
-    mu2 = (gamma - 1)/(gamma + 1)
-    
-    
-    
-
-    Gamma, beta = (gamma-1)/(gamma+1), (gamma-1)/(2*gamma)
+def calculateSodAnalytical(tube, t, gamma, start, end):
+    # Define array to be updated and returned
     arr = np.zeros((len(tube), len(tube[0])))
 
-    # locate the regions of the tube based on density
-    differences = np.abs(np.diff(tube[:,0]))
-    peaks = sp.signal.find_peaks(differences, height=tolerance)[0]+1
+    # Get variables of the leftmost and rightmost states, which should be initial conditions
+    rho5, vx5, vy5, vz5, P5 = tube[0]
+    rho1, vx1, vy1, vz1, P1 = tube[-1]
 
-    # Region 1
+    # Define parameters needed for computation
+    cs5, cs1 = np.sqrt(gamma * P5/rho5), np.sqrt(gamma * P1/rho1)
+    mu = (gamma - 1)/(gamma + 1)
 
-    # Region 2
-    u2 = 2/(gamma+1) * (cs1 + 1/t)
+    # Root-finding value for pressure in region 2 (post-shock)
+    f = lambda x: (((x/P1) - 1) * np.sqrt((1 - mu)/(gamma*(mu + (x/P1))))) - ((2/(gamma-1)) * (cs5/cs1) * (1-((x/P5)**((gamma-1)/(2*gamma)))))
+    P2 = sp.optimize.fsolve(f, (P5-P1)/2)[0]
+
+    # Define variables in other regions
+    rho2, rho3 = rho1 * ((P2 + (mu*P1))/(P1 + (mu*P2))), rho5 * (P2/P5)**(1/gamma)
+    vx2 = ((2*cs5)/(gamma-1)) * (1-((P2/P5)**((gamma-1)/(2*gamma))))
+
+    # Get shock wave speed and rarefaction tail speed
+    v_t = cs5 - (vx2/(1-mu))
+    v_s = vx2/(1-(rho1/rho2))
+
+    # Define boundaries and number of cells between boundaries
+    boundary = lambda x,y: int((x*t)/(end-start) * len(tube)) + y
+    cs5_bound = boundary(cs5, start) 
+    vt_bound = boundary(v_t,cs5_bound)
+    v2_bound = boundary(vx2,vt_bound)
+    vs_bound = boundary(v_s,v2_bound)
+
+    # Define array of x-values for the rarefaction wave; variables dependent on x in this region
+    rarefaction_region = np.linspace((cs5*t) + ((end-start)/len(tube)), v_t*t, vt_bound-cs5_bound)
+
+    # Update array for regions 1 and 5 (initial conditions)
+    arr[:cs5_bound+1] = [rho5, vx5, 0, 0, P5]
+    arr[vs_bound+1:] = [rho1, vx1, 0, 0, P1]
     
-    if len(peaks) <= 4:
-        arr[:peaks[0]] = wL
-        arr[peaks[3]:] = wR
-    else:
-        pass
+    # Update array for regions 2 and 3 (post-shock and discontinuities)
+    arr[vt_bound+1:vs_bound+1] = [0, vx2, 0, 0, P2]
+    arr[vt_bound+1:v2_bound+1, 0] = rho3
+    arr[v2_bound+1:vs_bound+1, 0] = rho2
+
+    # Update array for region 4 (rarefaction)
+    arr[cs5_bound+1:vt_bound+1, 0] = rho5 * ((-mu*(rarefaction_region/(cs5*t))) + (1-mu))**(2/(gamma-1))
+    arr[cs5_bound+1:vt_bound+1, 4] = P5 * ((-mu*(rarefaction_region/(cs5*t))) + (1-mu))**((2*gamma)/(gamma-1))
+    arr[cs5_bound+1:vt_bound+1, 1] = (1-mu) * (cs5 + (rarefaction_region/t))
+
+    return arr
