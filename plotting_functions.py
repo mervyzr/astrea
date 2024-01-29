@@ -71,7 +71,7 @@ def updatePlot(arr, t, fig, ax, plots):
 
 
 # Plot snapshots of quantities for multiple runs
-def plotQuantities(runs, snapshots, config, startPos, endPos):
+def plotQuantities(runs, snapshots, config, gamma, startPos, endPos, shockPos):
     try:
         int(snapshots)
     except Exception as e:
@@ -109,14 +109,17 @@ def plotQuantities(runs, snapshots, config, startPos, endPos):
             y4 = y2/y1                      # thermal energy
             x = np.linspace(startPos, endPos, len(y1))
 
-            """sod = fn.calculateSodAnalytical(simulation[time[i]], time[i], 1.4, 0, 1)
-            ax[0,1].plot(x, sod[:, 4], linewidth=2, color="purple", linestyle="--")
-            """
-
             ax[0,0].plot(x, y1, linewidth=2, color="blue")   # density
             ax[0,1].plot(x, y2, linewidth=2, color="red")    # pressure
             ax[1,0].plot(x, y3, linewidth=2, color="green")  # vx
             ax[1,1].plot(x, y4, linewidth=2, color="black")  # thermal energy
+
+            if config == "sod":
+                Sod = fn.calculateSodAnalytical(simulation[time[i]], time[i], gamma, startPos, endPos, shockPos)
+                ax[0,0].plot(x, Sod[:, 0], linewidth=1, color="purple", linestyle="--")
+                ax[0,1].plot(x, Sod[:, 4], linewidth=1, color="purple", linestyle="--")
+                ax[1,0].plot(x, Sod[:, 1], linewidth=1, color="purple", linestyle="--")
+                ax[1,1].plot(x, Sod[:, 4]/Sod[:, 0], linewidth=1, color="purple", linestyle="--")
 
             plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(timing,3)}$ ($N = {len(y1)}$)", fontsize=24)
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
@@ -138,6 +141,13 @@ def plotQuantities(runs, snapshots, config, startPos, endPos):
                 ax[0,1].plot(x, y2, linewidth=2, label=f"N = {len(y1)}")  # pressure
                 ax[1,0].plot(x, y3, linewidth=2, label=f"N = {len(y1)}")  # vx
                 ax[1,1].plot(x, y4, linewidth=2, label=f"N = {len(y1)}")  # thermal energy
+
+                if config == "sod":
+                    Sod = fn.calculateSodAnalytical(simulation[indexes[j][i]], indexes[j][i], gamma, startPos, endPos, shockPos)
+                    ax[0,0].plot(x, Sod[:, 0], linewidth=1, color="purple", linestyle="--")
+                    ax[0,1].plot(x, Sod[:, 4], linewidth=1, color="purple", linestyle="--")
+                    ax[1,0].plot(x, Sod[:, 1], linewidth=1, color="purple", linestyle="--")
+                    ax[1,1].plot(x, Sod[:, 4]/Sod[:, 0], linewidth=1, color="purple", linestyle="--")
 
             plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(timing,3)}$", fontsize=24)
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
