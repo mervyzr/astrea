@@ -2,7 +2,7 @@
 ##############################################################################
 
 config = "sod"
-cells = 5000
+cells = 500
 cfl = .5
 gamma = 1.4
 solver = "ppm"
@@ -10,6 +10,6 @@ solver = "ppm"
 runType = "single"
 livePlot = True
 
-saveFile = False
+saveFile = True
 snapshots = 1
 saveVideo = False
