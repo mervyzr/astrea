@@ -57,7 +57,7 @@ if cfg.runType[0].lower() == "m":
         print(f"[Test={cfg.config}, N={n}, solver={cfg.solver}; {len(run)} timesteps]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
         runs.append(run)
     if cfg.saveFile:
-        plotter.plotQuantities(runs, cfg.snapshots, cfg.config, tst.startPos, tst.endPos)
+        plotter.plotQuantities(runs, cfg.snapshots, cfg.config, cfg.gamma, tst.startPos, tst.endPos, tst.shockPos)
         plotter.plotSolutionErrors(runs, cfg.config, tst.startPos, tst.endPos)
 else:
     if cfg.saveFile:
@@ -67,6 +67,6 @@ else:
     print(f"[Test={cfg.config}, N={cfg.cells}, solver={cfg.solver}; {len(run)} timesteps]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
     runs.append(run)
     if cfg.saveFile:
-        plotter.plotQuantities(runs, cfg.snapshots, cfg.config, tst.startPos, tst.endPos)
+        plotter.plotQuantities(runs, cfg.snapshots, cfg.config, cfg.gamma, tst.startPos, tst.endPos, tst.shockPos)
     if cfg.saveVideo:
         plotter.makeVideo(runs, cfg.config, tst.startPos, tst.endPos)
