@@ -109,14 +109,8 @@ def plotQuantities(runs, snapshots, config, startPos, endPos):
             y4 = y2/y1                      # thermal energy
             x = np.linspace(startPos, endPos, len(y1))
 
-            """last_time = list(simulation.keys())[-1]
-            differences = np.abs(np.diff(simulation[last_time][:,0]))
-            import scipy
-            print(differences)
-            peaks = scipy.signal.find_peaks(differences, height=1e-3)[0] * ((endPos-startPos)/len(simulation[last_time]))
-            print(peaks)
-            for xc in peaks:
-                ax[0,0].axvline(x=xc, color="brown", linewidth="1")
+            """sod = fn.calculateSodAnalytical(simulation[time[i]], time[i], 1.4, 0, 1)
+            ax[0,1].plot(x, sod[:, 4], linewidth=2, color="purple", linestyle="--")
             """
 
             ax[0,0].plot(x, y1, linewidth=2, color="blue")   # density
