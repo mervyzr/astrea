@@ -8,7 +8,7 @@ The code can currently employ a piecewise constant method, a piecewise linear re
 
 The Lax-Friedrichs method (LeVeque, 1992) is used for solving the Riemann problem at each interface for all reconstruction methods, although this method is highly dissipative and only first-order accurate. The simulation is also only first-order accurate in time as the states are evolved in full time-steps.
 
-Hydrodynamical tests in place are the Sod shock tube test, the Sedov blast test, a ''sin-wave'' test, the Shu-Osher shock tube problem (Shu & Osher, 1989), and five shock tube tests from Toro's book (Toro, 1999, p.225).
+Hydrodynamical tests in place are the Sod shock tube test (Sod, 1978), the Sedov blast test (Sedov, 1946), a ''sin-wave'' test, the Shu-Osher shock tube problem (Shu & Osher, 1989), and five shock tube tests from Toro's book (Toro, 1999, p.225). An analytical solution for the Sod shock test (Pfrommer et al., 2006) is also plotted when the Sod shock tube test is run.
 
 This code is created as part of the Master's thesis project at the University of Cologne.
 
