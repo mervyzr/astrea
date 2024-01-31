@@ -5,7 +5,7 @@ config = "sod"
 cells = 1000
 cfl = .5
 gamma = 1.4
-solver = "pcm"
+solver = "ppm"
 
 runType = "single"
 livePlot = True
