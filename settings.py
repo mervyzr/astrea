@@ -11,5 +11,5 @@ runType = "single"
 livePlot = False
 
 saveFile = True
-snapshots = 3
+snapshots = 5
 saveVideo = False
