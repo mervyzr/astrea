@@ -40,7 +40,7 @@ def initiateLivePlot(startPos, endPos, N):
     graphTL, = ax[0,0].plot(plot_x, plot_x, linewidth=2, color="blue")  # density
     graphTR, = ax[0,1].plot(plot_x, plot_x, linewidth=2, color="red")  # pressure
     graphBL, = ax[1,0].plot(plot_x, plot_x, linewidth=2, color="green")  # vx
-    graphBR, = ax[1,1].plot(plot_x, plot_x, linewidth=2, color="black")  # thermal energy
+    graphBR, = ax[1,1].plot(plot_x, plot_x, linewidth=2, color="darkviolet")  # thermal energy
 
     return fig, ax, [graphTL, graphTR, graphBL, graphBR]
 
@@ -112,17 +112,19 @@ def plotQuantities(runs, snapshots, config, gamma, startPos, endPos, shockPos):
             ax[0,0].plot(x, y1, linewidth=2, color="blue")   # density
             ax[0,1].plot(x, y2, linewidth=2, color="red")    # pressure
             ax[1,0].plot(x, y3, linewidth=2, color="green")  # vx
-            ax[1,1].plot(x, y4, linewidth=2, color="black")  # thermal energy
+            ax[1,1].plot(x, y4, linewidth=2, color="darkviolet")  # thermal energy
 
             if config == "sod":
                 Sod = fn.calculateSodAnalytical(simulation[time[i]], time[i], gamma, startPos, endPos, shockPos)
-                ax[0,0].plot(x, Sod[:, 0], linewidth=1, color="purple", linestyle="--")
-                ax[0,1].plot(x, Sod[:, 4], linewidth=1, color="purple", linestyle="--")
-                ax[1,0].plot(x, Sod[:, 1], linewidth=1, color="purple", linestyle="--")
-                ax[1,1].plot(x, Sod[:, 4]/Sod[:, 0], linewidth=1, color="purple", linestyle="--")
+                ax[0,0].plot(x, Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+                ax[0,1].plot(x, Sod[:, 4], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+                ax[1,0].plot(x, Sod[:, 1], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+                ax[1,1].plot(x, Sod[:, 4]/Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
 
             plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(timing,3)}$ ($N = {len(y1)}$)", fontsize=24)
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
+            handles, labels = plt.gca().get_legend_handles_labels()
+            fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
 
             plt.savefig(f"{os.getcwd()}/../quantitiesPlot_{config}_{round(timing,3)}.png", dpi=330, facecolor="w")
 
@@ -144,10 +146,10 @@ def plotQuantities(runs, snapshots, config, gamma, startPos, endPos, shockPos):
 
                 if config == "sod":
                     Sod = fn.calculateSodAnalytical(simulation[indexes[j][i]], indexes[j][i], gamma, startPos, endPos, shockPos)
-                    ax[0,0].plot(x, Sod[:, 0], linewidth=1, color="purple", linestyle="--")
-                    ax[0,1].plot(x, Sod[:, 4], linewidth=1, color="purple", linestyle="--")
-                    ax[1,0].plot(x, Sod[:, 1], linewidth=1, color="purple", linestyle="--")
-                    ax[1,1].plot(x, Sod[:, 4]/Sod[:, 0], linewidth=1, color="purple", linestyle="--")
+                    ax[0,0].plot(x, Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+                    ax[0,1].plot(x, Sod[:, 4], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+                    ax[1,0].plot(x, Sod[:, 1], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+                    ax[1,1].plot(x, Sod[:, 4]/Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
 
             plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(timing,3)}$", fontsize=24)
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
@@ -186,7 +188,7 @@ def plotSolutionErrors(runs, config, startPos, endPos):
     ax[0,0].plot(np.log10(np.asarray(x)), np.log10(np.asarray(y1)), linewidth=2, linestyle="--", marker="o", color="blue")
     ax[0,1].plot(np.log10(np.asarray(x)), np.log10(np.asarray(y2)), linewidth=2, linestyle="--", marker="o", color="red")
     ax[1,0].plot(np.log10(np.asarray(x)), np.log10(np.asarray(y3)), linewidth=2, linestyle="--", marker="o", color="green")
-    ax[1,1].plot(np.log10(np.asarray(x)), np.log10(np.asarray(y4)), linewidth=2, linestyle="--", marker="o", color="black")
+    ax[1,1].plot(np.log10(np.asarray(x)), np.log10(np.asarray(y4)), linewidth=2, linestyle="--", marker="o", color="darkviolet")
 
     plt.suptitle(r"Plot of solution errors $\epsilon_\nu(q)$ against resolution $N_\nu$", fontsize=24)
     fig.text(0.5, 0.04, r"Resolution $\log_{10}{[N_\nu]}$", fontsize=18, ha='center')
@@ -234,7 +236,7 @@ def makeVideo(runs, config, startPos, endPos):
             ax[0,0].plot(x, y1, linewidth=2, color="blue")   # density
             ax[0,1].plot(x, y2, linewidth=2, color="red")    # pressure
             ax[1,0].plot(x, y3, linewidth=2, color="green")  # vx
-            ax[1,1].plot(x, y4, linewidth=2, color="black")  # thermal energy
+            ax[1,1].plot(x, y4, linewidth=2, color="darkviolet")  # thermal energy
 
             plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t = {round(t,4)}$ ($N = {len(y1)}$)", fontsize=24)
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
