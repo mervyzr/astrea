@@ -52,20 +52,23 @@ runs = []
 if cfg.runType[0].lower() == "m":
     cfg.livePlot = False
     for n in range(5,11):
+        cells = 5*2**n
         lap = time.time()
-        run = runSimulation(cfg.config, 10*2**n, cfg.cfl, cfg.gamma, cfg.solver, tst.variables)
-        print(f"[SIM={fn.bcolours.OKGREEN}{cfg.config}{fn.bcolours.ENDC}, CELLS={fn.bcolours.OKGREEN}{10*2**n}{fn.bcolours.ENDC}, SOLVER={fn.bcolours.OKGREEN}{cfg.solver.upper()}{fn.bcolours.ENDC} | {datetime.now().strftime('%Y.%m.%d %H:%M:%S')}]  Elapsed: {fn.bcolours.OKGREEN}{str(timedelta(seconds=time.time()-lap))}s{fn.bcolours.ENDC}  ({len(run)})")
+        run = runSimulation(cfg.config, cells, cfg.cfl, cfg.gamma, cfg.solver, tst.variables)
         runs.append(run)
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | SIM={fn.bcolours.OKGREEN}{cfg.config}{fn.bcolours.ENDC}, CELLS={fn.bcolours.OKGREEN}{cells}{fn.bcolours.ENDC}, SOLVER={fn.bcolours.OKGREEN}{cfg.solver.upper()}{fn.bcolours.ENDC}]  Elapsed: {fn.bcolours.OKGREEN}{str(timedelta(seconds=time.time()-lap))}s{fn.bcolours.ENDC}  ({len(run)})")
     if cfg.saveFile:
         plotter.plotQuantities(runs, cfg.snapshots, cfg.config, cfg.gamma, tst.startPos, tst.endPos, tst.shockPos)
-        plotter.plotSolutionErrors(runs, cfg.config, tst.startPos, tst.endPos)
+        if cfg.config == "sin":
+            plotter.plotSolutionErrors(runs, cfg.config, tst.startPos, tst.endPos)
 else:
     if cfg.saveFile:
         cfg.livePlot = False
+    cells = cfg.cells
     lap = time.time()
     run = runSimulation(cfg.config, cfg.cells, cfg.cfl, cfg.gamma, cfg.solver, tst.variables)
-    print(f"[SIM={fn.bcolours.OKGREEN}{cfg.config}{fn.bcolours.ENDC}, CELLS={fn.bcolours.OKGREEN}{cfg.cells}{fn.bcolours.ENDC}, SOLVER={fn.bcolours.OKGREEN}{cfg.solver.upper()}{fn.bcolours.ENDC} | {datetime.now().strftime('%Y.%m.%d %H:%M:%S')}]  Elapsed: {fn.bcolours.OKGREEN}{str(timedelta(seconds=time.time()-lap))}s{fn.bcolours.ENDC}  ({len(run)})")
     runs.append(run)
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | SIM={fn.bcolours.OKGREEN}{cfg.config}{fn.bcolours.ENDC}, CELLS={fn.bcolours.OKGREEN}{cells}{fn.bcolours.ENDC}, SOLVER={fn.bcolours.OKGREEN}{cfg.solver.upper()}{fn.bcolours.ENDC}]  Elapsed: {fn.bcolours.OKGREEN}{str(timedelta(seconds=time.time()-lap))}s{fn.bcolours.ENDC}  ({len(run)})")
     if cfg.saveFile:
         plotter.plotQuantities(runs, cfg.snapshots, cfg.config, cfg.gamma, tst.startPos, tst.endPos, tst.shockPos)
     if cfg.saveVideo:
