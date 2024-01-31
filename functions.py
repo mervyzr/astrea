@@ -4,6 +4,14 @@ import scipy as sp
 
 ##############################################################################
 
+# Customised rounding function
+def roundOff(value):
+    if value%int(value) >= .5:
+        return int(value) + 1
+    else:
+        return int(value)
+
+
 # Make boundary conditions
 def makeBoundary(tube, boundary):
     if boundary == "periodic":
@@ -88,7 +96,7 @@ def calculateSodAnalytical(tube, t, gamma, start, end, shock):
 
     # Define parameters needed for computation
     cs5, cs1 = np.sqrt(gamma * P5/rho5), np.sqrt(gamma * P1/rho1)
-    mu, beta = (gamma - 1)/(gamma + 1), 2/(gamma-1)
+    mu, beta = (gamma-1)/(gamma+1), 2/(gamma-1)
 
     # Root-finding value for pressure in region 2 (post-shock)
     f = lambda x: (((x/P1) - 1) * np.sqrt((1 - mu)/(gamma*(mu + (x/P1))))) - (beta * (cs5/cs1) * (1-((x/P5)**(1/(gamma*beta)))))
@@ -96,17 +104,17 @@ def calculateSodAnalytical(tube, t, gamma, start, end, shock):
 
     # Define variables in other regions
     rho2, rho3 = rho1 * ((P2 + (mu*P1))/(P1 + (mu*P2))), rho5 * (P2/P5)**(1/gamma)
-    vx2 = vx3 = (beta*cs5) * (1-((P2/P5)**(1/(gamma*beta))))
+    vx2 = vx3 = (beta*cs5) * (1-(P2/P5)**(1/(gamma*beta)))
 
     # Get shock wave speed and rarefaction tail speed
     v_t = cs5 - (vx2/(1-mu))
     v_s = vx2/(1-(rho1/rho2))
 
     # Define boundary regions
-    boundary54 = int(((shock-(cs5*t)-start)/(end-start)) * len(tube))
-    boundary43 = int(((shock-(v_t*t)-start)/(end-start)) * len(tube))
-    boundary32 = int(((shock+(vx2*t)-start)/(end-start)) * len(tube))
-    boundary21 = int(((shock+(v_s*t)-start)/(end-start)) * len(tube))
+    boundary54 = roundOff(((shock-(cs5*t)-start)/(end-start)) * len(tube))
+    boundary43 = roundOff(((shock-(v_t*t)-start)/(end-start)) * len(tube))
+    boundary32 = roundOff(((shock+(vx2*t)-start)/(end-start)) * len(tube))
+    boundary21 = roundOff(((shock+(v_s*t)-start)/(end-start)) * len(tube))
 
     # Update array for regions 1 and 5 (initial conditions)
     arr[:boundary54] = [rho5, vx5, 0, 0, P5]
@@ -118,14 +126,10 @@ def calculateSodAnalytical(tube, t, gamma, start, end, shock):
     arr[boundary32:boundary21, 0] = rho2
 
     # Update variables for region 4 (rarefaction wave)
-    rarefaction = np.linspace(shock-(cs5*t), shock-(v_t*t), int(((cs5*t-v_t*t)/(end-start)) * len(tube)))
+    rarefaction = np.linspace(shock-(cs5*t), shock-(v_t*t), roundOff(((cs5*t-v_t*t)/(end-start)) * len(tube)))
 
-    rho4 = rho5 * (((1-mu) - (mu*(rarefaction/(cs5*t))))**beta)
-    P4 = P5 * (((1-mu) - (mu*(rarefaction/(cs5*t))))**(gamma*beta))
-    vx4 = (1-mu) * (cs5+(rarefaction/t))
-
-    arr[boundary54:boundary43, 0] = rho4
-    arr[boundary54:boundary43, 4] = P4
-    arr[boundary54:boundary43, 1] = vx4
+    arr[boundary54:boundary43, 0] = rho5 * ((1 - mu) - mu*rarefaction/(cs5*t))**beta
+    arr[boundary54:boundary43, 4] = P5 * ((1 - mu) - mu*rarefaction/(cs5*t))**(gamma*beta)
+    arr[boundary54:boundary43, 1] = (1-mu) * (cs5+(rarefaction/t))
 
     return arr
