@@ -5,11 +5,11 @@ config = "sod"
 cells = 5000
 cfl = .5
 gamma = 1.4
-solver = "plm"
+solver = "pcm"
 
-runType = "single"
+runType = "multiple"
 livePlot = True
 
-saveFile = False
+saveFile = True
 snapshots = 1
 saveVideo = False
