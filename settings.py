@@ -2,14 +2,14 @@
 ##############################################################################
 
 config = "sod"
-cells = 1000
+cells = 500
 cfl = .5
 gamma = 1.4
 solver = "ppm"
 
 runType = "single"
-livePlot = True
+livePlot = False
 
-saveFile = False
-snapshots = 1
+saveFile = True
+snapshots = 3
 saveVideo = False

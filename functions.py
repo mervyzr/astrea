@@ -88,6 +88,7 @@ def calculateSolutionError(simulation, start, end):
 # Determine the analytical solution for a Sod shock test
 def calculateSodAnalytical(tube, t, gamma, start, end, shock):
     # Define array to be updated and returned
+    x_arr = np.linspace(-5, 5, len(tube))
     arr = np.zeros((len(tube), len(tube[0])))
 
     # Get variables of the leftmost and rightmost states, which should be initial conditions
@@ -110,11 +111,19 @@ def calculateSodAnalytical(tube, t, gamma, start, end, shock):
     v_t = cs5 - (vx2/(1-mu))
     v_s = vx2/(1-(rho1/rho2))
 
-    # Define boundary regions
+    # Define boundary regions and number of cells within each region
     boundary54 = roundOff(((shock-(cs5*t)-start)/(end-start)) * len(tube))
     boundary43 = roundOff(((shock-(v_t*t)-start)/(end-start)) * len(tube))
     boundary32 = roundOff(((shock+(vx2*t)-start)/(end-start)) * len(tube))
     boundary21 = roundOff(((shock+(v_s*t)-start)/(end-start)) * len(tube))
+    
+    # Define number of cells in the rarefaction wave
+    rarefaction_cells = roundOff(((cs5*t-v_t*t)/(end-start)) * len(tube))
+    if rarefaction_cells - (boundary43-boundary54) < 0:
+        rarefaction_cells += 1
+    elif rarefaction_cells - (boundary43-boundary54) > 0:
+        rarefaction_cells -= 1
+    rarefaction = np.linspace(shock-(cs5*t), shock-(v_t*t), rarefaction_cells) - shock
 
     # Update array for regions 1 and 5 (initial conditions)
     arr[:boundary54] = [rho5, vx5, 0, 0, P5]
@@ -125,9 +134,7 @@ def calculateSodAnalytical(tube, t, gamma, start, end, shock):
     arr[boundary43:boundary32, 0] = rho3
     arr[boundary32:boundary21, 0] = rho2
 
-    # Update variables for region 4 (rarefaction wave)
-    rarefaction = np.linspace(shock-(cs5*t), shock-(v_t*t), roundOff(((cs5*t-v_t*t)/(end-start)) * len(tube)))
-
+    # Update array for region 4 (rarefaction wave)
     arr[boundary54:boundary43, 0] = rho5 * ((1 - mu) - mu*rarefaction/(cs5*t))**beta
     arr[boundary54:boundary43, 4] = P5 * ((1 - mu) - mu*rarefaction/(cs5*t))**(gamma*beta)
     arr[boundary54:boundary43, 1] = (1-mu) * (cs5+(rarefaction/t))
