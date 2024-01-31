@@ -1,5 +1,5 @@
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import numpy as np
 
@@ -51,10 +51,10 @@ def runSimulation(_config, _N, _cfl, _gamma, _solver, _variables):
 runs = []
 if cfg.runType[0].lower() == "m":
     cfg.livePlot = False
-    for n in [20, 100, 300, 1000, 5000]:
+    for n in [20,50,100,500,1000]:
         lap = time.time()
         run = runSimulation(cfg.config, n, cfg.cfl, cfg.gamma, cfg.solver, tst.variables)
-        print(f"[Test={cfg.config}, N={n}, solver={cfg.solver}; {len(run)} timesteps]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
+        print(f"[SIM={fn.bcolours.OKGREEN}{cfg.config}{fn.bcolours.ENDC}, CELLS={fn.bcolours.OKGREEN}{n}{fn.bcolours.ENDC}, SOLVER={fn.bcolours.OKGREEN}{cfg.solver.upper()}{fn.bcolours.ENDC} | {datetime.now().strftime('%Y.%m.%d %H:%M:%S')}]  Elapsed: {fn.bcolours.OKGREEN}{str(timedelta(seconds=time.time()-lap))}s{fn.bcolours.ENDC}  ({len(run)})")
         runs.append(run)
     if cfg.saveFile:
         plotter.plotQuantities(runs, cfg.snapshots, cfg.config, cfg.gamma, tst.startPos, tst.endPos, tst.shockPos)
@@ -64,7 +64,7 @@ else:
         cfg.livePlot = False
     lap = time.time()
     run = runSimulation(cfg.config, cfg.cells, cfg.cfl, cfg.gamma, cfg.solver, tst.variables)
-    print(f"[Test={cfg.config}, N={cfg.cells}, solver={cfg.solver}; {len(run)} timesteps]  Elapsed: {str(timedelta(seconds=time.time()-lap))} s")
+    print(f"[SIM={fn.bcolours.OKGREEN}{cfg.config}{fn.bcolours.ENDC}, CELLS={fn.bcolours.OKGREEN}{cfg.cells}{fn.bcolours.ENDC}, SOLVER={fn.bcolours.OKGREEN}{cfg.solver.upper()}{fn.bcolours.ENDC} | {datetime.now().strftime('%Y.%m.%d %H:%M:%S')}]  Elapsed: {fn.bcolours.OKGREEN}{str(timedelta(seconds=time.time()-lap))}s{fn.bcolours.ENDC}  ({len(run)})")
     runs.append(run)
     if cfg.saveFile:
         plotter.plotQuantities(runs, cfg.snapshots, cfg.config, cfg.gamma, tst.startPos, tst.endPos, tst.shockPos)

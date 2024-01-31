@@ -4,6 +4,19 @@ import scipy as sp
 
 ##############################################################################
 
+# Colours for printing to terminal
+class bcolours:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
 # Customised rounding function
 def roundOff(value):
     if value%int(value) >= .5:
@@ -81,8 +94,11 @@ def makeFlux(tube, g):
 
 # Function for solution error calculation for all variables
 def calculateSolutionError(simulation, start, end):
-    dx = abs(end-start)/len(simulation[0])
-    return dx * np.sum(np.abs(simulation[0] - simulation[list(simulation.keys())[-1]]), axis=0)
+    q_initial, q_final = simulation[0], simulation[max(list(simulation.keys()))]
+    thermal_initial, thermal_final = q_initial[:,4]/q_initial[:,0], q_final[:,4]/q_final[:,0]
+    q_initial, q_final = np.c_[q_initial, thermal_initial], np.c_[q_final, thermal_final]
+    dx = abs(end-start)/len(q_initial)
+    return dx * np.sum(np.abs(q_initial - q_final), axis=0)
 
 
 # Determine the analytical solution for a Sod shock test

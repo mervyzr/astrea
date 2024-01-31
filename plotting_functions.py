@@ -144,12 +144,12 @@ def plotQuantities(runs, snapshots, config, gamma, startPos, endPos, shockPos):
                 ax[1,0].plot(x, y3, linewidth=2, label=f"N = {len(y1)}")  # vx
                 ax[1,1].plot(x, y4, linewidth=2, label=f"N = {len(y1)}")  # thermal energy
 
-                if config == "sod":
-                    Sod = fn.calculateSodAnalytical(simulation[indexes[j][i]], indexes[j][i], gamma, startPos, endPos, shockPos)
-                    ax[0,0].plot(x, Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
-                    ax[0,1].plot(x, Sod[:, 4], linewidth=1, color="black", linestyle="--", label="Analytical solution")
-                    ax[1,0].plot(x, Sod[:, 1], linewidth=1, color="black", linestyle="--", label="Analytical solution")
-                    ax[1,1].plot(x, Sod[:, 4]/Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+            if config == "sod":
+                Sod = fn.calculateSodAnalytical(simulation[indexes[-1][-1]], indexes[-1][-1], gamma, startPos, endPos, shockPos)
+                ax[0,0].plot(x, Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+                ax[0,1].plot(x, Sod[:, 4], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+                ax[1,0].plot(x, Sod[:, 1], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+                ax[1,1].plot(x, Sod[:, 4]/Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
 
             plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(timing,3)}$", fontsize=24)
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
@@ -178,17 +178,19 @@ def plotSolutionErrors(runs, config, startPos, endPos):
 
     x, y1, y2, y3, y4 = [], [], [], [], []
     for simulation in runs:
-        solutionErrors = fn.calculateSolutionError(simulation, startPos, endPos)
         x.append(len(simulation[0]))
-        y1.append(solutionErrors[0])                    # density
-        y2.append(solutionErrors[4])                    # pressure
-        y3.append(solutionErrors[1])                    # vx
-        y4.append(solutionErrors[4]/solutionErrors[0])  # thermal energy
+        solutionErrors = fn.calculateSolutionError(simulation, startPos, endPos)
+        y1.append(solutionErrors[0])  # density
+        y2.append(solutionErrors[4])  # pressure
+        y3.append(solutionErrors[1])  # vx
+        y4.append(solutionErrors[5])  # thermal energy
+    x, y1, y2, y3, y4 = np.asarray(x), np.asarray(y1), np.asarray(y2), np.asarray(y3), np.asarray(y4)
+    print(f"{fn.bcolours.OKGREEN}EOC (density){fn.bcolours.ENDC}: {np.diff(np.log(y1))/np.diff(np.log(x))}\n{fn.bcolours.OKGREEN}EOC (pressure){fn.bcolours.ENDC}: {np.diff(np.log(y2))/np.diff(np.log(x))}\n{fn.bcolours.OKGREEN}EOC (vx){fn.bcolours.ENDC}: {np.diff(np.log(y3))/np.diff(np.log(x))}\n{fn.bcolours.OKGREEN}EOC (thermal){fn.bcolours.ENDC}: {np.diff(np.log(y4))/np.diff(np.log(x))}")
     
-    ax[0,0].plot(np.log10(np.asarray(x)), np.log10(np.asarray(y1)), linewidth=2, linestyle="--", marker="o", color="blue")
-    ax[0,1].plot(np.log10(np.asarray(x)), np.log10(np.asarray(y2)), linewidth=2, linestyle="--", marker="o", color="red")
-    ax[1,0].plot(np.log10(np.asarray(x)), np.log10(np.asarray(y3)), linewidth=2, linestyle="--", marker="o", color="green")
-    ax[1,1].plot(np.log10(np.asarray(x)), np.log10(np.asarray(y4)), linewidth=2, linestyle="--", marker="o", color="darkviolet")
+    ax[0,0].plot(np.log10(x), np.log10(y1), linewidth=2, linestyle="--", marker="o", color="blue")
+    ax[0,1].plot(np.log10(x), np.log10(y2), linewidth=2, linestyle="--", marker="o", color="red")
+    ax[1,0].plot(np.log10(x), np.log10(y3), linewidth=2, linestyle="--", marker="o", color="green")
+    ax[1,1].plot(np.log10(x), np.log10(y4), linewidth=2, linestyle="--", marker="o", color="darkviolet")
 
     plt.suptitle(r"Plot of solution errors $\epsilon_\nu(q)$ against resolution $N_\nu$", fontsize=24)
     fig.text(0.5, 0.04, r"Resolution $\log_{10}{[N_\nu]}$", fontsize=18, ha='center')
