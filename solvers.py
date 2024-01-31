@@ -17,7 +17,6 @@ class RiemannSolver:
         # Impose boundary conditions
         qLs, qRs = fn.makeBoundary(self.domain, self.boundary)
 
-
         # Piecewise parabolic method solver (3rd-order stable for uneven grid; 4th-order stable for even grid)
         if solver.lower() == "ppm" or solver.lower() == "parabolic":
             # Conversion of conservative variables to primitive variables
