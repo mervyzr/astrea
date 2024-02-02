@@ -48,28 +48,29 @@ def runSimulation(_config, _N, _cfl, _gamma, _solver, _variables):
 
 ##############################################################################
 
-runs = []
-if cfg.runType[0].lower() == "m":
-    cfg.livePlot = False
-    for n in range(5,11):
-        cells = 5*2**n
+if __name__ == "__main__":
+    runs = []
+    if cfg.runType[0].lower() == "m":
+        cfg.livePlot = False
+        for n in range(5,11):
+            cells = 5*2**n
+            lap = time.time()
+            run = runSimulation(cfg.config, cells, cfg.cfl, cfg.gamma, cfg.solver, tst.variables)
+            runs.append(run)
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | SIM={fn.bcolours.OKGREEN}{cfg.config}{fn.bcolours.ENDC}, CELLS={fn.bcolours.OKGREEN}{cells}{fn.bcolours.ENDC}, SOLVER={fn.bcolours.OKGREEN}{cfg.solver.upper()}{fn.bcolours.ENDC}]  Elapsed: {fn.bcolours.OKGREEN}{str(timedelta(seconds=time.time()-lap))}s{fn.bcolours.ENDC}  ({len(run)})")
+        if cfg.saveFile:
+            plotter.plotQuantities(runs, cfg.snapshots, cfg.config, cfg.gamma, tst.startPos, tst.endPos, tst.shockPos)
+            if cfg.config == "sin":
+                plotter.plotSolutionErrors(runs, cfg.config, tst.startPos, tst.endPos)
+    else:
+        if cfg.saveFile:
+            cfg.livePlot = False
+        cells = cfg.cells
         lap = time.time()
-        run = runSimulation(cfg.config, cells, cfg.cfl, cfg.gamma, cfg.solver, tst.variables)
+        run = runSimulation(cfg.config, cfg.cells, cfg.cfl, cfg.gamma, cfg.solver, tst.variables)
         runs.append(run)
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | SIM={fn.bcolours.OKGREEN}{cfg.config}{fn.bcolours.ENDC}, CELLS={fn.bcolours.OKGREEN}{cells}{fn.bcolours.ENDC}, SOLVER={fn.bcolours.OKGREEN}{cfg.solver.upper()}{fn.bcolours.ENDC}]  Elapsed: {fn.bcolours.OKGREEN}{str(timedelta(seconds=time.time()-lap))}s{fn.bcolours.ENDC}  ({len(run)})")
-    if cfg.saveFile:
-        plotter.plotQuantities(runs, cfg.snapshots, cfg.config, cfg.gamma, tst.startPos, tst.endPos, tst.shockPos)
-        if cfg.config == "sin":
-            plotter.plotSolutionErrors(runs, cfg.config, tst.startPos, tst.endPos)
-else:
-    if cfg.saveFile:
-        cfg.livePlot = False
-    cells = cfg.cells
-    lap = time.time()
-    run = runSimulation(cfg.config, cfg.cells, cfg.cfl, cfg.gamma, cfg.solver, tst.variables)
-    runs.append(run)
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | SIM={fn.bcolours.OKGREEN}{cfg.config}{fn.bcolours.ENDC}, CELLS={fn.bcolours.OKGREEN}{cells}{fn.bcolours.ENDC}, SOLVER={fn.bcolours.OKGREEN}{cfg.solver.upper()}{fn.bcolours.ENDC}]  Elapsed: {fn.bcolours.OKGREEN}{str(timedelta(seconds=time.time()-lap))}s{fn.bcolours.ENDC}  ({len(run)})")
-    if cfg.saveFile:
-        plotter.plotQuantities(runs, cfg.snapshots, cfg.config, cfg.gamma, tst.startPos, tst.endPos, tst.shockPos)
-    if cfg.saveVideo:
-        plotter.makeVideo(runs, cfg.config, tst.startPos, tst.endPos)
+        if cfg.saveFile:
+            plotter.plotQuantities(runs, cfg.snapshots, cfg.config, cfg.gamma, tst.startPos, tst.endPos, tst.shockPos)
+        if cfg.saveVideo:
+            plotter.makeVideo(runs, cfg.config, tst.startPos, tst.endPos)
