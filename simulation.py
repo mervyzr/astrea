@@ -13,7 +13,7 @@ import plotting_functions as plotter
 ##############################################################################
 
 # Run code
-def runSimulation(_config, _N, _cfl, _gamma, _solver, _variables):
+def simulateShock(_config, _N, _cfl, _gamma, _solver, _variables):
     simulation = {}
     _N += (_N%2)  # Make N into an even number
     _startPos, _endPos, _shockPos, _tEnd, _boundary, _wL, _wR = _variables
@@ -55,7 +55,7 @@ if __name__ == "__main__":
         for n in range(5,11):
             cells = 5*2**n
             lap = time.time()
-            run = runSimulation(cfg.config, cells, cfg.cfl, cfg.gamma, cfg.solver, tst.variables)
+            run = simulateShock(cfg.config, cells, cfg.cfl, cfg.gamma, cfg.solver, tst.variables)
             runs.append(run)
             print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | SIM={fn.bcolours.OKGREEN}{cfg.config}{fn.bcolours.ENDC}, CELLS={fn.bcolours.OKGREEN}{cells}{fn.bcolours.ENDC}, SOLVER={fn.bcolours.OKGREEN}{cfg.solver.upper()}{fn.bcolours.ENDC}]  Elapsed: {fn.bcolours.OKGREEN}{str(timedelta(seconds=time.time()-lap))}s{fn.bcolours.ENDC}  ({len(run)})")
         if cfg.saveFile:
@@ -67,7 +67,7 @@ if __name__ == "__main__":
             cfg.livePlot = False
         cells = cfg.cells
         lap = time.time()
-        run = runSimulation(cfg.config, cfg.cells, cfg.cfl, cfg.gamma, cfg.solver, tst.variables)
+        run = simulateShock(cfg.config, cfg.cells, cfg.cfl, cfg.gamma, cfg.solver, tst.variables)
         runs.append(run)
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | SIM={fn.bcolours.OKGREEN}{cfg.config}{fn.bcolours.ENDC}, CELLS={fn.bcolours.OKGREEN}{cells}{fn.bcolours.ENDC}, SOLVER={fn.bcolours.OKGREEN}{cfg.solver.upper()}{fn.bcolours.ENDC}]  Elapsed: {fn.bcolours.OKGREEN}{str(timedelta(seconds=time.time()-lap))}s{fn.bcolours.ENDC}  ({len(run)})")
         if cfg.saveFile:
