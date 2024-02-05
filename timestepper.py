@@ -75,4 +75,4 @@ class TimeStepper:
             if timestep != "euler":
                 print(f"Timestep procedure unknown; reverting to Forward Euler timestep\n")
             # Evolve system by a full timestep (1st-order)
-            return self.domain - (self.dt * Lq)
+            return (self.dt * Lq)
