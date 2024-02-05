@@ -2,7 +2,7 @@
 ##############################################################################
 
 config = "sod"  # Sod, Sedov, Shu-Osher, Toro1/2/3/4/5, SIN
-cells = 1000
+cells = 100
 cfl = .5
 gamma = 1.4
 solver = "ppm"  # PCM, PLM, PPM
