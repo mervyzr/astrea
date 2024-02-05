@@ -4,9 +4,11 @@ hydro_shock is a 1D-hydrodynamics code for the purpose of simulating shocks and 
 # Description
 The code is written entirely in Python 3 and employs a finite volume method (Eulerian) with a fixed evenly-spaced grid. The simulation allows for periodic boundary conditions or outflows.
 
-The code can currently employ a piecewise constant method, a piecewise linear reconstruction method (Derigs et al., 2018) with a *min-mod* limiter (Roe, 1986), or a piecewise parabolic reconstruction method (Felker & Stone, 2017) with an *interface* and *parabolic interpolant* limiter (Colella et al., 2011). 
+The code can currently employ a piecewise constant method, a piecewise linear reconstruction method (Derigs et al., 2018) with a *min-mod* limiter (Roe, 1986), or a piecewise parabolic reconstruction method (Felker & Stone, 2017) with an *interface* and *parabolic interpolant* limiter (Colella et al., 2011).
 
-The Lax-Friedrichs method (LeVeque, 1992) is used for solving the Riemann problem at each interface for all reconstruction methods, although this method is highly dissipative and only first-order accurate. The simulation is also only first-order accurate in time as the states are evolved in full time-steps.
+The Lax-Friedrichs method (LeVeque, 1992) is used for solving the Riemann problem at each interface for all reconstruction methods, although this method is highly dissipative and only first-order accurate.
+
+The simulation is evolved with iterative methods such as Runge-Kutta (RK) or Euler methods. Strong-stability preserving (SSP) variants of the RK methods are also considered with the SSPRK (3,3) (Shu & Osher, 1988) and SSPRK (5,4) methods (Gottlieb et al., 2009). The ''classic'' RK4 or the Forward Euler method can also be selected.
 
 Hydrodynamical tests in place are the Sod shock tube test (Sod, 1978), the Sedov blast test (Sedov, 1946), a ''sin-wave'' test, the Shu-Osher shock tube problem (Shu & Osher, 1989), and five shock tube tests from Toro's book (Toro, 1999, p.225). An analytical solution for the Sod shock test (Pfrommer et al., 2006) is also plotted when the Sod shock tube test is run.
 

@@ -1,13 +1,14 @@
 
 ##############################################################################
 
-config = "sod"
+config = "sod"  # Sod, Sedov, Shu-Osher, Toro1/2/3/4/5, SIN
 cells = 1000
 cfl = .5
 gamma = 1.4
-solver = "ppm"
+solver = "ppm"  # PCM, PLM, PPM
+timestep = "euler"  # RK4, SSPRK(3,3), SSPRK(5,4), Euler
 
-runType = "single"
+runType = "single"  # Single/Multiple
 livePlot = True
 
 saveFile = False

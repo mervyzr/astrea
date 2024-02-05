@@ -5,7 +5,7 @@ import settings as cfg
 
 ##############################################################################
 
-if cfg.config == "sod":
+if cfg.config.lower() == "sod":
     startPos = 0
     endPos = 1
     shockPos = .5
@@ -14,7 +14,7 @@ if cfg.config == "sod":
 
     initialLeft = np.array([1,0,0,0,1])  # primitive variables
     initialRight = np.array([.125,0,0,0,.1])  # primitive variables
-elif cfg.config == "sin":
+elif cfg.config.lower() == "sin":
     startPos = 0
     endPos = 1
     shockPos = 1
@@ -23,7 +23,7 @@ elif cfg.config == "sin":
 
     initialLeft = np.array([0,1,1,1,1])  # primitive variables
     initialRight = np.array([0,0,0,0,0])  # primitive variables
-elif cfg.config == "sedov":
+elif cfg.config.lower() == "sedov":
     startPos = -10
     endPos = 10
     shockPos = 1  # blast boundary from midpoint
@@ -32,7 +32,7 @@ elif cfg.config == "sedov":
 
     initialLeft = np.array([1,0,0,0,100])  # primitive variables
     initialRight = np.array([1,0,0,0,1])  # primitive variables
-elif cfg.config == "shu-osher":
+elif cfg.config.lower() == "shu-osher":
     startPos = -1
     endPos = 1
     shockPos = -.8
@@ -42,30 +42,30 @@ elif cfg.config == "shu-osher":
 
     initialLeft = np.array([3.857143,2.629369,0,0,10.3333])  # primitive variables
     initialRight = np.array([0,0,0,0,1])  # primitive variables
-elif "toro" in cfg.config:
+elif "toro" in cfg.config.lower():
     startPos = 0
     endPos = 1
     boundary = "outflow"
 
-    if "2" in cfg.config:
+    if "2" in cfg.config.lower():
         shockPos = .5
         tEnd = .14
 
         initialLeft = np.array([1,-2,0,0,.4])  # primitive variables
         initialRight = np.array([1,2,0,0,.4])  # primitive variables
-    elif "3" in cfg.config:
+    elif "3" in cfg.config.lower():
         shockPos = .5
         tEnd = .012
 
         initialLeft = np.array([1,0,0,0,1000])  # primitive variables
         initialRight = np.array([1,0,0,0,.01])  # primitive variables
-    elif "4" in cfg.config:
+    elif "4" in cfg.config.lower():
         shockPos = .3
         tEnd = .05
 
         initialLeft = np.array([5.99924,19.5975,0,0,460.894])  # primitive variables
         initialRight = np.array([5.99242,-6.19633,0,0,46.095])  # primitive variables
-    elif "5" in cfg.config:
+    elif "5" in cfg.config.lower():
         shockPos = .8
         tEnd = .012
 
@@ -78,6 +78,7 @@ elif "toro" in cfg.config:
         initialLeft = np.array([1,.75,0,0,1])  # primitive variables
         initialRight = np.array([.125,0,0,0,.1])  # primitive variables
 else:
+    print(f"Test unknown; reverting to Sod shock tube test\n")
     startPos = 0
     endPos = 1
     shockPos = .5

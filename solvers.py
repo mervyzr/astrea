@@ -18,7 +18,7 @@ class RiemannSolver:
         qLs, qRs = fn.makeBoundary(self.domain, self.boundary)
 
         # Piecewise parabolic method solver (3rd-order stable for uneven grid; 4th-order stable for even grid)
-        if solver.lower() == "ppm" or solver.lower() == "parabolic":
+        if solver == "ppm" or solver == "parabolic":
             # Conversion of conservative variables to primitive variables
             wS = np.copy(fn.convertConservative(self.domain, self.gamma, self.boundary))
 
@@ -43,7 +43,7 @@ class RiemannSolver:
             wLefts, wRights = limiters.limitParabolicInterpolants(wS, wF, wLs, wRs, wL2s, wR2s, wF_limit, wF_limit_L, wF_limit_R, wF_limit_L2, wF_limit_R2)
 
             # Compute the 4th-order interface-averaged fluxes
-            # Because the simulation is only 1D, the "normal" Laplacian (Taylor expansion) of the face-averaged states and fluxes are zero
+            # But because the simulation is only 1D, the "normal" Laplacian (Taylor expansion) of the face-averaged states and fluxes are zero
             # Thus, the conversion between face-averaged and face-centred states and fluxes can be pointwise conversion
 
             # Solve the Riemann problem
@@ -68,7 +68,7 @@ class RiemannSolver:
 
 
         # Piecewise linear method with minmod limiter (2nd-order stable)
-        elif solver.lower() == "plm" or solver.lower() == "linear":
+        elif solver == "plm" or solver == "linear":
             gradients = limiters.minmod(qLs, qRs)  # implement limiter here
             qLefts, qRights = np.copy(self.domain)-gradients, np.copy(self.domain)+gradients  # reconstruction step
 
@@ -94,6 +94,8 @@ class RiemannSolver:
 
         # Piecewise constant method (1st-order stable)
         else:
+            if solver != "pcm" or solver != "constant":
+                print(f"Solver unknown; reverting to piecewise constant reconstruction\n")
             wLs, wRs = fn.pointConvertConservative(qLs, self.gamma), fn.pointConvertConservative(qRs, self.gamma)
             fLs, fRs = fn.makeFlux(wLs, self.gamma), fn.makeFlux(wRs, self.gamma)
 
