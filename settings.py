@@ -6,7 +6,7 @@ cells = 100
 cfl = .5
 gamma = 1.4
 solver = "ppm"  # PCM, PLM, PPM
-timestep = "euler"  # RK4, SSPRK(3,3), SSPRK(5,4), Euler
+timestep = "ssprk(3,3)"  # RK4, SSPRK(3,3), SSPRK(5,4), Euler
 
 runType = "single"  # Single/Multiple
 livePlot = True
