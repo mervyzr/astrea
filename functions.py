@@ -101,6 +101,11 @@ def calculateSolutionError(simulation, start, end):
     return dx * np.sum(np.abs(q_initial - q_final), axis=0)
 
 
+# Define the operator L as a function of the reconstruction values based on interpolation and limiters
+def getL(fluxes, dx):
+    return np.diff(fluxes, axis=0)/dx
+
+
 # Determine the analytical solution for a Sod shock test
 def calculateSodAnalytical(tube, t, gamma, start, end, shock):
     # Define array to be updated and returned
