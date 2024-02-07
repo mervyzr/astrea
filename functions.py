@@ -25,6 +25,28 @@ def roundOff(value):
         return int(value)
 
 
+# Lower the element in a list if string
+def lowerList(lst):
+    arr = []
+    for i in lst:
+        if isinstance(i, str):
+            arr.append(i.lower())
+        else:
+            arr.append(i)
+    return arr
+
+
+# Print to Terminal
+def printOutput(instanceTime, config, cells, solver, timestep, elapsed, runLength):
+    print(f"[{bcolours.BOLD}{instanceTime}{bcolours.ENDC} | TEST={bcolours.OKGREEN}{config.upper()}{bcolours.ENDC}, CELLS={bcolours.OKGREEN}{cells}{bcolours.ENDC}, RECONSTRUCT={bcolours.OKGREEN}{solver.upper()}{bcolours.ENDC}, TIMESTEP={bcolours.OKGREEN}{timestep.upper()}{bcolours.ENDC}]  Elapsed: {bcolours.OKGREEN}{elapsed}s{bcolours.ENDC}  ({runLength})")
+    pass
+
+
+# Define the operator L as a function of the reconstruction values based on interpolation and limiters
+def getL(fluxes, dx):
+    return np.diff(fluxes, axis=0)/dx
+
+
 # Make boundary conditions
 def makeBoundary(tube, boundary):
     if boundary == "periodic":
@@ -99,11 +121,6 @@ def calculateSolutionError(simulation, start, end):
     q_initial, q_final = np.c_[q_initial, thermal_initial], np.c_[q_final, thermal_final]
     dx = abs(end-start)/len(q_initial)
     return dx * np.sum(np.abs(q_initial - q_final), axis=0)
-
-
-# Define the operator L as a function of the reconstruction values based on interpolation and limiters
-def getL(fluxes, dx):
-    return np.diff(fluxes, axis=0)/dx
 
 
 # Determine the analytical solution for a Sod shock test
