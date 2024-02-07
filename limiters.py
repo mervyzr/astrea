@@ -2,27 +2,28 @@ import sys
 
 import numpy as np
 
+import functions as fn
+
 ##############################################################################
 
-
-# Calculate minmod parameter. Returns an array of gradients for each parameter in each cell
-def minmod(qLs, qRs):
-    a, b = np.diff(qLs, axis=0), np.diff(qRs, axis=0)
-    arr = np.zeros(b.shape)
-
-    mask = np.where((np.abs(a) < np.abs(b)) & (a*b > 0))
-    arr[mask] = a[mask]
-
-    mask = np.where((np.abs(a) >= np.abs(b)) & (a*b > 0))
-    arr[mask] = b[mask]
-
-    return .5*arr
+# Apply limiters based on the reconstruction method
+def applyLimiter(solver, reconstructedValues, domain, boundary):
+    if solver in ["ppm", "parabolic", "p"]:
+        # Apply the limited face-values and parabolic-interpolant limiter
+        return parabolicLimiters(reconstructedValues, boundary)
+    else:
+        if solver in ["plm", "linear", "l"]:
+            gradients = minmod(reconstructedValues)
+            return np.copy(domain) - gradients, np.copy(domain) + gradients
+        else:
+            return reconstructedValues[0], reconstructedValues[1]
 
 
-# Calculate the limited face-values
-def limitFaceValues(wS, wF, wLs, wRs, wL2s, wR2s):
-    C = 5/4
-
+# Calculate parabolic-interpolant and face-value limters
+def parabolicLimiters(reconstructedValues, boundary, C=5/4):
+    wS, wF, wLs, wRs, wL2s, wR2s = reconstructedValues
+    
+    # Calculate the limited face-values
     local_extrema = (wF - wS)*(wRs[1:] - wF) < 0  # Initial check for local extrema
 
     if local_extrema.any():
@@ -46,14 +47,16 @@ def limitFaceValues(wS, wF, wLs, wRs, wL2s, wR2s):
         # Update the limited local curvature estimates based on the conditions
         d2_wF[non_monotonic] = limited_curvature[non_monotonic]
 
-        return (.5 * (wS + wRs[1:])) - (1/6 * d2_wF)
+        wF_limit = (.5 * (wS + wRs[1:])) - (1/6 * d2_wF)
     else:
-        return wF
-
-
-# Calculate the limited parabolic interpolant values
-def limitParabolicInterpolants(wS, wF, wLs, wRs, wL2s, wR2s, wF_limit, wF_limit_L, wF_limit_R, wF_limit_L2, wF_limit_R2):
-    C = 5/4
+        wF_limit = wF
+    
+    # Calculate the limited parabolic interpolant values
+    wF_limit_L, wF_limit_R = fn.makeBoundary(wF_limit, boundary)
+    if boundary == "periodic":
+        wF_limit_L2, wF_limit_R2 = np.concatenate(([wF_limit_L[-2]],wF_limit_L))[:-1], np.concatenate((wF_limit_R,[wF_limit_R[1]]))[1:]
+    else:
+        wF_limit_L2, wF_limit_R2 = np.concatenate(([wF_limit_L[0]],wF_limit_L))[:-1], np.concatenate((wF_limit_R,[wF_limit_R[-1]]))[1:]
 
     # First determine if there is a local extremum in cells
     d_uL, d_uR = wS - wF_limit_L[:-1], wF_limit - wS
@@ -94,21 +97,39 @@ def limitParabolicInterpolants(wS, wF, wLs, wRs, wL2s, wR2s, wF_limit, wF_limit_
         return wS - d_uL_bar*(d2_wS_bar/d2_wS), wS + d_uR_bar*(d2_wS_bar/d2_wS)
     else:
         return wF_limit_L[:-1], wF_limit_R[1:]
+    
+
+# Calculate minmod limiter. Returns an array of gradients for each parameter in each cell
+def minmod(reconstructedValues, C=.5):
+    qLs, qRs = reconstructedValues
+    a, b = np.diff(qLs, axis=0), np.diff(qRs, axis=0)
+    arr = np.zeros(b.shape)
+
+    mask = np.where((np.abs(a) < np.abs(b)) & (a*b > 0))
+    arr[mask] = a[mask]
+
+    mask = np.where((np.abs(a) >= np.abs(b)) & (a*b > 0))
+    arr[mask] = b[mask]
+
+    return C * arr
 
 
 # Calculate the van Leer/harmonic parameter. Returns an array of gradients for each parameter in each cell
-def harmonic(qLs, qRs):
+def harmonic(reconstructedValues):
+    qLs, qRs = reconstructedValues
     r = np.nan_to_num((qLs[1:] - qLs[:-1])/(qRs[1:] - qRs[:-1]))
     return (r + np.abs(r))/(1 + np.abs(r))
 
 
 # Calculate the ospre parameter. Returns an array of gradients for each parameter in each cell
-def ospre(qLs, qRs):
+def ospre(reconstructedValues):
+    qLs, qRs = reconstructedValues
     r = np.nan_to_num((qLs[1:] - qLs[:-1])/(qRs[1:] - qRs[:-1]))
     return 1.5 * ((r**2 + r)/(r**2 + r + 1))
 
 
 # Calculate the van Albada parameter. Returns an array of gradients for each parameter in each cell
-def vanAlbada(qLs, qRs):
+def vanAlbada(reconstructedValues):
+    qLs, qRs = reconstructedValues
     r = np.nan_to_num((qLs[1:] - qLs[:-1])/(qRs[1:] - qRs[:-1]))
     return (r**2 + r)/(r**2 + 1)

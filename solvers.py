@@ -1,24 +1,28 @@
+import sys
+
 import numpy as np
 
-import limiters
 import functions as fn
 
 ##############################################################################
 
 class RiemannSolver:
-    def __init__(self, domain, boundary, g):
+    def __init__(self, domain, solver, boundary, g):
         self.domain = domain
+        self.solver = solver
         self.boundary = boundary
         self.gamma = g
-        self.eigmax = 0
+        self.eigmax = sys.float_info.epsilon
+        
+        # Error condition
+        if solver not in ["ppm", "parabolic", "p", "plm", "linear", "l", "pcm", "constant", "c"]:
+            print(f"Solver unknown; reverting to piecewise constant reconstruction method\n")
 
-    # Calculate Riemann flux (Lax-Friedrichs; similar to Roe)
-    def calculateRiemannFlux(self, solver):
-        # Impose boundary conditions
-        qLs, qRs = fn.makeBoundary(self.domain, self.boundary)
 
+    # Reconstruct the cell values
+    def reconstruct(self):
         # Piecewise parabolic method solver (3rd-order stable for uneven grid; 4th-order stable for even grid)
-        if solver == "ppm" or solver == "parabolic":
+        if self.solver in ["ppm", "parabolic", "p"]:
             # Conversion of conservative variables to primitive variables
             wS = np.copy(fn.convertConservative(self.domain, self.gamma, self.boundary))
 
@@ -30,73 +34,42 @@ class RiemannSolver:
                 wL2s, wR2s = np.concatenate(([wLs[0]],wLs))[:-1], np.concatenate((wRs,[wRs[-1]]))[1:]  # Outflow boundary for additional ghost box
             #wF = (7/12 * (wLs[:-1] + wS)) - (1/12 * (wRs[1:] + wL2s[:-1]))  # Compute face-averaged values (i-1/2)
             wF = (7/12 * (wS + wRs[1:])) - (1/12 * (wR2s[1:] + wLs[:-1]))  # Compute face-averaged values (i+1/2)
-            
-            # Determine the limited face values
-            wF_limit = limiters.limitFaceValues(wS, wF, wLs, wRs, wL2s, wR2s)
+            return [wS, wF, wLs, wRs, wL2s, wR2s]
+        else:
+            return fn.makeBoundary(self.domain, self.boundary)
 
-            # Determine the limited parabolic interpolants and complete the reconstruction
-            wF_limit_L, wF_limit_R = fn.makeBoundary(wF_limit, self.boundary)
+
+    # Calculate Riemann flux (Lax-Friedrichs; similar to Roe)
+    def calculateRiemannFlux(self, valueLefts, valueRights):
+        # Impose boundary conditions for cell-interfaces
+        if self.solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
             if self.boundary == "periodic":
-                wF_limit_L2, wF_limit_R2 = np.concatenate(([wF_limit_L[-2]],wF_limit_L))[:-1], np.concatenate((wF_limit_R,[wF_limit_R[1]]))[1:]
+                leftValues, rightValues = np.concatenate((valueLefts,[valueLefts[0]])), np.concatenate(([valueRights[-1]],valueRights))  # Periodic boundary for ghost boxes
             else:
-                wF_limit_L2, wF_limit_R2 = np.concatenate(([wF_limit_L[0]],wF_limit_L))[:-1], np.concatenate((wF_limit_R,[wF_limit_R[-1]]))[1:]
-            wLefts, wRights = limiters.limitParabolicInterpolants(wS, wF, wLs, wRs, wL2s, wR2s, wF_limit, wF_limit_L, wF_limit_R, wF_limit_L2, wF_limit_R2)
+                leftValues, rightValues = np.concatenate((valueLefts,[valueRights[-1]])), np.concatenate(([valueLefts[0]],valueRights))  # Outflow boundary for ghost boxes
+        else:
+            leftValues, rightValues = valueLefts, valueRights
 
-            # Compute the 4th-order interface-averaged fluxes
+        # Solve the Riemann flux problem
+        if self.solver in ["ppm", "parabolic", "p"]:
+            # Ideally, the 4th-order interface-averaged fluxes should be computed for PPM
             # But because the simulation is only 1D, the "normal" Laplacian (Taylor expansion) of the face-averaged states and fluxes are zero
             # Thus, the conversion between face-averaged and face-centred states and fluxes can be pointwise conversion
 
-            # Solve the Riemann problem
-            if self.boundary == "periodic":
-                leftInterfaces, rightInterfaces = np.concatenate((wLefts,[wLefts[0]])), np.concatenate(([wRights[-1]],wRights))  # Periodic boundary for ghost boxes
-            else:
-                leftInterfaces, rightInterfaces = np.concatenate((wLefts,[wRights[-1]])), np.concatenate(([wLefts[0]],wRights))  # Outflow boundary for ghost boxes
+            qLs, qRs = fn.pointConvertPrimitive(leftValues, self.gamma), fn.pointConvertPrimitive(rightValues, self.gamma)
+            fLs, fRs = fn.makeFlux(leftValues, self.gamma), fn.makeFlux(rightValues, self.gamma)
 
-            qLs, qRs = fn.pointConvertPrimitive(leftInterfaces, self.gamma), fn.pointConvertPrimitive(rightInterfaces, self.gamma)
-            fLs, fRs = fn.makeFlux(leftInterfaces, self.gamma), fn.makeFlux(rightInterfaces, self.gamma)
-
-            AL, AR = np.nan_to_num(fn.makeJacobian(leftInterfaces, self.gamma), copy=False), np.nan_to_num(fn.makeJacobian(rightInterfaces, self.gamma), copy=False)
+            AL, AR = np.nan_to_num(fn.makeJacobian(leftValues, self.gamma), copy=False), np.nan_to_num(fn.makeJacobian(rightValues, self.gamma), copy=False)
             eigvalL, eigvalR = np.linalg.eigvals(AL), np.linalg.eigvals(AR)
             eigval = max(np.max(abs(eigvalL)), np.max(abs(eigvalR)))
 
-            # In order to have a more stable simulation with the limited values, a constraint should be imposed: CFL <= 1.3925
+            # In order to have a more stable simulation with the limited values, a constraint should be imposed CFL <= 1.3925 for this PPM reconstruction
             # But this constraint is for Runge-Kutta update methods; the LF Riemann solver might be stable enough for this
             if eigval > self.eigmax:
                 self.eigmax = eigval  # Compute the maximum wave speed; the maximum wave speed is the max eigenvalue between all cells i and i-1
-
-            return .5 * ((fLs+fRs) - (eigval*(qLs-qRs)))
-
-
-        # Piecewise linear method with minmod limiter (2nd-order stable)
-        elif solver == "plm" or solver == "linear":
-            gradients = limiters.minmod(qLs, qRs)  # implement limiter here
-            qLefts, qRights = np.copy(self.domain)-gradients, np.copy(self.domain)+gradients  # reconstruction step
-
-            if self.boundary == "periodic":
-                # Use periodic boundary for ghost boxes
-                leftInterfaces, rightInterfaces = np.concatenate((qLefts,[qLefts[0]])), np.concatenate(([qRights[-1]],qRights))
-            else:
-                # Use outflow boundary for ghost boxes
-                leftInterfaces, rightInterfaces = np.concatenate((qLefts,[qRights[-1]])), np.concatenate(([qLefts[0]],qRights))
-
-            wLs, wRs = fn.pointConvertConservative(leftInterfaces, self.gamma), fn.pointConvertConservative(rightInterfaces, self.gamma)
-            fLs, fRs = fn.makeFlux(wLs, self.gamma), fn.makeFlux(wRs, self.gamma)
-
-            AL, AR = np.nan_to_num(fn.makeJacobian(wLs, self.gamma), copy=False), np.nan_to_num(fn.makeJacobian(wRs, self.gamma), copy=False)
-            eigvalL, eigvalR = np.linalg.eigvals(AL), np.linalg.eigvals(AR)
-            eigval = max(np.max(abs(eigvalL)), np.max(abs(eigvalR)))
-
-            if eigval > self.eigmax:
-                self.eigmax = eigval  # Compute the maximum wave speed; the maximum wave speed is the max eigenvalue between all cells i and i-1
-
-            return .5 * ((fLs+fRs) - (eigval*(leftInterfaces-rightInterfaces)))
-
-
-        # Piecewise constant method (1st-order stable)
         else:
-            if solver != "pcm" or solver != "constant":
-                print(f"Solver unknown; reverting to piecewise constant reconstruction\n")
-            wLs, wRs = fn.pointConvertConservative(qLs, self.gamma), fn.pointConvertConservative(qRs, self.gamma)
+            qLs, qRs = leftValues, rightValues
+            wLs, wRs = fn.pointConvertConservative(leftValues, self.gamma), fn.pointConvertConservative(rightValues, self.gamma)
             fLs, fRs = fn.makeFlux(wLs, self.gamma), fn.makeFlux(wRs, self.gamma)
 
             AL, AR = np.nan_to_num(fn.makeJacobian(wLs, self.gamma), copy=False), np.nan_to_num(fn.makeJacobian(wRs, self.gamma), copy=False)
@@ -105,5 +78,9 @@ class RiemannSolver:
 
             if eigval > self.eigmax:
                 self.eigmax = eigval  # Compute the maximum wave speed; the maximum wave speed is the max eigenvalue between all cells i and i-1
-
+        
+        # Return the Riemann fluxes
+        if self.solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
+            return .5 * ((fLs+fRs) - (eigval*(qLs-qRs)))
+        else:
             return .5 * ((fLs+fRs) - (eigval*(qRs-qLs)))

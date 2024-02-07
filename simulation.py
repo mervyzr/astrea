@@ -3,13 +3,13 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
+import limiters
 import tests as tst
 import settings as cfg
 import functions as fn
 import solvers as solv
 import timestepper as tmstp
 import plotting_functions as plotter
-
 
 ##############################################################################
 
@@ -38,8 +38,10 @@ def simulateShock(_configVariables, _testVariables):
             plotter.updatePlot(tube, t, fig, ax, plots)
 
         # Compute the numerical fluxes at each interface
-        hydroTube = solv.RiemannSolver(domain, _boundary, _gamma)
-        fluxes = hydroTube.calculateRiemannFlux(_solver)
+        hydroTube = solv.RiemannSolver(domain, _solver, _boundary, _gamma)
+        reconstructedValues = hydroTube.reconstruct()
+        solutionLefts, solutionRights = limiters.applyLimiter(_solver, reconstructedValues, domain, _boundary)
+        fluxes = hydroTube.calculateRiemannFlux(solutionLefts, solutionRights)
 
         # Compute the full time step dt
         dt = _cfl * dx/hydroTube.eigmax
