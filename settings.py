@@ -14,3 +14,5 @@ livePlot = True
 saveFile = False
 snapshots = 1
 saveVideo = False
+
+variables = [config, cells, cfl, gamma, solver, timestep, livePlot]

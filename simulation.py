@@ -14,17 +14,19 @@ import plotting_functions as plotter
 ##############################################################################
 
 # Run code
-def simulateShock(_config, _N, _cfl, _gamma, _solver, _timestep, _variables):
+def simulateShock(_configVariables, _testVariables):
     simulation = {}
+    _config, _N, _cfl, _gamma, _solver, _timestep, _livePlot = fn.lowerList(_configVariables)
+    _startPos, _endPos, _shockPos, _tEnd, _boundary, _wL, _wR = fn.lowerList(_testVariables)
+
     _N += (_N%2)  # Make N into an even number
-    _startPos, _endPos, _shockPos, _tEnd, _boundary, _wL, _wR = _variables
     domain = tst.initialise(_config, _N, _gamma, _startPos, _endPos, _shockPos, _wL, _wR)
     
     # Compute dx and set t = 0
     dx = abs(_endPos-_startPos)/_N
     t = 0
 
-    if cfg.livePlot:
+    if _livePlot:
         fig, ax, plots = plotter.initiateLivePlot(_startPos, _endPos, _N)
 
     while t <= _tEnd:
@@ -32,7 +34,7 @@ def simulateShock(_config, _N, _cfl, _gamma, _solver, _timestep, _variables):
         tube = fn.pointConvertConservative(domain, _gamma)
         simulation[t] = np.copy(tube)
 
-        if cfg.livePlot:
+        if _livePlot:
             plotter.updatePlot(tube, t, fig, ax, plots)
 
         # Compute the numerical fluxes at each interface
@@ -43,10 +45,10 @@ def simulateShock(_config, _N, _cfl, _gamma, _solver, _timestep, _variables):
         dt = _cfl * dx/hydroTube.eigmax
 
         # Update the solution with the numerical fluxes using iterative methods
-        stepper = tmstp.TimeStepper(domain, fluxes, dt, dx, _boundary, _gamma, _solver)
-        domain = stepper.evolveSystem(_timestep)
+        #stepper = tmstp.TimeStepper(domain, fluxes, dt, dx, _boundary, _gamma, _solver)
+        #domain = stepper.evolveSystem(_timestep)
+        domain -= ((dt/dx) * np.diff(fluxes, axis=0))
         t += dt
-        #domain -= ((dt/dx) * np.diff(fluxes, axis=0))
     return simulation
 
 ##############################################################################
@@ -54,27 +56,27 @@ def simulateShock(_config, _N, _cfl, _gamma, _solver, _timestep, _variables):
 if __name__ == "__main__":
     runs = []
     if cfg.runType[0].lower() == "m":
-        cfg.livePlot = False
+        cfg.variables[-1] = False
         for n in range(5,11):
             cells = 5*2**n
+            cfg.variables[1] = cells
             lap = time.time()
-            run = simulateShock(cfg.config.lower(), cells, cfg.cfl, cfg.gamma, cfg.solver.lower(), cfg.timestep.lower(), tst.variables)
+            run = simulateShock(cfg.variables, tst.variables)
+            fn.printOutput(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), cfg.config, cells, cfg.solver, cfg.timestep, str(timedelta(seconds=time.time()-lap)), len(run))
             runs.append(run)
-            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | SIM={fn.bcolours.OKGREEN}{cfg.config}{fn.bcolours.ENDC}, CELLS={fn.bcolours.OKGREEN}{cells}{fn.bcolours.ENDC}, SOLVER={fn.bcolours.OKGREEN}{cfg.solver.upper()}{fn.bcolours.ENDC}, SOLVER={fn.bcolours.OKGREEN}{cfg.timestep.upper()}{fn.bcolours.ENDC}]  Elapsed: {fn.bcolours.OKGREEN}{str(timedelta(seconds=time.time()-lap))}s{fn.bcolours.ENDC}  ({len(run)})")
         if cfg.saveFile:
             plotter.plotQuantities(runs, cfg.snapshots, cfg.config.lower(), cfg.gamma, tst.startPos, tst.endPos, tst.shockPos)
             if cfg.config.lower() == "sin":
                 plotter.plotSolutionErrors(runs, cfg.config.lower(), tst.startPos, tst.endPos)
     else:
         if cfg.runType[0].lower() != "s":
-            print(f"RunType unknown; running single run\n")
+            print(f"RunType unknown; running single test\n")
         if cfg.saveFile:
-            cfg.livePlot = False
-        cells = cfg.cells
+            cfg.variables[-1] = False
         lap = time.time()
-        run = simulateShock(cfg.config.lower(), cfg.cells, cfg.cfl, cfg.gamma, cfg.solver.lower(), cfg.timestep.lower(), tst.variables)
+        run = simulateShock(cfg.variables, tst.variables)
+        fn.printOutput(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), cfg.config, cfg.cells, cfg.solver, cfg.timestep, str(timedelta(seconds=time.time()-lap)), len(run))
         runs.append(run)
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | SIM={fn.bcolours.OKGREEN}{cfg.config}{fn.bcolours.ENDC}, CELLS={fn.bcolours.OKGREEN}{cells}{fn.bcolours.ENDC}, SOLVER={fn.bcolours.OKGREEN}{cfg.solver.upper()}{fn.bcolours.ENDC}, SOLVER={fn.bcolours.OKGREEN}{cfg.timestep.upper()}{fn.bcolours.ENDC}]  Elapsed: {fn.bcolours.OKGREEN}{str(timedelta(seconds=time.time()-lap))}s{fn.bcolours.ENDC}  ({len(run)})")
         if cfg.saveFile:
             plotter.plotQuantities(runs, cfg.snapshots, cfg.config.lower(), cfg.gamma, tst.startPos, tst.endPos, tst.shockPos)
         if cfg.saveVideo:
