@@ -1,7 +1,6 @@
 import numpy as np
 import scipy as sp
 
-
 ##############################################################################
 
 # Colours for printing to terminal
