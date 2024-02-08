@@ -2,6 +2,8 @@ import os
 import shutil
 
 import numpy as np
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import moviepy.video.io.ImageSequenceClip
 
