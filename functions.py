@@ -41,11 +41,6 @@ def printOutput(instanceTime, config, cells, solver, timestep, elapsed, runLengt
     pass
 
 
-# Define the operator L as a function of the reconstruction values based on interpolation and limiters
-def getL(fluxes, dx):
-    return np.diff(fluxes, axis=0)/dx
-
-
 # Make boundary conditions
 def makeBoundary(tube, boundary):
     if boundary == "periodic":
@@ -71,29 +66,19 @@ def pointConvertConservative(tube, g):
 
 
 # Converting primitive variables w to conservative variables q through a higher-order approx.
-def convertPrimitive(tube, g, boundary):
+def convertPrimitive(tube, g, boundary, dem=24):
     wLs, wRs = makeBoundary(tube, boundary)
-    wLs, wRs = wLs[:-1], wRs[1:]
-
-    q = pointConvertPrimitive(tube, g)
-    qLs, qRs = makeBoundary(q, boundary)
-    qLs, qRs = qLs[:-1], qRs[1:]
-
-    w = tube - ((wLs - (2*tube) + wRs) / 24)  # 2nd-order Taylor expansion (Laplacian)
-    return pointConvertPrimitive(w, g) + ((qLs - (2*q) + qRs) / 24)
+    w = tube - ((np.diff(wRs, axis=0) - np.diff(wLs, axis=0)) / dem)  # 2nd-order Taylor expansion (Laplacian)
+    qLs, qRs = pointConvertPrimitive(wLs, g), pointConvertPrimitive(wRs, g)
+    return pointConvertPrimitive(w, g) + ((np.diff(qRs, axis=0) - np.diff(qLs, axis=0)) / dem)
     
 
 # Converting conservative variables q to primitive variables w through a higher-order approx.
-def convertConservative(tube, g, boundary):
+def convertConservative(tube, g, boundary, dem=24):
     qLs, qRs = makeBoundary(tube, boundary)
-    qLs, qRs = qLs[:-1], qRs[1:]
-
-    w = pointConvertConservative(tube, g)
-    wLs, wRs = makeBoundary(w, boundary)
-    wLs, wRs = wLs[:-1], wRs[1:]
-
-    q = tube - ((qLs - (2*tube) + qRs) / 24)  # 2nd-order Taylor expansion (Laplacian)
-    return pointConvertConservative(q, g) + ((wLs - (2*w) + wRs) / 24)
+    q = tube - ((np.diff(qRs, axis=0) - np.diff(qLs, axis=0)) / dem)  # 2nd-order Taylor expansion (Laplacian)
+    wLs, wRs = pointConvertConservative(qLs, g), pointConvertConservative(qRs, g)
+    return pointConvertConservative(q, g) + ((np.diff(wRs, axis=0) - np.diff(wLs, axis=0)) / dem)
 
 
 # Jacobian matrix using primitive variables
