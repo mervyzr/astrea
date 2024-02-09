@@ -14,10 +14,6 @@ class RiemannSolver:
         self.dx = dx
         self.boundary = boundary
         self.eigmax = sys.float_info.epsilon
-        
-        # Error condition
-        if solver not in ["ppm", "parabolic", "p", "plm", "linear", "l", "pcm", "constant", "c"]:
-            print(f"Solver unknown; reverting to piecewise constant reconstruction method\n")
 
 
     # Reconstruct the cell values
@@ -47,7 +43,7 @@ class RiemannSolver:
             if self.boundary == "periodic":
                 leftValues, rightValues = np.concatenate((valueLefts,[valueLefts[0]])), np.concatenate(([valueRights[-1]],valueRights))  # Periodic boundary for ghost boxes
             else:
-                leftValues, rightValues = np.concatenate((valueLefts,[valueRights[-1]])), np.concatenate(([valueLefts[0]],valueRights))  # Outflow boundary for ghost boxes
+                leftValues, rightValues = np.concatenate((valueLefts,[valueLefts[-1]])), np.concatenate(([valueRights[0]],valueRights))  # Outflow boundary for ghost boxes
         else:
             leftValues, rightValues = valueLefts, valueRights
 
@@ -61,25 +57,20 @@ class RiemannSolver:
             fLs, fRs = fn.makeFlux(leftValues, self.gamma), fn.makeFlux(rightValues, self.gamma)
 
             AL, AR = np.nan_to_num(fn.makeJacobian(leftValues, self.gamma), copy=False), np.nan_to_num(fn.makeJacobian(rightValues, self.gamma), copy=False)
-            eigvalL, eigvalR = np.linalg.eigvals(AL), np.linalg.eigvals(AR)
-            eigval = max(np.max(abs(eigvalL)), np.max(abs(eigvalR)))
-
-            # In order to have a more stable simulation with the limited values, a constraint should be imposed CFL <= 1.3925 for this PPM reconstruction
-            # But this constraint is for Runge-Kutta update methods; the LF Riemann solver might be stable enough for this
-            if eigval > self.eigmax:
-                self.eigmax = eigval  # Compute the maximum wave speed; the maximum wave speed is the max eigenvalue between all cells i and i-1
         else:
             qLs, qRs = leftValues, rightValues
             wLs, wRs = fn.pointConvertConservative(leftValues, self.gamma), fn.pointConvertConservative(rightValues, self.gamma)
             fLs, fRs = fn.makeFlux(wLs, self.gamma), fn.makeFlux(wRs, self.gamma)
 
             AL, AR = np.nan_to_num(fn.makeJacobian(wLs, self.gamma), copy=False), np.nan_to_num(fn.makeJacobian(wRs, self.gamma), copy=False)
-            eigvalL, eigvalR = np.linalg.eigvals(AL), np.linalg.eigvals(AR)
-            eigval = max(np.max(abs(eigvalL)), np.max(abs(eigvalR)))
 
-            if eigval > self.eigmax:
-                self.eigmax = eigval  # Compute the maximum wave speed; the maximum wave speed is the max eigenvalue between all cells i and i-1
-        
+        eigvalL, eigvalR = np.linalg.eigvals(AL), np.linalg.eigvals(AR)
+        eigval = max(np.max(abs(eigvalL)), np.max(abs(eigvalR)))
+        if eigval > self.eigmax:
+            self.eigmax = eigval  # Compute the maximum wave speed (max eigenvalue)
+        # In order to have a more stable simulation with the limited values, a constraint should be imposed CFL <= 1.3925 for the PPM reconstruction
+        # But this constraint is for Runge-Kutta update methods; the LF Riemann solver might be stable enough for this
+
         # Return the Riemann fluxes
         if self.solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
             return .5 * ((fLs+fRs) - (eigval*(qLs-qRs)))

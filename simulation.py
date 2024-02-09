@@ -35,7 +35,7 @@ def simulateShock(_configVariables, _testVariables):
         simulation[t] = np.copy(tubeSnapshot)
 
         if _livePlot:
-            plotter.updatePlot(tube, t, fig, ax, plots)
+            plotter.updatePlot(tubeSnapshot, t, fig, ax, plots)
 
         # Compute the numerical fluxes at each interface
         shockTube = solv.RiemannSolver(domain, _solver, _gamma, dx, _boundary)
@@ -47,9 +47,8 @@ def simulateShock(_configVariables, _testVariables):
         dt = _cfl * dx/shockTube.eigmax
 
         # Update the solution with the numerical fluxes using iterative methods
-        #stepper = tmstp.TimeStepper(domain, fluxes, dt, dx, _boundary, _gamma, _solver)
-        #domain = stepper.evolveSystem(_timestep)
-        domain -= ((dt/dx) * np.diff(fluxes, axis=0))
+        domain = tmstp.evolveSystem(shockTube, dt, fluxes, _timestep)
+        #domain -= ((dt/dx) * np.diff(fluxes, axis=0))
         t += dt
     return simulation
 
@@ -57,6 +56,13 @@ def simulateShock(_configVariables, _testVariables):
 
 if __name__ == "__main__":
     runs = []
+
+    # Error condition(s)
+    if cfg.solver.lower() not in ["ppm", "parabolic", "p", "plm", "linear", "l", "pcm", "constant", "c"]:
+        print(f"{fn.bcolours.WARNING}Reconstruct unknown; reverting to piecewise constant reconstruction method..{fn.bcolours.ENDC}")
+    if cfg.timestep.lower() not in ["euler", "rk4", "ssprk(3,3)", "ssprk(5,4)"]:
+        print(f"{fn.bcolours.WARNING}Timestepper unknown; reverting to Forward Euler timestepping..{fn.bcolours.ENDC}")
+
     if cfg.runType[0].lower() == "m":
         cfg.variables[-1] = False
         for n in range(5,11):
@@ -72,7 +78,7 @@ if __name__ == "__main__":
                 plotter.plotSolutionErrors(runs, cfg.config.lower(), tst.startPos, tst.endPos)
     else:
         if cfg.runType[0].lower() != "s":
-            print(f"RunType unknown; running single test\n")
+            print(f"{fn.bcolours.WARNING}RunType unknown; running single test..{fn.bcolours.ENDC}")
         if cfg.saveFile:
             cfg.variables[-1] = False
         lap = time.time()

@@ -1,9 +1,64 @@
 import numpy as np
 
+import limiters
 import functions as fn
 import solvers as solv
 
 ##############################################################################
+# The issue here is the sign in the operator L; take note of the negative sign!!!
+# References:
+#   - (Shu, 2009) SSPRK(3,3) with good description: https://epubs.siam.org/doi/epdf/10.1137/070679065
+#   - Gottlieb: https://icerm.brown.edu/materials/Slides/tw-18-6/Strong_Stability_Preserving_Integrating_Factor_Runge--Kutta_Methods_]_Sigal_Gottlieb,_UMASS_Dartmouth.pdf
+#   - Gottlieb SSPRK description: High Order Strong Stability Preserving Time Discretizations
+#   - RK4: https://math.stackexchange.com/questions/3751001/using-runge-kutta-in-local-lax-friedrichs-fvm-for-shallow-water-problem
+
+def evolveSystem(tube, dt, fluxes, stepper):
+    Lu = -np.diff(fluxes, axis=0)/tube.dx  # operator L as a function of the reconstruction values: [F(i+1/2) - F(i-1/2)]/dx
+
+    if stepper == "ssprk(5,4)":
+        # Evolve system by SSP-RK (5,4) method
+        # Computation of 1st-term u_1
+        pass
+    elif stepper == "ssprk(3,3)":
+        # Evolve system by SSP-RK (3,3) method
+        # Computation of 1st register
+        u1 = np.copy(tube.domain) + dt*Lu
+
+        # Computation of 2nd register
+        shockTube = solv.RiemannSolver(u1, tube.solver, tube.gamma, tube.dx, tube.boundary)
+        reconstructedValues = shockTube.reconstruct()
+        solutionLefts, solutionRights = limiters.applyLimiter(shockTube, reconstructedValues)
+        flux1 = shockTube.calculateRiemannFlux(solutionLefts, solutionRights)
+        Lu1 = -np.diff(flux1, axis=0)/tube.dx
+        u2 = .25 * (3*np.copy(tube.domain + u1) + dt*Lu1)
+
+        # Computation of the final update
+        shockTube = solv.RiemannSolver(u2, tube.solver, tube.gamma, tube.dx, tube.boundary)
+        reconstructedValues = shockTube.reconstruct()
+        solutionLefts, solutionRights = limiters.applyLimiter(shockTube, reconstructedValues)
+        flux2 = shockTube.calculateRiemannFlux(solutionLefts, solutionRights)
+        Lu2 = -np.diff(flux2, axis=0)/tube.dx
+        return 1/3 * (np.copy(tube.domain) + 2*np.copy(u2) + 2*dt*Lu2)
+    elif stepper == "rk4":
+        # Evolve the system by RK4 method
+        # Computation of k2
+
+
+        pass
+    else:
+        # Evolve system by a full timestep (1st-order)
+        return tube.domain + (dt * Lu)
+
+
+"""
+
+
+# Define the operator L as a function of the reconstruction values based on interpolation and limiters
+def getL(fluxes, dx):
+    return np.diff(fluxes, axis=0)/dx
+
+
+
 
 class TimeStepper:
     def __init__(self, domain, fluxes, dt, dx, boundary, gamma, solver):
@@ -75,4 +130,4 @@ class TimeStepper:
             if timestep != "euler":
                 print(f"Timestep procedure unknown; reverting to Forward Euler timestep\n")
             # Evolve system by a full timestep (1st-order)
-            return (self.dt * Lq)
+            return (self.dt * Lq)"""
