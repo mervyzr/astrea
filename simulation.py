@@ -38,13 +38,13 @@ def simulateShock(_configVariables, _testVariables):
             plotter.updatePlot(tube, t, fig, ax, plots)
 
         # Compute the numerical fluxes at each interface
-        hydroTube = solv.RiemannSolver(domain, _solver, _boundary, _gamma)
-        reconstructedValues = hydroTube.reconstruct()
+        shockTube = solv.RiemannSolver(domain, _solver, _boundary, _gamma)
+        reconstructedValues = shockTube.reconstruct()
         solutionLefts, solutionRights = limiters.applyLimiter(_solver, reconstructedValues, domain, _boundary)
-        fluxes = hydroTube.calculateRiemannFlux(solutionLefts, solutionRights)
+        fluxes = shockTube.calculateRiemannFlux(solutionLefts, solutionRights)
 
         # Compute the full time step dt
-        dt = _cfl * dx/hydroTube.eigmax
+        dt = _cfl * dx/shockTube.eigmax
 
         # Update the solution with the numerical fluxes using iterative methods
         #stepper = tmstp.TimeStepper(domain, fluxes, dt, dx, _boundary, _gamma, _solver)
