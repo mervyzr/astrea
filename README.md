@@ -1,5 +1,5 @@
-# hydro_shock
-hydro_shock is a 1D-hydrodynamics code for the purpose of simulating shocks and turbulence with ions/neutrals interaction.
+# shock1D
+shock1D is a 1D-hydrodynamics code for the purpose of simulating shocks and turbulence with ions/neutrals interaction.
 
 # Description
 The code is written entirely in Python 3 and employs a finite volume method (Eulerian) with a fixed evenly-spaced grid. The simulation allows for periodic boundary conditions or outflows.
@@ -24,8 +24,9 @@ To run the simulation, set your configurations in *`settings.py`* and run *`simu
 There are several files in this code for different purposes:
 
 - simulation.py: Employs the Riemann solver and runs the simulation
-- solvers.py: Functions for the reconstruction methods
+- solvers.py: Functions for the reconstruction methods and Riemann solvers
 - limiters.py: Implements flux/slope limiters to prevent spurious oscillations in the reconstructed states
+- timestepper.py: Implements the (higher-order) timesteps
 - functions.py: Generic functions that can be used throughout the code
 - tests.py: Hydrodynamics test configurations
 - plotting_functions.py: Functions for (live-)plotting
