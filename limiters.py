@@ -7,16 +7,16 @@ import functions as fn
 ##############################################################################
 
 # Apply limiters based on the reconstruction method
-def applyLimiter(solver, reconstructedValues, domain, boundary):
-    if solver in ["ppm", "parabolic", "p"]:
+def applyLimiter(tube, reconstructedValues):
+    if tube.solver in ["ppm", "parabolic", "p"]:
         # Apply the limited face-values and parabolic-interpolant limiter
-        return parabolicLimiters(reconstructedValues, boundary)
+        return parabolicLimiters(reconstructedValues, tube.boundary)
     else:
-        if solver in ["plm", "linear", "l"]:
+        if tube.solver in ["plm", "linear", "l"]:
             gradients = minmod(reconstructedValues)
-            return np.copy(domain) - gradients, np.copy(domain) + gradients
+            return np.copy(tube.domain) - gradients, np.copy(tube.domain) + gradients
         else:
-            return reconstructedValues[0], reconstructedValues[1]
+            return reconstructedValues
 
 
 # Calculate parabolic-interpolant and face-value limters
