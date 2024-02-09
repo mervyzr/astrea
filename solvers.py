@@ -7,11 +7,12 @@ import functions as fn
 ##############################################################################
 
 class RiemannSolver:
-    def __init__(self, domain, solver, boundary, g):
+    def __init__(self, domain, solver, gamma, dx, boundary):
         self.domain = domain
         self.solver = solver
+        self.gamma = gamma
+        self.dx = dx
         self.boundary = boundary
-        self.gamma = g
         self.eigmax = sys.float_info.epsilon
         
         # Error condition

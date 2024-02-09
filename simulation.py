@@ -31,16 +31,16 @@ def simulateShock(_configVariables, _testVariables):
 
     while t <= _tEnd:
         # Saves each instance of the system at time t
-        tube = fn.pointConvertConservative(domain, _gamma)
-        simulation[t] = np.copy(tube)
+        tubeSnapshot = fn.pointConvertConservative(domain, _gamma)
+        simulation[t] = np.copy(tubeSnapshot)
 
         if _livePlot:
             plotter.updatePlot(tube, t, fig, ax, plots)
 
         # Compute the numerical fluxes at each interface
-        shockTube = solv.RiemannSolver(domain, _solver, _boundary, _gamma)
+        shockTube = solv.RiemannSolver(domain, _solver, _gamma, dx, _boundary)
         reconstructedValues = shockTube.reconstruct()
-        solutionLefts, solutionRights = limiters.applyLimiter(_solver, reconstructedValues, domain, _boundary)
+        solutionLefts, solutionRights = limiters.applyLimiter(shockTube, reconstructedValues)
         fluxes = shockTube.calculateRiemannFlux(solutionLefts, solutionRights)
 
         # Compute the full time step dt
