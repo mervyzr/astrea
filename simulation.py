@@ -37,18 +37,17 @@ def simulateShock(_configVariables, _testVariables):
         if _livePlot:
             plotter.updatePlot(tubeSnapshot, t, fig, ax, plots)
 
+        # Initiate the shock tube
+        shockTube = solv.RiemannSolver(domain, _solver, _gamma, dx, _boundary, limiters)
+
         # Compute the numerical fluxes at each interface
-        shockTube = solv.RiemannSolver(domain, _solver, _gamma, dx, _boundary)
-        reconstructedValues = shockTube.reconstruct()
-        solutionLefts, solutionRights = limiters.applyLimiter(shockTube, reconstructedValues)
-        fluxes = shockTube.calculateRiemannFlux(solutionLefts, solutionRights)
+        fluxes = fn.evolveSpace(shockTube, domain)
 
         # Compute the full time step dt
-        dt = _cfl * dx/shockTube.eigmax
+        dt = _cfl * shockTube.dx/shockTube.eigmax
 
         # Update the solution with the numerical fluxes using iterative methods
-        domain = tmstp.evolveSystem(shockTube, dt, fluxes, _timestep)
-        #domain -= ((dt/dx) * np.diff(fluxes, axis=0))
+        domain = tmstp.evolveTime(shockTube, dt, fluxes, _timestep)
         t += dt
     return simulation
 
@@ -60,7 +59,7 @@ if __name__ == "__main__":
     # Error condition(s)
     if cfg.solver.lower() not in ["ppm", "parabolic", "p", "plm", "linear", "l", "pcm", "constant", "c"]:
         print(f"{fn.bcolours.WARNING}Reconstruct unknown; reverting to piecewise constant reconstruction method..{fn.bcolours.ENDC}")
-    if cfg.timestep.lower() not in ["euler", "rk4", "ssprk(3,3)", "ssprk(5,4)"]:
+    if cfg.timestep.lower() not in ["euler", "rk4", "ssprk(3,3)", "ssprk(4,3)", "ssprk(5,4)"]:
         print(f"{fn.bcolours.WARNING}Timestepper unknown; reverting to Forward Euler timestepping..{fn.bcolours.ENDC}")
 
     if cfg.runType[0].lower() == "m":
