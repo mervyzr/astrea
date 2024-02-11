@@ -7,20 +7,20 @@ import functions as fn
 ##############################################################################
 
 # Apply limiters based on the reconstruction method
-def applyLimiter(tube, reconstructedValues):
-    if tube.solver in ["ppm", "parabolic", "p"]:
-        # Apply the limited face-values and parabolic-interpolant limiter
-        return parabolicLimiters(reconstructedValues, tube.boundary)
+def applyLimiter(shockTube, reconstructedValues, tube):
+    if shockTube.solver in ["ppm", "parabolic", "p"]:
+        # Apply the face-values and parabolic-interpolant limiter
+        return parabolicLimiter(reconstructedValues, shockTube.boundary)
+    elif shockTube.solver in ["plm", "linear", "l"]:
+        # Apply the minmod limiter
+        return minmodLimiter(reconstructedValues, tube)
     else:
-        if tube.solver in ["plm", "linear", "l"]:
-            gradients = minmod(reconstructedValues)
-            return np.copy(tube.domain) - gradients, np.copy(tube.domain) + gradients
-        else:
-            return reconstructedValues
+        # Do not apply any limiters
+        return reconstructedValues
 
 
 # Calculate parabolic-interpolant and face-value limters
-def parabolicLimiters(reconstructedValues, boundary, C=5/4):
+def parabolicLimiter(reconstructedValues, boundary, C=5/4):
     wS, wF, wLs, wRs, wL2s, wR2s = reconstructedValues
     
     # Calculate the limited face-values
@@ -100,7 +100,7 @@ def parabolicLimiters(reconstructedValues, boundary, C=5/4):
     
 
 # Calculate minmod limiter. Returns an array of gradients for each parameter in each cell
-def minmod(reconstructedValues, C=.5):
+def minmodLimiter(reconstructedValues, tube, C=.5):
     qLs, qRs = reconstructedValues
     a, b = np.diff(qLs, axis=0), np.diff(qRs, axis=0)
     arr = np.zeros(b.shape)
@@ -111,25 +111,26 @@ def minmod(reconstructedValues, C=.5):
     mask = np.where((np.abs(a) >= np.abs(b)) & (a*b > 0))
     arr[mask] = b[mask]
 
-    return C * arr
+    gradients = C * arr
+    return np.copy(tube) - gradients, np.copy(tube) + gradients
 
 
 # Calculate the van Leer/harmonic parameter. Returns an array of gradients for each parameter in each cell
-def harmonic(reconstructedValues):
+def harmonicLimiter(reconstructedValues):
     qLs, qRs = reconstructedValues
     r = np.nan_to_num((qLs[1:] - qLs[:-1])/(qRs[1:] - qRs[:-1]))
     return (r + np.abs(r))/(1 + np.abs(r))
 
 
 # Calculate the ospre parameter. Returns an array of gradients for each parameter in each cell
-def ospre(reconstructedValues):
+def ospreLimiter(reconstructedValues):
     qLs, qRs = reconstructedValues
     r = np.nan_to_num((qLs[1:] - qLs[:-1])/(qRs[1:] - qRs[:-1]))
     return 1.5 * ((r**2 + r)/(r**2 + r + 1))
 
 
 # Calculate the van Albada parameter. Returns an array of gradients for each parameter in each cell
-def vanAlbada(reconstructedValues):
+def vanAlbadaLimiter(reconstructedValues):
     qLs, qRs = reconstructedValues
     r = np.nan_to_num((qLs[1:] - qLs[:-1])/(qRs[1:] - qRs[:-1]))
     return (r**2 + r)/(r**2 + 1)
