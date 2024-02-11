@@ -41,6 +41,18 @@ def printOutput(instanceTime, config, cells, solver, timestep, elapsed, runLengt
     pass
 
 
+# Evolve the system in space by a standardised workflow
+def evolveSpace(shockTube, tube):
+    reconstructedValues = shockTube.reconstruct(tube)
+    solutionLefts, solutionRights = shockTube.limiter(shockTube, reconstructedValues, tube)
+    return shockTube.calculateRiemannFlux(solutionLefts, solutionRights)
+
+
+# Operator L as a function of the reconstruction values: [F(i+1/2) - F(i-1/2)]/dx
+def getL(fluxes, dx):
+    return -np.diff(fluxes, axis=0)/dx
+
+
 # Make boundary conditions
 def makeBoundary(tube, boundary):
     if boundary == "periodic":

@@ -7,21 +7,22 @@ import functions as fn
 ##############################################################################
 
 class RiemannSolver:
-    def __init__(self, domain, solver, gamma, dx, boundary):
+    def __init__(self, domain, solver, gamma, dx, boundary, limiter):
         self.domain = domain
         self.solver = solver
         self.gamma = gamma
         self.dx = dx
         self.boundary = boundary
+        self.limiter = limiter.applyLimiter
         self.eigmax = sys.float_info.epsilon
 
 
     # Reconstruct the cell values
-    def reconstruct(self):
+    def reconstruct(self, tube):
         # Piecewise parabolic method solver (3rd-order stable for uneven grid; 4th-order stable for even grid)
         if self.solver in ["ppm", "parabolic", "p"]:
             # Conversion of conservative variables to primitive variables
-            wS = np.copy(fn.convertConservative(self.domain, self.gamma, self.boundary))
+            wS = np.copy(fn.convertConservative(tube, self.gamma, self.boundary))
 
             # Reconstruction in primitive variables to 4th-order
             wLs, wRs = fn.makeBoundary(wS, self.boundary)
@@ -33,7 +34,7 @@ class RiemannSolver:
             wF = (7/12 * (wS + wRs[1:])) - (1/12 * (wR2s[1:] + wLs[:-1]))  # Compute face-averaged values (i+1/2)
             return [wS, wF, wLs, wRs, wL2s, wR2s]
         else:
-            return fn.makeBoundary(self.domain, self.boundary)
+            return fn.makeBoundary(tube, self.boundary)
 
 
     # Calculate Riemann flux (Lax-Friedrichs; similar to Roe)
