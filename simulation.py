@@ -69,7 +69,7 @@ if __name__ == "__main__":
             cfg.variables[1] = cells
             lap = time.time()
             run = simulateShock(cfg.variables, tst.variables)
-            fn.printOutput(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), cfg.config, cells, cfg.solver, cfg.timestep, str(timedelta(seconds=time.time()-lap)), len(run))
+            fn.printOutput(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), cfg.config, cells, cfg.solver, cfg.timestep, cfg.cfl, str(timedelta(seconds=time.time()-lap)), len(run))
             runs.append(run)
         if cfg.saveFile:
             plotter.plotQuantities(runs, cfg.snapshots, cfg.config.lower(), cfg.gamma, tst.startPos, tst.endPos, tst.shockPos)
@@ -82,7 +82,7 @@ if __name__ == "__main__":
             cfg.variables[-1] = False
         lap = time.time()
         run = simulateShock(cfg.variables, tst.variables)
-        fn.printOutput(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), cfg.config, cfg.cells, cfg.solver, cfg.timestep, str(timedelta(seconds=time.time()-lap)), len(run))
+        fn.printOutput(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), cfg.config, cfg.cells, cfg.solver, cfg.timestep, cfg.cfl, str(timedelta(seconds=time.time()-lap)), len(run))
         runs.append(run)
         if cfg.saveFile:
             plotter.plotQuantities(runs, cfg.snapshots, cfg.config.lower(), cfg.gamma, tst.startPos, tst.endPos, tst.shockPos)
