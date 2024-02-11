@@ -11,7 +11,7 @@ timestep = "euler"  # Euler, RK4, SSPRK(3,3), SSPRK(4,3), SSPRK(5,3), SSPRK(5,4)
 runType = "single"  # Single/Multiple
 livePlot = True
 
-saveFile = True
+saveFile = False
 snapshots = 1
 saveVideo = False
 
