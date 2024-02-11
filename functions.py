@@ -36,8 +36,8 @@ def lowerList(lst):
 
 
 # Print to Terminal
-def printOutput(instanceTime, config, cells, solver, timestep, elapsed, runLength):
-    print(f"[{bcolours.BOLD}{instanceTime}{bcolours.ENDC} | TEST={bcolours.OKGREEN}{config.upper()}{bcolours.ENDC}, CELLS={bcolours.OKGREEN}{cells}{bcolours.ENDC}, RECONSTRUCT={bcolours.OKGREEN}{solver.upper()}{bcolours.ENDC}, TIMESTEP={bcolours.OKGREEN}{timestep.upper()}{bcolours.ENDC}]  Elapsed: {bcolours.OKGREEN}{elapsed}s{bcolours.ENDC}  ({runLength})")
+def printOutput(instanceTime, config, cells, solver, timestep, cfl, elapsed, runLength):
+    print(f"[{bcolours.BOLD}{instanceTime}{bcolours.ENDC} | TEST={bcolours.OKGREEN}{config.upper()}{bcolours.ENDC}, CELLS={bcolours.OKGREEN}{cells}{bcolours.ENDC}, RECONSTRUCT={bcolours.OKGREEN}{solver.upper()}{bcolours.ENDC}, TIMESTEP={bcolours.OKGREEN}{timestep.upper()}{bcolours.ENDC}, CFL={bcolours.OKGREEN}{cfl}{bcolours.ENDC}]  Elapsed: {bcolours.OKGREEN}{elapsed}s{bcolours.ENDC}  ({runLength})")
     pass
 
 
