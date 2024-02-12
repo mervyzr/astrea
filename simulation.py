@@ -67,9 +67,9 @@ if __name__ == "__main__":
         for n in range(11):
             cells = 10*2**n
             cfg.variables[1] = cells
-            lap = time.time()
+            lap, now = time.time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             run = simulateShock(cfg.variables, tst.variables)
-            fn.printOutput(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), cfg.config, cells, cfg.solver, cfg.timestep, cfg.cfl, str(timedelta(seconds=time.time()-lap)), len(run))
+            fn.printOutput(now, cfg.config, cells, cfg.solver, cfg.timestep, cfg.cfl, str(timedelta(seconds=time.time()-lap)), len(run))
             runs.append(run)
         if cfg.saveFile:
             plotter.plotQuantities(runs, cfg.snapshots, cfg.config.lower(), cfg.gamma, tst.startPos, tst.endPos, tst.shockPos)
@@ -80,9 +80,9 @@ if __name__ == "__main__":
             print(f"{fn.bcolours.WARNING}RunType unknown; running single test..{fn.bcolours.ENDC}")
         if cfg.saveFile:
             cfg.variables[-1] = False
-        lap = time.time()
+        lap, now = time.time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         run = simulateShock(cfg.variables, tst.variables)
-        fn.printOutput(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), cfg.config, cfg.cells, cfg.solver, cfg.timestep, cfg.cfl, str(timedelta(seconds=time.time()-lap)), len(run))
+        fn.printOutput(now, cfg.config, cfg.cells, cfg.solver, cfg.timestep, cfg.cfl, str(timedelta(seconds=time.time()-lap)), len(run))
         runs.append(run)
         if cfg.saveFile:
             plotter.plotQuantities(runs, cfg.snapshots, cfg.config.lower(), cfg.gamma, tst.startPos, tst.endPos, tst.shockPos)
