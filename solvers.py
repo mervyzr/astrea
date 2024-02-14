@@ -30,8 +30,8 @@ class RiemannSolver:
                 wL2s, wR2s = np.concatenate(([wLs[-2]],wLs))[:-1], np.concatenate((wRs,[wRs[1]]))[1:]  # Periodic boundary for additional ghost box
             else:
                 wL2s, wR2s = np.concatenate(([wLs[0]],wLs))[:-1], np.concatenate((wRs,[wRs[-1]]))[1:]  # Outflow boundary for additional ghost box
-            #wF = (7/12 * (wLs[:-1] + wS)) - (1/12 * (wRs[1:] + wL2s[:-1]))  # Compute face-averaged values (i-1/2)
-            wF = (7/12 * (wS + wRs[1:])) - (1/12 * (wR2s[1:] + wLs[:-1]))  # Compute face-averaged values (i+1/2)
+            #wF = 1/12 * (7*(wLs[:-1]+wS) - (wRs[1:]+wL2s[:-1]))  # Compute face-averaged values (i-1/2)
+            wF = 1/12 * (7*(wS+wRs[1:]) - (wR2s[1:]+wLs[:-1]))  # Compute face-averaged values (i+1/2)
             return [wS, wF, wLs, wRs, wL2s, wR2s]
         else:
             return fn.makeBoundary(tube, self.boundary)
