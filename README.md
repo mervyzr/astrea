@@ -6,7 +6,7 @@ The code is written entirely in Python3 and employs a finite volume method (Eule
 
 The code currently employs a piecewise constant method, a piecewise linear reconstruction method (Derigs et al., 2018) with a *min-mod* limiter (Roe, 1986), or a piecewise parabolic reconstruction method (Felker & Stone, 2017) with an *interface* and *parabolic interpolant* limiter (Colella et al., 2011).
 
-The simulation is evolved in time with explicit iterative methods such as Runge-Kutta or Euler methods. In the following, the strong-stability preserving (SSP) variants of the Runge-Kutta (RK) methods are denoted as SSPRK (*i*,*j*), where *i* and *j* refers to *i*-stage and the *j*-th order iterative method respectively. Several SSPRK variants are included, with the SSPRK (3,3) (Shu & Osher, 1988), SSPRK (5,3) (Spiteri & Ruuth, 2002), and SSPRK (5,4) (Gottlieb et al., 2009) methods. The ''classic'' RK4 or the Forward Euler method can also be selected.
+The simulation is evolved in time with iterative methods. In the following, the strong-stability preserving (SSP) variants of the (explicit) Runge-Kutta (RK) methods are denoted as SSPRK (*i*,*j*), where *i* and *j* refers to *i*-stage and the *j*-th order iterative method respectively. Several SSPRK variants are included for this simulation, with the SSPRK (3,3) (Shu & Osher, 1988), SSPRK (5,3) (Spiteri & Ruuth, 2002), and SSPRK (5,4) (Gottlieb et al., 2009) methods. The ''classic'' RK4 or the Forward Euler method can also be selected.
 
 The Lax-Friedrichs method (LeVeque, 1992) is used for solving the Riemann problem at each interface for all reconstruction methods, although this method is highly dissipative and only first-order accurate.
 
@@ -18,16 +18,16 @@ This code is created as part of the Master's thesis project at the University of
 Clone this repository and create a new Python environment. The dependencies for the environment can be found in *`requirements.txt`*. Initialise the environment and navigate to this folder on your local machine.
 
 # Usage
-To run the simulation, set your configurations in *`settings.py`* and run *`simulation.py`*.
+To run the simulation, set your configurations in *`settings.py`* and run *`simulate.py`*.
 
 ## Organisation
 There are several files in this code for different purposes:
 
-- simulation.py: Employs the Riemann solver and runs the simulation
+- simulate.py: Runs the simulation, and contains the update loop
 - solvers.py: Functions for the reconstruction methods and Riemann solvers
 - limiters.py: Implements flux/slope limiters to prevent spurious oscillations in the reconstructed states
-- timestepper.py: Implements the (higher-order) timesteps
+- timestepper.py: Functions for the (higher-order) time evolution
 - functions.py: Generic functions that can be used throughout the code
 - tests.py: Hydrodynamics test configurations
 - plotting_functions.py: Functions for (live-)plotting
-- settings.py: Settings for the simulation
+- settings.py: Parameter settings for the simulation
