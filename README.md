@@ -2,11 +2,11 @@
 shock1D is a 1D-hydrodynamics code for the purpose of simulating shocks and turbulence with ions/neutrals interaction.
 
 # Description
-The code is written entirely in Python 3 and employs a finite volume method (Eulerian) with a fixed evenly-spaced grid. The simulation allows for periodic boundary conditions or outflows.
+The code is written entirely in Python3 and employs a finite volume method (Eulerian) with a fixed evenly-spaced grid. The simulation allows for periodic boundary conditions or outflows.
 
 The code currently employs a piecewise constant method, a piecewise linear reconstruction method (Derigs et al., 2018) with a *min-mod* limiter (Roe, 1986), or a piecewise parabolic reconstruction method (Felker & Stone, 2017) with an *interface* and *parabolic interpolant* limiter (Colella et al., 2011).
 
-The simulation is evolved in time with iterative methods such as Runge-Kutta or Euler methods. In the following, the strong-stability preserving (SSP) variants of the Runge-Kutta (RK) methods are denoted as SSPRK (*i*,*j*), where *i* and *j* refers to *i*-stage and the *j*-th order iterative method respectively. Several SSPRK variants are included, with the SSPRK (3,3) (Shu & Osher, 1988), SSPRK (5,3) (Spiteri & Ruuth, 2002), and SSPRK (5,4) (Gottlieb et al., 2009) methods. The ''classic'' RK4 or the Forward Euler method can also be selected.
+The simulation is evolved in time with explicit iterative methods such as Runge-Kutta or Euler methods. In the following, the strong-stability preserving (SSP) variants of the Runge-Kutta (RK) methods are denoted as SSPRK (*i*,*j*), where *i* and *j* refers to *i*-stage and the *j*-th order iterative method respectively. Several SSPRK variants are included, with the SSPRK (3,3) (Shu & Osher, 1988), SSPRK (5,3) (Spiteri & Ruuth, 2002), and SSPRK (5,4) (Gottlieb et al., 2009) methods. The ''classic'' RK4 or the Forward Euler method can also be selected.
 
 The Lax-Friedrichs method (LeVeque, 1992) is used for solving the Riemann problem at each interface for all reconstruction methods, although this method is highly dissipative and only first-order accurate.
 
