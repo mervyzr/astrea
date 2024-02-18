@@ -73,21 +73,23 @@ def updatePlot(arr, t, fig, ax, plots):
 
 
 # Plot snapshots of quantities for multiple runs
-def plotQuantities(runs, snapshots, config, gamma, startPos, endPos, shockPos):
+def plotQuantities(runs, snapshots, plotVariables):
+    config, gamma, solver, timestep, startPos, endPos, shockPos = plotVariables
     try:
-        int(snapshots)
-    except Exception as e:
-        snapshots = 1
-    else:
+        snapshots = int(snapshots)
         if snapshots < 1:
             snapshots = 1
+    except Exception as e:
+        snapshots = 1
 
+    # Separate the timings based on the number of snapshots; returns a list of lists with the timing intervals for each simulation
     indexes = []
     for simulation in runs:
         timings = np.fromiter(simulation.keys(), dtype=float)
         indexes.append([timing[-1] for timing in np.array_split(timings, snapshots)])
-
-    for i, timing in enumerate(indexes[0]):
+    
+    # Iterate through the timings; the last set of timings refer to the highest resolution
+    for i, timing in enumerate(indexes[-1]):
         fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
 
         ax[0,0].set_ylabel(r"Density $\rho$", fontsize=18)
@@ -101,72 +103,52 @@ def plotQuantities(runs, snapshots, config, gamma, startPos, endPos, shockPos):
         ax[0,0].grid(linestyle='--', linewidth=0.5)
         ax[0,1].grid(linestyle='--', linewidth=0.5)
         ax[1,0].grid(linestyle='--', linewidth=0.5)
-        ax[1,1].grid(linestyle='--', linewidth=0.5)             
+        ax[1,1].grid(linestyle='--', linewidth=0.5)
 
-        if len(runs) == 1:
-            simulation, time = runs[0], indexes[0]
-            y1 = simulation[time[i]][:, 0]  # density
-            y2 = simulation[time[i]][:, 4]  # pressure
-            y3 = simulation[time[i]][:, 1]  # vx
-            y4 = y2/y1                      # thermal energy
+        # Plot each simulation at the i-th timing
+        for j, simulation in enumerate(runs):
+            time_key = indexes[j][i]
+            y1 = simulation[time_key][:, 0]  # density
+            y2 = simulation[time_key][:, 4]  # pressure
+            y3 = simulation[time_key][:, 1]  # vx
+            y4 = y2/y1                       # thermal energy
             x = np.linspace(startPos, endPos, len(y1))
 
-            ax[0,0].plot(x, y1, linewidth=2, color="blue")   # density
-            ax[0,1].plot(x, y2, linewidth=2, color="red")    # pressure
-            ax[1,0].plot(x, y3, linewidth=2, color="green")  # vx
-            ax[1,1].plot(x, y4, linewidth=2, color="darkviolet")  # thermal energy
-
-            if config == "sod":
-                Sod = fn.calculateSodAnalytical(simulation[time[i]], time[i], gamma, startPos, endPos, shockPos)
-                ax[0,0].plot(x, Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
-                ax[0,1].plot(x, Sod[:, 4], linewidth=1, color="black", linestyle="--", label="Analytical solution")
-                ax[1,0].plot(x, Sod[:, 1], linewidth=1, color="black", linestyle="--", label="Analytical solution")
-                ax[1,1].plot(x, Sod[:, 4]/Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
-
-            plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(timing,3)}$ ($N = {len(y1)}$)", fontsize=24)
-            fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
-            handles, labels = plt.gca().get_legend_handles_labels()
-            fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
-
-            plt.savefig(f"{os.getcwd()}/../quantitiesPlot_{config}_{round(timing,3)}.png", dpi=330, facecolor="w")
-
-            plt.cla()
-            plt.clf()
-            plt.close()
-        else:
-            for j, simulation in enumerate(runs):
-                y1 = simulation[indexes[j][i]][:, 0]  # density
-                y2 = simulation[indexes[j][i]][:, 4]  # pressure
-                y3 = simulation[indexes[j][i]][:, 1]  # vx
-                y4 = y2/y1                            # thermal energy
-                x = np.linspace(startPos, endPos, len(y1))
-
+            if len(runs) != 1:
                 ax[0,0].plot(x, y1, linewidth=2, label=f"N = {len(y1)}")  # density
                 ax[0,1].plot(x, y2, linewidth=2, label=f"N = {len(y1)}")  # pressure
                 ax[1,0].plot(x, y3, linewidth=2, label=f"N = {len(y1)}")  # vx
                 ax[1,1].plot(x, y4, linewidth=2, label=f"N = {len(y1)}")  # thermal energy
+                plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(timing[i],3)}$", fontsize=24)
+            else:
+                ax[0,0].plot(x, y1, linewidth=2, color="blue")        # density
+                ax[0,1].plot(x, y2, linewidth=2, color="red")         # pressure
+                ax[1,0].plot(x, y3, linewidth=2, color="green")       # vx
+                ax[1,1].plot(x, y4, linewidth=2, color="darkviolet")  # thermal energy
+                plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(timing[i],3)}$ ($N = {len(y1)}$)", fontsize=24)
 
-            if config == "sod":
-                Sod = fn.calculateSodAnalytical(simulation[indexes[-1][-1]], indexes[-1][-1], gamma, startPos, endPos, shockPos)
-                ax[0,0].plot(x, Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
-                ax[0,1].plot(x, Sod[:, 4], linewidth=1, color="black", linestyle="--", label="Analytical solution")
-                ax[1,0].plot(x, Sod[:, 1], linewidth=1, color="black", linestyle="--", label="Analytical solution")
-                ax[1,1].plot(x, Sod[:, 4]/Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+        # Add Sod analytical solution, using the highest resolution and timing
+        if config == "sod":
+            Sod = fn.calculateSodAnalytical(simulation[timing[i]], timing[i], gamma, startPos, endPos, shockPos)
+            ax[0,0].plot(x, Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+            ax[0,1].plot(x, Sod[:, 4], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+            ax[1,0].plot(x, Sod[:, 1], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+            ax[1,1].plot(x, Sod[:, 4]/Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
 
-            plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(timing,3)}$", fontsize=24)
-            fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
-            handles, labels = plt.gca().get_legend_handles_labels()
-            fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
+        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
+        handles, labels = plt.gca().get_legend_handles_labels()
+        fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
 
-            plt.savefig(f"{os.getcwd()}/../quantitiesPlot_{config}_{round(timing,3)}.png", dpi=330, facecolor="w")
+        plt.savefig(f"{os.getcwd()}/../qPlot_{config}_{solver}_{timestep}_{round(timing[i],3)}.png", dpi=330, facecolor="w")
 
-            plt.cla()
-            plt.clf()
-            plt.close()
+        plt.cla()
+        plt.clf()
+        plt.close()
     return None
 
 
-def plotSolutionErrors(runs, config, startPos, endPos):
+def plotSolutionErrors(runs, plotVariables):
+    config, solver, timestep, startPos, endPos = plotVariables
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
 
     ax[0,0].set_ylabel(r"density $\rho$", fontsize=18)  # density
@@ -198,7 +180,7 @@ def plotSolutionErrors(runs, config, startPos, endPos):
     fig.text(0.5, 0.04, r"Resolution $\log_{10}{[N_\nu]}$", fontsize=18, ha='center')
     fig.text(0.04, 0.5, r"Solution errors $\log_{10}{[\epsilon_\nu(q)]}$", fontsize=18, va='center', rotation='vertical')
 
-    plt.savefig(f"{os.getcwd()}/../solutionErrors_{config}.png", dpi=330, facecolor="w")
+    plt.savefig(f"{os.getcwd()}/../solErr_{config}_{solver}_{timestep}.png", dpi=330, facecolor="w")
 
     plt.cla()
     plt.clf()
@@ -206,7 +188,8 @@ def plotSolutionErrors(runs, config, startPos, endPos):
     return None
 
 
-def makeVideo(runs, config, startPos, endPos):
+def makeVideo(runs, videoVariables):
+    config, solver, timestep, startPos, endPos = videoVariables
     for simulation in runs:
         counter = 0
 
@@ -254,7 +237,7 @@ def makeVideo(runs, config, startPos, endPos):
             counter += 1
 
         try:
-            os.system(f"ffmpeg -framerate 30 -pattern_type glob -i '{path}/*.png' -c:v libx264 -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' -pix_fmt yuv420p ../vid{config}.mp4")
+            os.system(f"ffmpeg -framerate 30 -pattern_type glob -i '{path}/*.png' -c:v libx264 -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' -pix_fmt yuv420p ../vid{config}_{solver}_{timestep}.mp4")
         except Exception as e:
             print(f"ffmpeg failed: {e}")
             try:
@@ -262,7 +245,7 @@ def makeVideo(runs, config, startPos, endPos):
                 images.sort()
 
                 video = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(images, fps=30)
-                video.write_videofile(f"{path}/vid{config}.mp4")
+                video.write_videofile(f"{path}/vid{config}_{solver}_{timestep}.mp4")
             except Exception as e:
                 print(f"moviepy failed: {e}")
                 pass

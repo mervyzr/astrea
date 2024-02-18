@@ -72,9 +72,9 @@ if __name__ == "__main__":
             fn.printOutput(now, cfg.config, cells, cfg.solver, cfg.timestep, cfg.cfl, str(timedelta(seconds=time.time()-lap)), len(run))
             runs.append(run)
         if cfg.saveFile:
-            plotter.plotQuantities(runs, cfg.snapshots, cfg.config.lower(), cfg.gamma, tst.startPos, tst.endPos, tst.shockPos)
+            plotter.plotQuantities(runs, cfg.snapshots, [cfg.config.lower(), cfg.gamma, cfg.solver, cfg.timestep, tst.startPos, tst.endPos, tst.shockPos])
             if cfg.config.lower() == "sin":
-                plotter.plotSolutionErrors(runs, cfg.config.lower(), tst.startPos, tst.endPos)
+                plotter.plotSolutionErrors(runs, [cfg.config.lower(), cfg.solver, cfg.timestep, tst.startPos, tst.endPos])
     else:
         if cfg.runType[0].lower() != "s":
             print(f"{fn.bcolours.WARNING}RunType unknown; running single test..{fn.bcolours.ENDC}")
@@ -85,6 +85,6 @@ if __name__ == "__main__":
         fn.printOutput(now, cfg.config, cfg.cells, cfg.solver, cfg.timestep, cfg.cfl, str(timedelta(seconds=time.time()-lap)), len(run))
         runs.append(run)
         if cfg.saveFile:
-            plotter.plotQuantities(runs, cfg.snapshots, cfg.config.lower(), cfg.gamma, tst.startPos, tst.endPos, tst.shockPos)
+            plotter.plotQuantities(runs, cfg.snapshots, [cfg.config.lower(), cfg.gamma, cfg.solver, cfg.timestep, tst.startPos, tst.endPos, tst.shockPos])
         if cfg.saveVideo:
-            plotter.makeVideo(runs, cfg.config.lower(), tst.startPos, tst.endPos)
+            plotter.makeVideo(runs, [cfg.config.lower(), cfg.solver, cfg.timestep, tst.startPos, tst.endPos])
