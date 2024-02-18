@@ -89,7 +89,7 @@ def plotQuantities(runs, snapshots, plotVariables):
         indexes.append([timing[-1] for timing in np.array_split(timings, snapshots)])
     
     # Iterate through the timings; the last set of timings refer to the highest resolution
-    for i, timing in enumerate(indexes[-1]):
+    for i in range(len(indexes[-1])):
         fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
 
         ax[0,0].set_ylabel(r"Density $\rho$", fontsize=18)
@@ -119,17 +119,17 @@ def plotQuantities(runs, snapshots, plotVariables):
                 ax[0,1].plot(x, y2, linewidth=2, label=f"N = {len(y1)}")  # pressure
                 ax[1,0].plot(x, y3, linewidth=2, label=f"N = {len(y1)}")  # vx
                 ax[1,1].plot(x, y4, linewidth=2, label=f"N = {len(y1)}")  # thermal energy
-                plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(timing[i],3)}$", fontsize=24)
+                plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$", fontsize=24)
             else:
                 ax[0,0].plot(x, y1, linewidth=2, color="blue")        # density
                 ax[0,1].plot(x, y2, linewidth=2, color="red")         # pressure
                 ax[1,0].plot(x, y3, linewidth=2, color="green")       # vx
                 ax[1,1].plot(x, y4, linewidth=2, color="darkviolet")  # thermal energy
-                plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(timing[i],3)}$ ($N = {len(y1)}$)", fontsize=24)
+                plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$ ($N = {len(y1)}$)", fontsize=24)
 
         # Add Sod analytical solution, using the highest resolution and timing
         if config == "sod":
-            Sod = fn.calculateSodAnalytical(simulation[timing[i]], timing[i], gamma, startPos, endPos, shockPos)
+            Sod = fn.calculateSodAnalytical(simulation[indexes[-1][i]], indexes[-1][i], gamma, startPos, endPos, shockPos)
             ax[0,0].plot(x, Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
             ax[0,1].plot(x, Sod[:, 4], linewidth=1, color="black", linestyle="--", label="Analytical solution")
             ax[1,0].plot(x, Sod[:, 1], linewidth=1, color="black", linestyle="--", label="Analytical solution")
@@ -139,7 +139,7 @@ def plotQuantities(runs, snapshots, plotVariables):
         handles, labels = plt.gca().get_legend_handles_labels()
         fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
 
-        plt.savefig(f"{os.getcwd()}/../qPlot_{config}_{solver}_{timestep}_{round(timing[i],3)}.png", dpi=330, facecolor="w")
+        plt.savefig(f"{os.getcwd()}/../qPlot_{config}_{solver}_{timestep}_{round(indexes[-1][i],3)}.png", dpi=330, facecolor="w")
 
         plt.cla()
         plt.clf()
