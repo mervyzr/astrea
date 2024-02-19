@@ -1,22 +1,93 @@
 import sys
 
 import numpy as np
+np.seterr(divide='ignore')
 
 import functions as fn
 
 ##############################################################################
 
 # Apply limiters based on the reconstruction method
-def applyLimiter(shockTube, reconstructedValues, tube):
-    if shockTube.solver in ["ppm", "parabolic", "p"]:
+def applyLimiter(solver, boundary, reconstructedValues, tube):
+    if solver in ["ppm", "parabolic", "p"]:
         # Apply the face-values and parabolic-interpolant limiter
-        return parabolicLimiter(reconstructedValues, shockTube.boundary)
-    elif shockTube.solver in ["plm", "linear", "l"]:
+        return xppmLimiter(reconstructedValues, boundary)
+    elif solver in ["plm", "linear", "l"]:
         # Apply the minmod limiter
         return minmodLimiter(reconstructedValues, tube)
     else:
         # Do not apply any limiters
         return reconstructedValues
+
+
+# Calculate parabolic-interpolant and face-value limiters
+def xppmLimiter(reconstructedValues, boundary, C=5/4):
+    wS, wF, w1, w2 = reconstructedValues
+    wFL, wFR = wF
+    wLs, wRs = w1
+    wL2s, wR2s = w2
+
+    # Function for calculating the limited face-values
+    def limitFaceValues(w_face, w_minusOne, w_cell, w_plusOne, w_plusTwo):
+        # Initial check for local extrema
+        local_extrema = (w_face - w_cell)*(w_plusOne - w_face) < 0
+
+        if local_extrema.any():
+            D2w = np.zeros((len(w_face), len(w_face[0])))
+
+            # Approximation to the second derivatives
+            D2w_L = w_minusOne - 2*w_cell + w_plusOne
+            D2w_C = 3 * (w_cell - 2*w_face + w_plusOne)
+            D2w_R = w_cell - 2*w_plusOne + w_plusTwo
+
+            # Get the curvatures that have the same signs
+            monotonic = (np.sign(D2w_L) == np.sign(D2w_R)) & (np.sign(D2w_C) == np.sign(D2w_R))
+            
+            # Determine the limited curvature with the sign of each element in the 'centre' array
+            limited_curvature = np.sign(D2w_C) * np.minimum(np.abs(D2w_C), C * np.minimum(np.abs(D2w_L), np.abs(D2w_R)))
+
+            # Update the limited local curvature estimates based on the conditions
+            D2w[monotonic] = limited_curvature[monotonic]
+
+            return (.5 * (w_cell+w_plusOne)) - (D2w/6)
+        else:
+            return w_face
+
+    # Limited face-values
+    wF_limit_L = limitFaceValues(wFL, wL2s[:-1], wLs[:-1], wS, wRs[1:])
+    wF_limit_R = limitFaceValues(wFR, wLs[:-1], wS, wRs[1:], wR2s[1:])
+
+    # Check for local extrema away from smooth extrema
+    local_extrema = ((wFR - wS)*(wS - wFL) <= 0) | ((wLs[:-1] - wS)*(wS - wRs[1:]) <= 0)
+    wF_limit_L[local_extrema] = wS[local_extrema]
+    wF_limit_R[local_extrema] = wS[local_extrema]
+
+    # Calculate the limited smooth extrema
+    D2w_lim = np.zeros((len(wS), len(wS[0])))
+
+    # Approximation to the second derivatives
+    D2w = 6 * (wFL - 2*wS + wFR)
+    D2w_L = wL2s[:-1] - 2*wLs[:-1] + wS
+    D2w_C = wLs[:-1] - 2*wS + wRs[1:]
+    D2w_R = wS - 2*wRs[1:] + wR2s[1:]
+
+    # Get the curvatures that have the same signs
+    monotonic = (np.sign(D2w_L) == np.sign(D2w_R)) & (np.sign(D2w_C) == np.sign(D2w)) & (np.sign(D2w_C) == np.sign(D2w_R))
+
+    # Determine the limited curvature with the sign of each element in the 'main' array
+    limited_curvature = np.sign(D2w) * np.minimum(np.minimum(np.abs(D2w), C*np.abs(D2w_C)), C * np.minimum(np.abs(D2w_L), np.abs(D2w_R)))
+
+    # Update the limited local curvature estimates based on the conditions
+    D2w_lim[monotonic] = limited_curvature[monotonic]
+
+    wF_limit_L[D2w != 0] = ((D2w_lim/D2w) * (wF_limit_L - wS) + wS)[D2w != 0]
+    wF_limit_R[D2w != 0] = ((D2w_lim/D2w) * (wF_limit_R - wS) + wS)[D2w != 0]
+
+    wF_limit_L[D2w == 0] = wS[D2w == 0]
+    wF_limit_R[D2w == 0] = wS[D2w == 0]
+
+    return wF_limit_L, wF_limit_R
+
 
 
 # Calculate parabolic-interpolant and face-value limters
