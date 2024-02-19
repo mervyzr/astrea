@@ -13,12 +13,12 @@ class RiemannSolver:
         self.gamma = gamma
         self.dx = dx
         self.boundary = boundary
-        self.limiter = limiter.applyLimiter
+        self.limiter = limiter
         self.eigmax = sys.float_info.epsilon
 
 
-    # Reconstruct the cell values
-    def reconstruct(self, tube):
+    # Interpolate the cell values
+    def interpolate(self, tube):
         # Piecewise parabolic method solver (3rd-order stable for uneven grid; 4th-order stable for even grid)
         if self.solver in ["ppm", "parabolic", "p"]:
             # Conversion of conservative variables to primitive variables
@@ -30,9 +30,10 @@ class RiemannSolver:
                 wL2s, wR2s = np.concatenate(([wLs[-2]],wLs))[:-1], np.concatenate((wRs,[wRs[1]]))[1:]  # Periodic boundary for additional ghost box
             else:
                 wL2s, wR2s = np.concatenate(([wLs[0]],wLs))[:-1], np.concatenate((wRs,[wRs[-1]]))[1:]  # Outflow boundary for additional ghost box
-            #wF = 1/12 * (7*(wLs[:-1]+wS) - (wRs[1:]+wL2s[:-1]))  # Compute face-averaged values (i-1/2)
-            wF = 1/12 * (7*(wS+wRs[1:]) - (wR2s[1:]+wLs[:-1]))  # Compute face-averaged values (i+1/2)
-            return [wS, wF, wLs, wRs, wL2s, wR2s]
+            
+            wFL = 7/12 * (wS+wLs[:-1]) - 1/12 * (wL2s[:-1]+wRs[1:])  # Compute face-averaged values (i-1/2)
+            wFR = 7/12 * (wS+wRs[1:]) - 1/12 * (wLs[:-1]+wR2s[1:])  # Compute face-averaged values (i+1/2)
+            return [wS, [wFL, wFR], [wLs, wRs], [wL2s, wR2s]]
         else:
             return fn.makeBoundary(tube, self.boundary)
 

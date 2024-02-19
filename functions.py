@@ -43,8 +43,8 @@ def printOutput(instanceTime, config, cells, solver, timestep, cfl, elapsed, run
 
 # Evolve the system in space by a standardised workflow
 def evolveSpace(shockTube, tube):
-    reconstructedValues = shockTube.reconstruct(tube)
-    solutionLefts, solutionRights = shockTube.limiter(shockTube, reconstructedValues, tube)
+    reconstructedValues = shockTube.interpolate(tube)
+    solutionLefts, solutionRights = shockTube.limiter(shockTube.solver, shockTube.boundary, reconstructedValues, tube)
     return shockTube.calculateRiemannFlux(solutionLefts, solutionRights)
 
 
