@@ -1,7 +1,7 @@
 
 ##############################################################################
 
-config = "sod"  # Sod, Sedov, Shu-Osher, Toro1/2/3/4/5, SIN
+config = "sedov"  # Sod, Sedov, Shu-Osher, Toro1/2/3/4/5, SIN
 cells = 200
 cfl = .5
 gamma = 1.4
