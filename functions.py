@@ -122,7 +122,6 @@ def calculateSolutionError(simulation, start, end):
 # Determine the analytical solution for a Sod shock test
 def calculateSodAnalytical(tube, t, gamma, start, end, shock):
     # Define array to be updated and returned
-    x_arr = np.linspace(-5, 5, len(tube))
     arr = np.zeros((len(tube), len(tube[0])))
 
     # Get variables of the leftmost and rightmost states, which should be initial conditions
@@ -172,5 +171,42 @@ def calculateSodAnalytical(tube, t, gamma, start, end, shock):
     arr[boundary54:boundary43, 0] = rho5 * ((1 - mu) - mu*rarefaction/(cs5*t))**beta
     arr[boundary54:boundary43, 4] = P5 * ((1 - mu) - mu*rarefaction/(cs5*t))**(gamma*beta)
     arr[boundary54:boundary43, 1] = (1-mu) * (cs5+(rarefaction/t))
+
+    return arr
+
+
+# Determine the analytical solution for a Sedov blast wave
+def calculateSedovAnalytical(tube, t, gamma, start, end, shock, beta=1):
+    N = len(tube)/2
+    rho0, vx0, vy0, vz0, P0 = tube[-1]
+    E_inject = P0/(rho0 * (gamma-1))
+    rho, vx, P = tube[:,0], tube[:,1], tube[:,4]
+
+    #x_arr = np.linspace(shock, end, int(N * ((end-shock)/(end-start))))
+    x_arr = np.linspace(start, end, int(N))
+
+    # Define array to be updated and returned
+    arr = np.zeros((len(tube), len(tube[0])))
+
+    R = beta * ((E_inject*t**2)/(rho0))**.2  # shock location
+    D = .4 * R/t  # propagation velocity
+
+    # Immediate post-shock values
+    vS = (2 * D)/(gamma + 1)
+    PS = (2 * rho0 * D**2)/(gamma + 1)
+    rhoS = rho0 * (gamma + 1)/(gamma - 1)
+    ES = PS/(rhoS * (gamma-1))
+    csS = np.sqrt(gamma * PS/rhoS)
+
+    f = lambda x: R*_lambda - x
+    V_star = sp.optimize.fsolve(f, 1)[0]
+
+    # Define scaled variables
+    r, f, g, h = x_arr/R, vx/vS, rho/rhoS, P/PS
+
+
+    rho_theo = rhoS * g
+    vx_theo = D * f
+    P_theo = PS * h
 
     return arr
