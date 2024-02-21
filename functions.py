@@ -198,6 +198,7 @@ def calculateSedovAnalytical(tube, t, gamma, start, end, shock, beta=1):
     ES = PS/(rhoS * (gamma-1))
     csS = np.sqrt(gamma * PS/rhoS)
 
+    _lambda=1
     f = lambda x: R*_lambda - x
     V_star = sp.optimize.fsolve(f, 1)[0]
 
