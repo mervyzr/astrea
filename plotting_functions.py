@@ -120,6 +120,8 @@ def plotQuantities(runs, snapshots, plotVariables):
                 ax[1,0].plot(x, y3, linewidth=2, label=f"N = {len(y1)}")  # vx
                 ax[1,1].plot(x, y4, linewidth=2, label=f"N = {len(y1)}")  # thermal energy
                 plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$", fontsize=24)
+                handles, labels = plt.gca().get_legend_handles_labels()
+                fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
             else:
                 ax[0,0].plot(x, y1, linewidth=2, color="blue")        # density
                 ax[0,1].plot(x, y2, linewidth=2, color="red")         # pressure
@@ -136,8 +138,6 @@ def plotQuantities(runs, snapshots, plotVariables):
             ax[1,1].plot(x, Sod[:, 4]/Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
 
         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
-        handles, labels = plt.gca().get_legend_handles_labels()
-        fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
 
         plt.savefig(f"{os.getcwd()}/../qPlot_{config}_{solver}_{timestep}_{round(indexes[-1][i],3)}.png", dpi=330, facecolor="w")
 

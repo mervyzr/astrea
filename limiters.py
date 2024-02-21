@@ -1,7 +1,6 @@
 import sys
 
 import numpy as np
-np.seterr(divide='ignore')
 
 import functions as fn
 
@@ -81,22 +80,10 @@ def xppmLimiter(reconstructedValues, boundary, C=5/4):
     # Update the limited local curvature estimates based on the conditions
     D2w_lim[monotonic] = limited_curvature[monotonic]
 
-    D2w[D2w == 0] = np.inf
+    D2w[D2w == 0] = np.inf  # removes divide by zero issue; goes to 
 
-    wF_limit_L = ((D2w_lim/D2w) * (wF_limit_L - wS) + wS)
-    wF_limit_R = ((D2w_lim/D2w) * (wF_limit_R - wS) + wS)
-
-    """import warnings
-
-    with warnings.catch_warnings(record=True) as warn:
-        wF_limit_L[D2w != 0] = ((D2w_lim/D2w) * (wF_limit_L - wS) + wS)[D2w != 0]
-        wF_limit_R[D2w != 0] = ((D2w_lim/D2w) * (wF_limit_R - wS) + wS)[D2w != 0]
-        if len(warn) > 0:
-            print(D2w, D2w == 0, "\n")
-
-    wF_limit_L[D2w == 0] = wS[D2w == 0]
-    wF_limit_R[D2w == 0] = wS[D2w == 0]
-    """
+    wF_limit_L = ((D2w_lim/D2w) * (wF_limit_L - wS)) + wS
+    wF_limit_R = ((D2w_lim/D2w) * (wF_limit_R - wS)) + wS
 
     return wF_limit_L, wF_limit_R
 
@@ -104,7 +91,41 @@ def xppmLimiter(reconstructedValues, boundary, C=5/4):
 
 # Calculate parabolic-interpolant and face-value limters
 def parabolicLimiter(reconstructedValues, boundary, C=5/4):
-    wS, wF, wLs, wRs, wL2s, wR2s = reconstructedValues
+    wS, wF, w1, w2 = reconstructedValues
+    wFL, wFR = wF
+    wLs, wRs = w1
+    wL2s, wR2s = w2
+
+    # Function for calculating the limited face-values
+    def limitFaceValues(w_face, w_minusOne, w_cell, w_plusOne, w_plusTwo):
+        # Initial check for local extrema
+        local_extrema = (w_face - w_cell)*(w_plusOne - w_face) < 0
+
+        if local_extrema.any():
+            D2w = np.zeros((len(w_face), len(w_face[0])))
+
+            # Approximation to the second derivatives
+            D2w_L = w_minusOne - 2*w_cell + w_plusOne
+            D2w_C = 3 * (w_cell - 2*w_face + w_plusOne)
+            D2w_R = w_cell - 2*w_plusOne + w_plusTwo
+
+            # Check for non-monotonic curvatures, provided they have the same signs
+            non_monotonic = ((D2w_R - D2w_C)*(D2w_C - D2w_L) < 0) & (np.sign(D2w_L) == np.sign(D2w_R)) & (np.sign(D2w_C) == np.sign(D2w_R))
+
+            # Determine the limited curvature with the sign of each element in the 'centre' array
+            limited_curvature = np.sign(D2w_C) * np.minimum(np.abs(D2w_C), C * np.minimum(np.abs(D2w_L), np.abs(D2w_R)))
+
+            # Update the limited local curvature estimates based on the conditions
+            D2w[non_monotonic] = limited_curvature[non_monotonic]
+
+            return (.5 * (w_cell+w_plusOne)) - (D2w/6)
+        else:
+            return w_face
+
+    wF_limit_L = limitFaceValues(wFL, wL2s[:-1], wLs[:-1], wS, wRs[1:])
+    wF_limit_R = limitFaceValues(wFR, wLs[:-1], wS, wRs[1:], wR2s[1:])
+
+    
     
     # Calculate the limited face-values
     local_extrema = (wF - wS)*(wRs[1:] - wF) < 0  # Initial check for local extrema
