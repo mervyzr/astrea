@@ -66,7 +66,8 @@ def xppmLimiter(reconstructedValues, boundary, C=5/4):
     D2w_lim = np.zeros((len(wS), len(wS[0])))
 
     # Approximation to the second derivatives
-    D2w = 6 * (wFL - 2*wS + wFR)
+    #D2w = 6 * (wFL - 2*wS + wFR)
+    D2w = 6 * (wF_limit_L - 2*wS + wF_limit_R)
     D2w_L = wL2s[:-1] - 2*wLs[:-1] + wS
     D2w_C = wLs[:-1] - 2*wS + wRs[1:]
     D2w_R = wS - 2*wRs[1:] + wR2s[1:]
@@ -80,11 +81,22 @@ def xppmLimiter(reconstructedValues, boundary, C=5/4):
     # Update the limited local curvature estimates based on the conditions
     D2w_lim[monotonic] = limited_curvature[monotonic]
 
-    wF_limit_L[D2w != 0] = ((D2w_lim/D2w) * (wF_limit_L - wS) + wS)[D2w != 0]
-    wF_limit_R[D2w != 0] = ((D2w_lim/D2w) * (wF_limit_R - wS) + wS)[D2w != 0]
+    D2w[D2w == 0] = np.inf
+
+    wF_limit_L = ((D2w_lim/D2w) * (wF_limit_L - wS) + wS)
+    wF_limit_R = ((D2w_lim/D2w) * (wF_limit_R - wS) + wS)
+
+    """import warnings
+
+    with warnings.catch_warnings(record=True) as warn:
+        wF_limit_L[D2w != 0] = ((D2w_lim/D2w) * (wF_limit_L - wS) + wS)[D2w != 0]
+        wF_limit_R[D2w != 0] = ((D2w_lim/D2w) * (wF_limit_R - wS) + wS)[D2w != 0]
+        if len(warn) > 0:
+            print(D2w, D2w == 0, "\n")
 
     wF_limit_L[D2w == 0] = wS[D2w == 0]
     wF_limit_R[D2w == 0] = wS[D2w == 0]
+    """
 
     return wF_limit_L, wF_limit_R
 
