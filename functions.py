@@ -1,5 +1,6 @@
 import numpy as np
 import scipy as sp
+from scipy.integrate import odeint, quad
 
 ##############################################################################
 
@@ -174,7 +175,7 @@ def calculateSodAnalytical(tube, t, gamma, start, end, shock):
 
     return arr
 
-
+"""
 # Determine the analytical solution for a Sedov blast wave
 def calculateSedovAnalytical(tube, t, gamma, start, end, shock, beta=1):
     N = len(tube)/2
@@ -209,5 +210,72 @@ def calculateSedovAnalytical(tube, t, gamma, start, end, shock, beta=1):
     rho_theo = rhoS * g
     vx_theo = D * f
     P_theo = PS * h
+
+    return arr"""
+
+
+
+
+
+# Determine the analytical solution for a Sedov blast wave
+def calculateSedovAnalytical(tube, t, gamma, start, end, shock):
+
+    abserr = 1e-8
+    relerr = 1e-6
+
+    # Solving the 1st-order coupled differential equations to determine the scaling of the post-shock variables
+    # wrt to the immediate post-shock variables
+    def equations(w, t, p):
+        A, B, C = w
+        ee, g = p
+        
+        x = (g+1)/(g+1-2*g*C)
+        y = A/(2*(g-1))
+
+        denom = y * (2*(g+1) - 4*C) - 2 * x * (g*B + 4*C**2 - A*C*(1-((2*C)/(g+1))))
+        numer = (1/ee) * (5 * x * (2*C*(g*B + A*C**2) - B - A*C**2) - y * (C*(5*g + 5 - 4*C) - ((4*B*(g-1))/(A))))
+
+        dA = (numer/denom - ((3*g - 1)/(ee*(g+1)))) / ((g-1-2*C)/(2*A) + (x*(1 - (2*C/(g+1)))*C**2)/(denom))
+        dC = dA * ((g-1-2*C)/(2*A)) + C * ((3*g-1)/(ee*(g+1)))
+        dB = x * ((2*(g*B + A*C**2)*(5*C + ee*dC) - 5*(B + A*C**2))/ee - ((dA * C**2 + 2*A*C*dC)*(1 - (2*C/(g+1)))))
+
+        return [dA, dB, dC]
+    
+    # Determine the convergence of the values for A, B and C to 1
+    def integral(ee, A, B, C, g):
+        return ((32*np.pi)/(25*(g**2-1))) * (B + A*C**2) * ee**4
+
+    rho0, vx0, vy0, vz0, P0 = tube[-1]
+    E_inject = P0/(rho0 * (gamma-1))
+
+    eta = 1/(((E_inject*t**2)/(rho0))**.2)  # dimensionless scaling factor
+    radii = np.linspace(shock, end, int(len(tube)/2 * ((end-shock)/(end-start))))
+
+    w0, p0 = [1, 1, 1], [eta, gamma]
+    wsol = odeint(equations, w0, radii, args=(p0,), atol=abserr, rtol=relerr)
+
+    ns = 0
+    for i in range(1000):
+        A, B, C = wsol[-1]
+        I = quad(integral, 0, ns, args=(A, B, C, gamma))
+        if abs(I-1) > relerr:
+            ns += .001
+        else:
+            break
+
+    R = ns * ((E_inject*t**2)/(rho0))**.2  # shock location
+    vs = .4 * R/t  # propagation velocity
+
+    # Immediate post-shock values
+    vxS = (2 * vs)/(gamma + 1)
+    PS = (2 * rho0 * vs**2)/(gamma + 1)
+    rhoS = rho0 * (gamma + 1)/(gamma - 1)
+    ES = PS/(rhoS * (gamma-1))
+    csS = np.sqrt(gamma * PS/rhoS)
+
+    # Define array to be updated and returned
+    arr = np.zeros((len(tube), len(tube[0])))
+
+
 
     return arr
