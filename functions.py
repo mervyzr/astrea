@@ -111,13 +111,28 @@ def makeFlux(tube, g):
                     vecs[:,0] * ((.5*rhos*np.linalg.norm(vecs, axis=1)**2) + ((g*pressures)/(g-1)))]
 
 
-# Function for solution error calculation for all variables
+"""# Function for solution error calculation for all variables (L1 error norm)
 def calculateSolutionError(simulation, start, end):
     q_initial, q_final = simulation[0], simulation[max(list(simulation.keys()))]
     thermal_initial, thermal_final = q_initial[:,4]/q_initial[:,0], q_final[:,4]/q_final[:,0]
     q_initial, q_final = np.c_[q_initial, thermal_initial], np.c_[q_final, thermal_final]
     dx = abs(end-start)/len(q_initial)
     return dx * np.sum(np.abs(q_initial - q_final), axis=0)
+"""
+
+
+# Function for solution error calculation of sin-wave test (L1 error norm)
+def calculateSolutionError(simulation):
+    q_num = simulation[max(list(simulation.keys()))]
+
+    q_theo = np.tile(np.array([0,1,1,1,1]), (len(q_num), 1)).astype(float)
+    xi = np.linspace(0, 1, len(q_num))
+    q_theo[:, 0] = 1 + (.1 * np.sin(2*np.pi*xi))
+
+    thermal_num, thermal_theo = q_num[:,4]/q_num[:,0], q_theo[:,4]/q_theo[:,0]
+    q_num, q_theo = np.c_[q_num, thermal_num], np.c_[q_theo, thermal_theo]
+
+    return np.sum(np.abs(q_num - q_theo), axis=0)/len(q_num)
 
 
 # Determine the analytical solution for a Sod shock test
