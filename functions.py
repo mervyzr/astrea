@@ -258,7 +258,7 @@ def calculateSedovAnalytical(tube, t, gamma, start, end, shock):
     for i in range(1000):
         A, B, C = wsol[-1]
         I = quad(integral, 0, ns, args=(A, B, C, gamma))
-        if abs(I-1) > relerr:
+        if abs(I[0]-1) > relerr:
             ns += .001
         else:
             break
