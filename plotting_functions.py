@@ -163,7 +163,7 @@ def plotSolutionErrors(runs, plotVariables):
     x, y1, y2, y3, y4 = [], [], [], [], []
     for simulation in runs:
         x.append(len(simulation[0]))
-        solutionErrors = fn.calculateSolutionError(simulation, startPos, endPos)
+        solutionErrors = fn.calculateSolutionError(simulation)
         y1.append(solutionErrors[0])  # density
         y2.append(solutionErrors[4])  # pressure
         y3.append(solutionErrors[1])  # vx
