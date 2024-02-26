@@ -92,6 +92,16 @@ def evolveTime(shockTube, dt, fluxes, stepper):
         shockTube.eigmax = sys.float_info.epsilon
         flux2 = fn.evolveSpace(shockTube, k2)
         return 1/3 * (shockTube.domain + 2*k2 + 2*dt*fn.getL(flux2, dx))
+    
+    elif stepper == "ssprk(2,2)":
+        # Evolve system by SSP-RK (2,2) method (2nd-order); effective SSP coeff = 0.5
+        # Computation of 1st register
+        k1 = shockTube.domain + .5*dt*Lq0
+
+        # Computation of 2nd register
+        shockTube.eigmax = sys.float_info.epsilon
+        flux1 = fn.evolveSpace(shockTube, k1)
+        return .5*(shockTube.domain + k1 + dt*fn.getL(flux1, dx))
 
     elif stepper == "rk4":
         # Evolve the system by RK4 method (4th-order); effective SSP coeff = 0.25
