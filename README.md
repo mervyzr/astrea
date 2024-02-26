@@ -27,7 +27,10 @@ There are several files in this code for different purposes:
 - solvers.py: Functions for the reconstruction methods and Riemann solvers
 - limiters.py: Implements flux/slope limiters to prevent spurious oscillations in the reconstructed states
 - timestepper.py: Functions for the (higher-order) time evolution
-- functions.py: Generic functions that can be used throughout the code
 - tests.py: Hydrodynamics test configurations
 - plotting_functions.py: Functions for (live-)plotting
 - settings.py: Parameter settings for the simulation
+- functions
+    - generic.py: Generic functions that can be used throughout the code
+    - analytic.py: Analytical solutions to some hydrodynamics tests
+    - fv.py: Functions used repeatedly throughout the finite volume code
