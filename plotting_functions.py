@@ -3,7 +3,7 @@ import shutil
 
 import numpy as np
 import matplotlib
-matplotlib.use('TkAgg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import moviepy.video.io.ImageSequenceClip
 
@@ -151,10 +151,10 @@ def plotSolutionErrors(runs, plotVariables):
     config, solver, timestep, startPos, endPos = plotVariables
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
 
-    ax[0,0].set_ylabel(r"density $\rho$", fontsize=18)  # density
-    ax[0,1].set_ylabel(r"pressure $P$", fontsize=18)  # pressure
-    ax[1,0].set_ylabel(r"velocity $v_x$", fontsize=18)  # vx
-    ax[1,1].set_ylabel(r"thermal energy $\frac{P}{\rho}$", fontsize=18)  # thermal energy
+    ax[0,0].set_ylabel(r"Density $\log_{10}{[\epsilon_\nu(\rho)]}$", fontsize=18)  # density
+    ax[0,1].set_ylabel(r"Pressure $\log_{10}{[\epsilon_\nu(P)]}$", fontsize=18)  # pressure
+    ax[1,0].set_ylabel(r"Velocity $\log_{10}{[\epsilon_\nu(v_x)]}$", fontsize=18)  # vx
+    ax[1,1].set_ylabel(r"Thermal energy $\log_{10}{[\epsilon_\nu(\frac{P}{\rho})]}$", fontsize=18)  # thermal energy
     ax[0,0].grid(linestyle='--', linewidth=0.5)
     ax[0,1].grid(linestyle='--', linewidth=0.5)
     ax[1,0].grid(linestyle='--', linewidth=0.5)
@@ -170,15 +170,25 @@ def plotSolutionErrors(runs, plotVariables):
         y4.append(solutionErrors[5])  # thermal energy
     x, y1, y2, y3, y4 = np.asarray(x), np.asarray(y1), np.asarray(y2), np.asarray(y3), np.asarray(y4)
     print(f"{fn.bcolours.OKGREEN}EOC (density){fn.bcolours.ENDC}: {np.diff(np.log(y1))/np.diff(np.log(x))}\n{fn.bcolours.OKGREEN}EOC (pressure){fn.bcolours.ENDC}: {np.diff(np.log(y2))/np.diff(np.log(x))}\n{fn.bcolours.OKGREEN}EOC (vx){fn.bcolours.ENDC}: {np.diff(np.log(y3))/np.diff(np.log(x))}\n{fn.bcolours.OKGREEN}EOC (thermal){fn.bcolours.ENDC}: {np.diff(np.log(y4))/np.diff(np.log(x))}")
-    
-    ax[0,0].plot(np.log10(x), np.log10(y1), linewidth=2, linestyle="--", marker="o", color="blue")
-    ax[0,1].plot(np.log10(x), np.log10(y2), linewidth=2, linestyle="--", marker="o", color="red")
-    ax[1,0].plot(np.log10(x), np.log10(y3), linewidth=2, linestyle="--", marker="o", color="green")
-    ax[1,1].plot(np.log10(x), np.log10(y4), linewidth=2, linestyle="--", marker="o", color="darkviolet")
+
+    ax[0,0].loglog(x, y1, linewidth=2, linestyle="--", marker="o", color="blue")
+    ax[0,1].loglog(x, y2, linewidth=2, linestyle="--", marker="o", color="red")
+    ax[1,0].loglog(x, y3, linewidth=2, linestyle="--", marker="o", color="green")
+    ax[1,1].loglog(x, y4, linewidth=2, linestyle="--", marker="o", color="darkviolet")
+
+    y1_fit = np.polyfit(np.log10(x), np.log10(y1), 1)
+    y2_fit = np.polyfit(np.log10(x), np.log10(y2), 1)
+    y3_fit = np.polyfit(np.log10(x), np.log10(y3), 1)
+    y4_fit = np.polyfit(np.log10(x), np.log10(y4), 1)
+
+    ax[0,0].loglog(x, y1_fit[0]*x+y1_fit[1], linewidth=1, linestyle="--", color="black")
+    ax[0,1].loglog(x, y2_fit[0]*x+y2_fit[1], linewidth=1, linestyle="--", color="black")
+    ax[1,0].loglog(x, y3_fit[0]*x+y3_fit[1], linewidth=1, linestyle="--", color="black")
+    ax[1,1].loglog(x, y4_fit[0]*x+y4_fit[1], linewidth=1, linestyle="--", color="black")
 
     plt.suptitle(r"Plot of solution errors $\epsilon_\nu(q)$ against resolution $N_\nu$", fontsize=24)
     fig.text(0.5, 0.04, r"Resolution $\log_{10}{[N_\nu]}$", fontsize=18, ha='center')
-    fig.text(0.04, 0.5, r"Solution errors $\log_{10}{[\epsilon_\nu(q)]}$", fontsize=18, va='center', rotation='vertical')
+    #fig.text(0.04, 0.5, r"Solution errors $\log_{10}{[\epsilon_\nu(q)]}$", fontsize=18, va='center', rotation='vertical')
 
     plt.savefig(f"{os.getcwd()}/../solErr_{config}_{solver}_{timestep}.png", dpi=330, facecolor="w")
 
