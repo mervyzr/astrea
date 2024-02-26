@@ -1,7 +1,7 @@
 import numpy as np
 
-import functions as fn
 import settings as cfg
+from functions import generic, fv
 
 ##############################################################################
 
@@ -78,7 +78,7 @@ elif "toro" in cfg.config.lower():
         initialRight = np.array([.125,0,0,0,.1])  # primitive variables
 
 else:
-    print(f"{fn.bcolours.WARNING}Test unknown; reverting to Sod shock tube test..{fn.bcolours.ENDC}")
+    print(f"{generic.bcolours.WARNING}Test unknown; reverting to Sod shock tube test..{generic.bcolours.ENDC}")
     startPos = 0
     endPos = 1
     shockPos = .5
@@ -108,4 +108,4 @@ def initialise(config, N, g, start, end, shock, wL, wR):
         xi = np.linspace(shock, end, N - cellsLeft)
         arr[cellsLeft:, 0] = 1 + (.2 * np.sin(freq*np.pi*xi))
     
-    return fn.pointConvertPrimitive(arr, g)  # convert domain to conservative variables q
+    return fv.pointConvertPrimitive(arr, g)  # convert domain to conservative variables q

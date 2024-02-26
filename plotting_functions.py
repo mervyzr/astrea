@@ -1,13 +1,17 @@
 import os
 import shutil
 
-import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+from settings import livePlot
+if livePlot:
+    matplotlib.use('TkAgg')
+else:
+    matplotlib.use('Agg')
+import numpy as np
 import matplotlib.pyplot as plt
 import moviepy.video.io.ImageSequenceClip
 
-import functions as fn
+from functions import generic, analytic
 
 ##############################################################################
 
@@ -131,7 +135,7 @@ def plotQuantities(runs, snapshots, plotVariables):
 
         # Add Sod analytical solution, using the highest resolution and timing
         if config == "sod":
-            Sod = fn.calculateSodAnalytical(simulation[indexes[-1][i]], indexes[-1][i], gamma, startPos, endPos, shockPos)
+            Sod = analytic.calculateSodAnalytical(simulation[indexes[-1][i]], indexes[-1][i], gamma, startPos, endPos, shockPos)
             ax[0,0].plot(x, Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
             ax[0,1].plot(x, Sod[:, 4], linewidth=1, color="black", linestyle="--", label="Analytical solution")
             ax[1,0].plot(x, Sod[:, 1], linewidth=1, color="black", linestyle="--", label="Analytical solution")
@@ -163,7 +167,7 @@ def plotSolutionErrors(runs, plotVariables):
     x, y1, y2, y3, y4 = [], [], [], [], []
     for simulation in runs:
         x.append(len(simulation[0]))
-        solutionErrors = fn.calculateSolutionError(simulation)
+        solutionErrors = analytic.calculateSolutionError(simulation)
         y1.append(solutionErrors[0])  # density
         y2.append(solutionErrors[4])  # pressure
         y3.append(solutionErrors[1])  # vx
@@ -175,7 +179,7 @@ def plotSolutionErrors(runs, plotVariables):
     m3, c3 = np.polyfit(np.log10(x), np.log10(y3), 1)
     m4, c4 = np.polyfit(np.log10(x), np.log10(y4), 1)
 
-    print(f"{fn.bcolours.OKGREEN}EOC (density) [{round(m1,4)}]{fn.bcolours.ENDC}: {np.diff(np.log(y1))/np.diff(np.log(x))}\n{fn.bcolours.OKGREEN}EOC (pressure) [{round(m2,4)}]{fn.bcolours.ENDC}: {np.diff(np.log(y2))/np.diff(np.log(x))}\n{fn.bcolours.OKGREEN}EOC (vx) [{round(m3,4)}]{fn.bcolours.ENDC}: {np.diff(np.log(y3))/np.diff(np.log(x))}\n{fn.bcolours.OKGREEN}EOC (thermal) [{round(m4,4)}]{fn.bcolours.ENDC}: {np.diff(np.log(y4))/np.diff(np.log(x))}")
+    print(f"{generic.bcolours.OKGREEN}EOC (density) [{round(m1,4)}]{generic.bcolours.ENDC}: {np.diff(np.log(y1))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (pressure) [{round(m2,4)}]{generic.bcolours.ENDC}: {np.diff(np.log(y2))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (vx) [{round(m3,4)}]{generic.bcolours.ENDC}: {np.diff(np.log(y3))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (thermal) [{round(m4,4)}]{generic.bcolours.ENDC}: {np.diff(np.log(y4))/np.diff(np.log(x))}")
 
     ax[0,0].loglog(x, y1, linewidth=2, linestyle="--", marker="o", color="blue")
     ax[0,1].loglog(x, y2, linewidth=2, linestyle="--", marker="o", color="red")

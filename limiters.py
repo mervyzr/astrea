@@ -1,6 +1,6 @@
 import numpy as np
 
-import functions as fn
+from functions import fv
 
 ##############################################################################
 
@@ -126,8 +126,8 @@ def parabolicLimiter(reconstructedValues, boundary, C=5/4):
     local_extrema = (np.abs(d_uL) > 2*np.abs(d_uR)) | (np.abs(d_uR) > 2*np.abs(d_uL))
     cell_extrema = d_uL*d_uR < 0
 
-    wL_limit_L2, wL_limit_R2 = fn.makeBoundary(wF_limit_L, boundary)
-    wR_limit_L2, wR_limit_R2 = fn.makeBoundary(wF_limit_R, boundary)
+    wL_limit_L2, wL_limit_R2 = fv.makeBoundary(wF_limit_L, boundary)
+    wR_limit_L2, wR_limit_R2 = fv.makeBoundary(wF_limit_R, boundary)
 
     # Check for local extrema in interpolants
     d_wF_minmod = np.minimum(np.abs(wF_limit_L - wL_limit_L2[:-1]), np.abs(wR_limit_R2[1:] - wF_limit_R))

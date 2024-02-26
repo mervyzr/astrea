@@ -2,7 +2,7 @@ import sys
 
 import numpy as np
 
-import functions as fn
+from functions import fv
 
 ##############################################################################
 
@@ -22,10 +22,10 @@ class RiemannSolver:
         # Piecewise parabolic method solver (3rd-order stable for uneven grid; 4th-order stable for even grid)
         if self.solver in ["ppm", "parabolic", "p"]:
             # Conversion of conservative variables to primitive variables
-            wS = np.copy(fn.convertConservative(tube, self.gamma, self.boundary))
+            wS = np.copy(fv.convertConservative(tube, self.gamma, self.boundary))
 
             # Reconstruction in primitive variables to 4th-order
-            wLs, wRs = fn.makeBoundary(wS, self.boundary)
+            wLs, wRs = fv.makeBoundary(wS, self.boundary)
             if self.boundary == "periodic":
                 wL2s, wR2s = np.concatenate(([wLs[-2]],wLs))[:-1], np.concatenate((wRs,[wRs[1]]))[1:]  # Periodic boundary for additional ghost box
             else:
@@ -35,7 +35,7 @@ class RiemannSolver:
             wFR = 7/12 * (wS+wRs[1:]) - 1/12 * (wLs[:-1]+wR2s[1:])  # Compute face-averaged values (i+1/2)
             return [wS, [wFL, wFR], [wLs, wRs], [wL2s, wR2s]]
         else:
-            return fn.makeBoundary(tube, self.boundary)
+            return fv.makeBoundary(tube, self.boundary)
 
 
     # Calculate Riemann flux (Lax-Friedrichs; similar to Roe)
@@ -55,16 +55,16 @@ class RiemannSolver:
             # But because the simulation is only 1D, the "normal" Laplacian (Taylor expansion) of the face-averaged states and fluxes are zero
             # Thus, the conversion between face-averaged and face-centred states and fluxes can be pointwise conversion
 
-            qLs, qRs = fn.pointConvertPrimitive(leftValues, self.gamma), fn.pointConvertPrimitive(rightValues, self.gamma)
-            fLs, fRs = fn.makeFlux(leftValues, self.gamma), fn.makeFlux(rightValues, self.gamma)
+            qLs, qRs = fv.pointConvertPrimitive(leftValues, self.gamma), fv.pointConvertPrimitive(rightValues, self.gamma)
+            fLs, fRs = fv.makeFlux(leftValues, self.gamma), fv.makeFlux(rightValues, self.gamma)
 
-            AL, AR = np.nan_to_num(fn.makeJacobian(leftValues, self.gamma), copy=False), np.nan_to_num(fn.makeJacobian(rightValues, self.gamma), copy=False)
+            AL, AR = np.nan_to_num(fv.makeJacobian(leftValues, self.gamma), copy=False), np.nan_to_num(fv.makeJacobian(rightValues, self.gamma), copy=False)
         else:
             qLs, qRs = leftValues, rightValues
-            wLs, wRs = fn.pointConvertConservative(leftValues, self.gamma), fn.pointConvertConservative(rightValues, self.gamma)
-            fLs, fRs = fn.makeFlux(wLs, self.gamma), fn.makeFlux(wRs, self.gamma)
+            wLs, wRs = fv.pointConvertConservative(leftValues, self.gamma), fv.pointConvertConservative(rightValues, self.gamma)
+            fLs, fRs = fv.makeFlux(wLs, self.gamma), fv.makeFlux(wRs, self.gamma)
 
-            AL, AR = np.nan_to_num(fn.makeJacobian(wLs, self.gamma), copy=False), np.nan_to_num(fn.makeJacobian(wRs, self.gamma), copy=False)
+            AL, AR = np.nan_to_num(fv.makeJacobian(wLs, self.gamma), copy=False), np.nan_to_num(fv.makeJacobian(wRs, self.gamma), copy=False)
 
         eigvalL, eigvalR = np.linalg.eigvals(AL), np.linalg.eigvals(AR)
         eigval = max(np.max(abs(eigvalL)), np.max(abs(eigvalR)))
