@@ -169,28 +169,24 @@ def plotSolutionErrors(runs, plotVariables):
         y3.append(solutionErrors[1])  # vx
         y4.append(solutionErrors[5])  # thermal energy
     x, y1, y2, y3, y4 = np.asarray(x), np.asarray(y1), np.asarray(y2), np.asarray(y3), np.asarray(y4)
-    print(f"{fn.bcolours.OKGREEN}EOC (density){fn.bcolours.ENDC}: {np.diff(np.log(y1))/np.diff(np.log(x))}\n{fn.bcolours.OKGREEN}EOC (pressure){fn.bcolours.ENDC}: {np.diff(np.log(y2))/np.diff(np.log(x))}\n{fn.bcolours.OKGREEN}EOC (vx){fn.bcolours.ENDC}: {np.diff(np.log(y3))/np.diff(np.log(x))}\n{fn.bcolours.OKGREEN}EOC (thermal){fn.bcolours.ENDC}: {np.diff(np.log(y4))/np.diff(np.log(x))}")
+
+    m1, c1 = np.polyfit(np.log10(x), np.log10(y1), 1)
+    m2, c2 = np.polyfit(np.log10(x), np.log10(y2), 1)
+    m3, c3 = np.polyfit(np.log10(x), np.log10(y3), 1)
+    m4, c4 = np.polyfit(np.log10(x), np.log10(y4), 1)
+
+    print(f"{fn.bcolours.OKGREEN}EOC (density) [{round(m1,4)}]{fn.bcolours.ENDC}: {np.diff(np.log(y1))/np.diff(np.log(x))}\n{fn.bcolours.OKGREEN}EOC (pressure) [{round(m2,4)}]{fn.bcolours.ENDC}: {np.diff(np.log(y2))/np.diff(np.log(x))}\n{fn.bcolours.OKGREEN}EOC (vx) [{round(m3,4)}]{fn.bcolours.ENDC}: {np.diff(np.log(y3))/np.diff(np.log(x))}\n{fn.bcolours.OKGREEN}EOC (thermal) [{round(m4,4)}]{fn.bcolours.ENDC}: {np.diff(np.log(y4))/np.diff(np.log(x))}")
 
     ax[0,0].loglog(x, y1, linewidth=2, linestyle="--", marker="o", color="blue")
     ax[0,1].loglog(x, y2, linewidth=2, linestyle="--", marker="o", color="red")
     ax[1,0].loglog(x, y3, linewidth=2, linestyle="--", marker="o", color="green")
     ax[1,1].loglog(x, y4, linewidth=2, linestyle="--", marker="o", color="darkviolet")
 
-    y1_fit = np.polyfit(np.log10(x), np.log10(y1), 1)
-    y2_fit = np.polyfit(np.log10(x), np.log10(y2), 1)
-    y3_fit = np.polyfit(np.log10(x), np.log10(y3), 1)
-    y4_fit = np.polyfit(np.log10(x), np.log10(y4), 1)
-
-    ax[0,0].loglog(x, y1_fit[0]*x+y1_fit[1], linewidth=1, linestyle="--", color="black")
-    ax[0,1].loglog(x, y2_fit[0]*x+y2_fit[1], linewidth=1, linestyle="--", color="black")
-    ax[1,0].loglog(x, y3_fit[0]*x+y3_fit[1], linewidth=1, linestyle="--", color="black")
-    ax[1,1].loglog(x, y4_fit[0]*x+y4_fit[1], linewidth=1, linestyle="--", color="black")
-
     plt.suptitle(r"Plot of solution errors $\epsilon_\nu(q)$ against resolution $N_\nu$", fontsize=24)
     fig.text(0.5, 0.04, r"Resolution $\log_{10}{[N_\nu]}$", fontsize=18, ha='center')
     #fig.text(0.04, 0.5, r"Solution errors $\log_{10}{[\epsilon_\nu(q)]}$", fontsize=18, va='center', rotation='vertical')
 
-    plt.savefig(f"{os.getcwd()}/../solErr_{config}_{solver}_{timestep}.png", dpi=330, facecolor="w")
+    plt.savefig(f"{os.getcwd()}/../solErr_{solver}_{timestep}.png", dpi=330, facecolor="w")
 
     plt.cla()
     plt.clf()

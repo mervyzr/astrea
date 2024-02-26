@@ -59,7 +59,7 @@ if __name__ == "__main__":
     # Error condition(s)
     if cfg.solver.lower() not in ["ppm", "parabolic", "p", "plm", "linear", "l", "pcm", "constant", "c"]:
         print(f"{fn.bcolours.WARNING}Reconstruct unknown; reverting to piecewise constant reconstruction method..{fn.bcolours.ENDC}")
-    if cfg.timestep.lower() not in ["euler", "rk4", "ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)"]:
+    if cfg.timestep.lower() not in ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)"]:
         print(f"{fn.bcolours.WARNING}Timestepper unknown; reverting to Forward Euler timestepping..{fn.bcolours.ENDC}")
 
     if cfg.runType[0].lower() == "m":
