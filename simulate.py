@@ -78,7 +78,7 @@ if __name__ == "__main__":
     else:
         if cfg.runType[0].lower() != "s":
             print(f"{generic.bcolours.WARNING}RunType unknown; running single test..{generic.bcolours.ENDC}")
-        if cfg.saveFile:
+        if cfg.saveFile or cfg.saveVideo:
             cfg.variables[-1] = False
         lap, now = time.time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         run = simulateShock(cfg.variables, tst.variables)
