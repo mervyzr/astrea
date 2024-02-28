@@ -72,9 +72,9 @@ def makeFlux(tube, g):
 
 
 # Function that returns the coefficient of the slope flattener
-def getSlopeCoeff(tube, boundary, slope_determinants=[.75, .85, .33]):
+def getSlopeCoeff(tube, boundary, g, slope_determinants=[.75, .85, .33]):
     z0, z1, delta = slope_determinants
-    domain = pointConvertConservative(tube)
+    domain = pointConvertConservative(tube, g)
     arr, chi = np.ones(len(domain)), np.ones(len(domain))
 
     wLs, wRs = makeBoundary(domain, boundary)
@@ -94,4 +94,4 @@ def getSlopeCoeff(tube, boundary, slope_determinants=[.75, .85, .33]):
     arr[signage < 0] = np.minimum(chi, chiR[1:])[signage < 0]
     arr[signage > 0] = np.minimum(chi, chiL[:-1])[signage > 0]
 
-    return arr
+    return np.tile(np.reshape(arr, (len(arr),1)), (1,5))
