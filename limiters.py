@@ -63,8 +63,7 @@ def xppmLimiter(reconstructedValues, boundary, C=5/4):
     D2w_lim = np.zeros((len(wS), len(wS[0])))
 
     # Approximation to the second derivatives
-    #D2w = 6 * (wFL - 2*wS + wFR)
-    D2w = 6 * (wF_limit_L - 2*wS + wF_limit_R)
+    D2w = 6 * (wFL - 2*wS + wFR)
     D2w_L = wL2s[:-1] - 2*wLs[:-1] + wS
     D2w_C = wLs[:-1] - 2*wS + wRs[1:]
     D2w_R = wS - 2*wRs[1:] + wR2s[1:]
@@ -78,7 +77,7 @@ def xppmLimiter(reconstructedValues, boundary, C=5/4):
     # Update the limited local curvature estimates based on the conditions
     D2w_lim[monotonic] = limited_curvature[monotonic]
 
-    D2w[D2w == 0] = np.inf  # removes divide by zero issue; causes wF -> wS (i.e. piecewise constant) when D2w -> 0
+    D2w[D2w == 0] = np.inf  # removes divide-by-zero issue; causes wF -> wS (i.e. piecewise constant) when D2w -> 0
 
     return wS + ((D2w_lim/D2w) * (wF_limit_L - wS)), wS + ((D2w_lim/D2w) * (wF_limit_R - wS))
 
@@ -169,7 +168,7 @@ def parabolicLimiter(reconstructedValues, boundary, C=5/4):
         return wF_limit_L, wF_limit_R
     
 
-# Calculate minmod limiter. Returns an array of gradients for each parameter in each cell
+# Calculate minmod (slope) limiter. Returns an array of gradients for each parameter in each cell
 def minmodLimiter(reconstructedValues, tube, C=.5):
     qLs, qRs = reconstructedValues
     a, b = np.diff(qLs, axis=0), np.diff(qRs, axis=0)
@@ -182,7 +181,7 @@ def minmodLimiter(reconstructedValues, tube, C=.5):
     arr[mask] = b[mask]
 
     gradients = C * arr
-    return np.copy(tube) - gradients, np.copy(tube) + gradients
+    return tube - gradients, tube + gradients
 
 
 # Calculate the van Leer/harmonic parameter. Returns an array of gradients for each parameter in each cell

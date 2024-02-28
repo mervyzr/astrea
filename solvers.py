@@ -71,7 +71,6 @@ class RiemannSolver:
         if eigval > self.eigmax:
             self.eigmax = eigval  # Compute the maximum wave speed (max eigenvalue)
         # In order to have a more stable simulation with the limited values, a constraint should be imposed CFL <= 1.3925 for the PPM reconstruction
-        # But this constraint is for Runge-Kutta update methods; the LF Riemann solver might be stable enough for this
 
         # Return the Riemann fluxes
         if self.solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
