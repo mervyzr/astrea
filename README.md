@@ -10,7 +10,7 @@ The simulation is evolved in time with iterative methods. In the following, the 
 
 The Lax-Friedrichs method (LeVeque, 1992) is used for solving the Riemann problem at each interface for all reconstruction methods, although this method is highly dissipative and only first-order accurate.
 
-Hydrodynamical tests in place are the Sod shock tube test (Sod, 1978), the Sedov blast test (Sedov, 1946), a ''sin-wave'' test, the Shu-Osher shock tube problem (Shu & Osher, 1989), and five shock tube tests from Toro's book (Toro, 1999, p.225). An analytical solution for the Sod shock test (Pfrommer et al., 2006) is also plotted when the Sod shock tube test is run. The solution error (L1 error norm) can also be determined when the ''sin-wave'' test is run.
+Hydrodynamical tests in place are the Sod shock tube test (Sod, 1978), the Sedov blast test (Sedov, 1946), a ''sin-wave'' test, a square-wave advection test, the Shu-Osher shock tube problem (Shu & Osher, 1989), and five shock tube tests from Toro's book (Toro, 1999, p.225). An analytical solution for the Sod shock test (Pfrommer et al., 2006) is also plotted when the Sod shock tube test is run. The solution error (L1 error norm) can also be determined when the ''sin-wave'' test is run.
 
 This code is created as part of the Master's thesis project at the University of Cologne.
 
