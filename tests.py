@@ -26,7 +26,7 @@ elif cfg.config.lower() == "sin":
 elif cfg.config.lower() == "sedov":
     startPos = 0
     endPos = 10
-    shockPos = 1  # blast boundary
+    shockPos = .1  # blast boundary
     tEnd = .6
     boundary = "outflow"
     initialLeft = np.array([1,0,0,0,100])  # primitive variables
