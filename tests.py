@@ -40,7 +40,16 @@ elif cfg.config.lower() == "shu-osher":
     boundary = "outflow"
     freq = 5
     initialLeft = np.array([3.857143,2.629369,0,0,10.3333])  # primitive variables
-    initialRight = np.array([0,0,0,0,1])  # primitive variables
+    initialRight = np.array([0,0,0,0,1])                    # primitive variables
+
+elif "sq" in cfg.config.lower():
+    startPos = 0
+    endPos = 1
+    shockPos = 1/3
+    tEnd = .05
+    boundary = "periodic"
+    initialLeft = np.array([1,1,0,0,1])  # primitive variables
+    initialRight = np.array([.01,1,0,0,1])  # primitive variables
     
 elif "toro" in cfg.config.lower():
     startPos = 0
@@ -92,7 +101,7 @@ variables = [startPos, endPos, shockPos, tEnd, boundary, initialLeft, initialRig
 
 # Initialise the solution array with initial conditions and primitive variables w, and return array with conserved variables
 def initialise(config, N, g, start, end, shock, wL, wR):
-    if config == "sedov":
+    if config == "sedov" or "sq" in config:
         cellsLeft = int((N/2) * (shock/(end-start)))
         arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (int(N/2 - cellsLeft), 1))
         arr = np.concatenate((arrR, arrL, arrL, arrR)).astype(float)

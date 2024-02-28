@@ -64,8 +64,8 @@ if __name__ == "__main__":
 
     if cfg.runType[0].lower() == "m":
         cfg.variables[-1] = False
-        for n in range(2,16):
-            cells = 10*n**2
+        for n in range(3,10):
+            cells = 10*2**n
             cfg.variables[1] = cells
             lap, now = time.time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             run = simulateShock(cfg.variables, tst.variables)
