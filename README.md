@@ -4,7 +4,7 @@ shock1D is a 1D-hydrodynamics code for the purpose of simulating shocks and turb
 # Description
 The code is written entirely in Python3 and employs a finite volume method (Eulerian) with a fixed evenly-spaced grid. The simulation allows for periodic boundary conditions or outflows.
 
-The code currently employs a piecewise constant method (Godunov, 1959), a piecewise linear reconstruction method (Derigs et al., 2018) with a *min-mod* limiter (Roe, 1986), and a piecewise parabolic reconstruction method (Felker & Stone, 2017) with a parabolic limiter (Colella et al., 2011) or the XPPM limiter (Peterson & Hammett, 2013).
+The code currently employs a piecewise constant method (Godunov, 1959), a piecewise linear reconstruction method (Derigs et al., 2018) with a *min-mod* limiter (Roe, 1986), and a piecewise parabolic reconstruction method (Felker & Stone, 2017) with a parabolic limiter (Colella et al., 2011) or the XPPM limiter (Peterson & Hammett, 2013). The reconstruction also has the possibility of implementing a slope flattener (Saltzman, 1994).
 
 The simulation is evolved in time with iterative methods. In the following, the strong-stability preserving (SSP) variants of the (explicit) Runge-Kutta (RK) methods are denoted as SSPRK (*i*,*j*), where *i* and *j* refers to *i*-stage and the *j*-th order iterative method respectively. Several SSPRK variants are included for this simulation, with the SSPRK (2,2), SSPRK (3,3) (Shu & Osher, 1988), SSPRK (5,3) (Spiteri & Ruuth, 2002), and SSPRK (5,4) (Gottlieb et al., 2009) methods. The ''classic'' RK4 or the Forward Euler method can also be selected.
 
