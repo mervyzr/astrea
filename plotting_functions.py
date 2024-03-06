@@ -179,17 +179,17 @@ def plotSolutionErrors(runs, plotVariables):
     m3, c3 = np.polyfit(np.log10(x), np.log10(y3), 1)
     m4, c4 = np.polyfit(np.log10(x), np.log10(y4), 1)
 
-    ax[0,0].loglog(x, y1, linewidth=2, linestyle="--", marker="o", color="blue", label=f"grad. = {round(m1,3)}")
-    ax[0,1].loglog(x, y2, linewidth=2, linestyle="--", marker="o", color="red", label=f"grad. = {round(m2,3)}")
-    ax[1,0].loglog(x, y3, linewidth=2, linestyle="--", marker="o", color="green", label=f"grad. = {round(m3,3)}")
-    ax[1,1].loglog(x, y4, linewidth=2, linestyle="--", marker="o", color="darkviolet", label=f"grad. = {round(m4,3)}")
+    ax[0,0].loglog(x, y1, linewidth=2, linestyle="--", marker="o", color="blue", label=f"grad. = {round(m1,4)}")
+    ax[0,1].loglog(x, y2, linewidth=2, linestyle="--", marker="o", color="red", label=f"grad. = {round(m2,4)}")
+    ax[1,0].loglog(x, y3, linewidth=2, linestyle="--", marker="o", color="green", label=f"grad. = {round(m3,4)}")
+    ax[1,1].loglog(x, y4, linewidth=2, linestyle="--", marker="o", color="darkviolet", label=f"grad. = {round(m4,4)}")
 
     ax[0,0].legend(prop={'size': 14})
     ax[0,1].legend(prop={'size': 14})
     ax[1,0].legend(prop={'size': 14})
     ax[1,1].legend(prop={'size': 14})
 
-    print(f"{generic.bcolours.OKGREEN}EOC (density) [{round(m1,4)}]{generic.bcolours.ENDC}: {np.diff(np.log(y1))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (pressure) [{round(m2,4)}]{generic.bcolours.ENDC}: {np.diff(np.log(y2))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (vx) [{round(m3,4)}]{generic.bcolours.ENDC}: {np.diff(np.log(y3))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (thermal) [{round(m4,4)}]{generic.bcolours.ENDC}: {np.diff(np.log(y4))/np.diff(np.log(x))}")
+    print(f"{generic.bcolours.OKGREEN}EOC (density){generic.bcolours.ENDC}: {np.diff(np.log(y1))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (pressure){generic.bcolours.ENDC}: {np.diff(np.log(y2))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (vx){generic.bcolours.ENDC}: {np.diff(np.log(y3))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (thermal){generic.bcolours.ENDC}: {np.diff(np.log(y4))/np.diff(np.log(x))}")
 
     # -------- start theoretical portion --------
     """alpha1, alpha2, alpha3, alpha4 = 10**(c1+1), 10**(c1+2), 10**(c1+3), 10**(c1+4)
