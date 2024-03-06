@@ -1,6 +1,6 @@
 import numpy as np
 import scipy as sp
-from scipy.integrate import odeint, quad
+from scipy.integrate import odeint, quad, solve_ivp
 
 ##############################################################################
 
@@ -120,10 +120,7 @@ def calculateSedovAnalytical(tube, t, gamma, start, end, shock, beta=1):
     return arr"""
 
 
-
-
-
-# Determine the analytical solution for a Sedov blast wave
+"""# Determine the analytical solution for a Sedov blast wave
 def calculateSedovAnalytical(tube, t, gamma, start, end, shock):
 
     abserr = 1e-8
@@ -154,7 +151,7 @@ def calculateSedovAnalytical(tube, t, gamma, start, end, shock):
     rho0, vx0, vy0, vz0, P0 = tube[-1]
     E_inject = P0/(rho0 * (gamma-1))
 
-    eta = 1/(((E_inject*t**2)/(rho0))**.2)  # dimensionless scaling factor
+    eta = ((E_inject*t**2)/(rho0))**-.2  # dimensionless scaling factor
     radii = np.linspace(shock, end, int(len(tube)/2 * ((end-shock)/(end-start))))
 
     w0, p0 = [1, 1, 1], [eta, gamma]
@@ -182,6 +179,48 @@ def calculateSedovAnalytical(tube, t, gamma, start, end, shock):
     # Define array to be updated and returned
     arr = np.zeros((len(tube), len(tube[0])))
 
+    return arr"""
 
 
-    return arr
+
+# Determine the analytical solution for a Sedov blast wave
+def calculateSedovAnalytical(tube, t, gamma, start, end, shock, scale=1000):
+
+    abserr = 1e-8
+    relerr = 1e-6
+
+    # Solving the 1st-order coupled differential equations to determine the scaling of the post-shock variables
+    # wrt to the immediate post-shock variables
+    def equations(w, t, p):
+        A, B, C = w
+        eta, g = p
+        
+        alpha = 5*(g+1) - 4*C
+
+        dB = (2*alpha*A*C**2 + B*(alpha - 2*g*(eta+3*C))) / (eta * (2*C*(2*g-1) - (g+1)))
+        dC = (2*C**2 - ((5*C*(g+1))/2) + (((g-1)*(2*B + eta*dB))/A)) / (eta * (g+1-2*C))
+        dA = -(2*A*(dC + (3*C/eta))) / (2*C - (g+1))
+
+        return [dA, dB, dC]
+    
+    # Determine the convergence of the values for A, B and C to 1
+    def integral(eta, A, B, C, g):
+        return ((32*np.pi)/(25*(g**2-1))) * (B + A*C**2) * eta**4
+    
+    rho0, vx0, vy0, vz0, P0 = tube[-1]
+    E_inject = P0/(rho0 * (gamma-1))
+
+    for i in range(scale):
+        eta = i/scale
+        radii = np.linspace(0, eta, 100)
+
+        w0, p0 = [1, 1, 1], [eta, gamma]
+        wsol = odeint(equations, w0, radii, args=(p0,), atol=abserr, rtol=relerr)
+
+        A, B, C = wsol[:,0], wsol[:,1], wsol[:,2]
+
+        I = quad(integral, 0, eta, args=(A, B, C, gamma))
+        if abs(I[0]) <= relerr:
+            break
+
+    return None
