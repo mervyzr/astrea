@@ -1,5 +1,5 @@
-# shock1D
-shock1D is a 1D-hydrodynamics code for the purpose of simulating shocks and turbulence with ions/neutrals interaction.
+# HydyS
+HydyS (pronounced *"hades"*) is a one-dimensional hydrodynamics code for the purpose of simulating shocks and turbulence with ions/neutrals interaction.
 
 # Description
 The code is written entirely in Python3 and employs a finite volume method (Eulerian) with a fixed evenly-spaced grid. The simulation allows for periodic boundary conditions or outflows.
