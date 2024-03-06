@@ -7,13 +7,13 @@ from functions import fv
 ##############################################################################
 
 class RiemannSolver:
-    def __init__(self, domain, solver, gamma, dx, boundary, limiter):
+    def __init__(self, domain, solver, gamma, dx, boundary, limiters):
         self.domain = domain
         self.solver = solver
         self.gamma = gamma
         self.dx = dx
         self.boundary = boundary
-        self.limiter = limiter
+        self.limiters = limiters
         self.eigmax = sys.float_info.epsilon
 
 
@@ -36,6 +36,19 @@ class RiemannSolver:
             return [wS, [wFL, wFR], [wLs, wRs], [wL2s, wR2s]]
         else:
             return fv.makeBoundary(tube, self.boundary)
+
+
+    # Apply limiters based on the reconstruction method
+    def applyLimiter(self, reconstructedValues, tube):
+        if self.solver in ["ppm", "parabolic", "p"]:
+            # Apply the parabolic limiter
+            return self.limiters.xppmLimiter(reconstructedValues, self.boundary)
+        elif self.solver in ["plm", "linear", "l"]:
+            # Apply the minmod limiter
+            return self.limiters.minmodLimiter(reconstructedValues, tube)
+        else:
+            # Do not apply any limiters
+            return reconstructedValues
 
 
     # Calculate Riemann flux (Lax-Friedrichs; similar to Roe)

@@ -5,7 +5,7 @@ import numpy as np
 # Evolve the system in space by a standardised workflow
 def evolveSpace(shockTube, tube):
     reconstructedValues = shockTube.interpolate(tube)
-    solutionLefts, solutionRights = shockTube.limiter(shockTube.solver, shockTube.boundary, reconstructedValues, tube)
+    solutionLefts, solutionRights = shockTube.applyLimiter(reconstructedValues, tube)
     return shockTube.calculateRiemannFlux(solutionLefts, solutionRights)
 
 
@@ -67,8 +67,7 @@ def makeJacobian(tube, g):
 # Make f_i based on initial conditions and primitive variables
 def makeFlux(tube, g):
     rhos, vecs, pressures = tube[:,0], tube[:,1:4], tube[:,4]
-    return np.c_[rhos*vecs[:,0], rhos*(vecs[:,0]**2) + pressures, rhos*vecs[:,0]*vecs[:,1], rhos*vecs[:,0]*vecs[:,2],\
-                    vecs[:,0] * ((.5*rhos*np.linalg.norm(vecs, axis=1)**2) + ((g*pressures)/(g-1)))]
+    return np.c_[rhos*vecs[:,0], rhos*(vecs[:,0]**2) + pressures, rhos*vecs[:,0]*vecs[:,1], rhos*vecs[:,0]*vecs[:,2], vecs[:,0] * ((.5*rhos*np.linalg.norm(vecs, axis=1)**2) + ((g*pressures)/(g-1)))]
 
 
 # Function that returns the coefficient of the slope flattener
