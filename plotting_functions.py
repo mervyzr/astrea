@@ -155,10 +155,10 @@ def plotSolutionErrors(runs, plotVariables):
     config, solver, timestep, startPos, endPos = plotVariables
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
 
-    ax[0,0].set_ylabel(r"Density $\log_{10}{[\epsilon_\nu(\rho)]}$", fontsize=18)  # density
-    ax[0,1].set_ylabel(r"Pressure $\log_{10}{[\epsilon_\nu(P)]}$", fontsize=18)  # pressure
-    ax[1,0].set_ylabel(r"Velocity $\log_{10}{[\epsilon_\nu(v_x)]}$", fontsize=18)  # vx
-    ax[1,1].set_ylabel(r"Thermal energy $\log_{10}{[\epsilon_\nu(\frac{P}{\rho})]}$", fontsize=18)  # thermal energy
+    ax[0,0].set_ylabel(r"Density $\log{(\epsilon_\nu(\rho))}$", fontsize=18)  # density
+    ax[0,1].set_ylabel(r"Pressure $\log{(\epsilon_\nu(P))}$", fontsize=18)  # pressure
+    ax[1,0].set_ylabel(r"Velocity $\log{(\epsilon_\nu(v_x))}$", fontsize=18)  # vx
+    ax[1,1].set_ylabel(r"Thermal energy $\log{(\epsilon_\nu(\frac{P}{\rho}))}$", fontsize=18)  # thermal energy
     ax[0,0].grid(linestyle='--', linewidth=0.5)
     ax[0,1].grid(linestyle='--', linewidth=0.5)
     ax[1,0].grid(linestyle='--', linewidth=0.5)
@@ -179,16 +179,29 @@ def plotSolutionErrors(runs, plotVariables):
     m3, c3 = np.polyfit(np.log10(x), np.log10(y3), 1)
     m4, c4 = np.polyfit(np.log10(x), np.log10(y4), 1)
 
+    ax[0,0].loglog(x, y1, linewidth=2, linestyle="--", marker="o", color="blue", label=f"grad. = {round(m1,3)}")
+    ax[0,1].loglog(x, y2, linewidth=2, linestyle="--", marker="o", color="red", label=f"grad. = {round(m2,3)}")
+    ax[1,0].loglog(x, y3, linewidth=2, linestyle="--", marker="o", color="green", label=f"grad. = {round(m3,3)}")
+    ax[1,1].loglog(x, y4, linewidth=2, linestyle="--", marker="o", color="darkviolet", label=f"grad. = {round(m4,3)}")
+
+    ax[0,0].legend(prop={'size': 14})
+    ax[0,1].legend(prop={'size': 14})
+    ax[1,0].legend(prop={'size': 14})
+    ax[1,1].legend(prop={'size': 14})
+
     print(f"{generic.bcolours.OKGREEN}EOC (density) [{round(m1,4)}]{generic.bcolours.ENDC}: {np.diff(np.log(y1))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (pressure) [{round(m2,4)}]{generic.bcolours.ENDC}: {np.diff(np.log(y2))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (vx) [{round(m3,4)}]{generic.bcolours.ENDC}: {np.diff(np.log(y3))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (thermal) [{round(m4,4)}]{generic.bcolours.ENDC}: {np.diff(np.log(y4))/np.diff(np.log(x))}")
 
-    ax[0,0].loglog(x, y1, linewidth=2, linestyle="--", marker="o", color="blue")
-    ax[0,1].loglog(x, y2, linewidth=2, linestyle="--", marker="o", color="red")
-    ax[1,0].loglog(x, y3, linewidth=2, linestyle="--", marker="o", color="green")
-    ax[1,1].loglog(x, y4, linewidth=2, linestyle="--", marker="o", color="darkviolet")
+    # -------- start theoretical portion --------
+    """alpha1, alpha2, alpha3, alpha4 = 10**(c1+1), 10**(c1+2), 10**(c1+3), 10**(c1+4)
+    theo_y1, theo_y2, theo_y3, theo_y4 = alpha1/x, alpha2/(x**2), alpha3/(x**3), alpha4/(x**4)
+    ax[0,0].loglog(x, theo_y1, linewidth=1, linestyle="--", color="black")
+    ax[0,0].loglog(x, theo_y2, linewidth=1, linestyle="--", color="red")
+    ax[0,0].loglog(x, theo_y3, linewidth=1, linestyle="--", color="green")
+    ax[0,0].loglog(x, theo_y4, linewidth=1, linestyle="--", color="purple")"""
+    # -------- end theoretical portion --------
 
     plt.suptitle(r"Plot of solution errors $\epsilon_\nu(q)$ against resolution $N_\nu$", fontsize=24)
-    fig.text(0.5, 0.04, r"Resolution $\log_{10}{[N_\nu]}$", fontsize=18, ha='center')
-    #fig.text(0.04, 0.5, r"Solution errors $\log_{10}{[\epsilon_\nu(q)]}$", fontsize=18, va='center', rotation='vertical')
+    fig.text(0.5, 0.04, r"Resolution $\log{(N_\nu)}$", fontsize=18, ha='center')
 
     plt.savefig(f"{os.getcwd()}/../solErr_{solver}_{timestep}.png", dpi=330, facecolor="w")
 
