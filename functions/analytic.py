@@ -184,43 +184,35 @@ def calculateSedovAnalytical(tube, t, gamma, start, end, shock):
 
 
 # Determine the analytical solution for a Sedov blast wave
-def calculateSedovAnalytical(tube, t, gamma, start, end, shock, scale=1000):
-
-    abserr = 1e-8
-    relerr = 1e-6
+def calculateSedovAnalytical(tube, t, gamma, start, end, shock, steps=100):
 
     # Solving the 1st-order coupled differential equations to determine the scaling of the post-shock variables
     # wrt to the immediate post-shock variables
-    def equations(w, t, p):
-        A, B, C = w
-        eta, g = p
+    def equations(eta, v):
+        A, B, C = v
         
-        alpha = 5*(g+1) - 4*C
+        alpha = 5*(gamma+1) - 4*C
 
-        dB = (2*alpha*A*C**2 + B*(alpha - 2*g*(eta+3*C))) / (eta * (2*C*(2*g-1) - (g+1)))
-        dC = (2*C**2 - ((5*C*(g+1))/2) + (((g-1)*(2*B + eta*dB))/A)) / (eta * (g+1-2*C))
-        dA = -(2*A*(dC + (3*C/eta))) / (2*C - (g+1))
+        dB = (2*alpha*A*C**2 + B*(alpha - 2*gamma*(eta+3*C))) / (eta * (2*C*(2*gamma-1) - (gamma+1)))
+        dC = (2*C**2 - ((5*C*(gamma+1))/2) + (((gamma-1)*(2*B + eta*dB))/A)) / (eta * (gamma+1-2*C))
+        dA = -(2*A*(dC + (3*C/eta))) / (2*C - (gamma+1))
 
         return [dA, dB, dC]
     
     # Determine the convergence of the values for A, B and C to 1
-    def integral(eta, A, B, C, g):
-        return ((32*np.pi)/(25*(g**2-1))) * (B + A*C**2) * eta**4
+    def integral(eta, v, g):
+        A, B, C = v
+        return np.sum(((32*np.pi)/(25*(g**2-1))) * (B + A*C**2) * eta**4)
     
     rho0, vx0, vy0, vz0, P0 = tube[-1]
     E_inject = P0/(rho0 * (gamma-1))
 
-    for i in range(scale):
-        eta = i/scale
-        radii = np.linspace(0, eta, 100)
+    for i in range(steps):
+        etaS = i/steps
+        wsol = solve_ivp(equations, (etaS,0), [1,1,1])
 
-        w0, p0 = [1, 1, 1], [eta, gamma]
-        wsol = odeint(equations, w0, radii, args=(p0,), atol=abserr, rtol=relerr)
-
-        A, B, C = wsol[:,0], wsol[:,1], wsol[:,2]
-
-        I = quad(integral, 0, eta, args=(A, B, C, gamma))
-        if abs(I[0]) <= relerr:
+        I = integral(wsol.t, wsol.y, gamma)
+        if abs(I - 1) <= 1e-6:
             break
 
     return None
