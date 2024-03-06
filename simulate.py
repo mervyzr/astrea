@@ -38,7 +38,7 @@ def simulateShock(_configVariables, _testVariables):
             plotter.updatePlot(tubeSnapshot, t, fig, ax, plots)
 
         # Initiate the shock tube
-        shockTube = solv.RiemannSolver(domain, _solver, _gamma, dx, _boundary, limiters.applyLimiter)
+        shockTube = solv.RiemannSolver(domain, _solver, _gamma, dx, _boundary, limiters)
 
         # Compute the numerical fluxes at each interface
         fluxes = fv.evolveSpace(shockTube, domain)

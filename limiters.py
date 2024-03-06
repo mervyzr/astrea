@@ -4,19 +4,6 @@ from functions import fv
 
 ##############################################################################
 
-# Apply limiters based on the reconstruction method
-def applyLimiter(solver, boundary, reconstructedValues, tube):
-    if solver in ["ppm", "parabolic", "p"]:
-        # Apply the parabolic limiter
-        return xppmLimiter(reconstructedValues, boundary)
-    elif solver in ["plm", "linear", "l"]:
-        # Apply the minmod limiter
-        return minmodLimiter(reconstructedValues, tube)
-    else:
-        # Do not apply any limiters
-        return reconstructedValues
-
-
 # Calculate parabolic-interpolant and face-value limiters
 def xppmLimiter(reconstructedValues, boundary, C=5/4):
     wS, wF, w1, w2 = reconstructedValues
