@@ -133,13 +133,25 @@ def plotQuantities(runs, snapshots, plotVariables):
                 ax[1,1].plot(x, y4, linewidth=2, color="darkviolet")  # thermal energy
                 plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$ ($N = {len(y1)}$)", fontsize=24)
 
+        # Adjust ylim for sin-wave test
+        if config == "sin":
+            yrange = np.linspace(0.995, 1.005, 9)
+            ax[0,1].set_yticks(yrange)
+            ax[1,0].set_yticks(yrange)
+            ax[0,1].set_ylim([0.995, 1.005])
+            ax[1,0].set_ylim([0.995, 1.005])
+
         # Add Sod analytical solution, using the highest resolution and timing
-        if config == "sod":
+        elif config == "sod":
             Sod = analytic.calculateSodAnalytical(simulation[indexes[-1][i]], indexes[-1][i], gamma, startPos, endPos, shockPos)
             ax[0,0].plot(x, Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
             ax[0,1].plot(x, Sod[:, 4], linewidth=1, color="black", linestyle="--", label="Analytical solution")
             ax[1,0].plot(x, Sod[:, 1], linewidth=1, color="black", linestyle="--", label="Analytical solution")
             ax[1,1].plot(x, Sod[:, 4]/Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+        
+        # Add Sedov analytical solution, using the highest resolution and timing
+        elif config == "sedov":
+            pass
 
         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
 
