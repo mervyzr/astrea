@@ -130,11 +130,6 @@ def plotQuantities(runs, snapshots, plotVariables):
                 ax[1,0].plot(x, y3, linewidth=2, color="green")       # vx
                 ax[1,1].plot(x, y4, linewidth=2, color="darkviolet")  # thermal energy
                 plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$ ($N = {len(y1)}$)", fontsize=24)
-
-        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
-        if len(runs) != 1:
-            handles, labels = plt.gca().get_legend_handles_labels()
-            fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
         
         # Adjust ylim for sin-wave test
         if config == "sin":
@@ -157,6 +152,11 @@ def plotQuantities(runs, snapshots, plotVariables):
         # Add Sedov analytical solution, using the highest resolution and timing
         elif config == "sedov":
             pass
+
+        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
+        if len(runs) != 1 or config == "sod":
+            handles, labels = plt.gca().get_legend_handles_labels()
+            fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
 
         plt.savefig(f"{os.getcwd()}/../qPlot_{config}_{solver}_{timestep}_{round(indexes[-1][i],3)}.png", dpi=330, facecolor="w")
 
