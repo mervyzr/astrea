@@ -275,14 +275,14 @@ def makeVideo(runs, videoVariables):
             counter += 1
 
         try:
-            os.system(f"ffmpeg -framerate 30 -pattern_type glob -i '{path}/*.png' -c:v libx264 -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' -pix_fmt yuv420p ../vid{config}_{solver}_{timestep}.mp4")
+            os.system(f"ffmpeg -framerate 60 -pattern_type glob -i '{path}/*.png' -c:v libx264 -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' -pix_fmt yuv420p ../vid{config}_{solver}_{timestep}.mp4")
         except Exception as e:
             print(f"ffmpeg failed: {e}")
             try:
                 images = [os.path.join(path,img) for img in os.listdir(path) if img.endswith(".png")]
                 images.sort()
 
-                video = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(images, fps=30)
+                video = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(images, fps=60)
                 video.write_videofile(f"{path}/vid{config}_{solver}_{timestep}.mp4")
             except Exception as e:
                 print(f"moviepy failed: {e}")
