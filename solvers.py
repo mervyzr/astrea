@@ -14,7 +14,6 @@ class RiemannSolver:
         self.dx = dx
         self.boundary = boundary
         self.limiters = limiters
-        self.eigmax = sys.float_info.epsilon
 
 
     # Interpolate the cell values
@@ -80,13 +79,11 @@ class RiemannSolver:
             AL, AR = np.nan_to_num(fv.makeJacobian(wLs, self.gamma), copy=False), np.nan_to_num(fv.makeJacobian(wRs, self.gamma), copy=False)
 
         eigvalL, eigvalR = np.linalg.eigvals(AL), np.linalg.eigvals(AR)
-        eigval = max(np.max(abs(eigvalL)), np.max(abs(eigvalR)))
-        if eigval > self.eigmax:
-            self.eigmax = eigval  # Compute the maximum wave speed (max eigenvalue)
+        self.eigmax = np.max([np.max(abs(eigvalL)), np.max(abs(eigvalR)), sys.float_info.epsilon])  # Compute the maximum wave speed (max eigenvalue)
         # In order to have a more stable simulation with the limited values, a constraint should be imposed CFL <= 1.3925 for the PPM reconstruction
 
         # Return the Riemann fluxes
         if self.solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
-            return .5 * ((fLs+fRs) - (eigval*(qLs-qRs)))
+            return .5 * ((fLs+fRs) - (self.eigmax*(qLs-qRs)))
         else:
-            return .5 * ((fLs+fRs) - (eigval*(qRs-qLs)))
+            return .5 * ((fLs+fRs) - (self.eigmax*(qRs-qLs)))
