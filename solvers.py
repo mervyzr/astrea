@@ -21,7 +21,7 @@ class RiemannSolver:
         # Piecewise parabolic method solver (3rd-order stable for uneven grid; 4th-order stable for even grid)
         if self.solver in ["ppm", "parabolic", "p"]:
             # Conversion of conservative variables to primitive variables
-            wS = np.copy(fv.convertConservative(tube, self.gamma, self.boundary))
+            wS = fv.convertConservative(tube, self.gamma, self.boundary)
 
             # Reconstruction in primitive variables to 4th-order
             wLs, wRs = fv.makeBoundary(wS, self.boundary)

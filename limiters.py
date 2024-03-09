@@ -17,7 +17,7 @@ def xppmLimiter(reconstructedValues, boundary, C=5/4):
         local_extrema = (w_face - w_cell)*(w_plusOne - w_face) < 0
 
         if local_extrema.any():
-            D2w = np.zeros((len(w_face), len(w_face[0])))
+            D2w = np.zeros(w_face.shape)
 
             # Approximation to the second derivatives
             D2w_L = w_minusOne - 2*w_cell + w_plusOne
@@ -47,7 +47,7 @@ def xppmLimiter(reconstructedValues, boundary, C=5/4):
     wF_limit_R[local_extrema] = wS[local_extrema]
 
     # Calculate the limited smooth extrema
-    D2w_lim = np.zeros((len(wS), len(wS[0])))
+    D2w_lim = np.zeros(wS.shape)
 
     # Approximation to the second derivatives
     D2w = 6 * (wFL - 2*wS + wFR)
@@ -82,7 +82,7 @@ def parabolicLimiter(reconstructedValues, boundary, C=5/4):
         local_extrema = (w_face - w_cell)*(w_plusOne - w_face) < 0
 
         if local_extrema.any():
-            D2w = np.zeros((len(w_face), len(w_face[0])))
+            D2w = np.zeros(w_face.shape)
 
             # Approximation to the second derivatives
             D2w_L = w_minusOne - 2*w_cell + w_plusOne
@@ -123,7 +123,7 @@ def parabolicLimiter(reconstructedValues, boundary, C=5/4):
     
     # If there are extrema in either the cells or interpolants
     if local_extrema.any() or cell_extrema.any() or interpolant_extrema.any():
-        D2w_lim = np.zeros((len(wS), len(wS[0])))
+        D2w_lim = np.zeros(wS.shape)
         
         # Approximation to the second derivative
         D2w = 6 * (wF_limit_L - 2*wS + wF_limit_R)
