@@ -69,8 +69,8 @@ def xppmLimiter(reconstructedValues, boundary, C=5/4):
     return wS + ((D2w_lim/D2w) * (wF_limit_L - wS)), wS + ((D2w_lim/D2w) * (wF_limit_R - wS))
 
 
-# Calculate parabolic-interpolant and face-value limters
-def parabolicLimiter(reconstructedValues, boundary, C=5/4):
+# Calculate parabolic-interpolant and face-value limiters
+def modppmLimiter(reconstructedValues, boundary, C=5/4):
     wS, wF, w1, w2 = reconstructedValues
     wFL, wFR = wF
     wLs, wRs = w1
