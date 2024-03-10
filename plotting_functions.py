@@ -79,18 +79,12 @@ def updatePlot(arr, t, fig, ax, plots):
 # Plot snapshots of quantities for multiple runs
 def plotQuantities(runs, snapshots, plotVariables):
     config, gamma, solver, timestep, startPos, endPos, shockPos = plotVariables
-    try:
-        snapshots = int(snapshots)
-        if snapshots < 1:
-            snapshots = 1
-    except Exception as e:
-        snapshots = 1
 
     # Separate the timings based on the number of snapshots; returns a list of lists with the timing intervals for each simulation
     indexes = []
     for simulation in runs:
         timings = np.fromiter(simulation.keys(), dtype=float)
-        indexes.append([timing[-1] for timing in np.array_split(timings, snapshots)])
+        indexes.append([timing[-1] for timing in np.array_split(timings, abs(int(snapshots)))])
     
     # Iterate through the timings; the last set of timings refer to the highest resolution
     for i in range(len(indexes[-1])):
