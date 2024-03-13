@@ -127,6 +127,6 @@ if __name__ == "__main__":
     
     f.close()
     if cfg.saveFile:
-        shutil.move(filename, f"{currentdir}/datasets/shockTube_{cfg.config.lower()}_{cfg.solver}_{cfg.timestep}_{datetime.now().strftime('%Y%m%d%H%M')}.hdf5")
+        shutil.move(filename, f"{currentdir}/datasets/shockTube_{cfg.config.lower()}_{cfg.solver}_{cfg.timestep}_{seed}.hdf5")
     else:
         os.remove(filename)
