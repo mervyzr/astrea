@@ -156,7 +156,7 @@ def plotQuantities(f, snapshots, plotVariables):
             handles, labels = plt.gca().get_legend_handles_labels()
             fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
 
-        plt.savefig(f"{os.getcwd()}/plots/qPlot_{config}_{solver}_{timestep}_{round(indexes[-1][i],3)}_{now}.png", dpi=330, facecolor="w")
+        plt.savefig(f"{os.getcwd()}/plots/qPlot_{config}_{solver}_{timestep}_{round(indexes[-1][i],3)}.png", dpi=330, facecolor="w")
 
         plt.cla()
         plt.clf()
@@ -219,7 +219,7 @@ def plotSolutionErrors(f, plotVariables):
     plt.suptitle(r"Plot of solution errors $\epsilon_\nu(q)$ against resolution $N_\nu$", fontsize=24)
     fig.text(0.5, 0.04, r"Resolution $\log{(N_\nu)}$", fontsize=18, ha='center')
 
-    plt.savefig(f"{os.getcwd()}/plots/solErr_{solver}_{timestep}_{now}.png", dpi=330, facecolor="w")
+    plt.savefig(f"{os.getcwd()}/plots/solErr_{solver}_{timestep}.png", dpi=330, facecolor="w")
 
     plt.cla()
     plt.clf()
