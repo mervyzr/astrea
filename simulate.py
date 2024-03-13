@@ -57,10 +57,14 @@ if __name__ == "__main__":
     runs = []
 
     # Error condition(s)
+    if cfg.config.lower() not in ["sod", "sedov"] or "sin" not in cfg.config.lower() or "sq" not in cfg.config.lower() or "toro" not in cfg.config.lower() or "shu" not in cfg.config.lower():
+        print(f"{generic.bcolours.WARNING}Test unknown; reverting to Sod shock tube test..{generic.bcolours.ENDC}")
     if cfg.solver.lower() not in ["ppm", "parabolic", "p", "plm", "linear", "l", "pcm", "constant", "c"]:
         print(f"{generic.bcolours.WARNING}Reconstruct unknown; reverting to piecewise constant reconstruction method..{generic.bcolours.ENDC}")
     if cfg.timestep.lower() not in ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)"]:
         print(f"{generic.bcolours.WARNING}Timestepper unknown; reverting to Forward Euler timestepping..{generic.bcolours.ENDC}")
+    if cfg.runType.lower() not in ["single", "multiple"] or cfg.runType[0].lower() not in ["m", "s"]:
+        print(f"{generic.bcolours.WARNING}RunType unknown; running single test..{generic.bcolours.ENDC}")
 
     if cfg.runType[0].lower() == "m":
         cfg.variables[-1] = False

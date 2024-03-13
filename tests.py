@@ -87,7 +87,6 @@ elif "toro" in cfg.config.lower():
         initialRight = np.array([.125,0,0,0,.1])  # primitive variables
 
 else:
-    print(f"{generic.bcolours.WARNING}Test unknown; reverting to Sod shock tube test..{generic.bcolours.ENDC}")
     startPos = 0
     endPos = 1
     shockPos = .5
