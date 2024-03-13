@@ -53,4 +53,5 @@ docs/_build/
 .DS_Store
 
 # custom files
-settings.py
+*.h5
+*.hdf5
