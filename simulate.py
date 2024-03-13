@@ -79,7 +79,7 @@ if __name__ == "__main__":
     if cfg.runType[0].lower() == "m":
         cfg.variables[-1] = False  # Turn off the live plot
         
-        for n in range(3,5):
+        for n in range(3,12):
             cells = 5*2**n
             cfg.variables[1] = cells  # Change cell values
 
@@ -128,3 +128,5 @@ if __name__ == "__main__":
     f.close()
     if cfg.saveFile:
         shutil.move(filename, f"{currentdir}/datasets/shockTube_{cfg.config.lower()}_{cfg.solver}_{cfg.timestep}_{datetime.now().strftime('%Y%m%d%H%M')}.hdf5")
+    else:
+        os.remove(filename)
