@@ -54,4 +54,7 @@ docs/_build/
 
 # custom files
 *.h5
+*.he5
 *.hdf5
+datasets
+plots
