@@ -16,7 +16,7 @@ def roundOff(value):
 def calculateSolutionError(simulation):
     q_num = simulation[max(list(simulation.keys()))]
 
-    q_theo = np.tile(np.array([0,1,1,1,1]), (len(q_num), 1)).astype(float)
+    q_theo = np.tile(np.array([0,1,1,1,1]), (len(q_num), 1)).astype(np.float128)
     xi = np.linspace(0, 1, len(q_num))
     q_theo[:, 0] = 1 + (.1 * np.sin(2*np.pi*xi))
 

@@ -104,11 +104,11 @@ def initialise(config, N, g, start, end, shock, wL, wR):
     if config == "sedov" or "sq" in config:
         cellsLeft = int((N/2) * (shock/(end-start)))
         arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (int(N/2 - cellsLeft), 1))
-        arr = np.concatenate((arrR, arrL, arrL, arrR)).astype(float)
+        arr = np.concatenate((arrR, arrL, arrL, arrR)).astype(np.float128)
     else:
         cellsLeft = int(N * ((shock-start)/(end-start)))
         arrL, arrR = np.tile(wL, (cellsLeft, 1)), np.tile(wR, (N - cellsLeft, 1))
-        arr = np.concatenate((arrL, arrR)).astype(float)
+        arr = np.concatenate((arrL, arrR)).astype(np.float128)
 
     if config == "sin":
         xi = np.linspace(start, end, N)
