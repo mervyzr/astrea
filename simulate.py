@@ -1,6 +1,9 @@
+import os
 import time
+import random
 from datetime import datetime, timedelta
 
+import h5py
 import numpy as np
 
 import limiters
@@ -12,6 +15,10 @@ import plotting_functions as plotter
 from functions import generic, fv
 
 ##############################################################################
+
+currentdir = os.getcwd()
+seed = random.randint(0, 10000000)
+
 
 # Run code
 def simulateShock(_configVariables, _testVariables):
@@ -62,6 +69,7 @@ if __name__ == "__main__":
     if cfg.timestep.lower() not in ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)"]:
         print(f"{generic.bcolours.WARNING}Timestepper unknown; reverting to Forward Euler timestepping..{generic.bcolours.ENDC}")
 
+
     if cfg.runType[0].lower() == "m":
         cfg.variables[-1] = False
         for n in range(3,11):
@@ -69,20 +77,20 @@ if __name__ == "__main__":
             cfg.variables[1] = cells
             lap, now = time.time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             run = simulateShock(cfg.variables, tst.variables)
-            generic.printOutput(now, cfg.config, cells, cfg.solver, cfg.timestep, cfg.cfl, str(timedelta(seconds=time.time()-lap)), len(run))
+            generic.printOutput(now, cfg.config, cells, cfg.cfl, cfg.solver, cfg.timestep, str(timedelta(seconds=time.time()-lap)), len(run))
             runs.append(run)
         if cfg.saveFile:
             plotter.plotQuantities(runs, cfg.snapshots, [cfg.config.lower(), cfg.gamma, cfg.solver, cfg.timestep, tst.startPos, tst.endPos, tst.shockPos])
             if cfg.config.lower() == "sin":
                 plotter.plotSolutionErrors(runs, [cfg.config.lower(), cfg.solver, cfg.timestep, tst.startPos, tst.endPos])
     else:
-        if cfg.runType[0].lower() != "s":
+        if cfg.runType.lower() != "single":
             print(f"{generic.bcolours.WARNING}RunType unknown; running single test..{generic.bcolours.ENDC}")
         if cfg.saveFile or cfg.saveVideo:
             cfg.variables[-1] = False
         lap, now = time.time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         run = simulateShock(cfg.variables, tst.variables)
-        generic.printOutput(now, cfg.config, cfg.cells, cfg.solver, cfg.timestep, cfg.cfl, str(timedelta(seconds=time.time()-lap)), len(run))
+        generic.printOutput(now, cfg.config, cfg.cells, cfg.cfl, cfg.solver, cfg.timestep, str(timedelta(seconds=time.time()-lap)), len(run))
         runs.append(run)
         if cfg.saveFile:
             plotter.plotQuantities(runs, cfg.snapshots, [cfg.config.lower(), cfg.gamma, cfg.solver, cfg.timestep, tst.startPos, tst.endPos, tst.shockPos])
