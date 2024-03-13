@@ -1,10 +1,10 @@
 import os
 import time
+import shutil
 import random
 from datetime import datetime, timedelta
 
 import h5py
-import numpy as np
 
 import limiters
 import tests as tst
@@ -19,10 +19,8 @@ from functions import generic, fv
 currentdir = os.getcwd()
 seed = random.randint(0, 10000000)
 
-
 # Run code
-def simulateShock(_configVariables, _testVariables):
-    simulation = {}
+def simulateShock(_configVariables, _testVariables, grp):
     _config, _N, _cfl, _gamma, _solver, _timestep, _livePlot = generic.lowerList(_configVariables)
     _startPos, _endPos, _shockPos, _tEnd, _boundary, _wL, _wR = generic.lowerList(_testVariables)
 
@@ -39,7 +37,8 @@ def simulateShock(_configVariables, _testVariables):
     while t <= _tEnd:
         # Saves each instance of the system at time t
         tubeSnapshot = fv.pointConvertConservative(domain, _gamma)
-        simulation[t] = np.copy(tubeSnapshot)
+        dataset = grp.create_dataset(str(t), data=tubeSnapshot)
+        dataset.attrs['t'] = t
 
         if _livePlot:
             plotter.updatePlot(tubeSnapshot, t, fig, ax, plots)
@@ -56,12 +55,19 @@ def simulateShock(_configVariables, _testVariables):
         # Update the solution with the numerical fluxes using iterative methods
         domain = tmstp.evolveTime(shockTube, dt, fluxes, _timestep)
         t += dt
-    return simulation
+    return None
 
 ##############################################################################
 
 if __name__ == "__main__":
-    runs = []
+    filename = f"{currentdir}/.shockTemp_{seed}.hdf5"
+    f = h5py.File(filename, "w")
+
+    if not os.path.exists(f"{currentdir}/datasets"):
+        os.makedirs(f"{currentdir}/datasets")
+
+    if not os.path.exists(f"{currentdir}/plots"):
+        os.makedirs(f"{currentdir}/plots")
 
     # Error condition(s)
     if cfg.solver.lower() not in ["ppm", "parabolic", "p", "plm", "linear", "l", "pcm", "constant", "c"]:
@@ -71,28 +77,56 @@ if __name__ == "__main__":
 
 
     if cfg.runType[0].lower() == "m":
-        cfg.variables[-1] = False
-        for n in range(3,11):
+        cfg.variables[-1] = False  # Turn off the live plot
+        
+        for n in range(3,12):
             cells = 5*2**n
-            cfg.variables[1] = cells
+            cfg.variables[1] = cells  # Change cell values
+
+            grp = f.create_group(str(cells))
+            grp.attrs['config'] = cfg.solver
+            grp.attrs['cells'] = cells
+            grp.attrs['gamma'] = cfg.gamma
+            grp.attrs['cfl'] = cfg.cfl
+            grp.attrs['solver'] = cfg.solver
+            grp.attrs['timestepper'] = cfg.timestep
+
             lap, now = time.time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            run = simulateShock(cfg.variables, tst.variables)
-            generic.printOutput(now, cfg.config, cells, cfg.cfl, cfg.solver, cfg.timestep, str(timedelta(seconds=time.time()-lap)), len(run))
-            runs.append(run)
+            simulateShock(cfg.variables, tst.variables, grp)
+            generic.printOutput(now, cfg.config, cells, cfg.cfl, cfg.solver, cfg.timestep, str(timedelta(seconds=time.time()-lap)), len(list(grp.keys())))
+
         if cfg.saveFile:
-            plotter.plotQuantities(runs, cfg.snapshots, [cfg.config.lower(), cfg.gamma, cfg.solver, cfg.timestep, tst.startPos, tst.endPos, tst.shockPos])
+            plotter.plotQuantities(f, cfg.snapshots, [cfg.config.lower(), cfg.gamma, cfg.solver, cfg.timestep, tst.startPos, tst.endPos, tst.shockPos])
             if cfg.config.lower() == "sin":
-                plotter.plotSolutionErrors(runs, [cfg.config.lower(), cfg.solver, cfg.timestep, tst.startPos, tst.endPos])
+                plotter.plotSolutionErrors(f, [cfg.config.lower(), cfg.solver, cfg.timestep, tst.startPos, tst.endPos])
+
     else:
         if cfg.runType.lower() != "single":
             print(f"{generic.bcolours.WARNING}RunType unknown; running single test..{generic.bcolours.ENDC}")
+
         if cfg.saveFile or cfg.saveVideo:
-            cfg.variables[-1] = False
+            cfg.variables[-1] = False  # Turn off the live plot
+
+        grp = f.create_group(str(cfg.cells))
+        grp.attrs['config'] = cfg.solver
+        grp.attrs['cells'] = cfg.cells
+        grp.attrs['gamma'] = cfg.gamma
+        grp.attrs['cfl'] = cfg.cfl
+        grp.attrs['solver'] = cfg.solver
+        grp.attrs['timestepper'] = cfg.timestep
+
         lap, now = time.time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        run = simulateShock(cfg.variables, tst.variables)
-        generic.printOutput(now, cfg.config, cfg.cells, cfg.cfl, cfg.solver, cfg.timestep, str(timedelta(seconds=time.time()-lap)), len(run))
-        runs.append(run)
+        simulateShock(cfg.variables, tst.variables, grp)
+        generic.printOutput(now, cfg.config, cfg.cells, cfg.cfl, cfg.solver, cfg.timestep, str(timedelta(seconds=time.time()-lap)), len(list(grp.keys())))
+        
         if cfg.saveFile:
-            plotter.plotQuantities(runs, cfg.snapshots, [cfg.config.lower(), cfg.gamma, cfg.solver, cfg.timestep, tst.startPos, tst.endPos, tst.shockPos])
+            plotter.plotQuantities(f, cfg.snapshots, [cfg.config.lower(), cfg.gamma, cfg.solver, cfg.timestep, tst.startPos, tst.endPos, tst.shockPos])
+
         if cfg.saveVideo:
-            plotter.makeVideo(runs, [cfg.config.lower(), cfg.solver, cfg.timestep, tst.startPos, tst.endPos])
+            plotter.makeVideo(f, [cfg.config.lower(), cfg.solver, cfg.timestep, tst.startPos, tst.endPos])
+    
+    f.close()
+    if cfg.saveFile:
+        shutil.move(filename, f"{currentdir}/datasets/shockTube_{cfg.config.lower()}_{cfg.solver}_{cfg.timestep}_{seed}.hdf5")
+    else:
+        os.remove(filename)

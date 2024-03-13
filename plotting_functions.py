@@ -1,5 +1,6 @@
 import os
 import shutil
+from datetime import datetime
 
 import matplotlib
 from settings import saveFile, saveVideo
@@ -77,12 +78,13 @@ def updatePlot(arr, t, fig, ax, plots):
 
 
 # Plot snapshots of quantities for multiple runs
-def plotQuantities(runs, snapshots, plotVariables):
+def plotQuantities(f, snapshots, plotVariables):
     config, gamma, solver, timestep, startPos, endPos, shockPos = plotVariables
+    now = datetime.now().strftime("%Y%m%d%H%M")
 
     # Separate the timings based on the number of snapshots; returns a list of lists with the timing intervals for each simulation
     indexes = []
-    for simulation in runs:
+    for group, simulation in f.items():
         timings = np.fromiter(simulation.keys(), dtype=float)
         indexes.append([timing[-1] for timing in np.array_split(timings, abs(int(snapshots)))])
     
@@ -104,15 +106,15 @@ def plotQuantities(runs, snapshots, plotVariables):
         ax[1,1].grid(linestyle='--', linewidth=0.5)
 
         # Plot each simulation at the i-th timing
-        for j, simulation in enumerate(runs):
-            time_key = indexes[j][i]
-            y1 = simulation[time_key][:, 0]  # density
-            y2 = simulation[time_key][:, 4]  # pressure
-            y3 = simulation[time_key][:, 1]  # vx
-            y4 = y2/y1                       # thermal energy
+        for j, group in enumerate(f):
+            time_key = str(indexes[j][i])
+            y1 = f[group][time_key][:, 0]   # density
+            y2 = f[group][time_key][:, 4]   # pressure
+            y3 = f[group][time_key][:, 1]   # vx
+            y4 = y2/y1                      # thermal energy
             x = np.linspace(startPos, endPos, len(y1))
 
-            if len(runs) != 1:
+            if len(f) != 1:
                 ax[0,0].plot(x, y1, linewidth=2, label=f"N = {len(y1)}")  # density
                 ax[0,1].plot(x, y2, linewidth=2, label=f"N = {len(y1)}")  # pressure
                 ax[1,0].plot(x, y3, linewidth=2, label=f"N = {len(y1)}")  # vx
@@ -127,7 +129,9 @@ def plotQuantities(runs, snapshots, plotVariables):
         
         # Adjust ylim for sin-wave test
         if config == "sin":
-            initial_rho, initial_vx, initial_vy, initial_vz, initial_P = runs[-1][list(runs[-1].keys())[0]][0]
+            last_sim = f[list(f.keys())[-1]]
+            first_config = last_sim[list(last_sim.keys())[0]][0]
+            initial_rho, initial_vx, initial_vy, initial_vz, initial_P = first_config
             vrange = np.linspace(initial_vx-.005, initial_vx+.005, 9)
             Prange = np.linspace(initial_P-.005, initial_P+.005, 9)
             ax[0,1].set_yticks(Prange)
@@ -137,7 +141,7 @@ def plotQuantities(runs, snapshots, plotVariables):
 
         # Add Sod analytical solution, using the highest resolution and timing
         elif config == "sod":
-            Sod = analytic.calculateSodAnalytical(simulation[indexes[-1][i]], indexes[-1][i], gamma, startPos, endPos, shockPos)
+            Sod = analytic.calculateSodAnalytical(f[group][str(indexes[-1][i])], indexes[-1][i], gamma, startPos, endPos, shockPos)
             ax[0,0].plot(x, Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
             ax[0,1].plot(x, Sod[:, 4], linewidth=1, color="black", linestyle="--", label="Analytical solution")
             ax[1,0].plot(x, Sod[:, 1], linewidth=1, color="black", linestyle="--", label="Analytical solution")
@@ -148,11 +152,11 @@ def plotQuantities(runs, snapshots, plotVariables):
             pass
 
         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
-        if len(runs) != 1 or config == "sod":
+        if len(f) != 1 or config == "sod":
             handles, labels = plt.gca().get_legend_handles_labels()
             fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
 
-        plt.savefig(f"{os.getcwd()}/../qPlot_{config}_{solver}_{timestep}_{round(indexes[-1][i],3)}.png", dpi=330, facecolor="w")
+        plt.savefig(f"{os.getcwd()}/plots/qPlot_{config}_{solver}_{timestep}_{round(indexes[-1][i],3)}_{now}.png", dpi=330, facecolor="w")
 
         plt.cla()
         plt.clf()
@@ -160,8 +164,10 @@ def plotQuantities(runs, snapshots, plotVariables):
     return None
 
 
-def plotSolutionErrors(runs, plotVariables):
+def plotSolutionErrors(f, plotVariables):
     config, solver, timestep, startPos, endPos = plotVariables
+    now = datetime.now().strftime("%Y%m%d%H%M")
+
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
 
     ax[0,0].set_ylabel(r"Density $\log{(\epsilon_\nu(\rho))}$", fontsize=18)  # density
@@ -174,14 +180,15 @@ def plotSolutionErrors(runs, plotVariables):
     ax[1,1].grid(linestyle='--', linewidth=0.5)
 
     x, y1, y2, y3, y4 = [], [], [], [], []
-    for simulation in runs:
-        x.append(len(simulation[0]))
+    for group, simulation in f.items():
+        x.append(len(simulation['0']))
         solutionErrors = analytic.calculateSolutionError(simulation)
         y1.append(solutionErrors[0])  # density
         y2.append(solutionErrors[4])  # pressure
         y3.append(solutionErrors[1])  # vx
         y4.append(solutionErrors[5])  # thermal energy
     x, y1, y2, y3, y4 = np.asarray(x), np.asarray(y1), np.asarray(y2), np.asarray(y3), np.asarray(y4)
+    x, y1, y2, y3, y4 = x.astype(np.float64), y1.astype(np.float64), y2.astype(np.float64), y3.astype(np.float64), y4.astype(np.float64)
 
     m1, c1 = np.polyfit(np.log10(x), np.log10(y1), 1)
     m2, c2 = np.polyfit(np.log10(x), np.log10(y2), 1)
@@ -212,7 +219,7 @@ def plotSolutionErrors(runs, plotVariables):
     plt.suptitle(r"Plot of solution errors $\epsilon_\nu(q)$ against resolution $N_\nu$", fontsize=24)
     fig.text(0.5, 0.04, r"Resolution $\log{(N_\nu)}$", fontsize=18, ha='center')
 
-    plt.savefig(f"{os.getcwd()}/../solErr_{solver}_{timestep}.png", dpi=330, facecolor="w")
+    plt.savefig(f"{os.getcwd()}/plots/solErr_{solver}_{timestep}_{now}.png", dpi=330, facecolor="w")
 
     plt.cla()
     plt.clf()
@@ -220,15 +227,16 @@ def plotSolutionErrors(runs, plotVariables):
     return None
 
 
-def makeVideo(runs, videoVariables):
+def makeVideo(f, videoVariables):
     config, solver, timestep, startPos, endPos = videoVariables
-    for simulation in runs:
+    now = datetime.now().strftime("%Y%m%d%H%M")
+
+    for group, simulation in f.items():
         counter = 0
 
         path = f"{os.getcwd()}/../vidplots"
-        if os.path.exists(path):
-            shutil.rmtree(path)
-        os.makedirs(path)
+        if not os.path.exists(path):
+            os.makedirs(path)
 
         for t, domain in simulation.items():
             fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
@@ -269,7 +277,7 @@ def makeVideo(runs, videoVariables):
             counter += 1
 
         try:
-            os.system(f"ffmpeg -framerate 60 -pattern_type glob -i '{path}/*.png' -c:v libx264 -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' -pix_fmt yuv420p ../vid{config}_{solver}_{timestep}.mp4")
+            os.system(f"ffmpeg -framerate 60 -pattern_type glob -i '{path}/*.png' -c:v libx264 -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' -pix_fmt yuv420p ../vid{config}_{solver}_{timestep}_{now}.mp4")
         except Exception as e:
             print(f"ffmpeg failed: {e}")
             try:
@@ -277,8 +285,12 @@ def makeVideo(runs, videoVariables):
                 images.sort()
 
                 video = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(images, fps=60)
-                video.write_videofile(f"{path}/vid{config}_{solver}_{timestep}.mp4")
+                video.write_videofile(f"../vid{config}_{solver}_{timestep}_{now}.mp4")
             except Exception as e:
                 print(f"moviepy failed: {e}")
                 pass
+            else:
+                shutil.rmtree(path)
+        else:
+            shutil.rmtree(path)
     return None
