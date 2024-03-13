@@ -19,6 +19,7 @@ from functions import generic, fv
 currentdir = os.getcwd()
 seed = random.randomint(0, 10000000)
 
+
 # Run code
 def simulateShock(_configVariables, _testVariables):
     simulation = {}
