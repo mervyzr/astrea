@@ -1,5 +1,6 @@
 import os
 import time
+import random
 from datetime import datetime, timedelta
 
 import h5py
@@ -14,6 +15,9 @@ import plotting_functions as plotter
 from functions import generic, fv
 
 ##############################################################################
+
+currentdir = os.getcwd()
+seed = random.randomint(0, 10000000)
 
 # Run code
 def simulateShock(_configVariables, _testVariables):
@@ -68,6 +72,7 @@ if __name__ == "__main__":
     if cfg.runType.lower() not in ["single", "multiple"] or cfg.runType[0].lower() not in ["m", "s"]:
         print(f"{generic.bcolours.WARNING}RunType unknown; running single test..{generic.bcolours.ENDC}")
 
+
     if cfg.runType[0].lower() == "m":
         cfg.variables[-1] = False
         for n in range(3,11):
@@ -82,8 +87,6 @@ if __name__ == "__main__":
             if cfg.config.lower() == "sin":
                 plotter.plotSolutionErrors(runs, [cfg.config.lower(), cfg.solver, cfg.timestep, tst.startPos, tst.endPos])
     else:
-        if cfg.runType[0].lower() != "s":
-            print(f"{generic.bcolours.WARNING}RunType unknown; running single test..{generic.bcolours.ENDC}")
         if cfg.saveFile or cfg.saveVideo:
             cfg.variables[-1] = False
         lap, now = time.time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
