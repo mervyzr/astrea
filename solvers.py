@@ -6,84 +6,56 @@ from functions import fv
 
 ##############################################################################
 
-class RiemannSolver:
-    def __init__(self, domain, solver, gamma, dx, boundary, limiters):
-        self.domain = domain
-        self.solver = solver
-        self.gamma = gamma
-        self.dx = dx
-        self.boundary = boundary
-        self.limiters = limiters
+# Interpolate the cell values
+def interpolate(tube, gamma, solver, boundary):
+    # Piecewise parabolic method solver (3rd-order stable for uneven grid; 4th-order stable for even grid)
+    if solver in ["ppm", "parabolic", "p"]:
+        # Conversion of conservative variables to primitive variables
+        wS = fv.convertConservative(tube, gamma, boundary)
+
+        w = fv.makeBoundary(wS, boundary)
+        w2 = fv.makeBoundary(wS, boundary, 2)
+
+        # Reconstruction in primitive variables to 4th-order face values
+        wFL = 7/12 * (wS+w[:-2]) - 1/12 * (w2[:-4]+w[2:])  # face i-1/2
+        wFR = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])  # face i+1/2
+        return [wS, [wFL, wFR], w, w2]
+    else:
+        return fv.makeBoundary(tube, boundary)
 
 
-    # Interpolate the cell values
-    def interpolate(self, tube):
-        # Piecewise parabolic method solver (3rd-order stable for uneven grid; 4th-order stable for even grid)
-        if self.solver in ["ppm", "parabolic", "p"]:
-            # Conversion of conservative variables to primitive variables
-            wS = fv.convertConservative(tube, self.gamma, self.boundary)
+# Calculate Riemann flux (Lax-Friedrichs; similar to Roe)
+def calculateRiemannFlux(solution, gamma, solver, boundary):
+    # Impose boundary conditions for cell-interfaces
+    if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
+        leftSolution, rightSolution = solution
+        leftInterface, rightInterface = fv.makeBoundary(leftSolution, boundary)[1:], fv.makeBoundary(rightSolution, boundary)[:-1]
+    else:
+        leftInterface, rightInterface = solution[:-1], solution[1:]
+    
+    # Solve the Riemann flux problem
+    if solver in ["ppm", "parabolic", "p"]:
+        # Ideally, the 4th-order interface-averaged fluxes should be computed for PPM
+        # But because the simulation is only 1D, the "normal" Laplacian (Taylor expansion) of the face-averaged states and fluxes are zero
+        # Thus, the conversion between face-averaged and face-centred states and fluxes can be a point-wise conversion
 
-            # Reconstruction in primitive variables to 4th-order
-            wLs, wRs = fv.makeBoundary(wS, self.boundary)
-            if self.boundary == "periodic":
-                wL2s, wR2s = np.concatenate(([wLs[-2]],wLs))[:-1], np.concatenate((wRs,[wRs[1]]))[1:]  # Periodic boundary for additional ghost box
-            else:
-                wL2s, wR2s = np.concatenate(([wLs[0]],wLs))[:-1], np.concatenate((wRs,[wRs[-1]]))[1:]  # Outflow boundary for additional ghost box
-            
-            wFL = 7/12 * (wS+wLs[:-1]) - 1/12 * (wL2s[:-1]+wRs[1:])  # Compute face-averaged values (i-1/2)
-            wFR = 7/12 * (wS+wRs[1:]) - 1/12 * (wLs[:-1]+wR2s[1:])  # Compute face-averaged values (i+1/2)
-            return [wS, [wFL, wFR], [wLs, wRs], [wL2s, wR2s]]
-        else:
-            return fv.makeBoundary(tube, self.boundary)
+        qLs, qRs = fv.pointConvertPrimitive(leftInterface, gamma), fv.pointConvertPrimitive(rightInterface, gamma)
+        
+        fLs, fRs = fv.makeFlux(leftInterface, gamma), fv.makeFlux(rightInterface, gamma)
+        AL, AR = fv.makeJacobian(leftInterface, gamma), fv.makeJacobian(rightInterface, gamma)
+    else:
+        qLs, qRs = leftInterface, rightInterface
+        wLs, wRs = fv.pointConvertConservative(leftInterface, gamma), fv.pointConvertConservative(rightInterface, gamma)
 
+        fLs, fRs = fv.makeFlux(wLs, gamma), fv.makeFlux(wRs, gamma)
+        AL, AR = fv.makeJacobian(wLs, gamma), fv.makeJacobian(wRs, gamma)
 
-    # Apply limiters based on the reconstruction method
-    def applyLimiter(self, reconstructedValues, tube):
-        if self.solver in ["ppm", "parabolic", "p"]:
-            # Apply the parabolic limiter
-            return self.limiters.xppmLimiter(reconstructedValues, self.boundary)
-        elif self.solver in ["plm", "linear", "l"]:
-            # Apply the minmod limiter
-            return self.limiters.minmodLimiter(reconstructedValues, tube)
-        else:
-            # Do not apply any limiters
-            return reconstructedValues
+    eigvalL, eigvalR = np.linalg.eigvals(AL), np.linalg.eigvals(AR)
+    eigmax = np.max([np.max(abs(eigvalL)), np.max(abs(eigvalR)), sys.float_info.epsilon])  # Compute the maximum wave speed (max eigenvalue)
+    # In order to have a more stable simulation with the limited values, a constraint should be imposed CFL <= 1.3925 for the PPM reconstruction
 
-
-    # Calculate Riemann flux (Lax-Friedrichs; similar to Roe)
-    def calculateRiemannFlux(self, valueLefts, valueRights):
-        # Impose boundary conditions for cell-interfaces
-        if self.solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
-            if self.boundary == "periodic":
-                leftValues, rightValues = np.concatenate((valueLefts,[valueLefts[0]])), np.concatenate(([valueRights[-1]],valueRights))  # Periodic boundary for ghost boxes
-            else:
-                leftValues, rightValues = np.concatenate((valueLefts,[valueLefts[-1]])), np.concatenate(([valueRights[0]],valueRights))  # Outflow boundary for ghost boxes
-        else:
-            leftValues, rightValues = valueLefts, valueRights
-
-        # Solve the Riemann flux problem
-        if self.solver in ["ppm", "parabolic", "p"]:
-            # Ideally, the 4th-order interface-averaged fluxes should be computed for PPM
-            # But because the simulation is only 1D, the "normal" Laplacian (Taylor expansion) of the face-averaged states and fluxes are zero
-            # Thus, the conversion between face-averaged and face-centred states and fluxes can be pointwise conversion
-
-            qLs, qRs = fv.pointConvertPrimitive(leftValues, self.gamma), fv.pointConvertPrimitive(rightValues, self.gamma)
-            fLs, fRs = fv.makeFlux(leftValues, self.gamma), fv.makeFlux(rightValues, self.gamma)
-
-            AL, AR = np.nan_to_num(fv.makeJacobian(leftValues, self.gamma), copy=False), np.nan_to_num(fv.makeJacobian(rightValues, self.gamma), copy=False)
-        else:
-            qLs, qRs = leftValues, rightValues
-            wLs, wRs = fv.pointConvertConservative(leftValues, self.gamma), fv.pointConvertConservative(rightValues, self.gamma)
-            fLs, fRs = fv.makeFlux(wLs, self.gamma), fv.makeFlux(wRs, self.gamma)
-
-            AL, AR = np.nan_to_num(fv.makeJacobian(wLs, self.gamma), copy=False), np.nan_to_num(fv.makeJacobian(wRs, self.gamma), copy=False)
-
-        eigvalL, eigvalR = np.linalg.eigvals(AL), np.linalg.eigvals(AR)
-        self.eigmax = np.max([np.max(abs(eigvalL)), np.max(abs(eigvalR)), sys.float_info.epsilon])  # Compute the maximum wave speed (max eigenvalue)
-        # In order to have a more stable simulation with the limited values, a constraint should be imposed CFL <= 1.3925 for the PPM reconstruction
-
-        # Return the Riemann fluxes
-        if self.solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
-            return .5 * ((fLs+fRs) - (self.eigmax*(qLs-qRs)))
-        else:
-            return .5 * ((fLs+fRs) - (self.eigmax*(qRs-qLs)))
+    # Return the Riemann fluxes
+    if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
+        return .5 * ((fLs+fRs) - (eigmax*(qLs-qRs))), eigmax
+    else:
+        return .5 * ((fLs+fRs) - (eigmax*(qRs-qLs))), eigmax

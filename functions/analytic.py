@@ -16,7 +16,7 @@ def roundOff(value):
 def calculateSolutionError(simulation):
     q_num = simulation[max(list(simulation.keys()))]  # Get last (typically largest) time key
 
-    q_theo = np.tile(np.array([0,1,1,1,1]), (len(q_num), 1)).astype(np.float128)
+    q_theo = np.tile(np.array([0,1,1,1,1]), (len(q_num), 1)).astype(np.float64)
     xi = np.linspace(0, 1, len(q_num))
     q_theo[:, 0] = 1 + (.1 * np.sin(2*np.pi*xi))
 
@@ -28,9 +28,6 @@ def calculateSolutionError(simulation):
 
 # Determine the analytical solution for a Sod shock test
 def calculateSodAnalytical(tube, t, gamma, start, end, shock):
-    # Convert array to float64
-    tube = tube.astype(np.float64)
-
     # Define array to be updated and returned
     arr = np.zeros((len(tube), len(tube[0])))
 
@@ -83,6 +80,7 @@ def calculateSodAnalytical(tube, t, gamma, start, end, shock):
     arr[boundary54:boundary43, 1] = (1-mu) * (cs5+(rarefaction/t))
 
     return arr
+
 
 """
 # Determine the analytical solution for a Sedov blast wave

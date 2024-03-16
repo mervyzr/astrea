@@ -16,7 +16,6 @@ from functions import generic, analytic
 
 ##############################################################################
 
-
 # Initiate the live plot feature
 def initiateLivePlot(startPos, endPos, N):
     plot_x = np.linspace(startPos, endPos, N)
@@ -188,7 +187,6 @@ def plotSolutionErrors(f, plotVariables):
         y3.append(solutionErrors[1])  # vx
         y4.append(solutionErrors[5])  # thermal energy
     x, y1, y2, y3, y4 = np.asarray(x), np.asarray(y1), np.asarray(y2), np.asarray(y3), np.asarray(y4)
-    x, y1, y2, y3, y4 = x.astype(np.float64), y1.astype(np.float64), y2.astype(np.float64), y3.astype(np.float64), y4.astype(np.float64)
 
     m1, c1 = np.polyfit(np.log10(x), np.log10(y1), 1)
     m2, c2 = np.polyfit(np.log10(x), np.log10(y2), 1)
