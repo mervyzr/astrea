@@ -86,7 +86,8 @@ def plotQuantities(f, snapshots, plotVariables):
     # Separate the timings based on the number of snapshots; returns a list of lists with the timing intervals for each simulation
     indexes = []
     for i, N in enumerate(nList):
-        timings = np.fromiter(f[str(N)].keys(), dtype=float)
+        timings = np.fromiter(f[str(N)].keys(), dtype=np.float64)
+        timings.sort()
         indexes.append([timing[-1] for timing in np.array_split(timings, abs(int(snapshots)))])
     
     # Iterate through the timings; the last set of timings refer to the highest resolution
@@ -185,7 +186,7 @@ def plotSolutionErrors(f, plotVariables):
     ax[1,1].grid(linestyle='--', linewidth=0.5)
 
     x, y1, y2, y3, y4 = [], [], [], [], []
-    for i, N in enumerate(nList):
+    for N in nList:
         x.append(f[str(N)].attrs['cells'])
         solutionErrors = analytic.calculateSolutionError(f[str(N)])
         y1.append(solutionErrors[0])  # density
@@ -238,7 +239,7 @@ def makeVideo(f, videoVariables):
     nList = [int(n) for n in f.keys()]
     nList.sort()
 
-    for i, N in enumerate(nList):
+    for N in nList:
         simulation = f[str(N)]
         counter = 0
 
