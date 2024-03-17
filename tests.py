@@ -105,7 +105,7 @@ def initialise(config, N, g, start, end, shock, wL, wR):
     arr[:] = wR
 
     if config == "sedov" or "sq" in config:
-        midpoint = start + (end-start)/2
+        midpoint = (end+start)/2
         half_width = int(N/2 * ((shock-midpoint)/(end-midpoint)))
         arr[int(N/2-half_width):int(N/2+half_width)] = wL
     else:
