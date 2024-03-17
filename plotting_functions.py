@@ -1,6 +1,5 @@
 import os
 import shutil
-from datetime import datetime
 
 import matplotlib
 from settings import saveFile, saveVideo
@@ -79,12 +78,15 @@ def updatePlot(arr, t, fig, ax, plots):
 # Plot snapshots of quantities for multiple runs
 def plotQuantities(f, snapshots, plotVariables):
     config, gamma, solver, timestep, startPos, endPos, shockPos = plotVariables
-    now = datetime.now().strftime("%Y%m%d%H%M")
+
+    # hdf5 keys are sorted by string; need to convert back to int and sort again
+    nList = [int(n) for n in f.keys()]
+    nList.sort()
 
     # Separate the timings based on the number of snapshots; returns a list of lists with the timing intervals for each simulation
     indexes = []
-    for group, simulation in f.items():
-        timings = np.fromiter(simulation.keys(), dtype=float)
+    for i, N in enumerate(nList):
+        timings = np.fromiter(f[str(N)].keys(), dtype=float)
         indexes.append([timing[-1] for timing in np.array_split(timings, abs(int(snapshots)))])
     
     # Iterate through the timings; the last set of timings refer to the highest resolution
@@ -105,11 +107,11 @@ def plotQuantities(f, snapshots, plotVariables):
         ax[1,1].grid(linestyle='--', linewidth=0.5)
 
         # Plot each simulation at the i-th timing
-        for j, group in enumerate(f):
+        for j, N in enumerate(nList):
             time_key = str(indexes[j][i])
-            y1 = f[group][time_key][:, 0]   # density
-            y2 = f[group][time_key][:, 4]   # pressure
-            y3 = f[group][time_key][:, 1]   # vx
+            y1 = f[str(N)][time_key][:, 0]   # density
+            y2 = f[str(N)][time_key][:, 4]   # pressure
+            y3 = f[str(N)][time_key][:, 1]   # vx
             y4 = y2/y1                      # thermal energy
             x = np.linspace(startPos, endPos, len(y1))
 
@@ -140,7 +142,7 @@ def plotQuantities(f, snapshots, plotVariables):
 
         # Add Sod analytical solution, using the highest resolution and timing
         elif config == "sod":
-            Sod = analytic.calculateSodAnalytical(f[group][str(indexes[-1][i])], indexes[-1][i], gamma, startPos, endPos, shockPos)
+            Sod = analytic.calculateSodAnalytical(f[str(N)][str(indexes[-1][i])], indexes[-1][i], gamma, startPos, endPos, shockPos)
             ax[0,0].plot(x, Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
             ax[0,1].plot(x, Sod[:, 4], linewidth=1, color="black", linestyle="--", label="Analytical solution")
             ax[1,0].plot(x, Sod[:, 1], linewidth=1, color="black", linestyle="--", label="Analytical solution")
@@ -165,7 +167,10 @@ def plotQuantities(f, snapshots, plotVariables):
 
 def plotSolutionErrors(f, plotVariables):
     config, solver, timestep, startPos, endPos = plotVariables
-    now = datetime.now().strftime("%Y%m%d%H%M")
+
+    # hdf5 keys are sorted by string; need to convert back to int and sort again
+    nList = [int(n) for n in f.keys()]
+    nList.sort()
 
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
 
@@ -179,9 +184,9 @@ def plotSolutionErrors(f, plotVariables):
     ax[1,1].grid(linestyle='--', linewidth=0.5)
 
     x, y1, y2, y3, y4 = [], [], [], [], []
-    for group, simulation in f.items():
-        x.append(len(simulation['0']))
-        solutionErrors = analytic.calculateSolutionError(simulation)
+    for i, N in enumerate(nList):
+        x.append(f[str(N)].attrs['cells'])
+        solutionErrors = analytic.calculateSolutionError(f[str(N)])
         y1.append(solutionErrors[0])  # density
         y2.append(solutionErrors[4])  # pressure
         y3.append(solutionErrors[1])  # vx
@@ -227,9 +232,13 @@ def plotSolutionErrors(f, plotVariables):
 
 def makeVideo(f, videoVariables):
     config, solver, timestep, startPos, endPos = videoVariables
-    now = datetime.now().strftime("%Y%m%d%H%M")
 
-    for group, simulation in f.items():
+    # hdf5 keys are sorted by string; need to convert back to int and sort again
+    nList = [int(n) for n in f.keys()]
+    nList.sort()
+
+    for i, N in enumerate(nList):
+        simulation = f[str(N)]
         counter = 0
 
         path = f"{os.getcwd()}/../vidplots"
@@ -275,7 +284,7 @@ def makeVideo(f, videoVariables):
             counter += 1
 
         try:
-            os.system(f"ffmpeg -framerate 60 -pattern_type glob -i '{path}/*.png' -c:v libx264 -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' -pix_fmt yuv420p ../vid{config}_{solver}_{timestep}_{now}.mp4")
+            os.system(f"ffmpeg -framerate 60 -pattern_type glob -i '{path}/*.png' -c:v libx264 -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' -pix_fmt yuv420p ../vid{config}_{solver}_{timestep}.mp4")
         except Exception as e:
             print(f"ffmpeg failed: {e}")
             try:
@@ -283,7 +292,7 @@ def makeVideo(f, videoVariables):
                 images.sort()
 
                 video = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(images, fps=60)
-                video.write_videofile(f"../vid{config}_{solver}_{timestep}_{now}.mp4")
+                video.write_videofile(f"../vid{config}_{solver}_{timestep}.mp4")
             except Exception as e:
                 print(f"moviepy failed: {e}")
                 pass

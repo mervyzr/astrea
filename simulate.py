@@ -4,6 +4,7 @@ import shutil
 import random
 from datetime import datetime
 
+import numpy as np
 import h5py
 
 import tests as tst
@@ -57,7 +58,6 @@ def simulateShock(_configVariables, _testVariables, grp):
 
 if __name__ == "__main__":
     filename = f"{currentdir}/.shockTemp_{seed}.hdf5"
-    f = h5py.File(filename, "w")
 
     # Error condition(s)
     if cfg.solver.lower() not in ["ppm", "parabolic", "p", "plm", "linear", "l", "pcm", "constant", "c"]:
@@ -65,78 +65,51 @@ if __name__ == "__main__":
     if cfg.timestep.lower() not in ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)"]:
         print(f"{generic.bcolours.WARNING}Timestepper unknown; reverting to Forward Euler timestepping..{generic.bcolours.ENDC}")
 
-
-    if cfg.saveFile:
-        if not os.path.exists(f"{currentdir}/datasets"):
-            os.makedirs(f"{currentdir}/datasets")
-
-        if not os.path.exists(f"{currentdir}/plots"):
-            os.makedirs(f"{currentdir}/plots")
-
-
+    
     if cfg.runType[0].lower() == "m":
         cfg.variables[-1] = False  # Turn off the live plot
-        
-        try:
-            for n in range(3,12):
-                cells = 5*2**n
-                cfg.variables[1] = cells  # Change cell values
-
-                grp = f.create_group(str(cells))
-                grp.attrs['config'] = cfg.solver
-                grp.attrs['cells'] = cells
-                grp.attrs['gamma'] = cfg.gamma
-                grp.attrs['cfl'] = cfg.cfl
-                grp.attrs['solver'] = cfg.solver
-                grp.attrs['timestepper'] = cfg.timestep
-
-                lap, now = time.time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                simulateShock(cfg.variables, tst.variables, grp)
-                generic.printOutput(now, cfg.config, cells, cfg.cfl, cfg.solver, cfg.timestep, time.time()-lap, len(list(grp.keys())))
-
-            if cfg.saveFile:
-                plotter.plotQuantities(f, cfg.snapshots, [cfg.config.lower(), cfg.gamma, cfg.solver, cfg.timestep, tst.startPos, tst.endPos, tst.shockPos])
-                if cfg.config.lower() == "sin":
-                    plotter.plotSolutionErrors(f, [cfg.config.lower(), cfg.solver, cfg.timestep, tst.startPos, tst.endPos])
-        except Exception as e:
-            print(f"Error: {e}")
-            f.close()
-            os.remove(filename)
-        else:
-            f.close()
-
+        nList = 5 * 2**np.arange(3,12)
     else:
-        if cfg.runType.lower() != "single":
+        if cfg.runType[0].lower() != "s":
             print(f"{generic.bcolours.WARNING}RunType unknown; running single test..{generic.bcolours.ENDC}")
-
         if cfg.saveFile or cfg.saveVideo:
             cfg.variables[-1] = False  # Turn off the live plot
+        nList = [cfg.cells]
+        
+    with h5py.File(filename, "w") as f:
+        for cells in nList:
+            cfg.variables[1] = cells  # Set cell values
 
-        grp = f.create_group(str(cfg.cells))
-        grp.attrs['config'] = cfg.solver
-        grp.attrs['cells'] = cfg.cells
-        grp.attrs['gamma'] = cfg.gamma
-        grp.attrs['cfl'] = cfg.cfl
-        grp.attrs['solver'] = cfg.solver
-        grp.attrs['timestepper'] = cfg.timestep
+            grp = f.create_group(str(cells))
+            grp.attrs['config'] = cfg.solver
+            grp.attrs['cells'] = cells
+            grp.attrs['gamma'] = cfg.gamma
+            grp.attrs['cfl'] = cfg.cfl
+            grp.attrs['solver'] = cfg.solver
+            grp.attrs['timestepper'] = cfg.timestep
 
-        try:
             lap, now = time.time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             simulateShock(cfg.variables, tst.variables, grp)
-            generic.printOutput(now, cfg.config, cfg.cells, cfg.cfl, cfg.solver, cfg.timestep, time.time()-lap, len(list(grp.keys())))
-            
-            if cfg.saveFile:
-                plotter.plotQuantities(f, cfg.snapshots, [cfg.config.lower(), cfg.gamma, cfg.solver, cfg.timestep, tst.startPos, tst.endPos, tst.shockPos])
+            elapsed = time.time() - lap
+            grp.attrs['elapsed'] = elapsed
+            generic.printOutput(now, cfg.config, cells, cfg.cfl, cfg.solver, cfg.timestep, elapsed, len(list(grp.keys())))
 
-            if cfg.saveVideo:
+        if cfg.saveFile:
+            if not os.path.exists(f"{currentdir}/datasets"):
+                os.makedirs(f"{currentdir}/datasets")
+            if not os.path.exists(f"{currentdir}/plots"):
+                os.makedirs(f"{currentdir}/plots")
+
+            plotter.plotQuantities(f, cfg.snapshots, [cfg.config.lower(), cfg.gamma, cfg.solver, cfg.timestep, tst.startPos, tst.endPos, tst.shockPos])
+            if cfg.runType[0].lower() == "m" and cfg.config.lower() == "sin":
+                plotter.plotSolutionErrors(f, [cfg.config.lower(), cfg.solver, cfg.timestep, tst.startPos, tst.endPos])
+
+        if cfg.saveVideo:
+            if cfg.runType[0].lower() == "s":
                 plotter.makeVideo(f, [cfg.config.lower(), cfg.solver, cfg.timestep, tst.startPos, tst.endPos])
-        except Exception as e:
-            print(f"Error: {e}")
-            f.close()
-            os.remove(filename)
-        else:
-            f.close()
-
+            else:
+                print(f"Error; can only save video with runType='single'")
+    
     if cfg.saveFile:
         shutil.move(filename, f"{currentdir}/datasets/shockTube_{cfg.config.lower()}_{cfg.solver}_{cfg.timestep}_{seed}.hdf5")
     else:
