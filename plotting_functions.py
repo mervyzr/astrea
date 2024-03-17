@@ -142,7 +142,8 @@ def plotQuantities(f, snapshots, plotVariables):
 
         # Add Sod analytical solution, using the highest resolution and timing
         elif config == "sod":
-            Sod = analytic.calculateSodAnalytical(f[str(N)][str(indexes[-1][i])], indexes[-1][i], gamma, startPos, endPos, shockPos)
+            tube, _t = f[str(nList[-1])][str(indexes[-1][i])], indexes[-1][i]
+            Sod = analytic.calculateSodAnalytical(tube, _t,  gamma, startPos, endPos, shockPos)
             ax[0,0].plot(x, Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
             ax[0,1].plot(x, Sod[:, 4], linewidth=1, color="black", linestyle="--", label="Analytical solution")
             ax[1,0].plot(x, Sod[:, 1], linewidth=1, color="black", linestyle="--", label="Analytical solution")
