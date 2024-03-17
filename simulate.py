@@ -75,42 +75,46 @@ if __name__ == "__main__":
         if cfg.saveFile or cfg.saveVideo:
             cfg.variables[-1] = False  # Turn off the live plot
         nList = [cfg.cells]
-        
-    with h5py.File(filename, "w") as f:
-        for cells in nList:
-            cfg.variables[1] = cells  # Set cell values
 
-            grp = f.create_group(str(cells))
-            grp.attrs['config'] = cfg.solver
-            grp.attrs['cells'] = cells
-            grp.attrs['gamma'] = cfg.gamma
-            grp.attrs['cfl'] = cfg.cfl
-            grp.attrs['solver'] = cfg.solver
-            grp.attrs['timestepper'] = cfg.timestep
+    try:
+        with h5py.File(filename, "w") as f:
+            for cells in nList:
+                cfg.variables[1] = cells  # Set cell values
 
-            lap, now = time.time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            simulateShock(cfg.variables, tst.variables, grp)
-            elapsed = time.time() - lap
-            grp.attrs['elapsed'] = elapsed
-            generic.printOutput(now, cfg.config, cells, cfg.cfl, cfg.solver, cfg.timestep, elapsed, len(list(grp.keys())))
+                grp = f.create_group(str(cells))
+                grp.attrs['config'] = cfg.solver
+                grp.attrs['cells'] = cells
+                grp.attrs['gamma'] = cfg.gamma
+                grp.attrs['cfl'] = cfg.cfl
+                grp.attrs['solver'] = cfg.solver
+                grp.attrs['timestepper'] = cfg.timestep
 
-        if cfg.saveFile:
-            if not os.path.exists(f"{currentdir}/datasets"):
-                os.makedirs(f"{currentdir}/datasets")
-            if not os.path.exists(f"{currentdir}/plots"):
-                os.makedirs(f"{currentdir}/plots")
+                lap, now = time.time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                simulateShock(cfg.variables, tst.variables, grp)
+                elapsed = time.time() - lap
+                grp.attrs['elapsed'] = elapsed
+                generic.printOutput(now, cfg.config, cells, cfg.cfl, cfg.solver, cfg.timestep, elapsed, len(list(grp.keys())))
 
-            plotter.plotQuantities(f, cfg.snapshots, [cfg.config.lower(), cfg.gamma, cfg.solver, cfg.timestep, tst.startPos, tst.endPos, tst.shockPos])
-            if cfg.runType[0].lower() == "m" and cfg.config.lower() == "sin":
-                plotter.plotSolutionErrors(f, [cfg.config.lower(), cfg.solver, cfg.timestep, tst.startPos, tst.endPos])
+            if cfg.saveFile:
+                if not os.path.exists(f"{currentdir}/datasets"):
+                    os.makedirs(f"{currentdir}/datasets")
+                if not os.path.exists(f"{currentdir}/plots"):
+                    os.makedirs(f"{currentdir}/plots")
 
-        if cfg.saveVideo:
-            if cfg.runType[0].lower() == "s":
-                plotter.makeVideo(f, [cfg.config.lower(), cfg.solver, cfg.timestep, tst.startPos, tst.endPos])
-            else:
-                print(f"Error; can only save video with runType='single'")
-    
-    if cfg.saveFile:
-        shutil.move(filename, f"{currentdir}/datasets/shockTube_{cfg.config.lower()}_{cfg.solver}_{cfg.timestep}_{seed}.hdf5")
-    else:
+                plotter.plotQuantities(f, cfg.snapshots, [cfg.config.lower(), cfg.gamma, cfg.solver, cfg.timestep, tst.startPos, tst.endPos, tst.shockPos])
+                if cfg.runType[0].lower() == "m" and cfg.config.lower() == "sin":
+                    plotter.plotSolutionErrors(f, [cfg.config.lower(), cfg.solver, cfg.timestep, tst.startPos, tst.endPos])
+
+            if cfg.saveVideo:
+                if cfg.runType[0].lower() == "s":
+                    plotter.makeVideo(f, [cfg.config.lower(), cfg.solver, cfg.timestep, tst.startPos, tst.endPos])
+                else:
+                    print(f"Error; can only save video with runType='single'")
+    except Exception as e:
+        print(f"Error: {e}")
         os.remove(filename)
+    else:
+        if cfg.saveFile:
+            shutil.move(filename, f"{currentdir}/datasets/shockTube_{cfg.config.lower()}_{cfg.solver}_{cfg.timestep}_{seed}.hdf5")
+        else:
+            os.remove(filename)

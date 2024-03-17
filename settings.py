@@ -1,8 +1,8 @@
 
 ##############################################################################
 
-config = "sin"  # Sod, Sedov, Shu-Osher, sin wave, square wave, Toro1/2/3/4/5
-cells = 200
+config = "sod"  # Sod, Sedov, Shu-Osher, sin wave, square wave, Toro1/2/3/4/5
+cells = 2000
 cfl = .5
 gamma = 1.4
 solver = "ppm"  # PCM, PLM, PPM
