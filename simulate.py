@@ -2,7 +2,7 @@ import os
 import time
 import shutil
 import random
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import h5py
 
@@ -92,7 +92,7 @@ if __name__ == "__main__":
 
                 lap, now = time.time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 simulateShock(cfg.variables, tst.variables, grp)
-                generic.printOutput(now, cfg.config, cells, cfg.cfl, cfg.solver, cfg.timestep, str(timedelta(seconds=time.time()-lap)), len(list(grp.keys())))
+                generic.printOutput(now, cfg.config, cells, cfg.cfl, cfg.solver, cfg.timestep, time.time()-lap, len(list(grp.keys())))
 
             if cfg.saveFile:
                 plotter.plotQuantities(f, cfg.snapshots, [cfg.config.lower(), cfg.gamma, cfg.solver, cfg.timestep, tst.startPos, tst.endPos, tst.shockPos])
@@ -123,7 +123,7 @@ if __name__ == "__main__":
         try:
             lap, now = time.time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             simulateShock(cfg.variables, tst.variables, grp)
-            generic.printOutput(now, cfg.config, cfg.cells, cfg.cfl, cfg.solver, cfg.timestep, str(timedelta(seconds=time.time()-lap)), len(list(grp.keys())))
+            generic.printOutput(now, cfg.config, cfg.cells, cfg.cfl, cfg.solver, cfg.timestep, time.time()-lap, len(list(grp.keys())))
             
             if cfg.saveFile:
                 plotter.plotQuantities(f, cfg.snapshots, [cfg.config.lower(), cfg.gamma, cfg.solver, cfg.timestep, tst.startPos, tst.endPos, tst.shockPos])

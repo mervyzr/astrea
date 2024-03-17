@@ -1,3 +1,4 @@
+from datetime import timedelta
 
 ##############################################################################
 
@@ -35,5 +36,13 @@ def lowerList(lst):
 
 # Print status to Terminal
 def printOutput(instanceTime, config, cells, cfl, solver, timestep, elapsed, runLength):
-    print(f"[{bcolours.BOLD}{instanceTime}{bcolours.ENDC}] TEST={bcolours.OKGREEN}{config.upper()}{bcolours.ENDC}, CELLS={bcolours.OKGREEN}{cells}{bcolours.ENDC}, RECONSTRUCT={bcolours.OKGREEN}{solver.upper()}{bcolours.ENDC}, TIMESTEP={bcolours.OKGREEN}{timestep.upper()}{bcolours.ENDC}, CFL={bcolours.OKGREEN}{cfl}{bcolours.ENDC} || Elapsed: {bcolours.OKGREEN}{elapsed}s{bcolours.ENDC}  ({runLength})")
+    currentTime = f"{bcolours.BOLD}{instanceTime}{bcolours.ENDC}"
+    _config = f"{bcolours.OKGREEN}{config.upper()}{bcolours.ENDC}"
+    _cells = f"{bcolours.OKGREEN}{cells}{bcolours.ENDC}"
+    _solver = f"{bcolours.OKGREEN}{solver.upper()}{bcolours.ENDC}"
+    _timestep = f"{bcolours.OKGREEN}{timestep.upper()}{bcolours.ENDC}"
+    _cfl = f"{bcolours.OKGREEN}{cfl}{bcolours.ENDC}"
+    _elapsed = f"{bcolours.OKGREEN}{str(timedelta(seconds=elapsed))}s{bcolours.ENDC}"
+    _performance = f"{bcolours.OKGREEN}{round(elapsed*1e6/(cells*runLength), 3)} \u03BCs/time step per cell{bcolours.ENDC}"
+    print(f"[{currentTime}] TEST={_config}, CELLS={_cells}, RECONSTRUCT={_solver}, TIMESTEP={_timestep}, CFL={_cfl} || Elapsed: {_elapsed} || Performance: {_performance}  ({runLength})")
     pass
