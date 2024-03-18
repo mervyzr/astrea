@@ -72,7 +72,7 @@ if __name__ == "__main__":
     else:
         if cfg.runType[0].lower() != "s":
             print(f"{generic.bcolours.WARNING}RunType unknown; running single test..{generic.bcolours.ENDC}")
-        if cfg.saveFile or cfg.saveVideo:
+        if cfg.savePlots or cfg.saveVideo:
             cfg.variables[-1] = False  # Turn off the live plot
         nList = [cfg.cells]
 
@@ -95,9 +95,7 @@ if __name__ == "__main__":
                 grp.attrs['elapsed'] = elapsed
                 generic.printOutput(now, cfg.config, cells, cfg.cfl, cfg.solver, cfg.timestep, elapsed, len(list(grp.keys())))
 
-            if cfg.saveFile:
-                if not os.path.exists(f"{currentdir}/datasets"):
-                    os.makedirs(f"{currentdir}/datasets")
+            if cfg.savePlots:
                 if not os.path.exists(f"{currentdir}/plots"):
                     os.makedirs(f"{currentdir}/plots")
 
@@ -115,6 +113,8 @@ if __name__ == "__main__":
         os.remove(filename)
     else:
         if cfg.saveFile:
+            if not os.path.exists(f"{currentdir}/datasets"):
+                os.makedirs(f"{currentdir}/datasets")
             shutil.move(filename, f"{currentdir}/datasets/shockTube_{cfg.config.lower()}_{cfg.solver}_{cfg.timestep}_{seed}.hdf5")
         else:
             os.remove(filename)

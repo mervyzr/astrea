@@ -2,8 +2,8 @@ import os
 import shutil
 
 import matplotlib
-from settings import saveFile, saveVideo
-if saveFile or saveVideo:
+from settings import saveVideo, savePlots
+if savePlots or saveVideo:
     matplotlib.use('Agg')
 else:
     matplotlib.use('TkAgg')

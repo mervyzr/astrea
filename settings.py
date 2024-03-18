@@ -11,8 +11,9 @@ timestep = "ssprk(5,4)"  # Euler, RK4, SSPRK(2,2), SSPRK(3,3), SSPRK(4,3), SSPRK
 runType = "single"  # Single/Multiple
 livePlot = False
 
-saveFile = False
+savePlots = False
 snapshots = 1
 saveVideo = False
+saveFile = False
 
 variables = [config, cells, cfl, gamma, solver, timestep, livePlot]
