@@ -15,7 +15,7 @@ def roundOff(value):
 # Function for solution error calculation of sin-wave test (L1 error norm)
 def calculateSolutionError(simulation):
     timeKeys = [float(t) for t in simulation.keys()]
-    q_num = simulation[max(timeKeys)]  # Get last array with (typically largest) time key
+    q_num = simulation[str(max(timeKeys))]  # Get last array with (typically largest) time key
 
     q_theo = np.copy(q_num)
     q_theo[:] = np.array([0,1,1,1,1])
