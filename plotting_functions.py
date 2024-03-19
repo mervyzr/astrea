@@ -79,7 +79,7 @@ def updatePlot(arr, t, fig, ax, plots):
 def plotQuantities(f, snapshots, plotVariables):
     config, gamma, solver, timestep, startPos, endPos, shockPos = plotVariables
 
-    # hdf5 keys are sorted by string; need to convert back to int and sort again
+    # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]
     nList.sort()
 
@@ -170,7 +170,7 @@ def plotQuantities(f, snapshots, plotVariables):
 def plotSolutionErrors(f, plotVariables):
     config, solver, timestep, startPos, endPos = plotVariables
 
-    # hdf5 keys are sorted by string; need to convert back to int and sort again
+    # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]
     nList.sort()
 
@@ -235,7 +235,7 @@ def plotSolutionErrors(f, plotVariables):
 def makeVideo(f, videoVariables):
     config, solver, timestep, startPos, endPos = videoVariables
 
-    # hdf5 keys are sorted by string; need to convert back to int and sort again
+    # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]
     nList.sort()
 
