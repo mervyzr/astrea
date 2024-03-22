@@ -8,7 +8,7 @@ def initialise(cfg, tst):
     N = cfg['cells']
     start, end, shock = tst['startPos'], tst['endPos'], tst['shockPos']
 
-    arr = np.zeros((N, len(tst['initialLeft'])), dtype=np.float64)
+    arr = np.zeros((N, len(tst['initialRight'])), dtype=np.float64)
     arr[:] = tst['initialRight']
 
     if cfg['config'] == "sedov" or cfg['config'].startswith('sq'):
@@ -22,10 +22,10 @@ def initialise(cfg, tst):
     
     if cfg['config'].startswith('sin'):
         xi = np.linspace(start, end, N)
-        arr[:, 0] = 1 + (.1 * np.sin(tst['freq']*np.pi*xi))
+        arr[:,0] = 1 + (.1 * np.sin(tst['freq']*np.pi*xi))
     elif "shu" in cfg['config'] or "osher" in cfg['config']:
         xi = np.linspace(shock, end, N-split_point)
-        arr[split_point:, 0] = 1 + (.2 * np.sin(tst['freq']*np.pi*xi))
+        arr[split_point:,0] = 1 + (.2 * np.sin(tst['freq']*np.pi*xi))
     
     return pointConvertPrimitive(arr, cfg['gamma'])  # convert domain to conservative variables q
 
@@ -39,18 +39,20 @@ def makeBoundary(tube, boundary, size=1):
 # Point-converting primitive variables w to conservative variables q
 def pointConvertPrimitive(tube, g):
     arr = np.copy(tube)
-    rhos, vecs, pressures = tube[:,0], tube[:,1:4], tube[:,4]
-    arr[:,4] = (pressures/(g-1)) + (.5*rhos*np.linalg.norm(vecs, axis=1)**2)
+    rhos, vecs, pressures, Bfield = tube[:,0], tube[:,1:4], tube[:,4], tube[:,5:8]
+    arr[:,4] = (pressures/(g-1)) + (.5*rhos*np.linalg.norm(vecs, axis=1)**2) + (.5*np.linalg.norm(Bfield, axis=1)**2)
     arr[:,1:4] = (vecs.T * rhos).T
+    arr[:,5:8] = Bfield
     return arr
 
 
 # Point-converting conservative variables q to primitive variables w
 def pointConvertConservative(tube, g):
     arr = np.copy(tube)
-    rhos, vecs, energies = tube[:,0], (tube[:,1:4].T / tube[:,0]).T, tube[:,4]
-    arr[:,4] = (g-1) * (energies - (.5*rhos*np.linalg.norm(vecs, axis=1)**2))
+    rhos, vecs, energies, Bfield = tube[:,0], (tube[:,1:4].T / tube[:,0]).T, tube[:,4], tube[:,5:8]
+    arr[:,4] = (g-1) * (energies - (.5*rhos*np.linalg.norm(vecs, axis=1)**2) - (.5*np.linalg.norm(Bfield, axis=1)**2))
     arr[:,1:4] = vecs
+    arr[:,5:8] = Bfield
     return arr
 
 
@@ -70,24 +72,43 @@ def convertConservative(tube, g, boundary, denominator=24):
     return pointConvertConservative(q, g) + (np.diff(w[1:], axis=0) - np.diff(w[:-1], axis=0))/denominator
 
 
-# Make f_i based on initial conditions and primitive variables
+# Make flux based on initial conditions and primitive variables
 def makeFlux(tube, g):
-    rhos, vecs, pressures = tube[:,0], tube[:,1:4], tube[:,4]
+    rhos, vecs, pressures, Bfield = tube[:,0], tube[:,1:4], tube[:,4], tube[:,5:8]
     arr = np.zeros(tube.shape)
 
     arr[:,0] = rhos*vecs[:,0]
-    arr[:,1] = rhos*(vecs[:,0]**2) + pressures
-    arr[:,2] = rhos*vecs[:,0]*vecs[:,1]
-    arr[:,3] = rhos*vecs[:,0]*vecs[:,2]
-    arr[:,4] = vecs[:,0] * ((.5*rhos*np.linalg.norm(vecs, axis=1)**2) + ((g*pressures)/(g-1)))
+    arr[:,1] = rhos*(vecs[:,0]**2) + pressures + (.5*np.linalg.norm(Bfield, axis=1)**2) - Bfield[:,0]**2
+    arr[:,2] = rhos*vecs[:,0]*vecs[:,1] - Bfield[:,0]*Bfield[:,1]
+    arr[:,3] = rhos*vecs[:,0]*vecs[:,2] - Bfield[:,0]*Bfield[:,2]
+    arr[:,4] = (vecs[:,0]*((.5*rhos*np.linalg.norm(vecs, axis=1)**2) + ((g*pressures)/(g-1)))) + (vecs[:,0]*np.linalg.norm(Bfield, axis=1)**2) - (Bfield[:,0]*np.sum(Bfield*vecs, axis=1))
+    arr[:,5] = Bfield[:,0]
+    arr[:,6] = Bfield[:,1]*vecs[:,0] - Bfield[:,0]*vecs[:,1]
+    arr[:,7] = Bfield[:,2]*vecs[:,0] - Bfield[:,0]*vecs[:,2]
     return arr
 
 
 # Jacobian matrix using primitive variables
 def makeJacobian(tube, g):
-    rho, vx, pressure = tube[:,0], tube[:,1], tube[:,4]
+    rho, vx, pressure, Bfield = tube[:,0], tube[:,1], tube[:,4], tube[:,5:8]
     gridLength, variables = len(tube), len(tube[0])
-    arr = np.zeros((gridLength, variables, variables))  # create empty square arrays for each cell
+
+    # Create empty square arrays for each cell
+    arr = np.zeros((gridLength, variables, variables))
     i,j = np.diag_indices(variables)
-    arr[:,i,j], arr[:,0,1], arr[:,1,4], arr[:,4,1] = vx[:,None], rho, 1/rho, g*pressure  # replace matrix with values
+
+    # Replace matrix with values
+    arr[:,i,j] = vx[:,None]  # diagonal elements
+    arr[:,0,1] = rho
+    arr[:,1,4] = 1/rho
+    arr[:,4,1] = g*pressure
+
+    arr[:,1,6] = Bfield[:,1]/rho
+    arr[:,1,7] = Bfield[:,2]/rho
+    arr[:,2,6] = -Bfield[:,0]/rho
+    arr[:,3,7] = -Bfield[:,0]/rho
+    arr[:,6,1] = Bfield[:,1]
+    arr[:,6,2] = -Bfield[:,0]
+    arr[:,7,1] = Bfield[:,2]
+    arr[:,7,3] = -Bfield[:,0]
     return arr

@@ -194,7 +194,7 @@ def plotSolutionErrors(f, configVariables, testVariables):
         y1.append(solutionErrors[0])  # density
         y2.append(solutionErrors[4])  # pressure
         y3.append(solutionErrors[1])  # vx
-        y4.append(solutionErrors[5])  # thermal energy
+        y4.append(solutionErrors[-1])  # thermal energy
     x, y1, y2, y3, y4 = np.asarray(x), np.asarray(y1), np.asarray(y2), np.asarray(y3), np.asarray(y4)
 
     m1, c1 = np.polyfit(np.log10(x), np.log10(y1), 1)
