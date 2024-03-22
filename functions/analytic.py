@@ -72,7 +72,8 @@ def calculateSodAnalytical(tube, t, gamma, start, end, shock):
     arr[boundary21:] = tube[-1]
     
     # Update array for regions 2 and 3 (post-shock and discontinuities)
-    arr[boundary43:boundary21] = [0, vx2, 0, 0, P2, 0, 0, 0]
+    arr[boundary43:boundary21, 1] = vx2
+    arr[boundary43:boundary21, 4] = P2
     arr[boundary43:boundary32, 0] = rho3
     arr[boundary32:boundary21, 0] = rho2
 
