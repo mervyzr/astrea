@@ -18,24 +18,24 @@ def calculateSolutionError(simulation):
     q_num = simulation[str(max(timeKeys))]  # Get last array with (typically largest) time key
 
     q_theo = np.copy(q_num)
-    q_theo[:] = np.array([0,1,1,1,1])
+    q_theo[:] = np.array([0,1,1,1,1,0,0,0])
     xi = np.linspace(0, 1, len(q_num))
-    q_theo[:, 0] = 1 + (.1 * np.sin(2*np.pi*xi))
+    q_theo[:,0] = 1 + (.1 * np.sin(2*np.pi*xi))
 
     thermal_num, thermal_theo = q_num[:,4]/q_num[:,0], q_theo[:,4]/q_theo[:,0]
     q_num, q_theo = np.c_[q_num, thermal_num], np.c_[q_theo, thermal_theo]
 
-    return np.sum(np.abs(q_num - q_theo), axis=0)/len(q_num)
+    return np.sum(np.abs(q_num-q_theo), axis=0)/len(q_num)
 
 
 # Determine the analytical solution for a Sod shock test
 def calculateSodAnalytical(tube, t, gamma, start, end, shock):
     # Define array to be updated and returned
-    arr = np.zeros((len(tube), len(tube[0])))
+    arr = np.zeros(tube.shape)
 
     # Get variables of the leftmost and rightmost states, which should be initial conditions
-    rho5, vx5, vy5, vz5, P5 = tube[0]
-    rho1, vx1, vy1, vz1, P1 = tube[-1]
+    rho5, vx5, vy5, vz5, P5, Bx5, By5, Bz5 = tube[0]
+    rho1, vx1, vy1, vz1, P1, Bx1, By1, Bz1 = tube[-1]
 
     # Define parameters needed for computation
     cs5, cs1 = np.sqrt(gamma * P5/rho5), np.sqrt(gamma * P1/rho1)
@@ -68,11 +68,11 @@ def calculateSodAnalytical(tube, t, gamma, start, end, shock):
     rarefaction = np.linspace(shock-(cs5*t), shock-(v_t*t), rarefaction_cells) - shock
 
     # Update array for regions 1 and 5 (initial conditions)
-    arr[:boundary54] = [rho5, vx5, 0, 0, P5]
-    arr[boundary21:] = [rho1, vx1, 0, 0, P1]
+    arr[:boundary54] = tube[0]
+    arr[boundary21:] = tube[-1]
     
     # Update array for regions 2 and 3 (post-shock and discontinuities)
-    arr[boundary43:boundary21] = [0, vx2, 0, 0, P2]
+    arr[boundary43:boundary21] = [0, vx2, 0, 0, P2, 0, 0, 0]
     arr[boundary43:boundary32, 0] = rho3
     arr[boundary32:boundary21, 0] = rho2
 

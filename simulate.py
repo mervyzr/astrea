@@ -101,17 +101,17 @@ if __name__ == "__main__":
                 if not os.path.exists(f"{currentdir}/plots"):
                     os.makedirs(f"{currentdir}/plots")
 
-                plotter.plotQuantities(f, _configVariables, _testVariables)
+                plotter.plotQuantities(f, configVariables, testVariables)
                 if configVariables['runType'].startswith('m') and configVariables['config'].startswith('sin'):
-                    plotter.plotSolutionErrors(f, _configVariables, _testVariables)
+                    plotter.plotSolutionErrors(f, configVariables, testVariables)
 
             if configVariables['saveVideo']:
                 if configVariables['runType'].startswith('s'):
-                    plotter.makeVideo(f, _configVariables, _testVariables)
+                    plotter.makeVideo(f, configVariables, testVariables)
                 else:
                     print(f"Error; can only save video with runType='single'")
     except Exception as e:
-        print(f"-- Error: {e} --")
+        print(f"-- Error: {e} --\n")
         print(traceback.format_exc())
         os.remove(filename)
     else:
