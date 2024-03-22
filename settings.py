@@ -22,7 +22,7 @@ runType = "single"
 livePlot = False
 
 # Media options
-savePlots = True
+savePlots = False
 snapshots = 1
 saveVideo = False
 saveFile = False
