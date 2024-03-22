@@ -76,8 +76,9 @@ def updatePlot(arr, t, fig, ax, plots):
 
 
 # Plot snapshots of quantities for multiple runs
-def plotQuantities(f, snapshots, plotVariables):
-    config, gamma, solver, timestep, startPos, endPos, shockPos = plotVariables
+def plotQuantities(f, configVariables, testVariables):
+    config, gamma, solver, timestep = configVariables['config'], configVariables['gamma'], configVariables['solver'], configVariables['timestep']
+    startPos, endPos, shockPos = testVariables['startPos'], testVariables['endPos'], testVariables['shockPos']
 
     # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]
@@ -88,7 +89,7 @@ def plotQuantities(f, snapshots, plotVariables):
     for i, N in enumerate(nList):
         timings = np.fromiter(f[str(N)].keys(), dtype=np.float64)
         timings.sort()
-        indexes.append([timing[-1] for timing in np.array_split(timings, abs(int(snapshots)))])
+        indexes.append([timing[-1] for timing in np.array_split(timings, abs(int(configVariables['snapshots'])))])
     
     # Iterate through the timings; the last set of timings refer to the highest resolution
     for i in range(len(indexes[-1])):
@@ -167,8 +168,9 @@ def plotQuantities(f, snapshots, plotVariables):
     return None
 
 
-def plotSolutionErrors(f, plotVariables):
-    config, solver, timestep, startPos, endPos = plotVariables
+def plotSolutionErrors(f, configVariables, testVariables):
+    config, solver, timestep = configVariables['config'], configVariables['solver'], configVariables['timestep']
+    startPos, endPos = testVariables['startPos'], testVariables['endPos']
 
     # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]
@@ -232,8 +234,9 @@ def plotSolutionErrors(f, plotVariables):
     return None
 
 
-def makeVideo(f, videoVariables):
-    config, solver, timestep, startPos, endPos = videoVariables
+def makeVideo(f, configVariables, testVariables):
+    config, solver, timestep = configVariables['config'], configVariables['solver'], configVariables['timestep']
+    startPos, endPos = testVariables['startPos'], testVariables['endPos']
 
     # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]

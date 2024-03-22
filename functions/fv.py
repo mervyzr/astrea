@@ -2,6 +2,34 @@ import numpy as np
 
 ##############################################################################
 
+
+# Initialise the solution array with initial conditions and primitive variables w, and return array with conserved variables
+def initialise(cfg, tst):
+    N = cfg['cells']
+    start, end, shock = tst['startPos'], tst['endPos'], tst['shockPos']
+
+    arr = np.zeros((N, len(tst['initialLeft'])), dtype=np.float64)
+    arr[:] = tst['initialRight']
+
+    if cfg['config'] == "sedov" or cfg['config'].startswith('sq'):
+        midpoint = (end+start)/2
+        half_width = int(N/2 * ((shock-midpoint)/(end-midpoint)))
+        left_edge, right_edge = int(N/2-half_width), int(N/2+half_width)
+        arr[left_edge:right_edge] = tst['initialLeft']
+    else:
+        split_point = int(N * ((shock-start)/(end-start)))
+        arr[:split_point] = tst['initialLeft']
+    
+    if cfg['config'].startswith('sin'):
+        xi = np.linspace(start, end, N)
+        arr[:, 0] = 1 + (.1 * np.sin(tst['freq']*np.pi*xi))
+    elif "shu" in cfg['config'] or "osher" in cfg['config']:
+        xi = np.linspace(shock, end, N-split_point)
+        arr[split_point:, 0] = 1 + (.2 * np.sin(tst['freq']*np.pi*xi))
+    
+    return pointConvertPrimitive(arr, cfg['gamma'])  # convert domain to conservative variables q
+
+
 # Make boundary conditions
 def makeBoundary(tube, boundary, size=1):
     arr = np.copy(tube)

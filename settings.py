@@ -27,4 +27,20 @@ snapshots = 1
 saveVideo = False
 saveFile = False
 
-variables = [config, cells, cfl, gamma, solver, timestep, livePlot]
+
+
+
+variables = {
+    'config': config.lower(),
+    'cells': cells,
+    'cfl': cfl,
+    'gamma': gamma,
+    'solver': solver.lower(),
+    'timestep': timestep.lower(),
+    'runType': runType.lower(),
+    'livePlot': livePlot,
+    'savePlots': savePlots,
+    'snapshots': snapshots,
+    'saveVideo': saveVideo,
+    'saveFile': saveFile
+}
