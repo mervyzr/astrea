@@ -6,8 +6,8 @@ from functions import fv
 
 ##############################################################################
 
-# Interpolate the cell values
-def interpolate(tube, gamma, solver, boundary):
+# Extrapolate the cell-centre values to the face
+def extrapolate(tube, gamma, solver, boundary):
     # Piecewise parabolic method solver (3rd-order stable for uneven grid; 4th-order stable for even grid)
     if solver in ["ppm", "parabolic", "p"]:
         # Conversion of conservative variables to primitive variables
@@ -16,7 +16,7 @@ def interpolate(tube, gamma, solver, boundary):
         w = fv.makeBoundary(wS, boundary)
         w2 = fv.makeBoundary(wS, boundary, 2)
 
-        # Reconstruction in primitive variables to 4th-order face values
+        # Extrapolate in primitive variables to 4th-order face values
         wFL = 7/12 * (wS+w[:-2]) - 1/12 * (w2[:-4]+w[2:])  # face i-1/2
         wFR = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])  # face i+1/2
         return [wS, [wFL, wFR], w, w2]
