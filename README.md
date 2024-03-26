@@ -24,13 +24,13 @@ To run the simulation, set your configurations in *`settings.py`* and run *`simu
 There are several files in this code for different purposes:
 
 - simulate.py: Runs the simulation, and contains the update loop
-- solvers.py: Functions for the reconstruction method and Riemann solver
-- limiters.py: Implements flux/slope limiters to prevent spurious oscillations in the reconstructed states
 - evolvers.py: Functions for space and (higher-order) time evolutions
-- tests.py: Hydrodynamics test configurations
-- plotting_functions.py: Functions for (live-)plotting
-- settings.py: Parameters for the simulation
+    - solvers.py: Functions for the reconstruction method and Riemann solver
+    - limiters.py: Implements flux/slope limiters to prevent spurious oscillations in the reconstructed states
 - functions
     - generic.py: Generic functions that can be used throughout the code
     - analytic.py: Analytical solutions to some hydrodynamics tests
     - fv.py: Functions used repeatedly throughout the finite volume code
+    - plotting.py: Functions for (live-)plotting
+- tests.py: Hydrodynamics test configurations
+- settings.py: Parameters for the simulation

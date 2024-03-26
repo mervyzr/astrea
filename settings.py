@@ -23,9 +23,12 @@ runType = "single"
 livePlot = False
 
 # Media options
+# : Save plots, with number of snapshots
 savePlots = False
 snapshots = 1
+# : Save a video of the simulation
 saveVideo = False
+# : Save the HDF5 file of the simulation (!! Might go up to 94GB !!)
 saveFile = False
 
 

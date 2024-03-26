@@ -76,7 +76,7 @@ def updatePlot(arr, t, fig, ax, plots):
 
 
 # Plot snapshots of quantities for multiple runs
-def plotQuantities(f, configVariables, testVariables):
+def plotQuantities(f, configVariables, testVariables, savepath):
     config, gamma, solver, timestep = configVariables['config'], configVariables['gamma'], configVariables['solver'], configVariables['timestep']
     startPos, endPos, shockPos = testVariables['startPos'], testVariables['endPos'], testVariables['shockPos']
 
@@ -160,7 +160,7 @@ def plotQuantities(f, configVariables, testVariables):
             handles, labels = plt.gca().get_legend_handles_labels()
             fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
 
-        plt.savefig(f"{os.getcwd()}/plots/qPlot_{config}_{solver}_{timestep}_{round(indexes[-1][i],3)}.png", dpi=330, facecolor="w")
+        plt.savefig(f"{savepath}/qPlot_{config}_{solver}_{timestep}_{round(indexes[-1][i],3)}.png", dpi=330, facecolor="w")
 
         plt.cla()
         plt.clf()
@@ -168,7 +168,7 @@ def plotQuantities(f, configVariables, testVariables):
     return None
 
 
-def plotSolutionErrors(f, configVariables, testVariables):
+def plotSolutionErrors(f, configVariables, testVariables, savepath):
     config, solver, timestep = configVariables['config'], configVariables['solver'], configVariables['timestep']
     startPos, endPos = testVariables['startPos'], testVariables['endPos']
 
@@ -226,7 +226,7 @@ def plotSolutionErrors(f, configVariables, testVariables):
     plt.suptitle(r"Plot of solution errors $\epsilon_\nu(q)$ against resolution $N_\nu$", fontsize=24)
     fig.text(0.5, 0.04, r"Resolution $\log{(N_\nu)}$", fontsize=18, ha='center')
 
-    plt.savefig(f"{os.getcwd()}/plots/solErr_{solver}_{timestep}.png", dpi=330, facecolor="w")
+    plt.savefig(f"{savepath}/solErr_{solver}_{timestep}.png", dpi=330, facecolor="w")
 
     plt.cla()
     plt.clf()
@@ -234,7 +234,7 @@ def plotSolutionErrors(f, configVariables, testVariables):
     return None
 
 
-def makeVideo(f, configVariables, testVariables):
+def makeVideo(f, configVariables, testVariables, savepath):
     config, solver, timestep = configVariables['config'], configVariables['solver'], configVariables['timestep']
     startPos, endPos = testVariables['startPos'], testVariables['endPos']
 
@@ -246,7 +246,7 @@ def makeVideo(f, configVariables, testVariables):
         simulation = f[str(N)]
         counter = 0
 
-        path = f"{os.getcwd()}/../vidplots"
+        path = f"{os.getcwd()}/vidplots"
         if not os.path.exists(path):
             os.makedirs(path)
 
@@ -289,7 +289,7 @@ def makeVideo(f, configVariables, testVariables):
             counter += 1
 
         try:
-            os.system(f"ffmpeg -framerate 60 -pattern_type glob -i '{path}/*.png' -c:v libx264 -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' -pix_fmt yuv420p ../vid{config}_{solver}_{timestep}.mp4")
+            os.system(f"ffmpeg -framerate 60 -pattern_type glob -i '{path}/*.png' -c:v libx264 -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' -pix_fmt yuv420p {savepath}/vid{config}_{solver}_{timestep}.mp4")
         except Exception as e:
             print(f"ffmpeg failed: {e}")
             try:
@@ -297,7 +297,7 @@ def makeVideo(f, configVariables, testVariables):
                 images.sort()
 
                 video = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(images, fps=60)
-                video.write_videofile(f"../vid{config}_{solver}_{timestep}.mp4")
+                video.write_videofile(f"{savepath}/vid{config}_{solver}_{timestep}.mp4")
             except Exception as e:
                 print(f"moviepy failed: {e}")
                 pass

@@ -6,13 +6,13 @@ import traceback
 from datetime import datetime
 
 import h5py
+import yaml
 import numpy as np
 
 import tests as tst
 import settings as cfg
 import evolvers as evo
-import plotting_functions as plotter
-from functions import generic, fv
+from functions import generic, fv, plotting
 
 ##############################################################################
 
@@ -31,7 +31,7 @@ def simulateShock(_configVariables, _testVariables, grp):
     t = 0
 
     if _configVariables['livePlot']:
-        fig, ax, plots = plotter.initiateLivePlot(_testVariables['startPos'], _testVariables['endPos'], _N)
+        fig, ax, plots = plotting.initiateLivePlot(_testVariables['startPos'], _testVariables['endPos'], _N)
 
     while t <= _testVariables['tEnd']:
         # Saves each instance of the system at time t
@@ -40,7 +40,7 @@ def simulateShock(_configVariables, _testVariables, grp):
         dataset.attrs['t'] = t
 
         if _configVariables['livePlot']:
-            plotter.updatePlot(tubeSnapshot, t, fig, ax, plots)
+            plotting.updatePlot(tubeSnapshot, t, fig, ax, plots)
         
         # Compute the numerical fluxes at each interface
         fluxes, eigmax = evo.evolveSpace(domain, _configVariables['gamma'], _configVariables['solver'], _testVariables['boundary'])
@@ -98,20 +98,25 @@ if __name__ == "__main__":
                 generic.printOutput(now, configVariables, elapsed, len(list(grp.keys())))
 
             if configVariables['savePlots']:
-                if not os.path.exists(f"{currentdir}/plots"):
-                    os.makedirs(f"{currentdir}/plots")
+                savepath = f"{currentdir}/plots"
+                if not os.path.exists(savepath):
+                    os.makedirs(savepath)
 
-                plotter.plotQuantities(f, configVariables, testVariables)
+                plotting.plotQuantities(f, configVariables, testVariables, savepath)
                 if configVariables['runType'].startswith('m') and configVariables['config'].startswith('sin'):
-                    plotter.plotSolutionErrors(f, configVariables, testVariables)
+                    plotting.plotSolutionErrors(f, configVariables, testVariables, savepath)
 
             if configVariables['saveVideo']:
                 if configVariables['runType'].startswith('s'):
-                    plotter.makeVideo(f, configVariables, testVariables)
+                    savepath = f"{currentdir}/videos"
+                    if not os.path.exists(savepath):
+                        os.makedirs(savepath)
+
+                    plotting.makeVideo(f, configVariables, testVariables, savepath)
                 else:
-                    print(f"Error; can only save video with runType='single'")
+                    print(f"{generic.bcolours.WARNING}Error; can only save video with runType='single'{generic.bcolours.ENDC}")
     except Exception as e:
-        print(f"-- Error: {e} --\n")
+        print(f"{generic.bcolours.WARNING}-- Error: {e} --{generic.bcolours.ENDC}\n")
         print(traceback.format_exc())
         os.remove(filename)
     else:

@@ -23,15 +23,15 @@ def applyLimiter(extrapolatedValues, solver):
         return extrapolatedValues
 
 
-# Function for limiting the face-values for PPM
+# Function for limiting the face-values for PPM [Colella et al., 2011, p. 26; Peterson & Hammett, 2013, p. B585]
 def faceValueLimiter(w_face, w_minusOne, w_cell, w_plusOne, w_plusTwo, C=5/4):
-    # Initial check for local extrema
+    # Initial check for local extrema (eq. 3.33-3.34)
     local_extrema = (w_face - w_cell)*(w_plusOne - w_face) < 0
 
     if local_extrema.any():
         D2w = np.zeros(w_face.shape)
 
-        # Approximation to the second derivatives
+        # Approximation to the second derivatives (eq. 3.35)
         D2w_L = w_minusOne - 2*w_cell + w_plusOne
         D2w_C = 3 * (w_cell - 2*w_face + w_plusOne)
         D2w_R = w_cell - 2*w_plusOne + w_plusTwo
@@ -40,7 +40,7 @@ def faceValueLimiter(w_face, w_minusOne, w_cell, w_plusOne, w_plusTwo, C=5/4):
         non_monotonic = (np.sign(D2w_L) == np.sign(D2w_R)) & (np.sign(D2w_C) == np.sign(D2w_R))
         #advanced_non_monotonic = ((D2w_R - D2w_C)*(D2w_C - D2w_L) < 0) & (np.sign(D2w_L) == np.sign(D2w_R)) & (np.sign(D2w_C) == np.sign(D2w_R))
         
-        # Determine the limited curvature with the sign of each element in the 'centre' array
+        # Determine the limited curvature with the sign of each element in the 'centre' array (eq. 3.36)
         limited_curvature = np.sign(D2w_C) * np.minimum(np.abs(D2w_C), C*np.minimum(np.abs(D2w_L), np.abs(D2w_R)))
 
         # Update the limited local curvature estimates based on the conditions
@@ -51,17 +51,16 @@ def faceValueLimiter(w_face, w_minusOne, w_cell, w_plusOne, w_plusTwo, C=5/4):
         return w_face
 
 
-# Calculate minmod (slope) limiter. Returns an array of gradients for each parameter in each cell
+# Calculate minmod (slope) limiter [Derigs et al., 2017]. Returns an array of gradients for each parameter in each cell
 def minmodLimiter(extrapolatedValues):
     a, b = np.diff(extrapolatedValues[:-1], axis=0), np.diff(extrapolatedValues[1:], axis=0)
     arr = np.zeros(b.shape)
 
+    # (eq. 4.17)
     mask = np.where((np.abs(a) < np.abs(b)) & (a*b > 0))
     arr[mask] = a[mask]
-
     mask = np.where((np.abs(a) >= np.abs(b)) & (a*b > 0))
     arr[mask] = b[mask]
-
     return arr
 
 
