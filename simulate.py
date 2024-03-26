@@ -5,8 +5,8 @@ import random
 import traceback
 from datetime import datetime
 
-import numpy as np
 import h5py
+import numpy as np
 
 import tests as tst
 import settings as cfg
