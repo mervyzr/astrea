@@ -1,8 +1,8 @@
 # mHydyS
-mHydyS (pronounced *"Hades"*; the *"m"* is silent 😀) is a one-dimensional (magneto-)hydrodynamics shock code for the purpose of simulating shocks with ions and neutrals, and might possibly include radiative cooling and heating.
+mHydyS (pronounced *"Hades"*; the *"m"* is silent 😀) is a one-dimensional (magneto-)hydrodynamics shock code for the purpose of simulating shocks with ions and neutrals, with possible radiative heating and cooling.
 
 # Description
-The code is written entirely in Python3 and employs a finite volume method (Eulerian) with a fixed evenly-spaced grid. The simulation allows for periodic boundary conditions or outflows. It also allows for magnetic fields in one dimension with the magnetic permeability set to one.
+The code is written entirely in Python3 and employs a finite volume (Eulerian) subgrid model with a fixed evenly-spaced grid. The simulation allows for periodic boundary conditions or outflows. It also allows for magnetic fields in one dimension with the magnetic permeability set to one.
 
 ### Spatial discretisation
 The simulation employs a method-of-lines approach with primitive variables, and can currently perform various reconstruction methods: the piecewise constant method (Godunov, 1959), the piecewise linear method (Derigs et al., 2018) with a *minmod* limiter (Roe, 1986), and the piecewise parabolic method (Felker & Stone, 2017) with face value limiters (Colella et al., 2011) and parabolic interpolations (Colella et al., 2011; Peterson & Hammett, 2013). The reconstruction methods also has the possibility of implementing a slope flattener (Saltzman, 1994), although this feature is not fully implemented and tested.
