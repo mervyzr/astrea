@@ -1,5 +1,5 @@
 # mHydyS
-mHydyS (pronounced *"Hades"*; the *"m"* is silent 😀) is a one-dimensional (magneto-)hydrodynamics shock code for the purpose of simulating shocks with ions and neutrals, and possibly includes radiative cooling and heating.
+mHydyS (pronounced *"Hades"*; the *"m"* is silent 😀) is a one-dimensional (magneto-)hydrodynamics shock code for the purpose of simulating shocks with ions and neutrals, and might possibly include radiative cooling and heating.
 
 # Description
 The code is written entirely in Python3 and employs a finite volume method (Eulerian) with a fixed evenly-spaced grid. The simulation allows for periodic boundary conditions or outflows. It also allows for magnetic fields in one dimension with the magnetic permeability set to one.
