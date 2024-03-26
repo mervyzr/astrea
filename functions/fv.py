@@ -31,9 +31,9 @@ def initialise(cfg, tst):
 
 
 # Make boundary conditions
-def makeBoundary(tube, boundary, size=1):
+def makeBoundary(tube, boundary, stencil=1):
     arr = np.copy(tube)
-    return np.pad(arr, [(size,size), (0,0)], mode=boundary)
+    return np.pad(arr, [(stencil,stencil), (0,0)], mode=boundary)
 
 
 # Point-converting primitive variables w to conservative variables q
