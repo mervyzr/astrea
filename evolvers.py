@@ -2,6 +2,7 @@ import numpy as np
 
 import limiters
 import solvers
+import reconstruct
 
 ##############################################################################
 
@@ -12,9 +13,9 @@ def getL(fluxes, dx):
 
 # Evolve the system in space by a standardised workflow
 def evolveSpace(tube, gamma, solver, boundary):
-    extrapolatedValues = solvers.extrapolate(tube, gamma, solver, boundary)
+    extrapolatedValues = reconstruct.extrapolate(tube, gamma, solver, boundary)
     limitedValues = limiters.applyLimiter(extrapolatedValues, solver)
-    solution = solvers.reconstruct(extrapolatedValues, limitedValues, solver)
+    solution = reconstruct.interpolate(extrapolatedValues, limitedValues, solver)
     return solvers.calculateRiemannFlux(solution, gamma, solver, boundary)
 
 
