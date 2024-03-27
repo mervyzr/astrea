@@ -1,9 +1,9 @@
 import os
-import time
 import shutil
 import random
 import traceback
 from datetime import datetime
+from time import time, process_time
 
 import h5py
 import yaml
@@ -91,9 +91,9 @@ if __name__ == "__main__":
                 grp.attrs['solver'] = configVariables['solver']
                 grp.attrs['timestep'] = configVariables['timestep']
 
-                lap, now = time.time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                lap, now = process_time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 simulateShock(configVariables, testVariables, grp)
-                elapsed = time.time() - lap
+                elapsed = process_time() - lap
                 grp.attrs['elapsed'] = elapsed
                 generic.printOutput(now, configVariables, elapsed, len(list(grp.keys())))
 
