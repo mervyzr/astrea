@@ -11,8 +11,8 @@ def initialise(cfg, tst):
     arr = np.zeros((N, len(tst['initialRight'])), dtype=np.float64)
     arr[:] = tst['initialRight']
 
+    midpoint = (end+start)/2
     if cfg['config'] == "sedov" or cfg['config'].startswith('sq'):
-        midpoint = (end+start)/2
         half_width = int(N/2 * ((shock-midpoint)/(end-midpoint)))
         left_edge, right_edge = int(N/2-half_width), int(N/2+half_width)
         arr[left_edge:right_edge] = tst['initialLeft']
@@ -23,6 +23,9 @@ def initialise(cfg, tst):
     if cfg['config'].startswith('sin'):
         xi = np.linspace(start, end, N)
         arr[:,0] = 1 + (.1 * np.sin(tst['freq']*np.pi*xi))
+    elif cfg['config'].startswith('gauss'):
+        xi = np.linspace(start, end, N)
+        arr[:,0] = np.exp(-2*N*(xi-midpoint)**2)
     elif "shu" in cfg['config'] or "osher" in cfg['config']:
         xi = np.linspace(shock, end, N-split_point)
         arr[split_point:,0] = 1 + (.2 * np.sin(tst['freq']*np.pi*xi))
