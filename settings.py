@@ -4,7 +4,7 @@ import sys
 
 # Test configurations
 # : Sod, Sedov, Shu-Osher, Gaussian, sin wave, square wave, Toro1/2/3/4/5
-config = "gauss"
+config = "sod"
 
 # Shock tube parameters
 cells = 200
