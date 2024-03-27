@@ -47,6 +47,16 @@ elif "shu" in config or "osher" in config:
     initialLeft = np.array([3.857143,2.629369,0,0,10.3333,0,0,0])
     initialRight = np.array([0,0,0,0,1,0,0,0])
 
+elif config.startswith('gauss'):
+    startPos = 0
+    endPos = 1
+    shockPos = 1
+    tEnd = 1
+    boundary = "wrap"  # periodic
+    freq = None
+    initialLeft = np.array([0,1,1,1,1,0,0,0])
+    initialRight = np.array([0,0,0,0,0,0,0,0])
+
 elif config.startswith('sq'):
     startPos = -1
     endPos = 1
