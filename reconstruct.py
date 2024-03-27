@@ -15,6 +15,7 @@ def extrapolate(tube, gamma, solver, boundary):
         w2 = fv.makeBoundary(wS, boundary, 2)
 
         # Extrapolate in primitive variables to 4th-order face values
+        # [Colella et al., 2011, eq. 67; Peterson & Hammett, 2013, eq. 3.26-3.27; Felker & Stone, 2018, eq. 10]
         wFL = 7/12 * (wS+w[:-2]) - 1/12 * (w2[:-4]+w[2:])  # face i-1/2
         wFR = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])  # face i+1/2
         return [wS, [wFL, wFR], w, w2]
