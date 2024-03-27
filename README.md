@@ -25,17 +25,36 @@ Clone this repository onto your local machine, and navigate to the cloned reposi
 To run the simulation, set your configurations in *`settings.py`* and run *`simulate.py`*.
 
 ## Organisation
-There are several files in this code for different purposes:
+The organisational list for the code and their import structure is shown below. The folder structure is shown further down.
 
 - `simulate.py`: Runs the simulation, and contains the update loop
-    | - `evolvers.py`: Collates the functions for space and time evolution
-        | - `solvers.py`: Contains the Riemann solver
-        | - `reconstruct.py`: Functions for the reconstruction methods
-        | - `limiters.py`: Implements flux/slope limiters to prevent spurious oscillations in the reconstructed states
-- functions
-    | - `generic.py`: Generic functions used throughout the code
-    | - `analytic.py`: Analytical solutions to hydrodynamics tests
-    | - `fv.py`: Re-usable/generic code specific to the finite volume method
-    | - `plotting.py`: Functions for (live-)plotting
-- `tests.py`: Hydrodynamics test configurations
-- `settings.py`: Parameters for the simulation
+    - `evolvers.py`: Collates the functions for space and time evolution
+        - `solvers.py`: Contains the Riemann solver
+        - `reconstruct.py`: Functions for the reconstruction methods
+        - `limiters.py`: Implements flux/slope limiters to prevent spurious oscillations in the reconstructed states
+    - `tests.py`: Hydrodynamics test configurations
+    - `settings.py`: Parameters for the simulation
+    - functions
+        - `generic.py`: Generic functions used throughout the code
+        - `analytic.py`: Analytical solutions to hydrodynamics tests
+        - `fv.py`: Re-usable/generic code specific to the finite volume method
+        - `plotting.py`: Functions for (live-)plotting
+```
+├── LICENSE
+├── README.md
+├── __init__.py
+├── evolvers.py
+├── functions
+│   ├── __init__.py
+│   ├── analytic.py
+│   ├── fv.py
+│   ├── generic.py
+│   └── plotting.py
+├── limiters.py
+├── reconstruct.py
+├── requirements.txt
+├── settings.py
+├── simulate.py
+├── solvers.py
+└── tests.py
+```
