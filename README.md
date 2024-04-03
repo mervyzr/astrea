@@ -25,8 +25,8 @@ Clone this repository onto your local machine, and navigate to the cloned reposi
 To run the simulation, set your configurations in *`settings.py`* and run *`simulate.py`*.
 
 ## Organisation
-The organisational list for the code and their import structure is shown below. The folder structure is shown further down.
 
+### Import structure
 - `simulate.py`: Runs the simulation, and contains the update loop
     - `evolvers.py`: Collates the functions for space and time evolution
         - `solvers.py`: Contains the Riemann solver
@@ -39,6 +39,8 @@ The organisational list for the code and their import structure is shown below. 
         - `analytic.py`: Analytical solutions to hydrodynamics tests
         - `fv.py`: Re-usable/generic code specific to the finite volume method
         - `plotting.py`: Functions for (live-)plotting
+
+### Folder structure
 ```
 ├── LICENSE
 ├── README.md
