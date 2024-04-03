@@ -103,9 +103,8 @@ if __name__ == "__main__":
                     os.makedirs(savepath)
 
                 plotting.plotQuantities(f, configVariables, testVariables, savepath)
-                if configVariables['runType'].startswith('m'):
-                    if configVariables['config'].startswith('sin') or configVariables['config'].startswith('gauss'):
-                        plotting.plotSolutionErrors(f, configVariables, testVariables, savepath)
+                if configVariables['runType'].startswith('m') and (configVariables['config'].startswith('sin') or configVariables['config'].startswith('gauss')):
+                    plotting.plotSolutionErrors(f, configVariables, testVariables, savepath)
 
             if configVariables['saveVideo']:
                 if configVariables['runType'].startswith('s'):

@@ -131,16 +131,36 @@ def plotQuantities(f, configVariables, testVariables, savepath):
                 plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$ ($N = {len(y1)}$)", fontsize=24)
         
         # Adjust ylim for sin-wave test
-        if config == "sin":
+        if config.startswith("sin"):
             last_sim = f[list(f.keys())[-1]]
             first_config = last_sim[list(last_sim.keys())[0]][0]
-            initial_rho, initial_vx, initial_vy, initial_vz, initial_P = first_config
+            initial_rho, initial_vx, initial_vy, initial_vz, initial_P, initial_Bx, initial_By, initial_Bz = first_config
             vrange = np.linspace(initial_vx-.005, initial_vx+.005, 9)
             Prange = np.linspace(initial_P-.005, initial_P+.005, 9)
             ax[0,1].set_yticks(Prange)
             ax[1,0].set_yticks(vrange)
             ax[0,1].set_ylim([initial_P-.005, initial_P+.005])
             ax[1,0].set_ylim([initial_vx-.005, initial_vx+.005])
+
+        # Add Gaussian analytical solution and adjust ylim
+        elif config.startswith("gauss"):
+            initialConfig = testVariables['initialLeft']
+            midpoint = (endPos+startPos)/2
+            gaussian = np.zeros((N, len(initialConfig)), dtype=np.float64)
+            gaussian[:] = initialConfig
+            gaussian[:,0] = 1e-3 + (1-1e-3) * np.exp(-(x-midpoint)**2/.01)
+
+            ax[0,0].plot(x, gaussian[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+            ax[0,1].plot(x, gaussian[:, 4], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+            ax[1,0].plot(x, gaussian[:, 1], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+            ax[1,1].plot(x, gaussian[:, 4]/gaussian[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+            
+            Prange = np.linspace(initialConfig[4]-5e-7, initialConfig[4]+5e-7, 9)
+            vrange = np.linspace(initialConfig[1]-.005, initialConfig[1]+.005, 9)
+            ax[0,1].set_yticks(Prange)
+            ax[1,0].set_yticks(vrange)
+            ax[0,1].set_ylim([initialConfig[4]-5e-7, initialConfig[4]+5e-7])
+            ax[1,0].set_ylim([initialConfig[1]-.005, initialConfig[1]+.005])
 
         # Add Sod analytical solution, using the highest resolution and timing
         elif config == "sod":
