@@ -1,6 +1,8 @@
 # mHydyS
 mHydyS (pronounced *"Hades"*; the *"m"* is silent 😀) is a one-dimensional (magneto-)hydrodynamics shock code for the purpose of simulating shocks with ions and neutrals, with possible radiative heating and cooling.
 
+This code is created as part of the Master's thesis research project at the University of Cologne.
+
 # Description
 The code is written entirely in Python3 and employs a finite volume (Eulerian) subgrid model with a fixed evenly-spaced grid. The simulation allows for periodic or outlet boundary conditions. It also allows for magnetic fields in one dimension with the magnetic permeability set to one.
 
@@ -15,8 +17,6 @@ The Local Lax-Friedrichs method (LeVeque, 1992) is used for solving the Riemann 
 
 ### Hydrodynamical tests
 Hydrodynamical tests in place are the Sod shock tube test (Sod, 1978), the Sedov blast test (Sedov, 1946), a Gaussian wave test, a ''sin-wave'' test, a square-wave advection test, the Shu-Osher shock tube problem (Shu & Osher, 1989), and five shock tube tests from Toro's book (Toro, 1999, p.225). Analytical solutions for the Sod shock test (Pfrommer et al., 2006) and the Gaussian wave test are also overplotted when they are run. The solution error (L1 error norm) is also determined when the ''sin-wave'' or Gaussian test is run.
-
-This code is created as part of the Master's thesis research project at the University of Cologne.
 
 # Installation
 Clone this repository onto your local machine, and navigate to the cloned repository. Install the Python dependencies for this code, which can be found in *`requirements.txt`*. It is best practice to create a virtual environment for each project, and installing the project dependencies in that virtual environment.
