@@ -54,7 +54,7 @@ elif config.startswith('gauss'):
     tEnd = 1
     boundary = "wrap"  # periodic
     freq = None
-    initialLeft = np.array([0,1,1,1,1,0,0,0])
+    initialLeft = np.array([0,1,1,1,1e-6,0,0,0])
     initialRight = np.array([0,0,0,0,0,0,0,0])
 
 elif config.startswith('sq'):

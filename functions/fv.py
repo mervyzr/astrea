@@ -25,7 +25,7 @@ def initialise(cfg, tst):
         arr[:,0] = 1 + (.1 * np.sin(tst['freq']*np.pi*xi))
     elif cfg['config'].startswith('gauss'):
         xi = np.linspace(start, end, N)
-        arr[:,0] = np.exp(-2*N*(xi-midpoint)**2)
+        arr[:,0] = 1e-3 + (1-1e-3) * np.exp(-(xi-midpoint)**2/.01)
     elif "shu" in cfg['config'] or "osher" in cfg['config']:
         xi = np.linspace(shock, end, N-split_point)
         arr[split_point:,0] = 1 + (.2 * np.sin(tst['freq']*np.pi*xi))
