@@ -12,15 +12,19 @@ def roundOff(value):
         return int(value)
 
 
-# Function for solution error calculation of sin-wave test (L1 error norm)
-def calculateSolutionError(simulation):
+# Function for solution error calculation of sin-wave and Gaussian tests (L1 error norm)
+def calculateSolutionError(simulation, startPos, endPos, config):
     timeKeys = [float(t) for t in simulation.keys()]
     q_num = simulation[str(max(timeKeys))]  # Get last array with (typically largest) time key
 
+    xi = np.linspace(startPos, endPos, len(q_num))
     q_theo = np.copy(q_num)
-    q_theo[:] = np.array([0,1,1,1,1,0,0,0])
-    xi = np.linspace(0, 1, len(q_num))
-    q_theo[:,0] = 1 + (.1 * np.sin(2*np.pi*xi))
+    if config.startswith("gauss"):
+        q_theo[:] = np.array([0,1,1,1,1e-6,0,0,0])
+        q_theo[:,0] = 1e-3 + (1-1e-3) * np.exp(-(xi-((endPos+startPos)/2))**2/.01)
+    else:
+        q_theo[:] = np.array([0,1,1,1,1,0,0,0])
+        q_theo[:,0] = 1 + (.1 * np.sin(2*np.pi*xi))
 
     thermal_num, thermal_theo = q_num[:,4]/q_num[:,0], q_theo[:,4]/q_theo[:,0]
     q_num, q_theo = np.c_[q_num, thermal_num], np.c_[q_theo, thermal_theo]

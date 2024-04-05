@@ -210,7 +210,7 @@ def plotSolutionErrors(f, configVariables, testVariables, savepath):
     x, y1, y2, y3, y4 = [], [], [], [], []
     for N in nList:
         x.append(f[str(N)].attrs['cells'])
-        solutionErrors = analytic.calculateSolutionError(f[str(N)])
+        solutionErrors = analytic.calculateSolutionError(f[str(N)], startPos, endPos, config)
         y1.append(solutionErrors[0])  # density
         y2.append(solutionErrors[4])  # pressure
         y3.append(solutionErrors[1])  # vx
