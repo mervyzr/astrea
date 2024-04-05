@@ -25,7 +25,6 @@ def roundOff(value):
 
 # Print status to Terminal
 def printOutput(instanceTime, cfg, elapsed, runLength):
-    currentTime = f"[{bcolours.BOLD}{instanceTime}{bcolours.ENDC}]"
     _config = f"{bcolours.OKGREEN}{cfg['config'].upper()}{bcolours.ENDC}"
     _cells = f"{bcolours.OKGREEN}{cfg['cells']}{bcolours.ENDC}"
     _solver = f"{bcolours.OKGREEN}{cfg['solver'].upper()}{bcolours.ENDC}"
@@ -33,5 +32,5 @@ def printOutput(instanceTime, cfg, elapsed, runLength):
     _cfl = f"{bcolours.OKGREEN}{cfg['cfl']}{bcolours.ENDC}"
     _elapsed = f"{bcolours.OKGREEN}{str(timedelta(seconds=elapsed))}s{bcolours.ENDC}"
     #_performance = f"{bcolours.OKGREEN}{round(elapsed*1e6/(cfg['cells']*runLength), 3)} \u03BCs/(dt*N){bcolours.ENDC}"
-    print(f"{currentTime} TEST={_config}, CELLS={_cells}, CFL={_cfl}, RECONSTRUCT={_solver}, TIMESTEP={_timestep} {bcolours.BOLD}||{bcolours.ENDC} Elapsed: {_elapsed}  [{runLength}]")
+    print(f"[{instanceTime}] TEST={_config}, CELLS={_cells}, CFL={_cfl}, RECONSTRUCT={_solver}, TIMESTEP={_timestep} {bcolours.OKCYAN}||{bcolours.ENDC} Elapsed: {_elapsed} ({runLength})")
     pass
