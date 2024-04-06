@@ -11,6 +11,7 @@ def extrapolate(tube, gamma, solver, boundary):
         # Conversion of conservative variables to primitive variables
         wS = fv.convertConservative(tube, gamma, boundary)
 
+        # Pad array with boundaries
         w = fv.makeBoundary(wS, boundary)
         w2 = fv.makeBoundary(wS, boundary, 2)
 
@@ -32,34 +33,39 @@ def interpolate(extrapolatedValues, limitedValues, solver):
         wFL, wFR = wF
         wF_limit_L, wF_limit_R = limitedValues
 
-        # XPPM parabolic interpolant [Peterson & Hammett, 2013, p. B586]; preserves behaviour at smooth-extrema
+        # XPPM parabolic interpolant [Peterson & Hammett, 2013, p. B586]; preserves order at smooth extrema
         if True:
-            # Check for local extrema away from smooth extrema (eq. 3.31)
-            local_extrema = ((wFR - wS)*(wS - wFL) <= 0) | ((w[:-2] - wS)*(wS - w[2:]) <= 0)
+            # Apply limiters for local extrema (eq. 3.19)
+            local_extrema = (np.sign(w[2:]-wS) != np.sign(wS-w[:-2]))
             wF_limit_L[local_extrema] = wS[local_extrema]
             wF_limit_R[local_extrema] = wS[local_extrema]
 
-            # Calculate the limited smooth extrema
-            D2w_lim = np.zeros(wS.shape)
+            # Check for extrema near smooth extrema (eq. 3.31)
+            smooth_extrema = ((wFR - wS)*(wS - wFL) <= 0) | ((w[:-2] - wS)*(wS - w[2:]) <= 0)
+            
+            # Apply limiters for extrema near smooth extrema
+            if smooth_extrema.any():
+                # Initialise the limited slope
+                D2w_lim = np.zeros(wS.shape)    
 
-            # Approximation to the second derivatives (eq. 3.37)
-            D2w = 6 * (wFL - 2*wS + wFR)
-            D2w_L = w2[:-4] - 2*w[:-2] + wS
-            D2w_C = w[:-2] - 2*wS + w[2:]
-            D2w_R = wS - 2*w[2:] + w2[4:]
+                # Approximation to the second derivatives (eq. 3.37)
+                D2w = 6 * (wFL - 2*wS + wFR)
+                D2w_L = w2[:-4] - 2*w[:-2] + wS
+                D2w_C = w[:-2] - 2*wS + w[2:]
+                D2w_R = wS - 2*w[2:] + w2[4:]
 
-            # Get the curvatures that have the same signs
-            non_monotonic = (np.sign(D2w_L) == np.sign(D2w_R)) & (np.sign(D2w_C) == np.sign(D2w)) & (np.sign(D2w_C) == np.sign(D2w_R))
+                # Get the curvatures that have the same signs
+                non_monotonic = (np.sign(D2w_L) == np.sign(D2w_R)) & (np.sign(D2w_C) == np.sign(D2w)) & (np.sign(D2w_C) == np.sign(D2w_R))
 
-            # Determine the limited curvature with the sign of each element in the 'main' array (eq. 3.38)
-            limited_curvature = np.sign(D2w) * np.minimum(np.minimum(np.abs(D2w), C*np.abs(D2w_C)), C * np.minimum(np.abs(D2w_L), np.abs(D2w_R)))
+                # Determine the limited curvature with the sign of each element in the 'main' array (eq. 3.38)
+                limited_curvature = np.sign(D2w) * np.minimum(np.minimum(np.abs(D2w), C*np.abs(D2w_C)), np.minimum(C*np.abs(D2w_L), C*np.abs(D2w_R)))
 
-            # Update the limited local curvature estimates based on the conditions
-            D2w_lim[non_monotonic] = limited_curvature[non_monotonic]
+                # Update the limited local curvature estimates based on the conditions
+                D2w_lim[non_monotonic] = limited_curvature[non_monotonic]
 
-            D2w[D2w == 0] = np.inf  # removes divide-by-zero issue; causes wF -> wS (i.e. piecewise constant) when D2w -> 0
+                D2w[D2w == 0] = np.inf  # removes divide-by-zero warning; causes wFL & wFR -> wS (i.e. piecewise constant) when D2w = 0
 
-            return [wS + ((D2w_lim/D2w) * (wF_limit_L - wS)), wS + ((D2w_lim/D2w) * (wF_limit_R - wS))]  # (eq. 3.39)
+            return [wS + ((wF_limit_L - wS) * (D2w_lim/D2w)), wS + ((wF_limit_R - wS) * (D2w_lim/D2w))]  # (eq. 3.39)
         
         # Limited parabolic interpolant [Colella et al., 2011, p. 26]
         else:
