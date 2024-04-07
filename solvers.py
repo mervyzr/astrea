@@ -14,20 +14,24 @@ def calculateRiemannFlux(solution, gamma, solver, boundary):
         leftInterface, rightInterface = fv.makeBoundary(leftSolution, boundary)[1:], fv.makeBoundary(rightSolution, boundary)[:-1]
     else:
         leftInterface, rightInterface = solution[:-1], solution[1:]
-    
+
     # Solve the Riemann flux problem
     if solver in ["ppm", "parabolic", "p"]:
         # Ideally, the 4th-order interface-averaged fluxes should be computed for PPM
-        # But because the simulation is only 1D, the "normal" Laplacian (Taylor expansion) of the face-averaged states and fluxes are zero
-        # Thus, the conversion between face-averaged and face-centred states and fluxes can be a point-wise conversion
+        # But because the simulation is only 1D, the "normal"-Laplacian (Taylor expansion) of the face-averaged states and fluxes are zero
+        # Thus, the face-averaged and face-centred states and fluxes are the same
+        # However, the conversion between primitive and conservative variables still need to be higher order
 
-        qLs, qRs = fv.pointConvertPrimitive(leftInterface, gamma), fv.pointConvertPrimitive(rightInterface, gamma)
-        
+        qLs, qRs = fv.convertPrimitive(leftInterface, gamma, boundary), fv.convertPrimitive(rightInterface, gamma, boundary)
+
         fLs, fRs = fv.makeFlux(leftInterface, gamma), fv.makeFlux(rightInterface, gamma)
         AL, AR = fv.makeJacobian(leftInterface, gamma), fv.makeJacobian(rightInterface, gamma)
     else:
         qLs, qRs = leftInterface, rightInterface
-        wLs, wRs = fv.pointConvertConservative(leftInterface, gamma), fv.pointConvertConservative(rightInterface, gamma)
+        if solver in ["plm", "linear", "l"]:
+            wLs, wRs = fv.convertConservative(leftInterface, gamma, boundary), fv.convertConservative(rightInterface, gamma, boundary)
+        else:
+            wLs, wRs = fv.pointConvertConservative(leftInterface, gamma), fv.pointConvertConservative(rightInterface, gamma)
 
         fLs, fRs = fv.makeFlux(wLs, gamma), fv.makeFlux(wRs, gamma)
         AL, AR = fv.makeJacobian(wLs, gamma), fv.makeJacobian(wRs, gamma)

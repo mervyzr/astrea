@@ -59,7 +59,7 @@ def pointConvertConservative(tube, g):
     return arr
 
 
-# Converting cell-averaged primitive variables w to cell-averaged conservative variables q through a higher-order approx.
+# Converting cell-/face-averaged primitive variables w to cell-/face-averaged conservative variables q through a higher-order approx.
 def convertPrimitive(tube, g, boundary, denominator=24):
     arr = makeBoundary(tube, boundary)
     w = tube - (np.diff(arr[1:], axis=0) - np.diff(arr[:-1], axis=0))/denominator  # 2nd-order Taylor expansion (Laplacian)
@@ -67,7 +67,7 @@ def convertPrimitive(tube, g, boundary, denominator=24):
     return pointConvertPrimitive(w, g) + (np.diff(q[1:], axis=0) - np.diff(q[:-1], axis=0))/denominator
     
 
-# Converting cell-averaged conservative variables q to cell-averaged primitive variables w through a higher-order approx.
+# Converting cell-/face-averaged conservative variables q to cell-/face-averaged primitive variables w through a higher-order approx.
 def convertConservative(tube, g, boundary, denominator=24):
     arr = makeBoundary(tube, boundary)
     q = tube - (np.diff(arr[1:], axis=0) - np.diff(arr[:-1], axis=0))/denominator  # 2nd-order Taylor expansion (Laplacian)
