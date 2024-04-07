@@ -60,19 +60,25 @@ def pointConvertConservative(tube, g):
 
 
 # Converting cell-/face-averaged primitive variables w to cell-/face-averaged conservative variables q through a higher-order approx.
-def convertPrimitive(tube, g, boundary, denominator=24):
-    arr = makeBoundary(tube, boundary)
-    w = tube - (np.diff(arr[1:], axis=0) - np.diff(arr[:-1], axis=0))/denominator  # 2nd-order Taylor expansion (Laplacian)
-    q = pointConvertPrimitive(arr, g)
-    return pointConvertPrimitive(w, g) + (np.diff(q[1:], axis=0) - np.diff(q[:-1], axis=0))/denominator
+def convertPrimitive(tube, g, solver, boundary, denominator=24):
+    if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
+        arr = makeBoundary(tube, boundary)
+        w = tube - (np.diff(arr[1:], axis=0) - np.diff(arr[:-1], axis=0))/denominator  # 2nd-order Taylor expansion (Laplacian)
+        q = pointConvertPrimitive(arr, g)
+        return pointConvertPrimitive(w, g) + (np.diff(q[1:], axis=0) - np.diff(q[:-1], axis=0))/denominator
+    else:
+        return pointConvertPrimitive(tube, g)
     
 
 # Converting cell-/face-averaged conservative variables q to cell-/face-averaged primitive variables w through a higher-order approx.
-def convertConservative(tube, g, boundary, denominator=24):
-    arr = makeBoundary(tube, boundary)
-    q = tube - (np.diff(arr[1:], axis=0) - np.diff(arr[:-1], axis=0))/denominator  # 2nd-order Taylor expansion (Laplacian)
-    w = pointConvertConservative(arr, g)
-    return pointConvertConservative(q, g) + (np.diff(w[1:], axis=0) - np.diff(w[:-1], axis=0))/denominator
+def convertConservative(tube, g, solver, boundary, denominator=24):
+    if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
+        arr = makeBoundary(tube, boundary)
+        q = tube - (np.diff(arr[1:], axis=0) - np.diff(arr[:-1], axis=0))/denominator  # 2nd-order Taylor expansion (Laplacian)
+        w = pointConvertConservative(arr, g)
+        return pointConvertConservative(q, g) + (np.diff(w[1:], axis=0) - np.diff(w[:-1], axis=0))/denominator
+    else:
+        return pointConvertConservative(tube, g)
 
 
 # Make flux based on initial conditions and primitive variables

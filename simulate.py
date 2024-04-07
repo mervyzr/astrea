@@ -35,10 +35,7 @@ def simulateShock(_configVariables, _testVariables, grp):
 
     while t <= _testVariables['tEnd']:
         # Saves each instance of the system at time t
-        if _configVariables['solver'] in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
-            tubeSnapshot = fv.convertConservative(domain, _configVariables['gamma'], _testVariables['boundary'])
-        else:
-            tubeSnapshot = fv.pointConvertConservative(domain, _configVariables['gamma'])
+        tubeSnapshot = fv.convertConservative(domain, _configVariables['gamma'], _configVariables['solver'], _testVariables['boundary'])
         dataset = grp.create_dataset(str(t), data=tubeSnapshot)
         dataset.attrs['t'] = t
 

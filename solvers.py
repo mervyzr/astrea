@@ -22,16 +22,13 @@ def calculateRiemannFlux(solution, gamma, solver, boundary):
         # Thus, the face-averaged and face-centred states and fluxes are the same
         # However, the conversion between primitive and conservative variables still need to be higher order
 
-        qLs, qRs = fv.convertPrimitive(leftInterface, gamma, boundary), fv.convertPrimitive(rightInterface, gamma, boundary)
+        qLs, qRs = fv.convertPrimitive(leftInterface, gamma, solver, boundary), fv.convertPrimitive(rightInterface, gamma, solver, boundary)
 
         fLs, fRs = fv.makeFlux(leftInterface, gamma), fv.makeFlux(rightInterface, gamma)
         AL, AR = fv.makeJacobian(leftInterface, gamma), fv.makeJacobian(rightInterface, gamma)
     else:
         qLs, qRs = leftInterface, rightInterface
-        if solver in ["plm", "linear", "l"]:
-            wLs, wRs = fv.convertConservative(leftInterface, gamma, boundary), fv.convertConservative(rightInterface, gamma, boundary)
-        else:
-            wLs, wRs = fv.pointConvertConservative(leftInterface, gamma), fv.pointConvertConservative(rightInterface, gamma)
+        wLs, wRs = fv.convertConservative(leftInterface, gamma, solver, boundary), fv.convertConservative(rightInterface, gamma, solver, boundary)
 
         fLs, fRs = fv.makeFlux(wLs, gamma), fv.makeFlux(wRs, gamma)
         AL, AR = fv.makeJacobian(wLs, gamma), fv.makeJacobian(wRs, gamma)
