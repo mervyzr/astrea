@@ -7,7 +7,7 @@ import sys
 config = "sod"
 
 # Shock tube parameters
-cells = 200
+cells = 128
 cfl = .5
 gamma = 1.4
 
