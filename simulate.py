@@ -25,7 +25,7 @@ def simulateShock(_configVariables, _testVariables, grp):
     _N = _configVariables['cells']
     _N += (_N%2)  # Make N into an even number
     domain = fv.initialise(_configVariables, _testVariables)
-    
+
     # Compute dx and set t = 0
     dx = abs(_testVariables['endPos']-_testVariables['startPos'])/_N
     t = 0
@@ -41,10 +41,10 @@ def simulateShock(_configVariables, _testVariables, grp):
 
         if _configVariables['livePlot']:
             plotting.updatePlot(tubeSnapshot, t, fig, ax, plots)
-        
+
         # Compute the numerical fluxes at each interface
         fluxes, eigmax = evo.evolveSpace(domain, _configVariables['gamma'], _configVariables['solver'], _testVariables['boundary'])
-        
+
         # Compute the full time step dt
         dt = _configVariables['cfl'] * dx/eigmax
 
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     if configVariables['timestep'] not in ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)"]:
         print(f"{generic.bcolours.WARNING}Timestepper unknown; reverting to Forward Euler timestepping..{generic.bcolours.ENDC}")
 
-    
+
     if configVariables['runType'].startswith('m'):
         configVariables['livePlot'] = False  # Turn off the live plot
         nList = 5 * 2**np.arange(3,12)

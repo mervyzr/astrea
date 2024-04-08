@@ -62,7 +62,7 @@ def calculateSodAnalytical(tube, t, gamma, start, end, shock):
     boundary43 = roundOff(((shock-(v_t*t)-start)/(end-start)) * len(tube))
     boundary32 = roundOff(((shock+(vx2*t)-start)/(end-start)) * len(tube))
     boundary21 = roundOff(((shock+(v_s*t)-start)/(end-start)) * len(tube))
-    
+
     # Define number of cells in the rarefaction wave
     rarefaction_cells = roundOff(((cs5*t-v_t*t)/(end-start)) * len(tube))
     if rarefaction_cells - (boundary43-boundary54) < 0:
@@ -74,7 +74,7 @@ def calculateSodAnalytical(tube, t, gamma, start, end, shock):
     # Update array for regions 1 and 5 (initial conditions)
     arr[:boundary54] = tube[0]
     arr[boundary21:] = tube[-1]
-    
+
     # Update array for regions 2 and 3 (post-shock and discontinuities)
     arr[boundary43:boundary21, 1] = vx2
     arr[boundary43:boundary21, 4] = P2
@@ -198,7 +198,7 @@ def calculateSedovAnalytical(tube, t, gamma, start, end, shock, steps=100):
     # wrt to the immediate post-shock variables
     def equations(eta, v):
         A, B, C = v
-        
+
         alpha = 5*(gamma+1) - 4*C
 
         dB = (2*alpha*A*C**2 + B*(alpha - 2*gamma*(eta+3*C))) / (eta * (2*C*(2*gamma-1) - (gamma+1)))
@@ -206,12 +206,12 @@ def calculateSedovAnalytical(tube, t, gamma, start, end, shock, steps=100):
         dA = -(2*A*(dC + (3*C/eta))) / (2*C - (gamma+1))
 
         return [dA, dB, dC]
-    
+
     # Determine the convergence of the values for A, B and C to 1
     def integral(eta, v, g):
         A, B, C = v
         return np.sum(((32*np.pi)/(25*(g**2-1))) * (B + A*C**2) * eta**4)
-    
+
     rho0, vx0, vy0, vz0, P0 = tube[-1]
     E_inject = P0/(rho0 * (gamma-1))
 

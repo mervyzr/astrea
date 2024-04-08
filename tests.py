@@ -66,7 +66,7 @@ elif config.startswith('sq'):
     freq = None
     initialLeft = np.array([1,1,0,0,1,0,0,0])
     initialRight = np.array([.01,1,0,0,1,0,0,0])
-    
+
 elif "toro" in config:
     startPos = 0
     endPos = 1

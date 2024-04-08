@@ -90,7 +90,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
         timings = np.fromiter(f[str(N)].keys(), dtype=np.float64)
         timings.sort()
         indexes.append([timing[-1] for timing in np.array_split(timings, abs(int(configVariables['snapshots'])))])
-    
+
     # Iterate through the timings; the last set of timings refer to the highest resolution
     for i in range(len(indexes[-1])):
         fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
@@ -129,7 +129,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
                 ax[1,0].plot(x, y3, linewidth=2, color="green")       # vx
                 ax[1,1].plot(x, y4, linewidth=2, color="darkviolet")  # thermal energy
                 plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$ ($N = {len(y1)}$)", fontsize=24)
-        
+
         # Adjust ylim for sin-wave test
         if config.startswith("sin"):
             last_sim = f[list(f.keys())[-1]]
@@ -154,7 +154,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
             ax[0,1].plot(x, gaussian[:, 4], linewidth=1, color="black", linestyle="--", label="Analytical solution")
             ax[1,0].plot(x, gaussian[:, 1], linewidth=1, color="black", linestyle="--", label="Analytical solution")
             ax[1,1].plot(x, gaussian[:, 4]/gaussian[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
-            
+
             Prange = np.linspace(initialConfig[4]-5e-7, initialConfig[4]+5e-7, 9)
             vrange = np.linspace(initialConfig[1]-.005, initialConfig[1]+.005, 9)
             ax[0,1].set_yticks(Prange)
@@ -170,7 +170,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
             ax[0,1].plot(x, Sod[:, 4], linewidth=1, color="black", linestyle="--", label="Analytical solution")
             ax[1,0].plot(x, Sod[:, 1], linewidth=1, color="black", linestyle="--", label="Analytical solution")
             ax[1,1].plot(x, Sod[:, 4]/Sod[:, 0], linewidth=1, color="black", linestyle="--", label="Analytical solution")
-        
+
         # Add Sedov analytical solution, using the highest resolution and timing
         elif config == "sedov":
             pass

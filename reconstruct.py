@@ -44,7 +44,7 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
             smooth_extrema = ((wFR - wS)*(wS - wFL) <= 0) | ((w[:-2] - wS)*(wS - w[2:]) <= 0)
             if smooth_extrema.any():
                 # Initialise the limited slope
-                D2w_lim = np.zeros(wS.shape)    
+                D2w_lim = np.zeros(wS.shape)
 
                 # Approximation to the second derivatives (eq. 3.37)
                 D2w = 6 * (wFL - 2*wS + wFR)
@@ -66,7 +66,7 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
                 return [wS + ((wF_limit_L - wS) * (D2w_lim/D2w)), wS + ((wF_limit_R - wS) * (D2w_lim/D2w))]  # (eq. 3.39)
             else:
                 return [wF_limit_L, wF_limit_R]
-        
+
         # Limited parabolic interpolant [Colella et al., 2011, p. 26]
         else:
             # Check for cell extrema in cells (eq. 89)
@@ -87,7 +87,7 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
             # If there are extrema in either the cells or interpolants
             if cell_extrema.any() or interpolant_extrema.any():
                 D2w_lim = np.zeros(wS.shape)
-                
+
                 # Approximation to the second derivative (eq. 95)
                 D2w = 6 * (wF_limit_L - 2*wS + wF_limit_R)
                 D2w_L = w2[:-4] - 2*w[:-2] + wS

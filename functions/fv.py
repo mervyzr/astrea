@@ -19,7 +19,7 @@ def initialise(cfg, tst):
     else:
         split_point = int(N * ((shock-start)/(end-start)))
         arr[:split_point] = tst['initialLeft']
-    
+
     if cfg['config'].startswith('sin'):
         xi = np.linspace(start, end, N)
         arr[:,0] = 1 + (.1 * np.sin(tst['freq']*np.pi*xi))
@@ -29,7 +29,7 @@ def initialise(cfg, tst):
     elif "shu" in cfg['config'] or "osher" in cfg['config']:
         xi = np.linspace(shock, end, N-split_point)
         arr[split_point:,0] = 1 + (.2 * np.sin(tst['freq']*np.pi*xi))
-    
+
     return pointConvertPrimitive(arr, cfg['gamma'])  # convert domain to conservative variables q
 
 
@@ -68,7 +68,7 @@ def convertPrimitive(tube, g, solver, boundary, denominator=24):
         return pointConvertPrimitive(w, g) + (np.diff(q[1:], axis=0) - np.diff(q[:-1], axis=0))/denominator
     else:
         return pointConvertPrimitive(tube, g)
-    
+
 
 # Converting cell-/face-averaged conservative variables q to cell-/face-averaged primitive variables w through a higher-order approx.
 def convertConservative(tube, g, solver, boundary, denominator=24):
