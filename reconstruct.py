@@ -9,7 +9,7 @@ def extrapolate(tube, gamma, solver, boundary):
     # Piecewise parabolic method solver (3rd-order stable for uneven grid; 4th-order stable for even grid)
     if solver in ["ppm", "parabolic", "p"]:
         # Conversion of conservative variables to primitive variables
-        wS = fv.convertConservative(tube, gamma, boundary)
+        wS = fv.convertConservative(tube, gamma, solver, boundary)
 
         # Pad array with boundaries
         w = fv.makeBoundary(wS, boundary)
