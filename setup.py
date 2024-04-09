@@ -3,7 +3,6 @@
 import os
 import shutil
 import subprocess
-from distutils.core import setup
 
 import venv
 
