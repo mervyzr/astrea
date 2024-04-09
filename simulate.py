@@ -9,6 +9,10 @@ import h5py
 import yaml
 import numpy as np
 
+currentdir = os.getcwd()
+if not os.path.exists(f"{currentdir}/settings.py"):
+    shutil.copy2(f"{currentdir}/functions/.default.py", f"{currentdir}/settings.py")
+
 import tests as tst
 import settings as cfg
 import evolvers as evo
@@ -16,7 +20,6 @@ from functions import generic, fv, plotting
 
 ##############################################################################
 
-currentdir = os.getcwd()
 seed = random.randint(0, 10000000)
 
 
