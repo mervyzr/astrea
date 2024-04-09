@@ -146,7 +146,6 @@ stack-data==0.6.3
 tables==3.9.2
 tensorboard==2.15.2
 tensorboard-data-server==0.7.2
-tensorflow==2.15.0
 tensorflow-estimator==2.15.0
 tensorflow-io-gcs-filesystem==0.36.0
 termcolor==2.4.0
