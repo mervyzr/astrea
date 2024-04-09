@@ -177,7 +177,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
             pass
 
         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
-        if len(f) != 1 or config == "sod":
+        if len(f) != 1 or config == "sod" or config.startswith("gauss"):
             handles, labels = plt.gca().get_legend_handles_labels()
             fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
 
