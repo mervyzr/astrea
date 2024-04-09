@@ -34,7 +34,7 @@ Edit your parameters in *`settings.py`* and run *`simulate.py`* (preferably in t
         - `limiters.py`: Implements flux/slope limiters to prevent spurious oscillations in the reconstructed states
     - `tests.py`: Hydrodynamics test configurations
     - `settings.py`: Parameters for the simulation
-    - functions
+    - `functions`
         - `generic.py`: Generic functions used throughout the code
         - `analytic.py`: Analytical solutions to hydrodynamics tests
         - `fv.py`: Re-usable/generic code specific to the finite volume method
