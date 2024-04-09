@@ -19,7 +19,7 @@ The Local Lax-Friedrichs method (LeVeque, 1992) is used for solving the Riemann 
 Hydrodynamical tests in place are the Sod shock tube test (Sod, 1978), the Sedov blast test (Sedov, 1946), a Gaussian wave test, a ''sin-wave'' test, a square-wave advection test, the Shu-Osher shock tube problem (Shu & Osher, 1989), and five shock tube tests from Toro's book (Toro, 1999, p.225). Analytical solutions for the Sod shock test (Pfrommer et al., 2006) and the Gaussian wave test are also overplotted when they are run. The solution error (L1 error norm) is also determined when the ''sin-wave'' or Gaussian test is run.
 
 # Installation
-Clone this repository onto your local machine, and navigate to the cloned repository. Run *`python3 setup.py`* to install a venv (*.mHydyS_venv*) in the home directory. This will also install the requirements for the project in the venv.
+Clone this repository onto your local machine, and navigate to the cloned repository. Run *`python3 setup.py`* to install a venv (*.shock_venv*) in the home directory. This will also install the requirements for the project in the venv.
 
 # Usage
 Edit your parameters in *`settings.py`* and run *`simulate.py`* (preferably in the venv).
