@@ -297,7 +297,7 @@ def makeVideo(f, configVariables, testVariables, savepath):
             ax[1,0].plot(x, y3, linewidth=2, color="green")  # vx
             ax[1,1].plot(x, y4, linewidth=2, color="darkviolet")  # thermal energy
 
-            plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t = {round(t,4)}$ ($N = {len(y1)}$)", fontsize=24)
+            plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {len(y1)}$)", fontsize=24)
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
 
             plt.savefig(f"{path}/{str(counter).zfill(4)}.png", dpi=330, facecolor="w")
@@ -309,14 +309,14 @@ def makeVideo(f, configVariables, testVariables, savepath):
             counter += 1
 
         try:
-            os.system(f"ffmpeg -framerate 60 -pattern_type glob -i '{path}/*.png' -c:v libx264 -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' -pix_fmt yuv420p {savepath}/vid{config}_{solver}_{timestep}.mp4")
+            os.system(f"ffmpeg -framerate 24 -pattern_type glob -i '{path}/*.png' -c:v libx264 -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' -pix_fmt yuv420p {savepath}/vid{config}_{solver}_{timestep}.mp4")
         except Exception as e:
             print(f"ffmpeg failed: {e}")
             try:
                 images = [os.path.join(path,img) for img in os.listdir(path) if img.endswith(".png")]
                 images.sort()
 
-                video = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(images, fps=60)
+                video = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(images, fps=24)
                 video.write_videofile(f"{savepath}/vid{config}_{solver}_{timestep}.mp4")
             except Exception as e:
                 print(f"moviepy failed: {e}")
