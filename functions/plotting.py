@@ -310,7 +310,7 @@ def makeVideo(f, configVariables, testVariables, savepath):
             counter += 1
 
         try:
-            subprocess.call(["ffmpeg", "-framerate", "60", "-pattern_type", "glob", "-i", f'"{path}/*.png"', "-c:v", "libx264", "-vf", '"pad=ceil(iw/2)*2:ceil(ih/2)*2"', "-pix_fmt", "yuv420p", f"{savepath}/vid_{config}_{solver}_{timestep}.mp4"])
+            subprocess.call(["ffmpeg", "-framerate", "60", "-pattern_type", "glob", "-i", f"{path}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{savepath}/vid_{config}_{solver}_{timestep}.mp4"])
         except Exception as e:
             print(f"{generic.bcolours.WARNING}ffmpeg failed: {e}{generic.bcolours.ENDC}")
             try:
