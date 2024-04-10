@@ -14,20 +14,38 @@ def calculateRiemannFlux(solutions, gamma, solver, boundary):
         leftInterface, rightInterface = fv.makeBoundary(leftSolution, boundary)[1:], fv.makeBoundary(rightSolution, boundary)[:-1]
 
         if solver in ["ppm", "parabolic", "p"]:
+            # Get the average of the solutions by integrating the interpolated values
+            avg_wS = leftSolution
+
+
             # Ideally, the 4th-order averaged fluxes should be computed from the face-averaged variables
             # But because the simulation is only 1D, the "normal"-Laplacian (Taylor expansion) of the face-averaged states and fluxes are zero
             # Thus, the face-averaged and face-centred values are the same (<w>_i+1/2 = w_i+1/2)
             # Same for the averaged and centred fluxes (<F>_i+1/2 = F_i+1/2)
 
+            wS = fv.makeBoundary(avg_wS, boundary)
+            qS = fv.convertPrimitive(wS, gamma, solver, boundary)
+
+            fS = fv.makeFlux(wS, gamma)
+            A = fv.makeJacobian(wS, gamma)
+
+            
+            
+            
             qLs, qRs = fv.convertPrimitive(leftInterface, gamma, solver, boundary), fv.convertPrimitive(rightInterface, gamma, solver, boundary)
 
             fLs, fRs = fv.makeFlux(leftInterface, gamma), fv.makeFlux(rightInterface, gamma)
             AL, AR = fv.makeJacobian(leftInterface, gamma), fv.makeJacobian(rightInterface, gamma)
-        elif solver in ["plm", "linear", "l"]:
 
+        else:
             # Get the average of the solutions by integrating the interpolated values
-            pass
+            avg_wS = (leftSolution + rightSolution)/2
 
+            wS = fv.makeBoundary(avg_wS, boundary)
+            qS = fv.convertPrimitive(wS, gamma, solver, boundary)
+
+            fS = fv.makeFlux(wS, gamma)
+            A = fv.makeJacobian(wS, gamma)
 
     else:
         wS = fv.makeBoundary(solutions, boundary)
@@ -54,6 +72,6 @@ def calculateRiemannFlux(solutions, gamma, solver, boundary):
 
     # Return the Riemann fluxes
     if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
-        return .5 * ((fLs+fRs) - (eigmax*(qLs-qRs))), eigmax
+        return .5 * ((fLs+fRs) - (eigmax*(qLs-qRs))), eigmax  # np.diff gives qR-qL, so just flip to get qL-qR [np.flip(s, axis=0)]
     else:
         return .5 * ((fS[:-1]+fS[1:]) - ((eigvals * np.diff(qS,axis=0).T).T)), eigmax
