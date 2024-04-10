@@ -20,10 +20,13 @@ currentdir = os.getcwd()
 seed = random.randint(0, 1e6)
 
 
-# Run code
+# Run finite volume code
 def simulateShock(_configVariables, _testVariables, grp):
     _N = _configVariables['cells']
     _N += (_N%2)  # Make N into an even number
+
+    # Initialise the discrete solution array with conserved variables <q>
+    # Even though the solution array is discrete, the variables are averages (FV) instead of points (FD)
     domain = fv.initialise(_configVariables, _testVariables)
 
     # Compute dx and set t = 0

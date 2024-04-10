@@ -2,8 +2,8 @@ import numpy as np
 
 ##############################################################################
 
-
-# Initialise the solution array with initial conditions and primitive variables w, and return array with conserved variables
+# Initialise the discrete solution array with initial conditions and primitive variables w
+# Returns the solution array in conserved variables q
 def initialise(cfg, tst):
     N = cfg['cells']
     start, end, shock = tst['startPos'], tst['endPos'], tst['shockPos']
@@ -30,7 +30,7 @@ def initialise(cfg, tst):
         xi = np.linspace(shock, end, N-split_point)
         arr[split_point:,0] = 1 + (.2 * np.sin(tst['freq']*np.pi*xi))
 
-    return pointConvertPrimitive(arr, cfg['gamma'])  # convert domain to conservative variables q
+    return pointConvertPrimitive(arr, cfg['gamma'])
 
 
 # Make boundary conditions
@@ -39,7 +39,7 @@ def makeBoundary(tube, boundary, stencil=1):
     return np.pad(arr, [(stencil,stencil), (0,0)], mode=boundary)
 
 
-# Point-converting primitive variables w to conservative variables q
+# Pointwise (exact) conversion of primitive variables w to conservative variables q (up to 2nd-order accurate)
 def pointConvertPrimitive(tube, g):
     arr = np.copy(tube)
     rhos, vecs, pressures, Bfield = tube[:,0], tube[:,1:4], tube[:,4], tube[:,5:8]
@@ -49,7 +49,7 @@ def pointConvertPrimitive(tube, g):
     return arr
 
 
-# Point-converting conservative variables q to primitive variables w
+# Pointwise (exact) conversion of conservative variables q to primitive variables w (up to 2nd-order accurate)
 def pointConvertConservative(tube, g):
     arr = np.copy(tube)
     rhos, vecs, energies, Bfield = tube[:,0], (tube[:,1:4].T / tube[:,0]).T, tube[:,4], tube[:,5:8]
@@ -59,29 +59,29 @@ def pointConvertConservative(tube, g):
     return arr
 
 
-# Converting cell-/face-averaged primitive variables w to cell-/face-averaged conservative variables q through a higher-order approx.
-def convertPrimitive(tube, g, solver, boundary, denominator=24):
-    if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
+# Converting (cell-/face-averaged) primitive variables w to conservative variables q through a higher-order approx.
+def convertPrimitive(tube, g, solver, boundary):
+    if solver in ["ppm", "parabolic", "p"]:
         arr = makeBoundary(tube, boundary)
-        w = tube - (np.diff(arr[1:], axis=0) - np.diff(arr[:-1], axis=0))/denominator  # 2nd-order Taylor expansion (Laplacian)
+        w = tube - (np.diff(arr[1:], axis=0) - np.diff(arr[:-1], axis=0))/24  # 2nd-order Taylor expansion (Laplacian)
         q = pointConvertPrimitive(arr, g)
-        return pointConvertPrimitive(w, g) + (np.diff(q[1:], axis=0) - np.diff(q[:-1], axis=0))/denominator
+        return pointConvertPrimitive(w, g) + (np.diff(q[1:], axis=0) - np.diff(q[:-1], axis=0))/24
     else:
         return pointConvertPrimitive(tube, g)
 
 
-# Converting cell-/face-averaged conservative variables q to cell-/face-averaged primitive variables w through a higher-order approx.
-def convertConservative(tube, g, solver, boundary, denominator=24):
-    if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
+# Converting (cell-/face-averaged) conservative variables q to primitive variables w through a higher-order approx.
+def convertConservative(tube, g, solver, boundary):
+    if solver in ["ppm", "parabolic", "p"]:
         arr = makeBoundary(tube, boundary)
-        q = tube - (np.diff(arr[1:], axis=0) - np.diff(arr[:-1], axis=0))/denominator  # 2nd-order Taylor expansion (Laplacian)
+        q = tube - (np.diff(arr[1:], axis=0) - np.diff(arr[:-1], axis=0))/24  # 2nd-order Taylor expansion (Laplacian)
         w = pointConvertConservative(arr, g)
-        return pointConvertConservative(q, g) + (np.diff(w[1:], axis=0) - np.diff(w[:-1], axis=0))/denominator
+        return pointConvertConservative(q, g) + (np.diff(w[1:], axis=0) - np.diff(w[:-1], axis=0))/24
     else:
         return pointConvertConservative(tube, g)
 
 
-# Make flux based on initial conditions and primitive variables
+# Make flux based on cell-averaged (primitive) variables
 def makeFlux(tube, g):
     rhos, vecs, pressures, Bfield = tube[:,0], tube[:,1:4], tube[:,4], tube[:,5:8]
     arr = np.zeros(tube.shape)
@@ -96,7 +96,7 @@ def makeFlux(tube, g):
     return arr
 
 
-# Jacobian matrix using primitive variables
+# Jacobian matrix based on primitive variables
 def makeJacobian(tube, g):
     rho, vx, pressure, Bfield = tube[:,0], tube[:,1], tube[:,4], tube[:,5:8]
     gridLength, variables = len(tube), len(tube[0])
