@@ -9,21 +9,24 @@ def extrapolate(tube, gamma, solver, boundary):
     # Conversion of conservative variables to primitive variables
     wS = fv.convertConservative(tube, gamma, solver, boundary)
 
-    # Pad array with boundary
-    w = fv.makeBoundary(wS, boundary)
+    if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
+        # Pad array with boundary
+        w = fv.makeBoundary(wS, boundary)
 
-    # Piecewise parabolic method solver (3rd-order accurate for uneven grid; 4th-order accurate for uniform grid)
-    if solver in ["ppm", "parabolic", "p"]:
-        # PPM requires additional ghost cells
-        w2 = fv.makeBoundary(wS, boundary, 2)
+        # Piecewise parabolic method solver (3rd-order accurate for uneven grid; 4th-order accurate for uniform grid)
+        if solver in ["ppm", "parabolic", "p"]:
+            # PPM requires additional ghost cells
+            w2 = fv.makeBoundary(wS, boundary, 2)
 
-        # Extrapolate in primitive variables to 4th-order face values
-        # [Colella et al., 2011, eq. 67; Peterson & Hammett, 2013, eq. 3.26-3.27; Felker & Stone, 2018, eq. 10]
-        wFL = 7/12 * (wS+w[:-2]) - 1/12 * (w2[:-4]+w[2:])  # face i-1/2
-        wFR = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])  # face i+1/2
-        return [wS, [wFL, wFR], w, w2]
+            # Extrapolate in primitive variables to 4th-order face values
+            # [Colella et al., 2011, eq. 67; Peterson & Hammett, 2013, eq. 3.26-3.27; Felker & Stone, 2018, eq. 10]
+            wFL = 7/12 * (wS+w[:-2]) - 1/12 * (w2[:-4]+w[2:])  # face i-1/2
+            wFR = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])  # face i+1/2
+            return [wS, [wFL, wFR], w, w2]
+        else:
+            return w
     else:
-        return w
+        return wS
 
 
 # Reconstruct the interpolants using the limited values
