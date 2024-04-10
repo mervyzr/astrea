@@ -30,26 +30,30 @@ def calculateRiemannFlux(solutions, gamma, solver, boundary):
 
 
     else:
-        #wS = fv.makeBoundary(solutions, boundary)
-        #qS = fv.convertPrimitive(wS, gamma, solver, boundary)
+        wS = fv.makeBoundary(solutions, boundary)
+        qS = fv.convertPrimitive(wS, gamma, solver, boundary)
 
-        #fS = fv.makeFlux(wS, gamma)
-        #A = fv.makeJacobian(wS, gamma)
+        fS = fv.makeFlux(wS, gamma)
+        A = fv.makeJacobian(wS, gamma)
+
+    # Determine the eigenvalues for the computation of the flux and time stepping
+    localEigvals = np.max(np.abs(np.linalg.eigvals(A)), axis=1)  # Local max eigenvalue for each cell
+    eigvals = np.max([localEigvals[:-1], localEigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
+    eigmax = np.max([np.max(eigvals), sys.float_info.epsilon])  # Maximum wave speed (max eigenvalue) for system
 
 
+        #wLs, wRs = fv.makeBoundary(solutions, boundary)[:-1], fv.makeBoundary(solutions, boundary)[1:]
+        #qLs, qRs = fv.convertPrimitive(wLs, gamma, solver, boundary), fv.convertPrimitive(wRs, gamma, solver, boundary)
 
-        wLs, wRs = fv.makeBoundary(solutions, boundary)[:-1], fv.makeBoundary(solutions, boundary)[1:]
-        qLs, qRs = fv.convertPrimitive(wLs, gamma, solver, boundary), fv.convertPrimitive(wRs, gamma, solver, boundary)
-
-        fLs, fRs = fv.makeFlux(wLs, gamma), fv.makeFlux(wRs, gamma)
-        AL, AR = fv.makeJacobian(wLs, gamma), fv.makeJacobian(wRs, gamma)
+        #fLs, fRs = fv.makeFlux(wLs, gamma), fv.makeFlux(wRs, gamma)
+        #AL, AR = fv.makeJacobian(wLs, gamma), fv.makeJacobian(wRs, gamma)
 
     # !!! Need to note that the eigenvalues used here should not be a single value; it should be a unique value for each interface flux
-    eigvalL, eigvalR = np.linalg.eigvals(AL), np.linalg.eigvals(AR)
-    eigmax = np.max([np.max(abs(eigvalL)), np.max(abs(eigvalR)), sys.float_info.epsilon])  # Compute the maximum wave speed (max eigenvalue)
+    #eigvalL, eigvalR = np.linalg.eigvals(AL), np.linalg.eigvals(AR)
+    #eigmax = np.max([np.max(abs(eigvalL)), np.max(abs(eigvalR)), sys.float_info.epsilon])  # Compute the maximum wave speed (max eigenvalue)
 
     # Return the Riemann fluxes
     if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
         return .5 * ((fLs+fRs) - (eigmax*(qLs-qRs))), eigmax
     else:
-        return .5 * ((fLs+fRs) - (eigmax*(qRs-qLs))), eigmax
+        return .5 * ((fS[:-1]+fS[1:]) - ((eigvals * np.diff(qS,axis=0).T).T)), eigmax
