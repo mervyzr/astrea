@@ -17,7 +17,7 @@ from functions import generic, fv, plotting
 ##############################################################################
 
 currentdir = os.getcwd()
-seed = random.randint(0, 10000000)
+seed = random.randint(0, 1e6)
 
 
 # Run code
