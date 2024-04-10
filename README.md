@@ -1,5 +1,5 @@
 # mHydyS
-mHydyS (pronounced *"Hades"*; the *"m"* is silent 😀) is a one-dimensional (magneto-)hydrodynamics shock code for the purpose of simulating shocks with ions and neutrals, with possible radiative heating and cooling.
+`mHydyS` (pronounced *"Hades"*; the *"m"* is silent 😀) is a one-dimensional (magneto-)hydrodynamics shock code for the purpose of simulating shocks with ions and neutrals, with possible radiative heating and cooling.
 
 This code is created as part of the Master's thesis research project at the University of Cologne.
 
