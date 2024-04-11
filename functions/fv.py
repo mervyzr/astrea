@@ -60,25 +60,19 @@ def pointConvertConservative(tube, g):
 
 
 # Converting (cell-/face-averaged) primitive variables w to conservative variables q through a higher-order approx.
-def convertPrimitive(tube, g, solver, boundary):
-    if solver in ["ppm", "parabolic", "p"]:
-        arr = makeBoundary(tube, boundary)
-        w = tube - (np.diff(arr[1:], axis=0) - np.diff(arr[:-1], axis=0))/24  # 2nd-order Taylor expansion (Laplacian)
-        q = pointConvertPrimitive(arr, g)
-        return pointConvertPrimitive(w, g) + (np.diff(q[1:], axis=0) - np.diff(q[:-1], axis=0))/24
-    else:
-        return pointConvertPrimitive(tube, g)
+def convertPrimitive(tube, g, boundary):
+    arr = makeBoundary(tube, boundary)
+    w = tube - (np.diff(arr[1:], axis=0) - np.diff(arr[:-1], axis=0))/24  # 2nd-order Taylor expansion (Laplacian)
+    q = pointConvertPrimitive(arr, g)
+    return pointConvertPrimitive(w, g) + (np.diff(q[1:], axis=0) - np.diff(q[:-1], axis=0))/24
 
 
 # Converting (cell-/face-averaged) conservative variables q to primitive variables w through a higher-order approx.
-def convertConservative(tube, g, solver, boundary):
-    if solver in ["ppm", "parabolic", "p"]:
-        arr = makeBoundary(tube, boundary)
-        q = tube - (np.diff(arr[1:], axis=0) - np.diff(arr[:-1], axis=0))/24  # 2nd-order Taylor expansion (Laplacian)
-        w = pointConvertConservative(arr, g)
-        return pointConvertConservative(q, g) + (np.diff(w[1:], axis=0) - np.diff(w[:-1], axis=0))/24
-    else:
-        return pointConvertConservative(tube, g)
+def convertConservative(tube, g, boundary):
+    arr = makeBoundary(tube, boundary)
+    q = tube - (np.diff(arr[1:], axis=0) - np.diff(arr[:-1], axis=0))/24  # 2nd-order Taylor expansion (Laplacian)
+    w = pointConvertConservative(arr, g)
+    return pointConvertConservative(q, g) + (np.diff(w[1:], axis=0) - np.diff(w[:-1], axis=0))/24
 
 
 # Make flux based on cell-averaged (primitive) variables
