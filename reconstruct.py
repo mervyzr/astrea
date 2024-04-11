@@ -7,13 +7,15 @@ from functions import fv
 # Extrapolate the averaged cell variables to the cell faces
 def extrapolate(tube, gamma, solver, boundary):
     # Conversion of conservative variables to primitive variables
-    wS = fv.convertConservative(tube, gamma, solver, boundary)
+    if solver in ["ppm", "parabolic", "p"]:
+        wS = fv.convertConservative(tube, gamma, boundary)
+    else:
+        wS = fv.pointConvertConservative(tube, gamma)
 
     if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
         # Pad array with boundary
         w = fv.makeBoundary(wS, boundary)
 
-        # Piecewise parabolic method solver (3rd-order accurate for uneven grid; 4th-order accurate for uniform grid)
         if solver in ["ppm", "parabolic", "p"]:
             # PPM requires additional ghost cells
             w2 = fv.makeBoundary(wS, boundary, 2)
