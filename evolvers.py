@@ -115,7 +115,7 @@ def evolveTime(domain, fluxes, dx, dt, stepper, gamma, solver, boundary):
 
         # Computation of 3rd register
         flux2, eigmax = evolveSpace(k2, gamma, solver, boundary)
-        k3 = domain + .5*dt*getL(flux2, dx)
+        k3 = domain + dt*getL(flux2, dx)
 
         # Computation of the final update
         flux3, eigmax = evolveSpace(k3, gamma, solver, boundary)
