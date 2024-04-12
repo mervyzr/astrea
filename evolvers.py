@@ -15,8 +15,8 @@ def getL(fluxes, dx):
 def evolveSpace(tube, gamma, solver, boundary):
     extrapolatedValues = reconstruct.extrapolate(tube, gamma, solver, boundary)
     limitedValues = limiters.applyLimiter(extrapolatedValues, solver)
-    solution = reconstruct.interpolate(extrapolatedValues, limitedValues, solver, boundary)
-    return solvers.calculateRiemannFlux(solution, gamma, solver, boundary)
+    solutions = reconstruct.interpolate(extrapolatedValues, limitedValues, solver, boundary)
+    return solvers.calculateRiemannFlux(tube, solutions, gamma, solver, boundary)
 
 
 # Evolve the system in time by a standardised workflow

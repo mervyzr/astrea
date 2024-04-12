@@ -7,7 +7,7 @@ from functions import fv
 ##############################################################################
 
 # Solve the Riemann (flux) problem (Local Lax-Friedrichs; approximate Roe solver)
-def calculateRiemannFlux(solutions, gamma, solver, boundary):
+def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
     if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
         leftSolution, rightSolution = solutions
         leftInterface, rightInterface = fv.makeBoundary(leftSolution, boundary)[1:], fv.makeBoundary(rightSolution, boundary)[:-1]
