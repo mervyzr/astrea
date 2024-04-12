@@ -251,7 +251,7 @@ def plotSolutionErrors(f, configVariables, testVariables, savepath):
     return None
 
 
-def makeVideo(f, configVariables, testVariables, savepath):
+def makeVideo(f, configVariables, testVariables, savepath, vidpath):
     config, solver, timestep = configVariables['config'], configVariables['solver'], configVariables['timestep']
     startPos, endPos = testVariables['startPos'], testVariables['endPos']
 
@@ -262,10 +262,6 @@ def makeVideo(f, configVariables, testVariables, savepath):
     for N in nList:
         simulation = f[str(N)]
         counter = 0
-
-        path = f"{os.getcwd()}/vidplots"
-        if not os.path.exists(path):
-            os.makedirs(path)
 
         for t, domain in simulation.items():
             fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
@@ -297,7 +293,7 @@ def makeVideo(f, configVariables, testVariables, savepath):
             plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {len(y1)}$)", fontsize=24)
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
 
-            plt.savefig(f"{path}/{str(counter).zfill(4)}.png", dpi=330, facecolor="w")
+            plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330, facecolor="w")
 
             plt.cla()
             plt.clf()
@@ -306,11 +302,11 @@ def makeVideo(f, configVariables, testVariables, savepath):
             counter += 1
 
         try:
-            subprocess.call(["ffmpeg", "-framerate", "60", "-pattern_type", "glob", "-i", f"{path}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{savepath}/vid_{config}_{solver}_{timestep}.mp4"])
+            subprocess.call(["ffmpeg", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{savepath}/vid_{config}_{solver}_{timestep}.mp4"])
         except Exception as e:
             print(f"{generic.bcolours.WARNING}ffmpeg failed: {e}{generic.bcolours.ENDC}")
             try:
-                images = [os.path.join(path,img) for img in os.listdir(path) if img.endswith(".png")]
+                images = [os.path.join(vidpath,img) for img in os.listdir(vidpath) if img.endswith(".png")]
                 images.sort()
 
                 video = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(images, fps=60)
@@ -320,7 +316,7 @@ def makeVideo(f, configVariables, testVariables, savepath):
                 pass
                 print(f"{generic.bcolours.FAIL}Video creation failed{generic.bcolours.ENDC}")
             else:
-                shutil.rmtree(path)
+                shutil.rmtree(vidpath)
         else:
-            shutil.rmtree(path)
+            shutil.rmtree(vidpath)
     return None

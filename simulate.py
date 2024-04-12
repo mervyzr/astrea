@@ -17,7 +17,7 @@ from functions import generic, fv, plotting
 ##############################################################################
 
 currentdir = os.getcwd()
-seed = random.randint(0, 1e6)
+seed = random.randint(0, 1e8)
 
 
 # Run finite volume code
@@ -85,6 +85,8 @@ if __name__ == "__main__":
         nList = [configVariables['cells']]
 
     try:
+        scriptStart = datetime.now().strftime('%Y%m%d')
+        savepath = f"{currentdir}/savedData/{scriptStart}{seed}"
         with h5py.File(filename, "w") as f:
             for cells in nList:
                 configVariables['cells'] = cells  # Set cell values
@@ -104,21 +106,16 @@ if __name__ == "__main__":
                 generic.printOutput(now, configVariables, elapsed, len(list(grp.keys())))
 
             if configVariables['savePlots']:
-                savepath = f"{currentdir}/plots"
-                if not os.path.exists(savepath):
-                    os.makedirs(savepath)
-
                 plotting.plotQuantities(f, configVariables, testVariables, savepath)
                 if configVariables['runType'].startswith('m') and (configVariables['config'].startswith('sin') or configVariables['config'].startswith('gauss')):
                     plotting.plotSolutionErrors(f, configVariables, testVariables, savepath)
 
             if configVariables['saveVideo']:
                 if configVariables['runType'].startswith('s'):
-                    savepath = f"{currentdir}/videos"
-                    if not os.path.exists(savepath):
-                        os.makedirs(savepath)
-
-                    plotting.makeVideo(f, configVariables, testVariables, savepath)
+                    vidpath = f"{currentdir}/.vidplots"
+                    if not os.path.exists(vidpath):
+                        os.makedirs(vidpath)
+                    plotting.makeVideo(f, configVariables, testVariables, savepath, vidpath)
                 else:
                     print(f"{generic.bcolours.WARNING}Error; can only save video with runType='single'{generic.bcolours.ENDC}")
     except Exception as e:
@@ -127,8 +124,6 @@ if __name__ == "__main__":
         os.remove(filename)
     else:
         if configVariables['saveFile']:
-            if not os.path.exists(f"{currentdir}/datasets"):
-                os.makedirs(f"{currentdir}/datasets")
-            shutil.move(filename, f"{currentdir}/datasets/shockTube_{configVariables['config']}_{configVariables['solver']}_{configVariables['timestep']}_{seed}.hdf5")
+            shutil.move(filename, f"{savepath}/shockTube_{configVariables['config']}_{configVariables['solver']}_{configVariables['timestep']}_{seed}.hdf5")
         else:
             os.remove(filename)
