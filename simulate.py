@@ -103,7 +103,7 @@ if __name__ == "__main__":
                 simulateShock(configVariables, testVariables, grp)
                 elapsed = process_time() - lap
                 grp.attrs['elapsed'] = elapsed
-                generic.printOutput(now, configVariables, elapsed, len(list(grp.keys())))
+                generic.printOutput(now, seed, configVariables, elapsed, len(list(grp.keys())))
 
             if (configVariables['savePlots'] or configVariables['saveVideo'] or configVariables['saveFile']) and not os.path.exists(savepath):
                 os.makedirs(savepath)
@@ -120,7 +120,7 @@ if __name__ == "__main__":
                         os.makedirs(vidpath)
                     plotting.makeVideo(f, configVariables, testVariables, savepath, vidpath)
                 else:
-                    print(f"{generic.bcolours.WARNING}Error; can only save video with runType='single'{generic.bcolours.ENDC}")
+                    print(f"{generic.bcolours.FAIL}Videos can only be saved with runType='single'{generic.bcolours.ENDC}")
     except Exception as e:
         print(f"{generic.bcolours.WARNING}-- Error: {e} --{generic.bcolours.ENDC}\n")
         print(traceback.format_exc())

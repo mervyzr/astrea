@@ -24,18 +24,19 @@ def roundOff(value):
 
 
 # Print status to Terminal
-def printOutput(instanceTime, cfg, elapsed, runLength):
-    _config = f"{bcolours.OKGREEN}{cfg['config'].upper()}{bcolours.ENDC}"
-    _cells = f"{bcolours.OKGREEN}{cfg['cells']}{bcolours.ENDC}"
-    _solver = f"{bcolours.OKGREEN}{cfg['solver'].upper()}{bcolours.ENDC}"
-    _timestep = f"{bcolours.OKGREEN}{cfg['timestep'].upper()}{bcolours.ENDC}"
-    _cfl = f"{bcolours.OKGREEN}{cfg['cfl']}{bcolours.ENDC}"
+def printOutput(instanceTime, seed, cfg, elapsed, runLength):
+    _seed = f"{bcolours.OKBLUE}{seed}{bcolours.ENDC}"
+    _config = f"{bcolours.OKCYAN}{cfg['config'].upper()}{bcolours.ENDC}"
+    _cells = f"{bcolours.OKCYAN}{cfg['cells']}{bcolours.ENDC}"
+    _solver = f"{bcolours.OKCYAN}{cfg['solver'].upper()}{bcolours.ENDC}"
+    _timestep = f"{bcolours.OKCYAN}{cfg['timestep'].upper()}{bcolours.ENDC}"
+    _cfl = f"{bcolours.OKCYAN}{cfg['cfl']}{bcolours.ENDC}"
     if elapsed >= 3600:
         _elapsed = f"{bcolours.FAIL}{str(timedelta(seconds=elapsed))}s{bcolours.ENDC}"
     elif 3600 > elapsed >= 1800:
         _elapsed = f"{bcolours.WARNING}{str(timedelta(seconds=elapsed))}s{bcolours.ENDC}"
     else:
-        _elapsed = f"{bcolours.OKCYAN}{str(timedelta(seconds=elapsed))}s{bcolours.ENDC}"
+        _elapsed = f"{bcolours.OKGREEN}{str(timedelta(seconds=elapsed))}s{bcolours.ENDC}"
     #_performance = f"{bcolours.OKGREEN}{round(elapsed*1e6/(cfg['cells']*runLength), 3)} \u03BCs/(dt*N){bcolours.ENDC}"
-    print(f"[{instanceTime}] TEST={_config}, CELLS={_cells}, CFL={_cfl}, RECONSTRUCT={_solver}, TIMESTEP={_timestep} || Elapsed: {_elapsed} ({runLength})")
+    print(f"[{instanceTime} | {_seed}] TEST={_config}, CELLS={_cells}, CFL={_cfl}, RECONSTRUCT={_solver}, ITERATE={_timestep} || Elapsed: {_elapsed}  ({runLength})")
     pass
