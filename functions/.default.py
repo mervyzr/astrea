@@ -28,7 +28,7 @@ savePlots = False
 snapshots = 1
 # : Save a video of the simulation
 saveVideo = False
-# : Save the HDF5 file of the simulation (!! Might go up to 94GB !!)
+# : Save the HDF5 file of the simulation (!! Possibly large file sizes > 100GB !!)
 saveFile = False
 
 
