@@ -18,14 +18,15 @@ def calculateRiemannFlux(solutions, gamma, solver, boundary):
         else:
             avg_wS = (leftSolution + rightSolution)/2
 
-        wS = fv.makeBoundary(avg_wS, boundary)
-        fS = fv.makeFlux(wS, gamma)
-        A = fv.makeJacobian(wS, gamma)
-
         # Ideally, the 4th-order averaged fluxes should be computed from the face-averaged variables
         # But because the simulation is only 1D, the "normal"-Laplacian (Taylor expansion) of the face-averaged states and fluxes are zero
         # Thus, the face-averaged and face-centred values are the same (<w>_i+1/2 = w_i+1/2)
         # Same for the averaged and centred fluxes (<F>_i+1/2 = F_i+1/2)
+        wS = fv.makeBoundary(avg_wS, boundary)
+        fS = fv.makeFlux(wS, gamma)
+        A = fv.makeJacobian(wS, gamma)
+
+        # The conversion can be pointwise conversion for the face-averaged values
         qLs, qRs = fv.pointConvertPrimitive(leftInterface, gamma), fv.pointConvertPrimitive(rightInterface, gamma)
         qDiff = (qLs - qRs).T
     else:
