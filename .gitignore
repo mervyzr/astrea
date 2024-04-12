@@ -54,10 +54,6 @@ docs/_build/
 
 # custom files
 settings.py
-*.h5
-*.he5
 *.hdf5
-datasets
-plots
-videos
-vidplots
+savedData
+.vidplots
