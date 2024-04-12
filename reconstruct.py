@@ -19,11 +19,14 @@ def extrapolate(tube, gamma, solver, boundary):
         if solver in ["ppm", "parabolic", "p"]:
             # PPM requires additional ghost cells
             w2 = fv.makeBoundary(wS, boundary, 2)
+            w3 = fv.makeBoundary(wS, boundary, 3)
 
             # Extrapolate in primitive variables to 4th-order face values
             # [Colella et al., 2011, eq. 67; Peterson & Hammett, 2013, eq. 3.26-3.27; Felker & Stone, 2018, eq. 10]
-            wFL = 7/12 * (wS+w[:-2]) - 1/12 * (w2[:-4]+w[2:])  # face i-1/2
-            wFR = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])  # face i+1/2
+            #wFL = 7/12 * (wS+w[:-2]) - 1/12 * (w[2:]+w2[:-4])  # face i-1/2 (4th-order)
+            #wFR = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])  # face i+1/2 (4th-order)
+            wFL = (37*(wS+w[:-2]) - 8*(w[2:]+w2[:-4]) + (w2[4:]+w3[:-6])) / 60  # face i-1/2 (6th-order)
+            wFR = (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:])) / 60  # face i+1/2 (6th-order)
             return [wS, [wFL, wFR], w, w2]
         else:
             return w
