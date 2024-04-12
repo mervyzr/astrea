@@ -105,6 +105,9 @@ if __name__ == "__main__":
                 grp.attrs['elapsed'] = elapsed
                 generic.printOutput(now, configVariables, elapsed, len(list(grp.keys())))
 
+            if (configVariables['savePlots'] or configVariables['saveVideo'] or configVariables['saveFile']) and not os.path.exists(savepath):
+                os.makedirs(savepath)
+
             if configVariables['savePlots']:
                 plotting.plotQuantities(f, configVariables, testVariables, savepath)
                 if configVariables['runType'].startswith('m') and (configVariables['config'].startswith('sin') or configVariables['config'].startswith('gauss')):
