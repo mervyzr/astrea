@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
     if configVariables['runType'].startswith('m'):
         configVariables['livePlot'] = False  # Turn off the live plot
-        nList = 5 * 2**np.arange(3,12)
+        nList = 5 * 2**np.arange(4,12)
     else:
         if not configVariables['runType'].startswith('s'):
             print(f"{generic.bcolours.WARNING}RunType unknown; running single test..{generic.bcolours.ENDC}")
