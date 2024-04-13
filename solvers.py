@@ -14,8 +14,10 @@ def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
 
         # Get the average of the solutions by integrating the interpolated values
         if solver in ["ppm", "parabolic", "p"]:
-            # [Colella & Woodward, 1984, eq. 1.4]
             avg_wS = (leftSolution + rightSolution)/2
+            # [Colella & Woodward, 1984, eq. 1.4-1.5]
+            #q6 = np.copy(6 * (tube - .5 * (leftSolution+rightSolution)))
+            #avg_wS = leftSolution + .5*(rightSolution - leftSolution + .5*q6)  # Only for uniform grid
         else:
             avg_wS = (leftSolution + rightSolution)/2
     else:
