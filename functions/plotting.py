@@ -22,10 +22,10 @@ def initiateLivePlot(startPos, endPos, N):
     plt.ion()
 
     fig, ax = plt.subplots(nrows=2, ncols=2)
-    ax[0,0].set_ylabel(r"density $\rho$")
-    ax[0,1].set_ylabel(r"pressure $P$")
-    ax[1,0].set_ylabel(r"velocity $v_x$")
-    ax[1,1].set_ylabel(r"thermal energy $P/\rho$")
+    ax[0,0].set_ylabel(r"Density $\rho$")
+    ax[0,1].set_ylabel(r"Pressure $P$")
+    ax[1,0].set_ylabel(r"Velocity $v_x$")
+    ax[1,1].set_ylabel(r"Thermal energy $\frac{P}{\rho}$")
 
     ax[0,1].yaxis.set_label_position("right")
     ax[1,1].yaxis.set_label_position("right")
@@ -69,7 +69,7 @@ def updatePlot(arr, t, fig, ax, plots):
     ax[1,1].relim()
     ax[1,1].autoscale_view()
 
-    plt.suptitle(rf"Quantities $q$ against cell position $x$ at $t = {round(t,4)}$")
+    plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(t,4)}$")
     fig.text(0.5, 0.04, r"Cell position $x$", ha='center')
     fig.canvas.draw()
     fig.canvas.flush_events()
@@ -99,7 +99,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
         ax[0,0].set_ylabel(r"Density $\rho$", fontsize=18)
         ax[0,1].set_ylabel(r"Pressure $P$", fontsize=18)
         ax[1,0].set_ylabel(r"Velocity $v_x$", fontsize=18)
-        ax[1,1].set_ylabel(r"Thermal energy $P/\rho$", fontsize=18)
+        ax[1,1].set_ylabel(r"Thermal energy $\frac{P}{\rho}$", fontsize=18)
         ax[0,0].set_xlim([startPos, endPos])
         ax[0,1].set_xlim([startPos, endPos])
         ax[1,0].set_xlim([startPos, endPos])
@@ -123,13 +123,13 @@ def plotQuantities(f, configVariables, testVariables, savepath):
                 ax[0,1].plot(x, y2, linewidth=2, label=f"N = {len(y1)}")  # pressure
                 ax[1,0].plot(x, y3, linewidth=2, label=f"N = {len(y1)}")  # vx
                 ax[1,1].plot(x, y4, linewidth=2, label=f"N = {len(y1)}")  # thermal energy
-                plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$", fontsize=24)
+                plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$", fontsize=24)
             else:
                 ax[0,0].plot(x, y1, linewidth=2, color="blue")        # density
                 ax[0,1].plot(x, y2, linewidth=2, color="red")         # pressure
                 ax[1,0].plot(x, y3, linewidth=2, color="green")       # vx
                 ax[1,1].plot(x, y4, linewidth=2, color="darkviolet")  # thermal energy
-                plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$ ($N = {len(y1)}$)", fontsize=24)
+                plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$ ($N = {len(y1)}$)", fontsize=24)
 
         # Adjust ylim and plot analytical solutions for Gaussian and sin-wave tests
         if config.startswith("sin") or config.startswith("gaussian"):
@@ -177,7 +177,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
             handles, labels = plt.gca().get_legend_handles_labels()
             fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
 
-        plt.savefig(f"{savepath}/qPlot_{config}_{solver}_{timestep}_{round(indexes[-1][i],3)}.png", dpi=330, facecolor="w")
+        plt.savefig(f"{savepath}/wPlot_{config}_{solver}_{timestep}_{round(indexes[-1][i],3)}.png", dpi=330, facecolor="w")
 
         plt.cla()
         plt.clf()
@@ -240,7 +240,7 @@ def plotSolutionErrors(f, configVariables, testVariables, savepath):
     ax[0,0].loglog(x, theo_y4, linewidth=1, linestyle="--", color="purple")"""
     # -------- end theoretical portion --------
 
-    plt.suptitle(r"Plot of solution errors $\epsilon_\nu(q)$ against resolution $N_\nu$", fontsize=24)
+    plt.suptitle(r"Solution errors $\epsilon_\nu(\vec{w})$ against resolution $N_\nu$", fontsize=24)
     fig.text(0.5, 0.04, r"Resolution $\log{(N_\nu)}$", fontsize=18, ha='center')
 
     plt.savefig(f"{savepath}/solErr_{solver}_{timestep}.png", dpi=330, facecolor="w")
@@ -269,7 +269,7 @@ def makeVideo(f, configVariables, testVariables, savepath, vidpath):
             ax[0,0].set_ylabel(r"Density $\rho$", fontsize=18)
             ax[0,1].set_ylabel(r"Pressure $P$", fontsize=18)
             ax[1,0].set_ylabel(r"Velocity $v_x$", fontsize=18)
-            ax[1,1].set_ylabel(r"Thermal energy $P/\rho$", fontsize=18)
+            ax[1,1].set_ylabel(r"Thermal energy $\frac{P}{\rho}$", fontsize=18)
             ax[0,0].set_xlim([startPos, endPos])
             ax[0,1].set_xlim([startPos, endPos])
             ax[1,0].set_xlim([startPos, endPos])
@@ -290,7 +290,7 @@ def makeVideo(f, configVariables, testVariables, savepath, vidpath):
             ax[1,0].plot(x, y3, linewidth=2, color="green")  # vx
             ax[1,1].plot(x, y4, linewidth=2, color="darkviolet")  # thermal energy
 
-            plt.suptitle(rf"Plot of quantities $q$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {len(y1)}$)", fontsize=24)
+            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {len(y1)}$)", fontsize=24)
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
 
             plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330, facecolor="w")
