@@ -4,7 +4,7 @@ from functions import fv
 
 ##############################################################################
 
-# Extrapolate the averaged cell variables to the cell faces
+# Extrapolate the cell averages to face averages
 def extrapolate(tube, gamma, solver, boundary):
     # Conversion of conservative variables to primitive variables
     if solver in ["ppm", "parabolic", "p"]:
@@ -44,7 +44,7 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
         wF_limit_L, wF_limit_R = limitedValues
 
         # XPPM parabolic interpolant [Peterson & Hammett, 2013, p. B586]; preserves order at smooth extrema
-        if 1:
+        if 0:
             # Apply limiters for local extrema (eq. 3.19)
             local_extrema = (np.sign(w[2:]-wS) != np.sign(wS-w[:-2]))
             wF_limit_L[local_extrema] = wS[local_extrema]

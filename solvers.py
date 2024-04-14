@@ -16,8 +16,9 @@ def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
         if solver in ["ppm", "parabolic", "p"]:
             avg_wS = (leftSolution + rightSolution)/2
             # [Colella & Woodward, 1984, eq. 1.4-1.5]
-            #q6 = np.copy(6 * (tube - .5 * (leftSolution+rightSolution)))
-            #avg_wS = leftSolution + .5*(rightSolution - leftSolution + .5*q6)  # Only for uniform grid
+            #sigma = .5
+            #w6 = np.copy(6*tube - 3*(leftSolution+rightSolution))
+            #avg_wS = np.copy(rightSolution - (sigma/2)*(rightSolution - leftSolution - w6*(1-(2*sigma/3))))  # Only for uniform grid
         else:
             avg_wS = (leftSolution + rightSolution)/2
     else:
