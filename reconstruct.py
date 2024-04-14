@@ -4,7 +4,7 @@ from functions import fv
 
 ##############################################################################
 
-# Extrapolate the averaged cell variables to the cell faces
+# Extrapolate the cell averages to face averages
 def extrapolate(tube, gamma, solver, boundary):
     # Conversion of conservative variables to primitive variables
     if solver in ["ppm", "parabolic", "p"]:
