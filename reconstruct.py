@@ -4,6 +4,8 @@ from functions import fv
 
 ##############################################################################
 
+xppm = 1
+
 # Extrapolate the cell averages to face averages
 def extrapolate(tube, gamma, solver, boundary):
     # Conversion of conservative variables to primitive variables
@@ -23,12 +25,15 @@ def extrapolate(tube, gamma, solver, boundary):
 
             # Extrapolate in primitive variables to higher-order face values
             # [Colella et al., 2011, eq. 67; Peterson & Hammett, 2013, eq. 3.26-3.27; Felker & Stone, 2018, eq. 10]
-            #wFL = 7/12 * (wS+w[:-2]) - 1/12 * (w[2:]+w2[:-4])  # face i-1/2 (4th-order)
-            #wFR = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])  # face i+1/2 (4th-order)
-            #wFL = (37*(wS+w[:-2]) - 8*(w[2:]+w2[:-4]) + (w2[4:]+w3[:-6])) / 60  # face i-1/2 (6th-order)
-            #wFR = (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:])) / 60  # face i+1/2 (6th-order)
-            wF = (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:])) / 60  # face i+1/2 (6th-order)
-            return [wS, wF, w, w2]
+            if xppm:
+                #wFL = 7/12 * (wS+w[:-2]) - 1/12 * (w[2:]+w2[:-4])  # face i-1/2 (4th-order)
+                #wFR = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])  # face i+1/2 (4th-order)
+                wFL = (37*(wS+w[:-2]) - 8*(w[2:]+w2[:-4]) + (w2[4:]+w3[:-6])) / 60  # face i-1/2 (6th-order)
+                wFR = (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:])) / 60  # face i+1/2 (6th-order)
+                return [wS, [wFL, wFR], w, w2]
+            else:
+                wF = (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:])) / 60  # face i+1/2 (6th-order)
+                return [wS, wF, w, w2]
         else:
             return w
     else:
@@ -43,8 +48,7 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
         wS, wF, w, w2 = extrapolatedValues
 
         # XPPM parabolic interpolant [Peterson & Hammett, 2013, p. B586]; preserves order at smooth extrema
-        if 0:
-
+        if xppm:
             wFL, wFR = wF
             wF_limit_L, wF_limit_R = limitedValues
             
