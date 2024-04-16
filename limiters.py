@@ -8,11 +8,7 @@ from functions import fv
 def applyLimiter(extrapolatedValues, solver):
     # Apply the limiter for parabolic or XPPM
     if solver in ["ppm", "parabolic", "p"]:
-        wS, wF, w, w2 = extrapolatedValues
-        wFL, wFR = wF
-        wF_limit_L = faceValueLimiter(wFL, w2[:-4], w[:-2], wS, w[2:])
-        wF_limit_R = faceValueLimiter(wFR, w[:-2], wS, w[2:], w2[4:])
-        return [wF_limit_L, wF_limit_R]
+        return faceValueLimiter(extrapolatedValues)
 
     # Apply the minmod limiter
     elif solver in ["plm", "linear", "l"]:
@@ -24,7 +20,11 @@ def applyLimiter(extrapolatedValues, solver):
 
 
 # Function for limiting the face-values for PPM [Colella et al., 2011, p. 26; Peterson & Hammett, 2013, p. B585]
-def faceValueLimiter(w_face, w_minusOne, w_cell, w_plusOne, w_plusTwo, C=5/4):
+def faceValueLimiter(extrapolatedValues, C=5/4):
+    w_cell, w_face, w, w2 = extrapolatedValues
+    w_minusOne, w_plusOne = w[:-2], w[2:]
+    w_plusTwo = w2[4:]
+
     # Initial check for local extrema (eq. 3.33-3.34)
     local_extrema = (w_face - w_cell)*(w_plusOne - w_face) < 0
 
@@ -41,12 +41,12 @@ def faceValueLimiter(w_face, w_minusOne, w_cell, w_plusOne, w_plusTwo, C=5/4):
         #advanced_non_monotonic = ((D2w_R - D2w_C)*(D2w_C - D2w_L) < 0) & (np.sign(D2w_L) == np.sign(D2w_R)) & (np.sign(D2w_C) == np.sign(D2w_R))
 
         # Determine the limited curvature with the sign of each element in the 'centre' array (eq. 3.36)
-        limited_curvature = np.sign(D2w_C) * np.minimum(np.abs(D2w_C), np.minimum(C*np.abs(D2w_L), C*np.abs(D2w_R)))
+        limited_curvature = np.sign(D2w_C) * np.minimum(np.abs(D2w_C), np.minimum(np.abs(C*D2w_L), np.abs(C*D2w_R)))
 
         # Update the limited local curvature estimates based on the conditions
         D2w[non_monotonic] = limited_curvature[non_monotonic]
 
-        return (.5 * (w_cell+w_plusOne)) - (D2w/6)
+        return .5*(w_cell+w_plusOne) - D2w/6
     else:
         return w_face
 
