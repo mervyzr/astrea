@@ -4,11 +4,20 @@ from functions import fv
 
 ##############################################################################
 
+xppm = 0
+
 # Apply limiters based on the reconstruction method
 def applyLimiter(extrapolatedValues, solver):
     # Apply the limiter for parabolic or XPPM
     if solver in ["ppm", "parabolic", "p"]:
-        return faceValueLimiter(extrapolatedValues)
+        wS, wF, w, w2 = extrapolatedValues
+        if xppm:
+            wFL, wFR = wF
+            wF_limit_L = faceValueLimiter(wFL, w2[:-4], w[:-2], wS, w[2:])
+            wF_limit_R = faceValueLimiter(wFR, w[:-2], wS, w[2:], w2[4:])
+            return [wF_limit_L, wF_limit_R]
+        else:
+            return faceValueLimiter(wF, w[:-2], wS, w[2:], w2[4:])
 
     # Apply the minmod limiter
     elif solver in ["plm", "linear", "l"]:
@@ -20,11 +29,7 @@ def applyLimiter(extrapolatedValues, solver):
 
 
 # Function for limiting the face-values for PPM [Colella et al., 2011, p. 26; Peterson & Hammett, 2013, p. B585]
-def faceValueLimiter(extrapolatedValues, C=5/4):
-    w_cell, w_face, w, w2 = extrapolatedValues
-    w_minusOne, w_plusOne = w[:-2], w[2:]
-    w_plusTwo = w2[4:]
-
+def faceValueLimiter(w_face, w_minusOne, w_cell, w_plusOne, w_plusTwo, C=5/4):
     # Initial check for local extrema (eq. 3.33-3.34)
     local_extrema = (w_face - w_cell)*(w_plusOne - w_face) < 0
 

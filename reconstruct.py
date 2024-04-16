@@ -4,7 +4,7 @@ from functions import fv
 
 ##############################################################################
 
-xppm = 1
+xppm = 0
 
 # Extrapolate the cell averages to face averages
 def extrapolate(tube, gamma, solver, boundary):
