@@ -51,7 +51,7 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
         if xppm:
             wFL, wFR = wF
             wF_limit_L, wF_limit_R = limitedValues
-            
+
             # Apply limiters for local extrema (eq. 3.19)
             local_extrema = (np.sign(w[2:]-wS) != np.sign(wS-w[:-2]))
             wF_limit_L[local_extrema] = wS[local_extrema]
