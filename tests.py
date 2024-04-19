@@ -30,7 +30,7 @@ elif config.startswith('sin'):
 elif config == "sedov":
     startPos = -10
     endPos = 10
-    shockPos = .1  # blast boundary
+    shockPos = .5  # blast boundary
     tEnd = .6
     boundary = "edge"  # outflow
     freq = None
