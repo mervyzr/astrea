@@ -4,7 +4,7 @@ from functions import fv
 
 ##############################################################################
 
-xppm = 0
+from reconstruct import xppm
 
 # Apply limiters based on the reconstruction method
 def applyLimiter(extrapolatedValues, solver):
