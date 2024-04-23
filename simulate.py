@@ -100,11 +100,11 @@ if __name__ == "__main__":
                 grp.attrs['timestep'] = configVariables['timestep']
 
                 lap, now = process_time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                print(f"[{now} | {generic.bcolours.OKBLUE}{seed}{generic.bcolours.ENDC}] {generic.bcolours.WARNING}RUNNING SIMULATION..{generic.bcolours.ENDC}", end='\r')
+                generic.printOutput(now, seed, configVariables)
                 simulateShock(configVariables, testVariables, grp)
                 elapsed = process_time() - lap
                 grp.attrs['elapsed'] = elapsed
-                generic.printOutput(now, seed, configVariables, elapsed, len(list(grp.keys())))
+                generic.printOutput(now, seed, configVariables, elapsed=elapsed, runLength=len(list(grp.keys())))
 
             if (configVariables['savePlots'] or configVariables['saveVideo'] or configVariables['saveFile']) and not os.path.exists(savepath):
                 os.makedirs(savepath)
