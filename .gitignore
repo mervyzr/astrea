@@ -53,7 +53,7 @@ docs/_build/
 .DS_Store
 
 # custom files
-settings.yml
+settings.py
 savedData
 *.hdf5
 .vidplots
