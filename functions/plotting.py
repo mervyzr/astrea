@@ -16,6 +16,8 @@ from functions import generic, analytic
 
 ##############################################################################
 
+plt.style.use("default")
+
 # Initiate the live plot feature
 def initiateLivePlot(startPos, endPos, N):
     plot_x = np.linspace(startPos, endPos, N)
