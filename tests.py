@@ -103,6 +103,16 @@ elif "toro" in config:
         initialLeft = np.array([1,.75,0,0,1,0,0,0])
         initialRight = np.array([.125,0,0,0,.1,0,0,0])
 
+elif "ryu" in config or "jones" in config or "rj" in config:
+    startPos = -.5
+    endPos = .5
+    shockPos = 0
+    tEnd = .15
+    boundary = "edge"  # outflow
+    freq = None
+    initialLeft = np.array([1.08,1.2,.01,.5,.95,.5641895835477562,1.0155412503859613,.5641895835477562])
+    initialRight = np.array([1,0,0,0,1,.5641895835477562,1.1283791670955125,.5641895835477562])
+
 else:
     print(f"{generic.bcolours.WARNING}Test unknown; reverting to Sod shock tube test..{generic.bcolours.ENDC}")
     startPos = 0
