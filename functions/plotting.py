@@ -115,7 +115,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
             y1 = f[str(N)][time_key][:, 0]   # density
             y2 = f[str(N)][time_key][:, 4]   # pressure
             y3 = f[str(N)][time_key][:, 1]   # vx
-            y4 = y2/y1                      # thermal energy
+            y4 = y2/y1                       # thermal energy
             x = np.linspace(startPos, endPos, len(y1))
 
             if len(f) != 1:
@@ -319,4 +319,47 @@ def makeVideo(f, configVariables, testVariables, savepath, vidpath):
                 shutil.rmtree(vidpath)
         else:
             shutil.rmtree(vidpath)
+    return None
+
+
+# Useful function for plotting each instance of the domain (livePlot must be switched OFF)
+def plotInstance(domain, showPlot=True, text="", startPos=0, endPos=1, **kwargs):
+    fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
+
+    ax[0,0].set_ylabel(r"Density $\rho$", fontsize=18)
+    ax[0,1].set_ylabel(r"Pressure $P$", fontsize=18)
+    ax[1,0].set_ylabel(r"Velocity $v_x$", fontsize=18)
+    ax[1,1].set_ylabel(r"Thermal energy $\frac{P}{\rho}$", fontsize=18)
+    ax[0,0].set_xlim([startPos, endPos])
+    ax[0,1].set_xlim([startPos, endPos])
+    ax[1,0].set_xlim([startPos, endPos])
+    ax[1,1].set_xlim([startPos, endPos])
+    ax[0,0].grid(linestyle='--', linewidth=0.5)
+    ax[0,1].grid(linestyle='--', linewidth=0.5)
+    ax[1,0].grid(linestyle='--', linewidth=0.5)
+    ax[1,1].grid(linestyle='--', linewidth=0.5)
+
+    y1 = domain[:, 0]   # density
+    y2 = domain[:, 4]   # pressure
+    y3 = domain[:, 1]   # vx
+    y4 = y2/y1          # thermal energy
+    x = np.linspace(startPos, endPos, len(y1))
+
+    ax[0,0].plot(x, y1, linewidth=2, color="blue")        # density
+    ax[0,1].plot(x, y2, linewidth=2, color="red")         # pressure
+    ax[1,0].plot(x, y3, linewidth=2, color="green")       # vx
+    ax[1,1].plot(x, y4, linewidth=2, color="darkviolet")  # thermal energy
+    plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}", fontsize=24)
+    fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
+
+    if showPlot:
+        plt.show(block=True)
+    else:
+        step = kwargs['step']
+        seed = kwargs['seed']
+        plt.savefig(f"{seed}_{step}_{text.replace(' ','').title()}.png", dpi=330, facecolor="w")
+
+    plt.cla()
+    plt.clf()
+    plt.close()
     return None
