@@ -11,16 +11,7 @@ def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
     if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
         leftSolution, rightSolution = solutions
         leftInterface, rightInterface = fv.makeBoundary(leftSolution, boundary)[1:], fv.makeBoundary(rightSolution, boundary)[:-1]
-
-        # Get the average of the solutions by integrating the interpolated values
-        if solver in ["ppm", "parabolic", "p"]:
-            avg_wS = (leftSolution + rightSolution)/2
-            # [Colella & Woodward, 1984, eq. 1.4-1.5]
-            #sigma = .5
-            #w6 = np.copy(6*tube - 3*(leftSolution+rightSolution))
-            #avg_wS = np.copy(rightSolution - (sigma/2)*(rightSolution - leftSolution - w6*(1-(2*sigma/3))))  # Only for uniform grid
-        else:
-            avg_wS = (leftSolution + rightSolution)/2
+        avg_wS = (leftSolution + rightSolution)/2  # Get the average of the solutions
     else:
         avg_wS = solutions
 
