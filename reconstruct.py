@@ -42,15 +42,6 @@ def extrapolate(tube, gamma, solver, boundary):
                 wF[1] = 1/12 * (3*wS[1] + 13*wS[2] - 5*wS[3] + wS[4])
                 wF[-2] = 1/12 * (3*wS[-1] + 13*wS[-2] - 5*wS[-3] + wS[-4])
 
-                """coefficients = [[25, -23, 13, -3], [3, 13, -5, 1]]
-                for i, cell_indexes in enumerate([[0,-1], [1,-2]]):
-                    lowerBound, upperBound = np.zeros(wS[0].shape), np.zeros(wS[0].shape)
-                    for index, value in enumerate(coefficients[i]):
-                        lowerBound += value*wS[index+1]
-                        upperBound += value*wS[-(index+1)]
-                    wF[cell_indexes[0]] = lowerBound/12
-                    wF[cell_indexes[1]] = upperBound/12"""
-
                 #wF = (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:])) / 60  # face i+1/2 (6th-order)
                 return [wS, wF, w, w2]
         else:
