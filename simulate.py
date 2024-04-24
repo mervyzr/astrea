@@ -18,6 +18,7 @@ from functions import generic, fv, plotting
 
 currentdir = os.getcwd()
 seed = random.randint(0, 1e8)
+np.random.seed(seed)
 
 
 # Run finite volume code

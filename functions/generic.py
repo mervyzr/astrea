@@ -39,7 +39,7 @@ def printOutput(instanceTime, seed, cfg, **kwargs):
         else:
             _elapsed = f"{bcolours.OKGREEN}{str(timedelta(seconds=kwargs['elapsed']))}s{bcolours.ENDC}"
         #_performance = f"{bcolours.OKGREEN}{round(kwargs['elapsed']*1e6/(cfg['cells']*runLength), 3)} \u03BCs/(dt*N){bcolours.ENDC}"
-        print(f"[{instanceTime} | {_seed}] TEST={_config}, CELLS={_cells}, CFL={_cfl}, RECONSTRUCT={_solver}, ITERATE={_timestep} || Elapsed: {_elapsed}  ({kwargs['runLength']})")
+        print(f"[{instanceTime} | {_seed}] TEST={_config}, CELLS={_cells}, CFL={_cfl}, RECONSTRUCT={_solver}, ITERATE={_timestep} || Elapsed: {_elapsed} ({kwargs['runLength']})")
         pass
     else:
         print(f"[{instanceTime} | {_seed}] TEST={_config}, CELLS={_cells}, CFL={_cfl}, RECONSTRUCT={_solver}, ITERATE={_timestep} || {bcolours.WARNING}RUNNING SIMULATION..{bcolours.ENDC}", end='\r')
