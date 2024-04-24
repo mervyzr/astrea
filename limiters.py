@@ -4,23 +4,17 @@ from functions import fv
 
 ##############################################################################
 
-from reconstruct import xppm, modified
+from reconstruct import modified
 
 # Apply limiters based on the reconstruction method
 def applyLimiter(extrapolatedValues, solver):
     # Apply the limiter for parabolic or XPPM
     if solver in ["ppm", "parabolic", "p"]:
         wS, wF, w, w2 = extrapolatedValues
-        if xppm:
-            wFL, wFR = wF
-            wF_limit_L = faceValueLimiter(wFL, w2[:-4], w[:-2], wS, w[2:])
-            wF_limit_R = faceValueLimiter(wFR, w[:-2], wS, w[2:], w2[4:])
-            return [wF_limit_L, wF_limit_R]
+        if modified:
+            return wF
         else:
-            if modified:
-                return wF
-            else:
-                return faceValueLimiter(wF, w[:-2], wS, w[2:], w2[4:])
+            return faceValueLimiter(wF, w[:-2], wS, w[2:], w2[4:])
 
     # Apply the minmod limiter
     elif solver in ["plm", "linear", "l"]:
@@ -33,13 +27,13 @@ def applyLimiter(extrapolatedValues, solver):
 
 # Function for limiting the face-values for PPM [Colella et al., 2011, p. 26; Peterson & Hammett, 2013, p. B585]
 def faceValueLimiter(w_face, w_minusOne, w_cell, w_plusOne, w_plusTwo, C=5/4):
-    # Initial check for local extrema (eq. 3.33-3.34)
+    # Initial check for local extrema (eq. 84)
     local_extrema = (w_face - w_cell)*(w_plusOne - w_face) < 0
 
     if local_extrema.any():
         D2w = np.zeros(w_face.shape)
 
-        # Approximation to the second derivatives (eq. 3.35)
+        # Approximation to the second derivatives (eq. 85)
         D2w_L = w_minusOne - 2*w_cell + w_plusOne
         D2w_C = 3 * (w_cell - 2*w_face + w_plusOne)
         D2w_R = w_cell - 2*w_plusOne + w_plusTwo
@@ -48,7 +42,7 @@ def faceValueLimiter(w_face, w_minusOne, w_cell, w_plusOne, w_plusTwo, C=5/4):
         non_monotonic = (np.sign(D2w_L) == np.sign(D2w_R)) & (np.sign(D2w_C) == np.sign(D2w_R))
         #advanced_non_monotonic = ((D2w_R - D2w_C)*(D2w_C - D2w_L) < 0) & (np.sign(D2w_L) == np.sign(D2w_R)) & (np.sign(D2w_C) == np.sign(D2w_R))
 
-        # Determine the limited curvature with the sign of each element in the 'centre' array (eq. 3.36)
+        # Determine the limited curvature with the sign of each element in the 'centre' array (eq. 87)
         limited_curvature = np.sign(D2w_C) * np.minimum(np.abs(D2w_C), np.minimum(np.abs(C*D2w_L), np.abs(C*D2w_R)))
 
         # Update the limited local curvature estimates based on the conditions
