@@ -24,16 +24,19 @@ def extrapolate(tube, gamma, solver, boundary):
             w3 = fv.makeBoundary(wS, boundary, 3)
 
             # Extrapolate in primitive variables to higher-order face values
-            # [Colella et al., 2011, eq. 67; Peterson & Hammett, 2013, eq. 3.26-3.27; Felker & Stone, 2018, eq. 10]
             if xppm:
-                #wFL = 7/12 * (wS+w[:-2]) - 1/12 * (w[2:]+w2[:-4])  # face i-1/2 (4th-order)
-                #wFR = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])  # face i+1/2 (4th-order)
-                wFL = (37*(wS+w[:-2]) - 8*(w[2:]+w2[:-4]) + (w2[4:]+w3[:-6])) / 60  # face i-1/2 (6th-order)
-                wFR = (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:])) / 60  # face i+1/2 (6th-order)
+                # Faces (4th-order) [Peterson & Hammett, 2013, eq. 3.26-3.27]
+                wFL = 7/12 * (wS+w[:-2]) - 1/12 * (w[2:]+w2[:-4])
+                wFR = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])
+                # Faces (6th-order) [Colella & Sekora, 2008, eq. 17]
+                #wFL = 1/60 * (37*(wS+w[:-2]) - 8*(w[2:]+w2[:-4]) + (w2[4:]+w3[:-6]))
+                #wFR = 1/60 * (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:]))
                 return [wS, [wFL, wFR], w, w2]
             else:
-                # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 21-22; Colella et al., 2011, eq. 67]
+                # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
                 wF = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])
+                # Face i+1/2 (6th-order) [Colella & Sekora, 2008, eq. 17]
+                #wF = 1/60 * (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:]))
 
                 # Modified stencil [McCorquodale & Colella, 2011, eq. 21-22]
                 wF[0] = 1/12 * (25*wS[1] - 23*wS[2] + 13*wS[3] - 3*wS[4])
@@ -41,8 +44,6 @@ def extrapolate(tube, gamma, solver, boundary):
 
                 wF[1] = 1/12 * (3*wS[1] + 13*wS[2] - 5*wS[3] + wS[4])
                 wF[-2] = 1/12 * (3*wS[-1] + 13*wS[-2] - 5*wS[-3] + wS[-4])
-
-                #wF = (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:])) / 60  # face i+1/2 (6th-order)
                 return [wS, wF, w, w2]
         else:
             return w
