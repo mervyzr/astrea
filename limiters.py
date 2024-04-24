@@ -4,7 +4,7 @@ from functions import fv
 
 ##############################################################################
 
-from reconstruct import xppm
+from reconstruct import xppm, modified
 
 # Apply limiters based on the reconstruction method
 def applyLimiter(extrapolatedValues, solver):
@@ -17,7 +17,10 @@ def applyLimiter(extrapolatedValues, solver):
             wF_limit_R = faceValueLimiter(wFR, w[:-2], wS, w[2:], w2[4:])
             return [wF_limit_L, wF_limit_R]
         else:
-            return faceValueLimiter(wF, w[:-2], wS, w[2:], w2[4:])
+            if modified:
+                return wF
+            else:
+                return faceValueLimiter(wF, w[:-2], wS, w[2:], w2[4:])
 
     # Apply the minmod limiter
     elif solver in ["plm", "linear", "l"]:
