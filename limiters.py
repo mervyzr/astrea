@@ -39,7 +39,7 @@ def faceValueLimiter(w_face, w_minusOne, w_cell, w_plusOne, w_plusTwo, C=5/4):
         D2w_R = w_cell - 2*w_plusOne + w_plusTwo
 
         # Get the curvatures that have the same signs
-        non_monotonic = (np.sign(D2w_L) == np.sign(D2w_R)) & (np.sign(D2w_C) == np.sign(D2w_R))
+        non_monotonic = (np.sign(D2w_L) == np.sign(D2w_R)) & (np.sign(D2w_C) == np.sign(D2w_R)) & (np.sign(D2w_C) == np.sign(D2w_L))
         #advanced_non_monotonic = ((D2w_R - D2w_C)*(D2w_C - D2w_L) < 0) & (np.sign(D2w_L) == np.sign(D2w_R)) & (np.sign(D2w_C) == np.sign(D2w_R))
 
         # Determine the limited curvature with the sign of each element in the 'centre' array (eq. 87)
