@@ -32,7 +32,17 @@ def extrapolate(tube, gamma, solver, boundary):
                 wFR = (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:])) / 60  # face i+1/2 (6th-order)
                 return [wS, [wFL, wFR], w, w2]
             else:
-                wF = (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:])) / 60  # face i+1/2 (6th-order)
+                # face i+1/2 (4th-order modified stencil) [McCorquodale & Colella, 2011, eq. 21-22]
+                wF = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])
+
+                wF[0] = 1/12 * (25*wS[1] - 23*wS[2] + 13*wS[3] - 3*wS[4])
+                wF[-1] = 1/12 * (25*wS[-1] - 23*wS[-2] + 13*wS[-3] - 3*wS[-4])
+
+                wF[1] = 1/12 * (3*wS[1] + 13*wS[2] - 5*wS[3] + wS[4])
+                wF[-2] = 1/12 * (3*wS[-1] + 13*wS[-2] - 5*wS[-3] + wS[-4])
+
+                #wF = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])  # face i+1/2 (4th-order)
+                #wF = (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:])) / 60  # face i+1/2 (6th-order)
                 return [wS, wF, w, w2]
         else:
             return w
