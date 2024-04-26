@@ -23,19 +23,16 @@ np.random.seed(seed)
 
 # Run finite volume code
 def simulateShock(_configVariables, _testVariables, grp):
-    _N = _configVariables['cells']
-    _N += (_N%2)  # Make N into an even number
-
     # Initialise the discrete solution array with conserved variables <q>
     # Even though the solution array is discrete, the variables are averages (FV) instead of points (FD)
     domain = fv.initialise(_configVariables, _testVariables)
 
     # Compute dx and set t = 0
-    dx = abs(_testVariables['endPos']-_testVariables['startPos'])/_N
+    dx = abs(_testVariables['endPos']-_testVariables['startPos'])/_configVariables['cells']
     t = 0
 
     if _configVariables['livePlot']:
-        fig, ax, plots = plotting.initiateLivePlot(_testVariables['startPos'], _testVariables['endPos'], _N)
+        fig, ax, plots = plotting.initiateLivePlot(_testVariables['startPos'], _testVariables['endPos'], _configVariables['cells'])
 
     while t <= _testVariables['tEnd']:
         # Saves each instance of the system at time t
