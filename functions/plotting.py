@@ -19,7 +19,7 @@ from functions import generic, analytic
 ##############################################################################
 
 plt.style.use("default")
-beautify = True
+beautify = False
 
 # Initiate the live plot feature
 def initiateLivePlot(startPos, endPos, N):
