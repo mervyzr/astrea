@@ -10,24 +10,26 @@ else:
     matplotlib.use('TkAgg')
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import moviepy.video.io.ImageSequenceClip
+from matplotlib.patches import Polygon
 
 from functions import generic, analytic
 
 ##############################################################################
 
 plt.style.use("default")
+beautify = True
 
 # Initiate the live plot feature
 def initiateLivePlot(startPos, endPos, N):
-    plot_x = np.linspace(startPos, endPos, N)
     plt.ion()
-
     fig, ax = plt.subplots(nrows=2, ncols=2)
-    ax[0,0].set_ylabel(r"Density $\rho$")
-    ax[0,1].set_ylabel(r"Pressure $P$")
-    ax[1,0].set_ylabel(r"Velocity $v_x$")
-    ax[1,1].set_ylabel(r"Thermal energy $\frac{P}{\rho}$")
+
+    graphs = []
+    labels = [r"Density $\rho$", r"Pressure $P$", r"Velocity $v_x$", r"Thermal energy $\frac{P}{\rho}$"]
+    colours = ["blue", "red", "green", "darkviolet"]
+    plot_x = np.linspace(startPos, endPos, N)
 
     ax[0,1].yaxis.set_label_position("right")
     ax[1,1].yaxis.set_label_position("right")
@@ -35,41 +37,28 @@ def initiateLivePlot(startPos, endPos, N):
     ax[0,1].yaxis.tick_right()
     ax[1,1].yaxis.tick_right()
 
-    ax[0,0].set_xlim([startPos, endPos])
-    ax[0,1].set_xlim([startPos, endPos])
-    ax[1,0].set_xlim([startPos, endPos])
-    ax[1,1].set_xlim([startPos, endPos])
+    for index, (_i,_j) in enumerate([[0,0], [0,1], [1,0], [1,1]]):
+        ax[_i,_j].set_ylabel(labels[index])
+        ax[_i,_j].set_xlim([startPos, endPos])
+        ax[_i,_j].grid(linestyle='--', linewidth=0.5)
+        graph, = ax[_i,_j].plot(plot_x, plot_x, linewidth=2, color=colours[index])
+        graphs.append(graph)
 
-    ax[0,0].grid(linestyle='--', linewidth=0.5)
-    ax[0,1].grid(linestyle='--', linewidth=0.5)
-    ax[1,0].grid(linestyle='--', linewidth=0.5)
-    ax[1,1].grid(linestyle='--', linewidth=0.5)
-
-    graphTL, = ax[0,0].plot(plot_x, plot_x, linewidth=2, color="blue")  # density
-    graphTR, = ax[0,1].plot(plot_x, plot_x, linewidth=2, color="red")  # pressure
-    graphBL, = ax[1,0].plot(plot_x, plot_x, linewidth=2, color="green")  # vx
-    graphBR, = ax[1,1].plot(plot_x, plot_x, linewidth=2, color="darkviolet")  # thermal energy
-
-    return fig, ax, [graphTL, graphTR, graphBL, graphBR]
+    return fig, ax, graphs
 
 
 # Update live plot
-def updatePlot(arr, t, fig, ax, plots):
-    graphTL, graphTR, graphBL, graphBR = plots
+def updatePlot(arr, t, fig, ax, graphs):
+    graphTL, graphTR, graphBL, graphBR = graphs
 
     graphTL.set_ydata(arr[:,0])  # density
     graphTR.set_ydata(arr[:,4])  # pressure
     graphBL.set_ydata(arr[:,1])  # vx
     graphBR.set_ydata(arr[:,4]/arr[:,0])  # thermal energy
 
-    ax[0,0].relim()
-    ax[0,0].autoscale_view()
-    ax[0,1].relim()
-    ax[0,1].autoscale_view()
-    ax[1,0].relim()
-    ax[1,0].autoscale_view()
-    ax[1,1].relim()
-    ax[1,1].autoscale_view()
+    for _i, _j in [[0,0], [0,1], [1,0], [1,1]]:
+        ax[_i,_j].relim()
+        ax[_i,_j].autoscale_view()
 
     plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(t,4)}$")
     fig.text(0.5, 0.04, r"Cell position $x$", ha='center')
@@ -118,20 +107,21 @@ def plotQuantities(f, configVariables, testVariables, savepath):
             y2 = f[str(N)][time_key][:, 4]   # pressure
             y3 = f[str(N)][time_key][:, 1]   # vx
             y4 = y2/y1                       # thermal energy
-            x = np.linspace(startPos, endPos, len(y1))
+            x = np.linspace(startPos, endPos, N)
+            y_data = [y1, y2, y3, y4]
+            colours = ["blue", "red", "green", "darkviolet"]
 
-            if len(f) != 1:
-                ax[0,0].plot(x, y1, linewidth=2, label=f"N = {len(y1)}")  # density
-                ax[0,1].plot(x, y2, linewidth=2, label=f"N = {len(y1)}")  # pressure
-                ax[1,0].plot(x, y3, linewidth=2, label=f"N = {len(y1)}")  # vx
-                ax[1,1].plot(x, y4, linewidth=2, label=f"N = {len(y1)}")  # thermal energy
-                plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$", fontsize=24)
-            else:
-                ax[0,0].plot(x, y1, linewidth=2, color="blue")        # density
-                ax[0,1].plot(x, y2, linewidth=2, color="red")         # pressure
-                ax[1,0].plot(x, y3, linewidth=2, color="green")       # vx
-                ax[1,1].plot(x, y4, linewidth=2, color="darkviolet")  # thermal energy
-                plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$ ($N = {len(y1)}$)", fontsize=24)
+            # density, pressure, vx, thermal energy
+            for index, (_i,_j) in enumerate([[0,0], [0,1], [1,0], [1,1]]):
+                if len(f) != 1:
+                    ax[_i,_j].plot(x, y_data[index], linewidth=2, label=f"N = {N}")
+                    plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$", fontsize=24)
+                else:
+                    if beautify:
+                        gradient_plot([x,y_data[index]], [_i,_j], ax=ax, linewidth=2, color=colours[index])
+                    else:
+                        ax[_i,_j].plot(x, y_data[index], linewidth=2, color=colours[index])
+                    plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$ ($N = {len(y1)}$)", fontsize=24)
 
         # Adjust ylim and plot analytical solutions for Gaussian and sin-wave tests
         if config.startswith("sin") or config.startswith("gaussian"):
@@ -285,12 +275,16 @@ def makeVideo(f, configVariables, testVariables, savepath, vidpath):
             y2 = domain[:, 4]               # pressure
             y3 = domain[:, 1]               # vx
             y4 = domain[:, 4]/domain[:, 0]  # thermal energy
-            x = np.linspace(startPos, endPos, len(y1))
+            x = np.linspace(startPos, endPos, N)
+            y_data = [y1, y2, y3, y4]
+            colours = ["blue", "red", "green", "darkviolet"]
 
-            ax[0,0].plot(x, y1, linewidth=2, color="blue")   # density
-            ax[0,1].plot(x, y2, linewidth=2, color="red")    # pressure
-            ax[1,0].plot(x, y3, linewidth=2, color="green")  # vx
-            ax[1,1].plot(x, y4, linewidth=2, color="darkviolet")  # thermal energy
+            # density, pressure, vx, thermal energy
+            for index, (_i,_j) in enumerate([[0,0], [0,1], [1,0], [1,1]]):
+                if beautify:
+                    gradient_plot([x,y_data[index]], [_i,_j], ax=ax, linewidth=2, color=colours[index])
+                else:
+                    ax[_i,_j].plot(x, y_data[index], linewidth=2, color=colours[index])
 
             plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {len(y1)}$)", fontsize=24)
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
@@ -346,11 +340,15 @@ def plotInstance(domain, showPlot=True, text="", startPos=0, endPos=1, **kwargs)
     y3 = domain[:, 1]   # vx
     y4 = y2/y1          # thermal energy
     x = np.linspace(startPos, endPos, len(y1))
+    y_data = [y1, y2, y3, y4]
+    colours = ["blue", "red", "green", "darkviolet"]
 
-    ax[0,0].plot(x, y1, linewidth=2, color="blue")        # density
-    ax[0,1].plot(x, y2, linewidth=2, color="red")         # pressure
-    ax[1,0].plot(x, y3, linewidth=2, color="green")       # vx
-    ax[1,1].plot(x, y4, linewidth=2, color="darkviolet")  # thermal energy
+    # density, pressure, vx, thermal energy
+    for index, (_i,_j) in enumerate([[0,0], [0,1], [1,0], [1,1]]):
+        if beautify:
+            gradient_plot([x,y_data[index]], [_i,_j], ax=ax, linewidth=2, color=colours[index])
+        else:
+            ax[_i,_j].plot(x, y_data[index], linewidth=2, color=colours[index])
     plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}", fontsize=24)
     fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
 
@@ -365,3 +363,36 @@ def plotInstance(domain, showPlot=True, text="", startPos=0, endPos=1, **kwargs)
     plt.clf()
     plt.close()
     return None
+
+
+# Gradient fill the plots
+def gradient_plot(data, plot_index, ax=None, fill_color=None, **kwargs):
+    x, y = data
+    i, j = plot_index
+
+    if ax is None:
+        ax = plt.gca()
+
+    line, = ax[i,j].plot(x, y, **kwargs)
+    if fill_color is None:
+        fill_color = line.get_color()
+
+    zorder = line.get_zorder()
+    alpha = line.get_alpha()
+    alpha = 1.0 if alpha is None else alpha
+
+    z = np.empty((100, 1, 4), dtype=float)
+    rgb = mcolors.colorConverter.to_rgb(fill_color)
+    z[:,:,:3] = rgb
+    z[:,:,-1] = np.linspace(0, alpha, 100)[:,None]
+
+    xmin, xmax, ymin, ymax = x.min(), x.max(), y.min(), y.max()
+    im = ax[i,j].imshow(z, aspect='auto', extent=[xmin, xmax, ymin, ymax], origin='lower', zorder=zorder)
+
+    xy = np.column_stack([x, y])
+    xy = np.vstack([[xmin, ymin], xy, [xmax, ymin], [xmin, ymin]])
+    clip_path = Polygon(xy, facecolor='none', edgecolor='none', closed=True)
+    ax[i,j].add_patch(clip_path)
+    im.set_clip_path(clip_path)
+
+    return line
