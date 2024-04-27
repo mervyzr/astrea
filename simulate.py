@@ -101,8 +101,8 @@ if __name__ == "__main__":
                 generic.printOutput(now, seed, configVariables)
                 simulateShock(configVariables, testVariables, grp)
                 elapsed = process_time() - lap
-                grp.attrs['elapsed'] = elapsed
                 generic.printOutput(now, seed, configVariables, elapsed=elapsed, runLength=len(list(grp.keys())))
+                grp.attrs['elapsed'] = elapsed
 
             if (configVariables['savePlots'] or configVariables['saveVideo'] or configVariables['saveFile']) and not os.path.exists(savepath):
                 os.makedirs(savepath)
