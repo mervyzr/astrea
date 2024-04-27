@@ -23,7 +23,7 @@ beautify = False
 
 
 plotIndexes = [[0,0], [0,1], [1,0], [1,1]]
-labels = [r"Density $\rho$", r"Pressure $P$", r"Velocity $v_x$", r"Thermal energy $\frac{P}{\rho}$"]
+plotLabels = [r"Density $\rho$", r"Pressure $P$", r"Velocity $v_x$", r"Thermal energy $\frac{P}{\rho}$"]
 colours = ["blue", "red", "green", "darkviolet"]
 
 
@@ -42,7 +42,7 @@ def initiateLivePlot(startPos, endPos, N):
 
     graphs = []
     for index, (_i,_j) in enumerate(plotIndexes):
-        ax[_i,_j].set_ylabel(labels[index])
+        ax[_i,_j].set_ylabel(plotLabels[index])
         ax[_i,_j].set_xlim([startPos, endPos])
         ax[_i,_j].grid(linestyle='--', linewidth=0.5)
         graph, = ax[_i,_j].plot(plot_x, plot_x, linewidth=2, color=colours[index])
@@ -93,7 +93,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
 
         # Set up figure
         for index, (_i,_j) in enumerate(plotIndexes):
-            ax[_i,_j].set_ylabel(labels[index], fontsize=18)
+            ax[_i,_j].set_ylabel(plotLabels[index], fontsize=18)
             ax[_i,_j].set_xlim([startPos, endPos])
             ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
@@ -241,7 +241,7 @@ def makeVideo(f, configVariables, testVariables, savepath, vidpath):
             fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
 
             for index, (_i,_j) in enumerate(plotIndexes):
-                ax[_i,_j].set_ylabel(labels[index], fontsize=18)
+                ax[_i,_j].set_ylabel(plotLabels[index], fontsize=18)
                 ax[_i,_j].set_xlim([startPos, endPos])
                 ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
@@ -295,7 +295,7 @@ def plotInstance(domain, showPlot=True, text="", startPos=0, endPos=1, **kwargs)
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
 
     for index, (_i,_j) in enumerate(plotIndexes):
-        ax[_i,_j].set_ylabel(labels[index], fontsize=18)
+        ax[_i,_j].set_ylabel(plotLabels[index], fontsize=18)
         ax[_i,_j].set_xlim([startPos, endPos])
         ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
