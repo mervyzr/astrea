@@ -6,7 +6,6 @@ from datetime import datetime
 from time import time, process_time
 
 import h5py
-import yaml
 import numpy as np
 
 import tests as tst
