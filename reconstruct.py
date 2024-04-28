@@ -119,7 +119,10 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
             else:
                 wF_limit_L[np.abs(dw_minus) >= 2*np.abs(dw_plus)] = (wS - 2*dw_plus)[np.abs(dw_minus) >= 2*np.abs(dw_plus)]
                 wF_limit_R[np.abs(dw_plus) >= 2*np.abs(dw_minus)] = (wS + 2*dw_minus)[np.abs(dw_plus) >= 2*np.abs(dw_minus)]
-            return [(coeff*wF_limit_L) + wS*(1-coeff), (coeff*wF_limit_R) + wS*(1-coeff)]
+            if flatten:
+                return [(coeff*wF_limit_L) + wS*(1-coeff), (coeff*wF_limit_R) + wS*(1-coeff)]
+            else:
+                return [wF_limit_L, wF_limit_R]
 
         # Limited parabolic interpolant [Colella et al., 2011, p. 26]
         else:
