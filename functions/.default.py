@@ -36,7 +36,7 @@ saveFile = False
 
 variables = {
     'config': config.lower(),
-    'cells': cells,
+    'cells': cells - (cells%2),
     'cfl': cfl,
     'gamma': gamma,
     'solver': solver.lower(),
