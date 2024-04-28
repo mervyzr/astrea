@@ -82,8 +82,8 @@ if __name__ == "__main__":
         nList = [configVariables['cells']]
 
     try:
-        scriptStart = datetime.now().strftime('%Y%m%d')
-        savepath = f"{currentdir}/savedData/{scriptStart}{seed}"
+        scriptStart = datetime.now().strftime('%Y%m%d%H%M')
+        savepath = f"{currentdir}/savedData/{scriptStart}_{seed}"
         with h5py.File(filename, "w") as f:
             for cells in nList:
                 configVariables['cells'] = cells  # Set cell values
