@@ -201,7 +201,7 @@ def plotSolutionErrors(f, configVariables, testVariables, savepath):
     for index, (_i,_j) in enumerate(plotIndexes):
         m, c = np.polyfit(np.log10(x), np.log10(y_data[index]), 1)
         ax[_i,_j].loglog(x, y_data[index], linewidth=2, linestyle="--", marker="o", color=colours[index], label=f"grad. = {round(m,4)}")
-        ax[_i,_j].scatter([], [], ' ', label=f"EOC = {round(np.max(np.abs(np.diff(np.log(y_data[index]))/np.diff(np.log(x)))), 3)}")
+        ax[_i,_j].scatter([], [], s=.5, color="white", label=rf"EOC$_{{max}}$ = {round(max(np.abs(np.diff(np.log(y_data[index]))/np.diff(np.log(x)))), 4)}")
         ax[_i,_j].legend(prop={'size': 14})
 
     print(f"{generic.bcolours.OKGREEN}EOC (density){generic.bcolours.ENDC}: {np.diff(np.log(y1))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (pressure){generic.bcolours.ENDC}: {np.diff(np.log(y2))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (vx){generic.bcolours.ENDC}: {np.diff(np.log(y3))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (thermal){generic.bcolours.ENDC}: {np.diff(np.log(y4))/np.diff(np.log(x))}")
