@@ -10,10 +10,10 @@ from reconstruct import modified
 def applyLimiter(extrapolatedValues, solver):
     # Apply the limiter for parabolic or XPPM
     if solver in ["ppm", "parabolic", "p"]:
-        wS, wF, w, w2 = extrapolatedValues
         if modified:
-            return wF
+            return extrapolatedValues[1]
         else:
+            wS, wF, w, w2 = extrapolatedValues
             return faceValueLimiter(wF, w[:-2], wS, w[2:], w2[4:])
 
     # Apply the minmod limiter
@@ -82,26 +82,3 @@ def ospreLimiter(extrapolatedValues):
 def vanAlbadaLimiter(extrapolatedValues):
     r = np.diff(extrapolatedValues[:-1])/np.diff(extrapolatedValues[1:])
     return (r**2 + r)/(r**2 + 1)
-
-
-# Function that returns the coefficient of the slope flattener
-def getSlopeCoeff(tube, boundary, g, slope_determinants=[.75, .85, .33]):
-    z0, z1, delta = slope_determinants
-    domain = fv.pointConvertConservative(tube, g)
-    arr, chi = np.ones(len(domain)), np.ones(len(domain))
-
-    w = fv.makeBoundary(domain, boundary)
-    w2 = fv.makeBoundary(domain, boundary, 2)
-
-    z = np.abs((w[2:][:,4] - w[:-2][:,4]) / (w2[4:][:,4] - w2[:-4][:,4]))  # define the linear function
-    eta = np.minimum(np.ones(len(z)), np.maximum(np.zeros(len(z)), 1 - ((z-z0)/(z1-z0))))  # limit the range between 0 and 1
-    criteria = (w[:-2][:,1] - w[2:][:,1] > 0) & (np.abs(w[2:][:,4] - w[:-2][:,4])/np.minimum(w[2:][:,4], w[:-2][:,4]) > delta)
-
-    chi[criteria] = eta[criteria]
-    chiB = fv.makeBoundary(chi, boundary)
-
-    signage = np.sign(w[2:][:,4] - w[:-2][:,4])
-    arr[signage < 0] = np.minimum(chi, chiB[2:])[signage < 0]
-    arr[signage > 0] = np.minimum(chi, chiB[:-2])[signage > 0]
-
-    return np.tile(np.reshape(arr, (len(arr),1)), (1,5))
