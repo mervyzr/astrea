@@ -358,4 +358,5 @@ def gradient_plot(data, plot_index, ax=None, fill_color=None, **kwargs):
     ax[i,j].add_patch(clip_path)
     im.set_clip_path(clip_path)
 
+    ax[i,j].autoscale(True, axis='y')
     pass
