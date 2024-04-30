@@ -172,7 +172,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
     return None
 
 
-def plotSolutionErrors(f, configVariables, testVariables, prop_coeff, savepath):
+def plotSolutionErrors(f, configVariables, testVariables, savepath, prop_coeff=10):
     config, solver, timestep = configVariables['config'], configVariables['solver'], configVariables['timestep']
     startPos, endPos = testVariables['startPos'], testVariables['endPos']
 

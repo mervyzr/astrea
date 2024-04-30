@@ -73,8 +73,7 @@ if __name__ == "__main__":
 
     if configVariables['runType'].startswith('m'):
         configVariables['livePlot'] = False  # Turn off the live plot
-        prop_coeff = 10
-        nList = prop_coeff * 2**np.arange(3,11)
+        nList = 10 * 2**np.arange(3,11)
     else:
         if not configVariables['runType'].startswith('s'):
             print(f"{generic.bcolours.WARNING}RunType unknown; running single test..{generic.bcolours.ENDC}")
@@ -110,7 +109,7 @@ if __name__ == "__main__":
             if configVariables['savePlots']:
                 plotting.plotQuantities(f, configVariables, testVariables, savepath)
                 if configVariables['runType'].startswith('m') and (configVariables['config'].startswith('sin') or configVariables['config'].startswith('gauss')):
-                    plotting.plotSolutionErrors(f, configVariables, testVariables, prop_coeff, savepath)
+                    plotting.plotSolutionErrors(f, configVariables, testVariables, savepath)
 
             if configVariables['saveVideo']:
                 if configVariables['runType'].startswith('s'):
