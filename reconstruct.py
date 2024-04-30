@@ -4,7 +4,7 @@ from functions import fv
 
 ##############################################################################
 
-modified = 0
+modified = 1
 flatten = 0
 
 # Extrapolate the cell averages to face averages
