@@ -4,7 +4,7 @@ from functions import fv
 
 ##############################################################################
 
-modified = 1
+modified = 0
 flatten = 0
 
 # Extrapolate the cell averages to face averages
@@ -156,7 +156,7 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
                 D2w_R = wS - 2*w[2:] + w2[4:]
 
                 # Get the curvatures that have the same signs
-                non_monotonic = (np.sign(D2w_L) == np.sign(D2w_R)) & (np.sign(D2w_C) == np.sign(D2w)) & (np.sign(D2w_C) == np.sign(D2w_R))
+                non_monotonic = (np.sign(D2w) == np.sign(D2w_C)) & (np.sign(D2w) == np.sign(D2w_L)) & (np.sign(D2w) == np.sign(D2w_R)) & (np.sign(D2w_C) == np.sign(D2w_L)) & (np.sign(D2w_C) == np.sign(D2w_R)) & (np.sign(D2w_L) == np.sign(D2w_R))
 
                 # Determine the limited curvature with the sign of each element in the 'main' array (eq. 96)
                 limited_curvature = np.sign(D2w) * np.minimum(np.minimum(np.abs(D2w), np.abs(C*D2w_C)), np.minimum(np.abs(C*D2w_L), np.abs(C*D2w_R)))
