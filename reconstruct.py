@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 
 from functions import fv
@@ -5,7 +7,7 @@ from functions import fv
 ##############################################################################
 
 modified = 1
-flatten = 0
+flatten = 1
 
 # Extrapolate the cell averages to face averages
 def extrapolate(tube, gamma, solver, boundary):
@@ -39,9 +41,7 @@ def extrapolate(tube, gamma, solver, boundary):
 
                 if flatten:
                     wS_point = fv.pointConvertConservative(tube, gamma)
-                    w_point = fv.makeBoundary(wS_point, boundary)
-                    w2_point = fv.makeBoundary(wS_point, boundary, 2)
-                    coeff = calculateFlattenCoeff([wS_point, w_point, w2_point], boundary)
+                    coeff = calculateFlattenCoeff(wS_point, boundary)
                     return [wS, wF, w, w2, coeff]
                 else:
                     return [wS, wF, w, w2]
@@ -187,47 +187,26 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
         return extrapolatedValues
 
 
-# Function that returns the coefficient of the slope flattener
-def calculateFlattenCoeff(domains, boundary, slope_determinants=[.33, .75, .85]):
-    wS, w, w2 = domains
+# Calculate the coefficients of the slope flattener for the parabolic extrapolants using pressure and v_x [Colella, 1990]
+def calculateFlattenCoeff(wS, boundary, slope_determinants=[.33, .75, .85]):
     delta, z0, z1 = slope_determinants
-    chi_bar = np.zeros(wS.shape)
 
-    z = np.abs(w[2:]-w[:-2]) / np.abs(w2[4:]-w2[:-4])
+    chiBar = np.zeros(wS[:,4].shape)
+
+    vxs = np.pad(wS[:,1], 1, mode=boundary)
+    Ps = np.pad(wS[:,4], 2, mode=boundary)
+    Ps[Ps == 0] = sys.float_info.epsilon
+
+    z = np.abs(Ps[3:-1]-Ps[1:-3]) / np.abs(Ps[4:]-Ps[:-4])
     eta = np.minimum(np.ones(z.shape), np.maximum(np.zeros(z.shape), 1-((z-z0)/(z1-z0))))
+    criteria = ((vxs[:-2]-vxs[2:]) > 0) & (np.abs(Ps[3:-1]-Ps[1:-3])/np.minimum(Ps[3:-1],Ps[1:-3]) > delta)
+    chiBar[criteria] = eta[criteria]
+    chiPlusOne = np.pad(chiBar, 1, mode=boundary)
 
-    u_arr = (w[:,1]*np.ones(w.shape).T).T
-    criteria = (u_arr[:-2]-u_arr[2:] > 0) & (np.abs(w[2:]-w[:-2])/np.minimum(w[2:],w[:-2]) > delta)
-    chi_bar[criteria] = eta[criteria]
-    chiPlusOne = fv.makeBoundary(chi_bar, boundary)
+    chi = np.copy(chiBar)
+    signage = np.sign(Ps[3:-1]-Ps[1:-3])
+    chi[signage < 0] = np.minimum(chiPlusOne[2:], chiBar)[signage < 0]
+    chi[signage > 0] = np.minimum(chiPlusOne[:-2], chiBar)[signage > 0]
 
-    chi = np.copy(chi_bar)
-    signage = np.sign(w[2:]-w[:-2])
-    chi[signage < 0] = np.minimum(chiPlusOne[2:], chi_bar)[signage < 0]
-    chi[signage > 0] = np.minimum(chiPlusOne[:-2], chi_bar)[signage > 0]
-
-    return chi
-
-
-
-"""# Function that returns the coefficient of the slope flattener
-def getSlopeCoeff(tube, boundary, g, slope_determinants=[.75, .85, .33]):
-    z0, z1, delta = slope_determinants
-    domain = fv.pointConvertConservative(tube, g)
-    arr, chi = np.ones(len(domain)), np.ones(len(domain))
-
-    w = fv.makeBoundary(domain, boundary)
-    w2 = fv.makeBoundary(domain, boundary, 2)
-
-    z = np.abs((w[2:][:,4] - w[:-2][:,4]) / (w2[4:][:,4] - w2[:-4][:,4]))  # define the linear function
-    eta = np.minimum(np.ones(len(z)), np.maximum(np.zeros(len(z)), 1 - ((z-z0)/(z1-z0))))  # limit the range between 0 and 1
-    criteria = (w[:-2][:,1] - w[2:][:,1] > 0) & (np.abs(w[2:][:,4] - w[:-2][:,4])/np.minimum(w[2:][:,4], w[:-2][:,4]) > delta)
-
-    chi[criteria] = eta[criteria]
-    chiB = fv.makeBoundary(chi, boundary)
-
-    signage = np.sign(w[2:][:,4] - w[:-2][:,4])
-    arr[signage < 0] = np.minimum(chi, chiB[2:])[signage < 0]
-    arr[signage > 0] = np.minimum(chi, chiB[:-2])[signage > 0]
-
-    return np.tile(np.reshape(arr, (len(arr),1)), (1,5))"""
+    arr = np.ones(wS.shape)
+    return (chi*arr.T).T
