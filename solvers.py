@@ -6,10 +6,17 @@ from functions import fv
 
 ##############################################################################
 
+from reconstruct import dissipate
+
 # Solve the Riemann (flux) problem (Local Lax-Friedrichs; approximate Roe solver)
 def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
     if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
-        leftSolution, rightSolution = solutions
+        if dissipate:
+            leftSolution, rightSolution = solutions[0]
+            _mu = solutions[1]
+        else:
+            leftSolution, rightSolution = solutions
+            _mu = np.zeros(tube.shape)
         leftInterface, rightInterface = fv.makeBoundary(leftSolution, boundary)[1:], fv.makeBoundary(rightSolution, boundary)[:-1]
         avg_wS = (leftSolution + rightSolution)/2  # Get the average of the solutions
     else:
@@ -21,6 +28,8 @@ def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
     # Same for the averaged and centred fluxes (<F>_i+1/2 = F_i+1/2)
     wS = fv.makeBoundary(avg_wS, boundary)
     fS = fv.makeFlux(wS, gamma)
+    mu = fv.makeBoundary(_mu, boundary)
+    fS += mu
     A = fv.makeJacobian(wS, gamma)
 
     if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:

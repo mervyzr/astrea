@@ -7,7 +7,7 @@ from functions import fv
 ##############################################################################
 
 modified = 1
-flatten = 0
+dissipate = 1
 
 # Extrapolate the cell averages to face averages
 def extrapolate(tube, gamma, solver, boundary):
@@ -39,10 +39,13 @@ def extrapolate(tube, gamma, solver, boundary):
                 wF[1] = 1/12 * (3*wS[1] + 13*wS[2] - 5*wS[3] + wS[4])
                 wF[-2] = 1/12 * (3*wS[-1] + 13*wS[-2] - 5*wS[-3] + wS[-4])
 
-                if flatten:
+                if dissipate:
                     wS_point = fv.pointConvertConservative(tube, gamma)
-                    coeff = calculateFlattenCoeff(wS_point, boundary)
-                    return [wS, wF, w, w2, coeff]
+                    eta = calculateFlattenCoeff(wS_point, boundary)
+
+                    q = fv.makeBoundary(tube, boundary)
+                    mu = applyArtificialViscosity(wS_point, gamma, boundary) * np.diff(q, axis=0)[1:]
+                    return [wS, wF, w, w2, eta, mu]
                 else:
                     return [wS, wF, w, w2]
             else:
@@ -61,8 +64,8 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
 
         # Limited modified parabolic interpolant [McCorquodale & Colella, 2011]
         if modified:
-            if flatten:
-                wS, wF, w, w2, coeff = extrapolatedValues
+            if dissipate:
+                wS, wF, w, w2, eta, mu = extrapolatedValues
             else:
                 wS, wF, w, w2 = extrapolatedValues
             # Define the left and right parabolic interpolants
@@ -119,8 +122,8 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
             else:
                 wF_limit_L[np.abs(dw_minus) >= 2*np.abs(dw_plus)] = (wS - 2*dw_plus)[np.abs(dw_minus) >= 2*np.abs(dw_plus)]
                 wF_limit_R[np.abs(dw_plus) >= 2*np.abs(dw_minus)] = (wS + 2*dw_minus)[np.abs(dw_plus) >= 2*np.abs(dw_minus)]
-            if flatten:
-                return [(coeff*wF_limit_L) + wS*(1-coeff), (coeff*wF_limit_R) + wS*(1-coeff)]
+            if dissipate:
+                return [(eta*wF_limit_L) + wS*(1-eta), (eta*wF_limit_R) + wS*(1-eta)], mu
             else:
                 return [wF_limit_L, wF_limit_R]
 
@@ -214,5 +217,20 @@ def calculateFlattenCoeff(wS, boundary, slope_determinants=[.33, .75, .85]):
 
 
 # Implement artificial viscosity
-def applyArtificialViscosity():
-    pass
+def applyArtificialViscosity(wS, gamma, boundary, viscosity_determinants=[.3, .3]):
+
+    def calculateSoundSpeed(pressures, densities, g):
+        return np.sqrt((g*pressures)/densities)
+
+    alpha, beta = viscosity_determinants
+
+    vxs = np.pad(wS[:,1], 1, mode=boundary)
+    cs = np.sqrt((gamma*wS[:,4])/wS[:,0])
+    Gamma = np.diff(vxs)[1:]
+
+    nu = np.zeros(Gamma.shape)
+    c_min = np.minimum(cs, np.pad(cs, 1, mode=boundary)[2:])
+    nu[Gamma < 0] = (Gamma * np.minimum(np.ones(Gamma.shape), (Gamma**2)/(beta*c_min**2)))[Gamma < 0]
+
+    arr = np.ones(wS.shape)
+    return (alpha*nu*arr.T).T
