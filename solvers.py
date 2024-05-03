@@ -6,12 +6,12 @@ from functions import fv
 
 ##############################################################################
 
-from reconstruct import dissipate
+from reconstruct import modified, dissipate
 
 # Solve the Riemann (flux) problem (Local Lax-Friedrichs; approximate Roe solver)
 def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
     if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
-        if dissipate:
+        if dissipate and modified:
             leftSolution, rightSolution = solutions[0]
             _mu = solutions[1]
         else:
