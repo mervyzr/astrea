@@ -22,7 +22,7 @@ def applyLimiter(extrapolatedValues, solver):
 
     # Do not apply any limiters
     else:
-        return extrapolatedValues.
+        return extrapolatedValues
 
 
 # Function for limiting the face-values for PPM [Colella et al., 2011, p. 26]
