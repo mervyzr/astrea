@@ -18,13 +18,24 @@ from functions import generic, analytic
 
 ##############################################################################
 
-plt.style.use("default")
+_style = "default"
 beautify = False
 
 
 plotIndexes = [[0,0], [0,1], [1,0], [1,1]]
 plotLabels = [[r"Density $\rho$", r"Pressure $P$"], [r"Velocity $v_x$", r"Thermal energy $\frac{P}{\rho}$"]]
-colours = [["blue", "red"], ["green", "darkviolet"]]
+try:
+    plt.style.use(_style)
+except Exception as e:
+    plt.style.use("default")
+    colours = [["blue", "red"], ["green", "darkviolet"]]
+    pass
+else:
+    if _style != "default":
+        _color = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        colours = [_color[:2], _color[2:4]]
+    else:
+        colours = [["blue", "red"], ["green", "darkviolet"]]
 
 
 # Initiate the live plot feature
@@ -114,7 +125,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
                     plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$", fontsize=24)
                 else:
                     if beautify:
-                        gradient_plot([x, y_data[_i][_j]], [_i,_j], ax=ax, linewidth=2, color=colours[_i][_j])
+                        gradient_plot([x, y_data[_i][_j]], [_i,_j], ax, linewidth=2, color=colours[_i][_j])
                     else:
                         ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=colours[_i][_j])
                     plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$ ($N = {N}$)", fontsize=24)
@@ -164,7 +175,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
             handles, labels = plt.gca().get_legend_handles_labels()
             fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
 
-        plt.savefig(f"{savepath}/wPlot_{config}_{solver}_{timestep}_{round(indexes[-1][i],3)}.png", dpi=330, facecolor="w")
+        plt.savefig(f"{savepath}/wPlot_{config}_{solver}_{timestep}_{round(indexes[-1][i],3)}.png", dpi=330)
 
         plt.cla()
         plt.clf()
@@ -251,7 +262,7 @@ def makeVideo(f, configVariables, testVariables, savepath, vidpath):
 
             for _i, _j in plotIndexes:
                 if beautify:
-                    gradient_plot([x, y_data[_i][_j]], [_i,_j], ax=ax, linewidth=2, color=colours[_i][_j])
+                    gradient_plot([x, y_data[_i][_j]], [_i,_j], ax, linewidth=2, color=colours[_i][_j])
                 else:
                     ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=colours[_i][_j])
 
@@ -305,7 +316,7 @@ def plotInstance(domain, showPlot=True, text="", startPos=0, endPos=1, **kwargs)
 
     for _i, _j in plotIndexes:
         if beautify:
-            gradient_plot([x, y_data[_i][_j]], [_i,_j], ax=ax, linewidth=2, color=colours[_i][_j])
+            gradient_plot([x, y_data[_i][_j]], [_i,_j], ax, linewidth=2, color=colours[_i][_j])
         else:
             ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=colours[_i][_j])
     plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}", fontsize=24)
@@ -325,16 +336,12 @@ def plotInstance(domain, showPlot=True, text="", startPos=0, endPos=1, **kwargs)
 
 
 # Gradient fill the plots
-def gradient_plot(data, plot_index, ax=None, fill_color=None, **kwargs):
+def gradient_plot(data, plot_index, ax, **kwargs):
     x, y = data
     i, j = plot_index
 
-    if ax is None:
-        ax = plt.gca()
-
     line, = ax[i,j].plot(x, y, **kwargs)
-    if fill_color is None:
-        fill_color = line.get_color()
+    fill_color = line.get_color()
 
     zorder = line.get_zorder()
     alpha = line.get_alpha()
@@ -354,5 +361,4 @@ def gradient_plot(data, plot_index, ax=None, fill_color=None, **kwargs):
     ax[i,j].add_patch(clip_path)
     im.set_clip_path(clip_path)
 
-    ax[i,j].autoscale(True, axis='y')
     pass
