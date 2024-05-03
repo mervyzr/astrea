@@ -211,3 +211,8 @@ def calculateFlattenCoeff(wS, boundary, slope_determinants=[.33, .75, .85]):
 
     arr = np.ones(wS.shape)
     return (chi*arr.T).T
+
+
+# Implement artificial viscosity
+def applyArtificialViscosity():
+    pass
