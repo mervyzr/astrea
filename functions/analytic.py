@@ -34,14 +34,14 @@ def calculateSolutionError(simulation, startPos, endPos, config):
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t))
 def calculateTV(simulation):
-    tv = []
+    tv = {}
     timeKeys = [float(t) for t in simulation.keys()]
 
     for t in timeKeys:
         domain = simulation[str(t)]
-        tv.append(np.sum(np.abs(np.diff(domain, axis=0)), axis=0))
+        tv[t] = np.sum(np.abs(np.diff(domain, axis=0)), axis=0)
 
-    return np.asarray(tv)
+    return tv
 
 
 # Determine the analytical solution for a Sod shock test
