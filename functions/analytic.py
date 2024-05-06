@@ -40,6 +40,7 @@ def calculateTV(simulation):
     for t in timeKeys:
         domain = simulation[str(t)]
         tv[t] = np.sum(np.abs(np.diff(domain, axis=0)), axis=0)
+        tv[t] = np.append(tv[t], np.sum(np.abs(np.diff(domain[:, 4]/domain[:, 0]))))
 
     return tv
 

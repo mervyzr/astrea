@@ -298,6 +298,44 @@ def makeVideo(f, configVariables, testVariables, savepath, vidpath):
     return None
 
 
+def plotTotalVariation(f, configVariables, savepath):
+    config, solver, timestep = configVariables['config'], configVariables['solver'], configVariables['timestep']
+
+    # hdf5 keys are string; need to convert back to int and sort again
+    nList = [int(n) for n in f.keys()]
+    nList.sort()
+
+    fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21,10])
+    tvLabels = [[r"Density TV($\rho$)", r"Pressure TV($P$)"], [r"Velocity TV($v_x$)", r"Thermal energy TV($\frac{P}{\rho}$)"]]
+
+    for _i, _j in plotIndexes:
+        ax[_i,_j].set_ylabel(tvLabels[_i,_j], fontsize=18)
+        ax[_i,_j].grid(linestyle="--", linewidth=0.5)
+
+    for N in nList:
+        tvDict = analytic.calculateTV(f[str(N)])
+        x = np.asarray(list(tvDict.keys()))
+        y = np.asarray(list(tvDict.values()))
+        y1 = y[:, 0]  # density
+        y2 = y[:, 4]  # pressure
+        y3 = y[:, 1]  # vx
+        y4 = y[:, -1]  # thermal energy
+        y_data = [[y1, y2], [y3, y4]]
+
+        for _i, _j in plotIndexes:
+            ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=colours[_i][_j])
+
+        plt.suptitle(rf"Total variation of primitive variables TV($\vec{{w}}$) against time $t$ ($N = {N}$)", fontsize=24)
+        fig.text(0.5, 0.04, r"Time $t$", fontsize=18, ha='center')
+
+        plt.savefig(f"{savepath}/TV_{config}_{solver}_{timestep}_{N}.png", dpi=330)
+
+        plt.cla()
+        plt.clf()
+        plt.close()
+    return None
+
+
 # Useful function for plotting each instance of the domain (livePlot must be switched OFF)
 def plotInstance(domain, showPlot=True, text="", startPos=0, endPos=1, **kwargs):
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
