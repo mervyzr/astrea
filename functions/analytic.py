@@ -35,13 +35,10 @@ def calculateSolutionError(simulation, startPos, endPos, config):
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t))
 def calculateTV(simulation):
     tv = {}
-    timeKeys = [float(t) for t in simulation.keys()]
-
-    for t in timeKeys:
-        domain = simulation[str(t)]
-        tv[t] = np.sum(np.abs(np.diff(domain, axis=0)), axis=0)
-        tv[t] = np.append(tv[t], np.sum(np.abs(np.diff(domain[:, 4]/domain[:, 0]))))
-
+    for t in list(simulation.keys()):
+        domain = simulation[t]
+        tv[float(t)] = np.sum(np.abs(np.diff(domain, axis=0)), axis=0)
+        tv[float(t)] = np.append(tv[float(t)], np.sum(np.abs(np.diff(domain[:, 4]/domain[:, 0]))))
     return tv
 
 
