@@ -1,5 +1,3 @@
-import sys
-
 import numpy as np
 
 from functions import fv
@@ -200,7 +198,7 @@ def calculateFlattenCoeff(wS, boundary, slope_determinants=[.33, .75, .85]):
     Ps = np.pad(wS[:,4], 2, mode=boundary)
 
     denom = np.abs(Ps[4:]-Ps[:-4])
-    denom[denom == 0] = sys.float_info.epsilon
+    denom[denom == 0] = np.finfo(np.float128).eps
     z = np.abs(Ps[3:-1]-Ps[1:-3]) / denom
     eta = np.minimum(np.ones(z.shape), np.maximum(np.zeros(z.shape), 1-((z-z0)/(z1-z0))))
     criteria = ((vxs[:-2]-vxs[2:]) > 0) & (np.abs(Ps[3:-1]-Ps[1:-3])/np.minimum(Ps[3:-1],Ps[1:-3]) > delta)

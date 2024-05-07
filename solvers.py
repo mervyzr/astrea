@@ -1,5 +1,3 @@
-import sys
-
 import numpy as np
 
 from functions import fv
@@ -44,7 +42,7 @@ def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
     # Determine the eigenvalues for the computation of the flux and time stepping
     localEigvals = np.max(np.abs(np.linalg.eigvals(A)), axis=1)  # Local max eigenvalue for each cell
     eigvals = np.max([localEigvals[:-1], localEigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
-    eigmax = np.max([np.max(eigvals), sys.float_info.epsilon])  # Maximum wave speed (max eigenvalue) for system
+    eigmax = np.max([np.max(eigvals), np.finfo(np.float128).eps])  # Maximum wave speed (max eigenvalue) for system
 
     # Return the Riemann fluxes
     return .5 * ((fS[:-1]+fS[1:]) - ((eigvals * qDiff).T)), eigmax
