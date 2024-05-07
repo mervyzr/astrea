@@ -1,5 +1,7 @@
 import os
+import sys
 import shutil
+import getopt
 import random
 import traceback
 from datetime import datetime
@@ -63,6 +65,24 @@ if __name__ == "__main__":
 
     configVariables = cfg.variables
     testVariables = tst.variables
+
+    if len(sys.argv) > 1:
+        try:
+            opts, args = getopt.getopt(sys.argv[1:], "", ["config=", "cells=", "cfl=", "gamma=", "solver=", "timestep=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile="])
+        except getopt.GetoptError as e:
+            print(f'{generic.bcolours.WARNING}Error: {e}{generic.bcolours.ENDC}')
+            sys.exit(2)
+        else:
+            for opt, arg in opts:
+                opt = opt.replace("--","")
+                if opt in ["cells", "snapshots"]:
+                    configVariables[opt] = int(arg)
+                elif opt in ["cfl", "gamma"]:
+                    configVariables[opt] = float(arg)
+                elif opt in ["livePlot", "savePlot", "saveVideo", "saveFile"]:
+                    configVariables[opt] = bool(arg)
+                else:
+                    configVariables[opt] = arg
 
     # Error condition(s)
     if configVariables['solver'] not in ["ppm", "parabolic", "p", "plm", "linear", "l", "pcm", "constant", "c"]:
