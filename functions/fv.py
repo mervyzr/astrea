@@ -1,5 +1,7 @@
 import numpy as np
 
+from settings import precision
+
 ##############################################################################
 
 # Initialise the discrete solution array with initial conditions and primitive variables w
@@ -8,7 +10,7 @@ def initialise(cfg, tst):
     N = cfg['cells']
     start, end, shock = tst['startPos'], tst['endPos'], tst['shockPos']
 
-    arr = np.zeros((N, len(tst['initialRight'])), dtype=np.float64)
+    arr = np.zeros((N, len(tst['initialRight'])), dtype=precision)
     arr[:] = tst['initialRight']
 
     midpoint = (end+start)/2

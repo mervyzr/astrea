@@ -1,4 +1,4 @@
-import sys
+import numpy as np
 
 ##############################################################################
 
@@ -16,6 +16,7 @@ gamma = 1.4
 solver = "ppm"
 # : Euler, RK4, SSPRK(2,2), SSPRK(3,3), SSPRK(4,3), SSPRK(5,3), SSPRK(5,4)
 timestep = "ssprk(5,4)"
+precision = np.float64
 
 # Runtime parameters
 # : Single, Multiple
@@ -41,6 +42,7 @@ variables = {
     'gamma': gamma,
     'solver': solver.lower(),
     'timestep': timestep.lower(),
+    'precision': precision,
     'runType': runType.lower(),
     'livePlot': livePlot,
     'savePlots': savePlots,

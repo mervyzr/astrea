@@ -3,7 +3,7 @@ import shutil
 import subprocess
 
 import matplotlib
-from settings import saveVideo, savePlots
+from settings import saveVideo, savePlots, precision
 if savePlots or saveVideo:
     matplotlib.use('Agg')
 else:
@@ -95,7 +95,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
     # Separate the timings based on the number of snapshots; returns a list of lists with the timing intervals for each simulation
     indexes = []
     for i, N in enumerate(nList):
-        timings = np.fromiter(f[str(N)].keys(), dtype=np.float64)
+        timings = np.fromiter(f[str(N)].keys(), dtype=precision)
         timings.sort()
         indexes.append([timing[-1] for timing in np.array_split(timings, abs(int(configVariables['snapshots'])))])
 
@@ -138,7 +138,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
             initialConfig = testVariables['initialLeft']
             midpoint = (endPos+startPos)/2
 
-            analytical = np.zeros((N, len(initialConfig)), dtype=np.float64)
+            analytical = np.zeros((N, len(initialConfig)), dtype=precision)
             analytical[:] = initialConfig
             if config.startswith("gaussian"):
                 analytical[:,0] = 1e-3 + (1-1e-3) * np.exp(-(x-midpoint)**2/.01)
