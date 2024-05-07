@@ -6,7 +6,7 @@ from functions import fv
 
 ##############################################################################
 
-modified = 1
+modified = 0
 dissipate = 0
 
 # Extrapolate the cell averages to face averages
@@ -14,17 +14,22 @@ def extrapolate(tube, gamma, solver, boundary):
     # Conversion of conservative variables to primitive variables
     if solver in ["ppm", "parabolic", "p"]:
         wS = fv.convertConservative(tube, gamma, boundary)
+        qS = np.copy(tube)
     else:
         wS = fv.pointConvertConservative(tube, gamma)
 
     if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
         # Pad array with boundary
         w = fv.makeBoundary(wS, boundary)
+        q = fv.makeBoundary(qS, boundary)
+        qF = None
 
         if solver in ["ppm", "parabolic", "p"]:
             # PPM requires additional ghost cells
             w2 = fv.makeBoundary(wS, boundary, 2)
             w3 = fv.makeBoundary(wS, boundary, 3)
+            q2 = fv.makeBoundary(qS, boundary, 2)
+            q3 = fv.makeBoundary(qS, boundary, 3)
 
             # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
             wF = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])
@@ -49,7 +54,8 @@ def extrapolate(tube, gamma, solver, boundary):
                 else:
                     return [wS, wF, w, w2]
             else:
-                return [wS, wF, w, w2]
+                #return [wS, wF, w, w2]
+                return [qS, qF, q, q2]
         else:
             return w
     else:
@@ -129,7 +135,7 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
 
         # Limited parabolic interpolant [Colella et al., 2011, p. 26]
         else:
-            wS, wF, w, w2 = extrapolatedValues
+            """wS, wF, w, w2 = extrapolatedValues
 
             wF_limit = fv.makeBoundary(limitedValues, boundary)
             wF_limit_2 = fv.makeBoundary(limitedValues, boundary, 2)
@@ -177,7 +183,13 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
                     d_uR_bar[np.abs(d_uR) > 2*np.abs(d_uL)] = 2*d_uL[np.abs(d_uR) > 2*np.abs(d_uL)]
                 return [wS - d_uL_bar*(D2w_lim/D2w), wS + d_uR_bar*(D2w_lim/D2w)]  # (eq. 98)
             else:
-                return [wF_limit_L, wF_limit_R]
+                return [wF_limit_L, wF_limit_R]"""
+            
+            qS, qF, q, q2 = extrapolatedValues
+            phi = limitedValues
+            qFL = qS + .5*phi*((1/3 * np.diff(q[:-1], axis=0)) + (2/3 * np.diff(q[1:], axis=0)))
+            qFR = qS - .5*phi*((1/3 * np.diff(q[1:], axis=0)) + (2/3 * np.diff(q[:-1], axis=0)))
+            return [qFL, qFR]
 
     # Linear reconstruction [Derigs et al., 2017]
     elif solver in ["plm", "linear", "l"]:

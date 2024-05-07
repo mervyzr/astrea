@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 
 from functions import fv
@@ -13,8 +15,9 @@ def applyLimiter(extrapolatedValues, solver):
         if modified:
             return extrapolatedValues[1]
         else:
-            wS, wF, w, w2 = extrapolatedValues
-            return faceValueLimiter(wF, w[:-2], wS, w[2:], w2[4:])
+            #wS, wF, w, w2 = extrapolatedValues
+            #return faceValueLimiter(wF, w[:-2], wS, w[2:], w2[4:])
+            return minmodLimiter(extrapolatedValues[-2])
 
     # Apply the minmod limiter
     elif solver in ["plm", "linear", "l"]:
@@ -82,3 +85,12 @@ def ospreLimiter(extrapolatedValues):
 def vanAlbadaLimiter(extrapolatedValues):
     r = np.diff(extrapolatedValues[:-1])/np.diff(extrapolatedValues[1:])
     return (r**2 + r)/(r**2 + 1)
+
+def minmod(extrapolatedValues):
+    qS, qF, q, q2 = extrapolatedValues
+
+    x = np.diff(q[1:], axis=0)
+    x[x == 0] = sys.float_info.epsilon
+
+    r = np.diff(q[:-1], axis=0)/x
+    return np.maximum(np.zeros(qS.shape), np.minimum(np.ones(qS.shape), r))
