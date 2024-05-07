@@ -70,6 +70,7 @@ def updatePlot(arr, t, fig, ax, graphs):
     graphTR.set_ydata(arr[:,4])  # pressure
     graphBL.set_ydata(arr[:,1])  # vx
     graphBR.set_ydata(arr[:,4]/arr[:,0])  # thermal energy
+    #graphBR.set_ydata(analytic.calculateEntropyDensity(arr, 1.4))  # scaled entropy density
 
     for _i, _j in plotIndexes:
         ax[_i,_j].relim()

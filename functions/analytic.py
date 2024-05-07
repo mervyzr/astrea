@@ -12,6 +12,11 @@ def roundOff(value):
         return int(value)
 
 
+# Calculate scaled entropy density for an array [Derigs et al., 2015]
+def calculateEntropyDensity(tube, g):
+    return (tube[:,0] * np.log(tube[:,4]*tube[:,0]**-g))/(g-1)
+
+
 # Function for solution error calculation of sin-wave and Gaussian tests (L1 error norm)
 def calculateSolutionError(simulation, startPos, endPos, config):
     timeKeys = [float(t) for t in simulation.keys()]
