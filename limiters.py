@@ -31,7 +31,7 @@ def faceValueLimiter(w_face, w_minusOne, w_cell, w_plusOne, w_plusTwo, C=5/4):
     local_extrema = (w_face - w_cell)*(w_plusOne - w_face) < 0
 
     if local_extrema.any():
-        D2w = np.zeros(w_face.shape)
+        D2w = np.zeros_like(w_face)
 
         # Approximation to the second derivatives (eq. 85)
         D2w_L = w_minusOne - 2*w_cell + w_plusOne
@@ -56,7 +56,7 @@ def faceValueLimiter(w_face, w_minusOne, w_cell, w_plusOne, w_plusTwo, C=5/4):
 # Calculate minmod (slope) limiter [Derigs et al., 2017]. Returns an array of gradients for each parameter in each cell
 def minmodLimiter(w):
     a, b = np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0)
-    arr = np.zeros(b.shape)
+    arr = np.zeros_like(b)
 
     # (eq. 4.17)
     mask = np.where((np.abs(a) < np.abs(b)) & (a*b > 0))
@@ -87,5 +87,5 @@ def vanAlbadaLimiter(w):
 # Calculate the Koren parameter [Vreugdenhil & Koren, 1993]
 def korenLimiter(w):
     r = np.diff(w[:-1], axis=0)/np.diff(w[1:], axis=0)
-    return 
+    
     pass

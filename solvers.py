@@ -15,11 +15,11 @@ def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
             _mu = solutions[1]
         else:
             leftSolution, rightSolution = solutions
-            _mu = np.zeros(tube.shape)
+            _mu = np.zeros_like(tube)
         leftInterface, rightInterface = fv.makeBoundary(leftSolution, boundary)[1:], fv.makeBoundary(rightSolution, boundary)[:-1]
         avg_wS = (leftSolution + rightSolution)/2  # Get the average of the solutions
     else:
-        _mu = np.zeros(tube.shape)
+        _mu = np.zeros_like(tube)
         avg_wS = solutions
 
     # Ideally, the 4th-order averaged fluxes should be computed from the face-averaged variables
