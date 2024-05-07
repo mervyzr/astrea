@@ -66,26 +66,36 @@ def minmodLimiter(w):
     return arr
 
 
-# Calculate the van Leer/harmonic parameter. Returns an array of gradients for each parameter in each cell
-def harmonicLimiter(w):
-    r = np.diff(w[:-1])/np.diff(w[1:])
+# Calculate the van Leer/harmonic parameter [van Leer, 1974]
+def vanLeerLimiter(w):
+    dividend, divisor = np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0)
+    r = np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
     return (r + np.abs(r))/(1 + np.abs(r))
 
 
-# Calculate the ospre parameter. Returns an array of gradients for each parameter in each cell
+# Calculate the Ospre parameter [Waterson & Deconinck, 1995]
 def ospreLimiter(w):
-    r = np.diff(w[:-1])/np.diff(w[1:])
+    dividend, divisor = np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0)
+    r = np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
     return 1.5 * ((r**2 + r)/(r**2 + r + 1))
 
 
-# Calculate the van Albada parameter. Returns an array of gradients for each parameter in each cell
-def vanAlbadaLimiter(w):
-    r = np.diff(w[:-1])/np.diff(w[1:])
+# Calculate the van Albada "1" parameter [van Albada, 1982]
+def vanAlbadaOneLimiter(w):
+    dividend, divisor = np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0)
+    r = np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
     return (r**2 + r)/(r**2 + 1)
 
 
 # Calculate the Koren parameter [Vreugdenhil & Koren, 1993]
 def korenLimiter(w):
-    r = np.diff(w[:-1], axis=0)/np.diff(w[1:], axis=0)
-    
-    pass
+    dividend, divisor = np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0)
+    r = np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
+    return np.maximum(np.zeros_like(r), np.minimum(np.minimum(2*r, (2+r)/3), np.full_like(r,2)))
+
+
+# Calculate the superbee parameter [Roe, 1986]
+def superbeeLimiter(w):
+    dividend, divisor = np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0)
+    r = np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
+    return np.maximum(np.zeros_like(r), np.maximum(np.minimum(2*r, np.ones_like(r)), np.minimum(r, np.full_like(r,2))))
