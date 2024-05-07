@@ -31,7 +31,7 @@ def faceValueLimiter(w_face, w_minusOne, w_cell, w_plusOne, w_plusTwo, C=5/4):
     local_extrema = (w_face - w_cell)*(w_plusOne - w_face) < 0
 
     if local_extrema.any():
-        D2w = np.zeros(w_face.shape)
+        D2w = np.zeros_like(w_face)
 
         # Approximation to the second derivatives (eq. 85)
         D2w_L = w_minusOne - 2*w_cell + w_plusOne
@@ -54,9 +54,9 @@ def faceValueLimiter(w_face, w_minusOne, w_cell, w_plusOne, w_plusTwo, C=5/4):
 
 
 # Calculate minmod (slope) limiter [Derigs et al., 2017]. Returns an array of gradients for each parameter in each cell
-def minmodLimiter(extrapolatedValues):
-    a, b = np.diff(extrapolatedValues[:-1], axis=0), np.diff(extrapolatedValues[1:], axis=0)
-    arr = np.zeros(b.shape)
+def minmodLimiter(w):
+    a, b = np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0)
+    arr = np.zeros_like(b)
 
     # (eq. 4.17)
     mask = np.where((np.abs(a) < np.abs(b)) & (a*b > 0))
@@ -66,19 +66,36 @@ def minmodLimiter(extrapolatedValues):
     return arr
 
 
-# Calculate the van Leer/harmonic parameter. Returns an array of gradients for each parameter in each cell
-def harmonicLimiter(extrapolatedValues):
-    r = np.diff(extrapolatedValues[:-1])/np.diff(extrapolatedValues[1:])
+# Calculate the van Leer/harmonic parameter [van Leer, 1974]
+def vanLeerLimiter(w):
+    dividend, divisor = np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0)
+    r = np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
     return (r + np.abs(r))/(1 + np.abs(r))
 
 
-# Calculate the ospre parameter. Returns an array of gradients for each parameter in each cell
-def ospreLimiter(extrapolatedValues):
-    r = np.diff(extrapolatedValues[:-1])/np.diff(extrapolatedValues[1:])
+# Calculate the Ospre parameter [Waterson & Deconinck, 1995]
+def ospreLimiter(w):
+    dividend, divisor = np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0)
+    r = np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
     return 1.5 * ((r**2 + r)/(r**2 + r + 1))
 
 
-# Calculate the van Albada parameter. Returns an array of gradients for each parameter in each cell
-def vanAlbadaLimiter(extrapolatedValues):
-    r = np.diff(extrapolatedValues[:-1])/np.diff(extrapolatedValues[1:])
+# Calculate the van Albada "1" parameter [van Albada, 1982]
+def vanAlbadaOneLimiter(w):
+    dividend, divisor = np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0)
+    r = np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
     return (r**2 + r)/(r**2 + 1)
+
+
+# Calculate the Koren parameter [Vreugdenhil & Koren, 1993]
+def korenLimiter(w):
+    dividend, divisor = np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0)
+    r = np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
+    return np.maximum(np.zeros_like(r), np.minimum(np.minimum(2*r, (2+r)/3), np.full_like(r,2)))
+
+
+# Calculate the superbee parameter [Roe, 1986]
+def superbeeLimiter(w):
+    dividend, divisor = np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0)
+    r = np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
+    return np.maximum(np.zeros_like(r), np.maximum(np.minimum(2*r, np.ones_like(r)), np.minimum(r, np.full_like(r,2))))

@@ -1,5 +1,7 @@
 import numpy as np
 
+from settings import precision
+
 ##############################################################################
 
 # Initialise the discrete solution array with initial conditions and primitive variables w
@@ -8,7 +10,7 @@ def initialise(cfg, tst):
     N = cfg['cells']
     start, end, shock = tst['startPos'], tst['endPos'], tst['shockPos']
 
-    arr = np.zeros((N, len(tst['initialRight'])), dtype=np.float64)
+    arr = np.zeros((N, len(tst['initialRight'])), dtype=precision)
     arr[:] = tst['initialRight']
 
     midpoint = (end+start)/2
@@ -78,7 +80,7 @@ def convertConservative(tube, g, boundary):
 # Make flux based on cell-averaged (primitive) variables
 def makeFlux(tube, g):
     rhos, vecs, pressures, Bfield = tube[:,0], tube[:,1:4], tube[:,4], tube[:,5:8]
-    arr = np.zeros(tube.shape)
+    arr = np.zeros_like(tube)
 
     arr[:,0] = rhos*vecs[:,0]
     arr[:,1] = rhos*(vecs[:,0]**2) + pressures + (.5*np.linalg.norm(Bfield, axis=1)**2) - Bfield[:,0]**2

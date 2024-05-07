@@ -1,6 +1,7 @@
 import numpy as np
 
 from functions import fv
+from settings import precision
 
 ##############################################################################
 
@@ -14,11 +15,11 @@ def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
             _mu = solutions[1]
         else:
             leftSolution, rightSolution = solutions
-            _mu = np.zeros(tube.shape)
+            _mu = np.zeros_like(tube)
         leftInterface, rightInterface = fv.makeBoundary(leftSolution, boundary)[1:], fv.makeBoundary(rightSolution, boundary)[:-1]
         avg_wS = (leftSolution + rightSolution)/2  # Get the average of the solutions
     else:
-        _mu = np.zeros(tube.shape)
+        _mu = np.zeros_like(tube)
         avg_wS = solutions
 
     # Ideally, the 4th-order averaged fluxes should be computed from the face-averaged variables
@@ -42,7 +43,7 @@ def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
     # Determine the eigenvalues for the computation of the flux and time stepping
     localEigvals = np.max(np.abs(np.linalg.eigvals(A)), axis=1)  # Local max eigenvalue for each cell
     eigvals = np.max([localEigvals[:-1], localEigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
-    eigmax = np.max([np.max(eigvals), np.finfo(float).eps])  # Maximum wave speed (max eigenvalue) for system
+    eigmax = np.max([np.max(eigvals), np.finfo(precision).eps])  # Maximum wave speed (max eigenvalue) for system
 
     # Return the Riemann fluxes
     return .5 * ((fS[:-1]+fS[1:]) - ((eigvals * qDiff).T)), eigmax

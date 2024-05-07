@@ -1,10 +1,11 @@
 import numpy as np
 
 from functions import fv
+from settings import precision
 
 ##############################################################################
 
-modified = 1
+modified = 0
 dissipate = 0
 
 # Extrapolate the cell averages to face averages
@@ -84,7 +85,7 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
             # If there are extrema in the cells
             if cell_extrema.any():
                 d2w_Cw = fv.makeBoundary(d2w_C, boundary)
-                d2w_lim = np.zeros(wS.shape)
+                d2w_lim = np.zeros_like(wS)
 
                 # Get the curvatures that have the same signs
                 non_monotonic = (np.sign(d2w_Cw[:-2]) == np.sign(d2w_Cw[2:])) & (np.sign(d2w) == np.sign(d2w_C)) & (np.sign(d2w_C) == np.sign(d2w_Cw[:-2])) & (np.sign(d2w_C) == np.sign(d2w_Cw[2:])) & (np.sign(d2w) == np.sign(d2w_Cw[:-2])) & (np.sign(d2w) == np.sign(d2w_Cw[2:]))
@@ -94,12 +95,12 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
                 d2w_lim[cell_extrema] = limited_curvature[cell_extrema]
 
                 # Determine the limited values that are sensitive to roundoff errors
-                rho_limiter = np.zeros(wS.shape)
+                rho_limiter = np.zeros_like(wS)
                 # Get the cells where the limited values fulfil the condition
                 sensitive = np.abs(d2w) > 1e-12 * np.maximum(np.abs(wS), np.maximum(np.maximum(np.abs(w[:-2]), np.abs(w[2:])), np.maximum(np.abs(w2[:-4]), np.abs(w2[4:]))))
                 # Update the limited estimates based on the condition (eq. 27)
-                d2w[d2w == 0] = np.inf
-                rho_limiter[sensitive] = (d2w_lim/d2w)[sensitive]
+                phi = np.divide(d2w_lim, d2w, out=np.zeros_like(d2w_lim), where=d2w!=0)
+                rho_limiter[sensitive] = phi[sensitive]
 
                 # Apply additional limiters
                 d3w_w = fv.makeBoundary(d3w, boundary)
@@ -148,7 +149,7 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
 
             # If there are extrema in either the cells or interpolants
             if cell_extrema.any() or interpolant_extrema.any():
-                D2w_lim = np.zeros(wS.shape)
+                D2w_lim = np.zeros_like(wS)
 
                 # Approximation to the second derivative (eq. 95)
                 D2w = 6 * (wF_limit_L - 2*wS + wF_limit_R)
@@ -166,14 +167,14 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
                 D2w_lim[cell_extrema & non_monotonic] = limited_curvature[cell_extrema & non_monotonic]
                 D2w_lim[interpolant_extrema & non_monotonic] = limited_curvature[interpolant_extrema & non_monotonic]
 
-                D2w[D2w == 0] = np.inf  # removes divide-by-zero error; causes wFL & wFR -> wS (i.e. piecewise constant) when D2w = 0
+                phi = np.divide(D2w_lim, D2w, out=np.zeros_like(D2w_lim), where=D2w!=0)
 
                 # Further update if there is local extrema (eq. 97-98)
                 d_uL_bar, d_uR_bar = np.copy(d_uL), np.copy(d_uR)
                 if overshoot.any():
                     d_uL_bar[np.abs(d_uL) > 2*np.abs(d_uR)] = 2*d_uR[np.abs(d_uL) > 2*np.abs(d_uR)]
                     d_uR_bar[np.abs(d_uR) > 2*np.abs(d_uL)] = 2*d_uL[np.abs(d_uR) > 2*np.abs(d_uL)]
-                return [wS - d_uL_bar*(D2w_lim/D2w), wS + d_uR_bar*(D2w_lim/D2w)]  # (eq. 98)
+                return [wS - phi*d_uL_bar, wS + phi*d_uR_bar]  # (eq. 98)
             else:
                 return [wF_limit_L, wF_limit_R]
 
@@ -192,15 +193,15 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
 def calculateFlattenCoeff(wS, boundary, slope_determinants=[.33, .75, .85]):
     delta, z0, z1 = slope_determinants
 
-    chiBar = np.zeros(wS[:,4].shape)
+    chiBar = np.zeros_like(wS[:,4])
 
     vxs = np.pad(wS[:,1], 1, mode=boundary)
     Ps = np.pad(wS[:,4], 2, mode=boundary)
 
-    denom = np.abs(Ps[4:]-Ps[:-4])
-    denom[denom == 0] = np.finfo(float).eps
-    z = np.abs(Ps[3:-1]-Ps[1:-3]) / denom
-    eta = np.minimum(np.ones(z.shape), np.maximum(np.zeros(z.shape), 1-((z-z0)/(z1-z0))))
+    dividend, divisor = np.abs(Ps[3:-1]-Ps[1:-3]), np.abs(Ps[4:]-Ps[:-4])
+    z = np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
+
+    eta = np.minimum(np.ones_like(z), np.maximum(np.zeros_like(z), 1-((z-z0)/(z1-z0))))
     criteria = ((vxs[:-2]-vxs[2:]) > 0) & (np.abs(Ps[3:-1]-Ps[1:-3])/np.minimum(Ps[3:-1],Ps[1:-3]) > delta)
     chiBar[criteria] = eta[criteria]
     chiPlusOne = np.pad(chiBar, 1, mode=boundary)
@@ -210,7 +211,7 @@ def calculateFlattenCoeff(wS, boundary, slope_determinants=[.33, .75, .85]):
     chi[signage < 0] = np.minimum(chiPlusOne[2:], chiBar)[signage < 0]
     chi[signage > 0] = np.minimum(chiPlusOne[:-2], chiBar)[signage > 0]
 
-    arr = np.ones(wS.shape)
+    arr = np.ones_like(wS)
     return (chi*arr.T).T
 
 
@@ -226,9 +227,9 @@ def applyArtificialViscosity(wS, gamma, boundary, viscosity_determinants=[.3, .3
     cs = np.sqrt((gamma*wS[:,4])/wS[:,0])
     Gamma = np.diff(vxs)[1:]
 
-    nu = np.zeros(Gamma.shape)
+    nu = np.zeros_like(Gamma)
     c_min = np.minimum(cs, np.pad(cs, 1, mode=boundary)[2:])
-    nu[Gamma < 0] = (Gamma * np.minimum(np.ones(Gamma.shape), (Gamma**2)/(beta*c_min**2)))[Gamma < 0]
+    nu[Gamma < 0] = (Gamma * np.minimum(np.ones_like(Gamma), (Gamma**2)/(beta*c_min**2)))[Gamma < 0]
 
-    arr = np.ones(wS.shape)
+    arr = np.ones_like(wS)
     return (alpha*nu*arr.T).T

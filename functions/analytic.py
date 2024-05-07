@@ -50,7 +50,7 @@ def calculateTV(simulation):
 # Determine the analytical solution for a Sod shock test
 def calculateSodAnalytical(tube, t, gamma, start, end, shock):
     # Define array to be updated and returned
-    arr = np.zeros(tube.shape)
+    arr = np.zeros_like(tube)
 
     # Get variables of the leftmost and rightmost states, which should be initial conditions
     rho5, vx5, vy5, vz5, P5, Bx5, By5, Bz5 = tube[0]
