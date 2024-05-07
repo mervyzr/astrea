@@ -80,7 +80,7 @@ if __name__ == "__main__":
                 elif opt in ["cfl", "gamma"]:
                     configVariables[opt] = float(arg)
                 elif opt in ["livePlot", "savePlot", "saveVideo", "saveFile"]:
-                    configVariables[opt] = bool(arg)
+                    configVariables[opt] = arg == "True"
                 else:
                     configVariables[opt] = arg
 
