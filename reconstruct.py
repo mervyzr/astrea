@@ -56,6 +56,8 @@ def extrapolate(tube, gamma, solver, boundary):
 
 
 # Reconstruct the interpolants using the limited values
+# Current convention: | i-1 |  <--      i      -->  | i+1 |
+#                           |w_L(i)           w_R(i)|
 def interpolate(extrapolatedValues, limitedValues, solver, boundary):
     # Reconstruction of parabolic interpolant
     if solver in ["ppm", "parabolic", "p"]:
