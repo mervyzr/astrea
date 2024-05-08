@@ -128,6 +128,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
                     if beautify:
                         gradient_plot([x, y_data[_i][_j]], [_i,_j], ax, linewidth=2, color=colours[_i][_j])
                     else:
+                        #ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=colours[_i][_j], color=colours[_i][_j])
                         ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=colours[_i][_j])
                     plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$ ($N = {N}$)", fontsize=24)
 
@@ -218,7 +219,7 @@ def plotSolutionErrors(f, configVariables, testVariables, savepath, prop_coeff=1
                 ax[_j].loglog(x, ytheo, linewidth=1, color="black", linestyle="--")
                 ax[_j].annotate(rf"$O(N^{order})$", (x[-1], ytheo[-1]), fontsize=12)
             ax[_j].loglog(x, y_data[_i][_j], linewidth=2, linestyle="--", marker="o", color=colours[_i][_j], label=f"grad. = {round(m,4)}")
-            ax[_j].scatter([], [], s=.5, color="white", label=rf"$|\text{{EOC}}_{{max}}|$ = {round(max(np.abs(np.diff(np.log(y_data[_i][_j]))/np.diff(np.log(x)))), 4)}")
+            ax[_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|\text{{EOC}}_{{max}}|$ = {round(max(np.abs(np.diff(np.log(y_data[_i][_j]))/np.diff(np.log(x)))), 4)}")
             ax[_j].legend(prop={'size': 14})
 
     print(f"{generic.bcolours.OKGREEN}EOC (density){generic.bcolours.ENDC}: {np.diff(np.log(y1))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (pressure){generic.bcolours.ENDC}: {np.diff(np.log(y2))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (vx){generic.bcolours.ENDC}: {np.diff(np.log(y3))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (thermal){generic.bcolours.ENDC}: {np.diff(np.log(y4))/np.diff(np.log(x))}")
