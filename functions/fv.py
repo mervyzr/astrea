@@ -81,7 +81,7 @@ def convertConservative(tube, g, boundary):
     return pointConvertConservative(q, g) + (np.diff(w[1:], axis=0) - np.diff(w[:-1], axis=0))/24
 
 
-"""# Make flux based on cell-averaged (primitive) variables
+# Make flux based on cell-averaged (primitive) variables
 def makeFlux(tube, g):
     rhos, vecs, pressures, Bfield = tube[:,0], tube[:,1:4], tube[:,4], tube[:,5:8]
     arr = np.zeros_like(tube)
@@ -93,15 +93,17 @@ def makeFlux(tube, g):
     arr[:,4] = (vecs[:,0]*((.5*rhos*np.linalg.norm(vecs, axis=1)**2) + ((g*pressures)/(g-1)))) + (vecs[:,0]*np.linalg.norm(Bfield, axis=1)**2) - (Bfield[:,0]*np.sum(Bfield*vecs, axis=1))
     arr[:,6] = Bfield[:,1]*vecs[:,0] - Bfield[:,0]*vecs[:,1]
     arr[:,7] = Bfield[:,2]*vecs[:,0] - Bfield[:,0]*vecs[:,2]
-    return arr"""
+    return arr
 
-# Entropy-stable flux calculation based on left and right interpolated primitive variables [Winters & Gassner, 2015]
+
+"""# Entropy-stable flux calculation based on left and right interpolated primitive variables [Winters & Gassner, 2015]
 def makeFlux(interpolatedValues, g):
     wL, wR = interpolatedValues
     arr = np.zeros_like(wL)
 
     def make_z(w):
         _arr = np.copy(w)
+        print((w<0).any())
         x = np.sqrt(divide(w[:,0], w[:,4]))
 
         _arr[:,0] = x
@@ -112,7 +114,7 @@ def makeFlux(interpolatedValues, g):
 
     z_wL, z_wR = make_z(wL), make_z(wR)
     avg_z = .5 * (z_wL - z_wR)
-    ln_z = divide((z_wL - z_wR), (np.log(z_wL) - np.log(z_wR)))
+    ln_z = divide((z_wL - z_wR), (np.log(z_wL, out=np.zeros_like(z_wL), where=z_wL!=0) - np.log(z_wR, out=np.zeros_like(z_wR), where=z_wR!=0)))
 
     rho_hat = avg_z[:,0]*ln_z[:,4]
     P1_hat = divide(avg_z[:,4], avg_z[:,0])
@@ -132,7 +134,7 @@ def makeFlux(interpolatedValues, g):
     arr[:,4] = (g/(g-1))*vx_hat*P2_hat + .5*rho_hat*vx_hat*(vx_hat**2 + (vy_hat**2)*(vz_hat**2)) + vx_dot*(By_hat**2 + Bz_hat**2) - Bx_hat*(vy_dot*By_hat + vz_dot*Bz_hat)
     arr[:,6] = vx_dot*By_hat - vy_dot*Bx_hat
     arr[:,7] = vx_dot*Bz_hat - vz_dot*Bx_hat
-    return arr
+    return arr"""
 
 
 # Jacobian matrix based on primitive variables
