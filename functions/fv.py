@@ -4,6 +4,10 @@ from settings import precision
 
 ##############################################################################
 
+def divide(dividend, divisor):
+    return np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
+
+
 # Initialise the discrete solution array with initial conditions and primitive variables w
 # Returns the solution array in conserved variables q
 def initialise(cfg, tst):
@@ -90,6 +94,47 @@ def makeFlux(tube, g):
     arr[:,6] = Bfield[:,1]*vecs[:,0] - Bfield[:,0]*vecs[:,1]
     arr[:,7] = Bfield[:,2]*vecs[:,0] - Bfield[:,0]*vecs[:,2]
     return arr
+
+
+"""# Entropy-stable flux calculation based on left and right interpolated primitive variables [Winters & Gassner, 2015]
+def makeFlux(interpolatedValues, g):
+    wL, wR = interpolatedValues
+    arr = np.zeros_like(wL)
+
+    def make_z(w):
+        _arr = np.copy(w)
+        print((w<0).any())
+        x = np.sqrt(divide(w[:,0], w[:,4]))
+
+        _arr[:,0] = x
+        _arr[:,1:4] = (x*w[:,1:4].T).T
+        _arr[:,4] = np.sqrt(w[:,0]*w[:,4])
+
+        return _arr
+
+    z_wL, z_wR = make_z(wL), make_z(wR)
+    avg_z = .5 * (z_wL - z_wR)
+    ln_z = divide((z_wL - z_wR), (np.log(z_wL, out=np.zeros_like(z_wL), where=z_wL!=0) - np.log(z_wR, out=np.zeros_like(z_wR), where=z_wR!=0)))
+
+    rho_hat = avg_z[:,0]*ln_z[:,4]
+    P1_hat = divide(avg_z[:,4], avg_z[:,0])
+    P2_hat = ((g+1)/(2*g)) * divide(ln_z[:,4], ln_z[:,0]) + ((g-1)/(2*g)) * divide(avg_z[:,4], avg_z[:,0])
+    vx_hat, vy_hat, vz_hat = divide(avg_z[:,1], avg_z[:,0]), divide(avg_z[:,2], avg_z[:,0]), divide(avg_z[:,3], avg_z[:,0])
+    vx_dot = divide((z_wL[:,0]*z_wL[:,1] - z_wR[:,0]*z_wR[:,1]), (z_wL[:,0]**2 - z_wR[:,0]**2))
+    vy_dot = divide((z_wL[:,0]*z_wL[:,2] - z_wR[:,0]*z_wR[:,2]), (z_wL[:,0]**2 - z_wR[:,0]**2))
+    vz_dot = divide((z_wL[:,0]*z_wL[:,3] - z_wR[:,0]*z_wR[:,3]), (z_wL[:,0]**2 - z_wR[:,0]**2))
+    Bx_hat, By_hat, Bz_hat = avg_z[:,5], avg_z[:,6], avg_z[:,7]
+    Bx_dot, By_dot, Bz_dot = .5 * (z_wL[:,5]**2-z_wR[:,5]**2), .5 * (z_wL[:,6]**2-z_wR[:,6]**2), .5 * (z_wL[:,7]**2-z_wR[:,7]**2)
+    BxBy, BxBz = .5 * (z_wL[:,5]*z_wL[:,6] - z_wR[:,5]*z_wR[:,6]), .5 * (z_wL[:,5]*z_wL[:,7] - z_wR[:,5]*z_wR[:,7])
+
+    arr[:,0] = rho_hat*vx_hat
+    arr[:,1] = P1_hat + rho_hat*vx_hat**2 - Bx_dot + .5*(Bx_dot+By_dot+Bz_dot)
+    arr[:,2] = rho_hat*vx_hat*vy_hat - BxBy
+    arr[:,3] = rho_hat*vx_hat*vz_hat - BxBz
+    arr[:,4] = (g/(g-1))*vx_hat*P2_hat + .5*rho_hat*vx_hat*(vx_hat**2 + (vy_hat**2)*(vz_hat**2)) + vx_dot*(By_hat**2 + Bz_hat**2) - Bx_hat*(vy_dot*By_hat + vz_dot*Bz_hat)
+    arr[:,6] = vx_dot*By_hat - vy_dot*Bx_hat
+    arr[:,7] = vx_dot*Bz_hat - vz_dot*Bx_hat
+    return arr"""
 
 
 # Jacobian matrix based on primitive variables

@@ -28,6 +28,8 @@ def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
     # Same for the averaged and centred fluxes (<F>_i+1/2 = F_i+1/2)
     wS = fv.makeBoundary(avg_wS, boundary)
     fS = fv.makeFlux(wS, gamma)
+    #wLs, wRs = fv.makeBoundary(leftSolution, boundary), fv.makeBoundary(rightSolution, boundary)
+    #fS = fv.makeFlux([wLs, wRs], gamma)
     mu = fv.makeBoundary(_mu, boundary)
     fS += mu
     A = fv.makeJacobian(wS, gamma)
