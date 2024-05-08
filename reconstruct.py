@@ -101,7 +101,7 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
                 # Get the cells where the limited values fulfil the condition
                 sensitive = np.abs(d2w) > 1e-12 * np.maximum(np.abs(wS), np.maximum(np.maximum(np.abs(w[:-2]), np.abs(w[2:])), np.maximum(np.abs(w2[:-4]), np.abs(w2[4:]))))
                 # Update the limited estimates based on the condition (eq. 27)
-                phi = np.divide(d2w_lim, d2w, out=np.zeros_like(d2w_lim), where=d2w!=0)
+                phi = fv.divide(d2w_lim, d2w)
                 rho_limiter[sensitive] = phi[sensitive]
 
                 # Apply additional limiters
@@ -169,7 +169,7 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
                 D2w_lim[cell_extrema & non_monotonic] = limited_curvature[cell_extrema & non_monotonic]
                 D2w_lim[interpolant_extrema & non_monotonic] = limited_curvature[interpolant_extrema & non_monotonic]
 
-                phi = np.divide(D2w_lim, D2w, out=np.zeros_like(D2w_lim), where=D2w!=0)
+                phi = fv.divide(D2w_lim, D2w)
 
                 # Further update if there is local extrema (eq. 97-98)
                 d_uL_bar, d_uR_bar = np.copy(d_uL), np.copy(d_uR)
@@ -200,8 +200,7 @@ def calculateFlattenCoeff(wS, boundary, slope_determinants=[.33, .75, .85]):
     vxs = np.pad(wS[:,1], 1, mode=boundary)
     Ps = np.pad(wS[:,4], 2, mode=boundary)
 
-    dividend, divisor = np.abs(Ps[3:-1]-Ps[1:-3]), np.abs(Ps[4:]-Ps[:-4])
-    z = np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
+    z = fv.divide(np.abs(Ps[3:-1]-Ps[1:-3]), np.abs(Ps[4:]-Ps[:-4]))
 
     eta = np.minimum(np.ones_like(z), np.maximum(np.zeros_like(z), 1-((z-z0)/(z1-z0))))
     criteria = ((vxs[:-2]-vxs[2:]) > 0) & (np.abs(Ps[3:-1]-Ps[1:-3])/np.minimum(Ps[3:-1],Ps[1:-3]) > delta)

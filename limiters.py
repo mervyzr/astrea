@@ -68,34 +68,29 @@ def minmodLimiter(w):
 
 # Calculate the van Leer/harmonic parameter [van Leer, 1974]
 def vanLeerLimiter(w):
-    dividend, divisor = np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0)
-    r = np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
+    r = fv.divide(np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0))
     return (r + np.abs(r))/(1 + np.abs(r)) * np.diff(w[1:], axis=0)
 
 
 # Calculate the Ospre parameter [Waterson & Deconinck, 1995]
 def ospreLimiter(w):
-    dividend, divisor = np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0)
-    r = np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
+    r = fv.divide(np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0))
     return 1.5 * ((r**2 + r)/(r**2 + r + 1)) * np.diff(w[1:], axis=0)
 
 
 # Calculate the van Albada "1" parameter [van Albada, 1982]
 def vanAlbadaOneLimiter(w):
-    dividend, divisor = np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0)
-    r = np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
+    r = fv.divide(np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0))
     return (r**2 + r)/(r**2 + 1) * np.diff(w[1:], axis=0)
 
 
 # Calculate the Koren parameter [Vreugdenhil & Koren, 1993]
 def korenLimiter(w):
-    dividend, divisor = np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0)
-    r = np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
+    r = fv.divide(np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0))
     return np.maximum(np.zeros_like(r), np.minimum(np.minimum(2*r, (2+r)/3), np.full_like(r,2))) * np.diff(w[1:], axis=0)
 
 
 # Calculate the superbee parameter [Roe, 1986]
 def superbeeLimiter(w):
-    dividend, divisor = np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0)
-    r = np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
+    r = fv.divide(np.diff(w[:-1], axis=0), np.diff(w[1:], axis=0))
     return np.maximum(np.zeros_like(r), np.maximum(np.minimum(2*r, np.ones_like(r)), np.minimum(r, np.full_like(r,2)))) * np.diff(w[1:], axis=0)
