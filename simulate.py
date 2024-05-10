@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "", ["config=", "cells=", "cfl=", "gamma=", "solver=", "timestep=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile="])
+            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "cells=", "cfl=", "gamma=", "solver=", "timestep=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile="])
         except getopt.GetoptError as e:
             print(f'{generic.bcolours.WARNING}Error: {e}{generic.bcolours.ENDC}')
             sys.exit(2)
@@ -81,8 +81,10 @@ if __name__ == "__main__":
                     configVariables[opt] = float(arg)
                 elif opt in ["livePlot", "savePlot", "saveVideo", "saveFile"]:
                     configVariables[opt] = arg.lower() == "true"
+                elif opt == "test":
+                    configVariables["config"] = arg.lower()
                 else:
-                    configVariables[opt] = arg
+                    configVariables[opt] = arg.lower()
 
     # Error condition(s)
     if configVariables['solver'] not in ["ppm", "parabolic", "p", "plm", "linear", "l", "pcm", "constant", "c"]:
