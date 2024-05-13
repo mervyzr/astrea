@@ -9,7 +9,8 @@ from reconstruct import modified, dissipate
 
 # Solve the Riemann (flux) problem (Local Lax-Friedrichs; approximate Roe solver)
 def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
-    if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
+    # Get the average of the solutions
+    if solver in ["ppm", "parabolic", "p"]:
         if dissipate and modified:
             leftSolution, rightSolution = solutions[0]
             _mu = solutions[1]
@@ -17,7 +18,26 @@ def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
             leftSolution, rightSolution = solutions
             _mu = np.zeros_like(tube)
         leftInterface, rightInterface = fv.makeBoundary(leftSolution, boundary)[1:], fv.makeBoundary(rightSolution, boundary)[:-1]
-        avg_wS = .5 * (leftSolution + rightSolution)  # Get the average of the solutions
+        avg_wS = .5 * (leftSolution + rightSolution)
+
+        """avg_wS = np.copy(tube)
+        rho_L, rho_R = np.sqrt(leftSolution[:,0]), np.sqrt(rightSolution[:,0])
+
+        avg_wS[:,0] = rho_L * rho_R
+        avg_wS[:,1:4] = fv.divide((rho_L*leftSolution[:,1:4].T).T + (rho_R*rightSolution[:,1:4].T).T, rho_L + rho_R)
+
+        H_L = fv.divide(leftSolution[:,4], leftSolution[:,0])*gamma/(gamma-1) + .5*np.linalg.norm(leftSolution[:,1:4], axis=1)**2 + fv.divide(np.linalg.norm(leftSolution[:,5:8], axis=1)**2, leftSolution[:,0])
+        H_R = fv.divide(rightSolution[:,4], rightSolution[:,0])*gamma/(gamma-1) + .5*np.linalg.norm(rightSolution[:,1:4], axis=1)**2 + fv.divide(np.linalg.norm(rightSolution[:,5:8], axis=1)**2, rightSolution[:,0])
+        H = fv.divide(rho_L*H_L + rho_R*H_R, rho_L + rho_R)
+        avg_wS[:,4] = (avg_wS[:,0]*H - .5*avg_wS[:,0]*np.linalg.norm(avg_wS[:,1:4], axis=1)**2 - np.linalg.norm(avg_wS[:,5:8], axis=1)**2) * (gamma-1)/gamma
+
+        avg_wS[:,6:8] = fv.divide((rho_R*leftSolution[:,6:8].T).T + (rho_L*rightSolution[:,6:8].T).T, rho_L + rho_R)"""
+
+    elif solver in ["plm", "linear", "l"]:
+        leftSolution, rightSolution = solutions
+        _mu = np.zeros_like(tube)
+        leftInterface, rightInterface = fv.makeBoundary(leftSolution, boundary)[1:], fv.makeBoundary(rightSolution, boundary)[:-1]
+        avg_wS = .5 * (leftSolution + rightSolution)
     else:
         _mu = np.zeros_like(tube)
         avg_wS = solutions
