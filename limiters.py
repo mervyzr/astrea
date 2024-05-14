@@ -4,12 +4,17 @@ from functions import fv
 
 ##############################################################################
 
+from reconstruct import modified
+
 # Apply limiters based on the reconstruction method
 def applyLimiter(extrapolatedValues, solver):
     # Apply the limiter for parabolic or XPPM
     if solver in ["ppm", "parabolic", "p"]:
-        wS, wF, w, w2 = extrapolatedValues
-        return faceValueLimiter(wF, w[:-2], wS, w[2:], w2[4:])
+        if modified:
+            return extrapolatedValues[1]
+        else:
+            wS, wF, w, w2 = extrapolatedValues
+            return faceValueLimiter(wF, w[:-2], wS, w[2:], w2[4:])
 
     # Apply the minmod limiter
     elif solver in ["plm", "linear", "l"]:
