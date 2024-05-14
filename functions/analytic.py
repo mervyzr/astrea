@@ -17,8 +17,8 @@ def calculateEntropyDensity(tube, g):
     return (tube[:,0] * np.log(tube[:,4]*tube[:,0]**-g))/(g-1)
 
 
-# Function for solution error calculation of sin-wave and Gaussian tests (L1 error norm)
-def calculateSolutionError(simulation, startPos, endPos, config):
+# Function for solution error calculation of sin-wave and Gaussian tests
+def calculateSolutionError(simulation, startPos, endPos, config, norm):
     timeKeys = [float(t) for t in simulation.keys()]
     q_num = simulation[str(max(timeKeys))]  # Get last array with (typically largest) time key
 
@@ -34,7 +34,12 @@ def calculateSolutionError(simulation, startPos, endPos, config):
     thermal_num, thermal_theo = q_num[:,4]/q_num[:,0], q_theo[:,4]/q_theo[:,0]
     q_num, q_theo = np.c_[q_num, thermal_num], np.c_[q_theo, thermal_theo]
 
-    return np.sum(np.abs(q_num-q_theo), axis=0)/len(q_num)
+    if norm > 10:
+        return np.max(np.abs(q_num-q_theo), axis=0)
+    elif norm <= 0:
+        return np.sum(np.abs(q_num-q_theo), axis=0)/len(q_num)
+    else:
+        return (np.sum(np.abs(q_num-q_theo)**norm, axis=0)/len(q_num))**(1/norm)
 
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t))
