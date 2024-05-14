@@ -42,7 +42,7 @@ def calculateSolutionError(simulation, startPos, endPos, config, norm):
         return (np.sum(np.abs(q_num-q_theo)**norm, axis=0)/len(q_num))**(1/norm)
 
 
-# Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t))
+# Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
 def calculateTV(simulation):
     tv = {}
     for t in list(simulation.keys()):

@@ -23,7 +23,7 @@ beautify = False
 
 
 plotIndexes = [[0,0], [0,1], [1,0], [1,1]]
-plotLabels = [[r"Density $\rho$", r"Pressure $P$"], [r"Velocity $v_x$", r"Thermal energy $\frac{P}{\rho}$"]]
+plotLabels = [[r"Density $\rho$", r"Pressure $P$"], [r"Velocity $v_x$", r"Specific thermal energy $\frac{P}{\rho}$"]]
 try:
     plt.style.use(_style)
 except Exception as e:
@@ -69,7 +69,7 @@ def updatePlot(arr, t, fig, ax, graphs):
     graphTL.set_ydata(arr[:,0])  # density
     graphTR.set_ydata(arr[:,4])  # pressure
     graphBL.set_ydata(arr[:,1])  # vx
-    graphBR.set_ydata(arr[:,4]/arr[:,0])  # thermal energy
+    graphBR.set_ydata(arr[:,4]/arr[:,0])  # specific thermal energy
     #graphBR.set_ydata(analytic.calculateEntropyDensity(arr, 1.4))  # scaled entropy density
 
     for _i, _j in plotIndexes:
@@ -115,7 +115,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
             y1 = f[str(N)][time_key][:, 0]   # density
             y2 = f[str(N)][time_key][:, 4]   # pressure
             y3 = f[str(N)][time_key][:, 1]   # vx
-            y4 = y2/y1                       # thermal energy
+            y4 = y2/y1                       # specific thermal energy
             x = np.linspace(startPos, endPos, N)
             y_data = [[y1, y2], [y3, y4]]
 
@@ -205,7 +205,7 @@ def plotSolutionErrors(f, configVariables, testVariables, savepath, prop_coeff, 
         x = np.append(x, f[str(N)].attrs['cells'])
         solutionErrors = analytic.calculateSolutionError(f[str(N)], startPos, endPos, config, norm)
         y1 = np.append(y1, solutionErrors[0])  # density
-        y2 = np.append(y2, solutionErrors[-1])  # thermal energy
+        y2 = np.append(y2, solutionErrors[-1])  # specific thermal energy
         y3 = np.append(y3, solutionErrors[4])  # pressure
         y4 = np.append(y4, solutionErrors[1])  # vx
     y_data = [[y1, y2], [y3, y4]]
@@ -256,7 +256,7 @@ def plotTotalVariation(f, configVariables, savepath):
         y1 = y[:, 0]  # density
         y2 = y[:, 4]  # pressure
         y3 = y[:, 1]  # vx
-        y4 = y[:, -1]  # thermal energy
+        y4 = y[:, -1]  # specific thermal energy
         y_data = [[y1, y2], [y3, y4]]
 
         for _i, _j in plotIndexes:
@@ -296,7 +296,7 @@ def makeVideo(f, configVariables, testVariables, savepath, vidpath):
             y1 = domain[:, 0]               # density
             y2 = domain[:, 4]               # pressure
             y3 = domain[:, 1]               # vx
-            y4 = domain[:, 4]/domain[:, 0]  # thermal energy
+            y4 = domain[:, 4]/domain[:, 0]  # specific thermal energy
             x = np.linspace(startPos, endPos, N)
             y_data = [[y1, y2], [y3, y4]]
 
@@ -350,7 +350,7 @@ def plotInstance(domain, showPlot=True, text="", startPos=0, endPos=1, **kwargs)
     y1 = domain[:, 0]   # density
     y2 = domain[:, 4]   # pressure
     y3 = domain[:, 1]   # vx
-    y4 = y2/y1          # thermal energy
+    y4 = y2/y1          # specific thermal energy
     x = np.linspace(startPos, endPos, len(y1))
     y_data = [[y1, y2], [y3, y4]]
 
