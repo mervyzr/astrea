@@ -21,7 +21,7 @@ elif config.startswith('sin'):
     startPos = 0
     endPos = 1
     shockPos = 1
-    tEnd = 1  # can be set to 2 too
+    tEnd = 2
     boundary = "wrap"  # periodic
     freq = 2
     initialLeft = np.array([0,1,1,1,1,0,0,0])
