@@ -251,13 +251,14 @@ def plotTotalVariation(f, configVariables, savepath):
 
     for N in nList:
         tvDict = analytic.calculateTV(f[str(N)])
-        x = np.asarray(list(tvDict.keys()))
-        y = np.asarray(list(tvDict.values()))
-        y1 = y[:, 0]  # density
-        y2 = y[:, 4]  # pressure
-        y3 = y[:, 1]  # vx
-        y4 = y[:, -1]  # specific thermal energy
+        x = np.asarray(list(tvDict.keys()), dtype=precision)
+        y = np.asarray(list(tvDict.values()), dtype=precision)
+        y1 = y[:,0]  # density
+        y2 = y[:,4]  # pressure
+        y3 = y[:,1]  # vx
+        y4 = y[:,-1]  # specific thermal energy
         y_data = [[y1, y2], [y3, y4]]
+        x.sort()
 
         for _i, _j in plotIndexes:
             ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=colours[_i][_j])
@@ -271,6 +272,49 @@ def plotTotalVariation(f, configVariables, savepath):
         plt.clf()
         plt.close()
     return None
+
+
+def plotConservationEquations(f, configVariables, testVariables, savepath):
+    config, gamma, solver, timestep = configVariables['config'], configVariables['gamma'], configVariables['solver'], configVariables['timestep']
+    startPos, endPos = testVariables['startPos'], testVariables['endPos']
+
+    # hdf5 keys are string; need to convert back to int and sort again
+    nList = [int(n) for n in f.keys()]
+    nList.sort()
+
+    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=[21,10])
+    eqLabels = [r"Mass ($m$)", r"Momentum ($p_x$)", r"Energy ($E_{tot}$)"]
+
+    for _j in [0,1,2]:
+        ax[_j].set_ylabel(eqLabels[_j], fontsize=18)
+        ax[_j].grid(linestyle="--", linewidth=0.5)
+    
+    for N in nList:
+        eqDict = analytic.calculateConservation(f[str(N)], startPos, endPos, gamma)
+        x = np.asarray(list(eqDict.keys()))
+        y = np.asarray(list(eqDict.values()))
+        y1 = y[:, 0]  # mass
+        y2 = y[:, 4]  # total energy
+        y3 = y[:, 1]  # momentum_x
+        y4 = y[:, 5]  # B*Vol_x
+        y_data = [[y1, y2], [y3, y4]]
+        x.sort()
+
+        for _i, _j in plotIndexes:
+            if _i == 0:
+                ax[_j].plot(x, y_data[_i][_j], linewidth=2, color=colours[_i][_j])
+            elif _i == 1 and _j == 0:
+                ax[2].plot(x, y_data[_i][_j], linewidth=2, color=colours[_i][_j])
+
+        plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ ($N = {N}$)", fontsize=24)
+        fig.text(0.5, 0.04, r"Time $t$", fontsize=18, ha='center')
+
+        plt.savefig(f"{savepath}/conserveEq_{config}_{solver}_{timestep}_{N}.png", dpi=330)
+
+        plt.cla()
+        plt.clf()
+        plt.close()
+        return None
 
 
 def makeVideo(f, configVariables, testVariables, savepath, vidpath):

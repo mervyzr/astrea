@@ -28,13 +28,15 @@ def simulateShock(_configVariables, _testVariables, grp):
     # Even though the solution array is discrete, the variables are averages (FV) instead of points (FD)
     domain = fv.initialise(_configVariables, _testVariables)
 
-    # Compute dx and set t = 0
+    # Set dx and t
     dx = abs(_testVariables['endPos']-_testVariables['startPos'])/_configVariables['cells']
     t = 0
 
+    # Initiate live plotting, if enabled
     if _configVariables['livePlot']:
         fig, ax, plots = plotting.initiateLivePlot(_testVariables['startPos'], _testVariables['endPos'], _configVariables['cells'])
 
+    # Start simulation
     while t <= _testVariables['tEnd']:
         # Saves each instance of the system at time t
         if _configVariables['solver'] in ["ppm", "parabolic", "p"]:
@@ -44,6 +46,7 @@ def simulateShock(_configVariables, _testVariables, grp):
         dataset = grp.create_dataset(str(t), data=tubeSnapshot)
         dataset.attrs['t'] = t
 
+        # Update the live plot, if enabled
         if _configVariables['livePlot']:
             plotting.updatePlot(tubeSnapshot, t, fig, ax, plots)
 
@@ -131,6 +134,7 @@ if __name__ == "__main__":
             if configVariables['savePlots']:
                 plotting.plotQuantities(f, configVariables, testVariables, savepath)
                 plotting.plotTotalVariation(f, configVariables, savepath)
+                plotting.plotConservationEquations(f, configVariables, testVariables, savepath)
                 if configVariables['runType'].startswith('m') and (configVariables['config'].startswith('sin') or configVariables['config'].startswith('gauss')):
                     plotting.plotSolutionErrors(f, configVariables, testVariables, savepath, prop_coeff=10, norm=1)
 

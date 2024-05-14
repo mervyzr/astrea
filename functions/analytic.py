@@ -2,6 +2,8 @@ import numpy as np
 import scipy as sp
 from scipy.integrate import odeint, quad, solve_ivp
 
+from functions import fv
+
 ##############################################################################
 
 # Customised rounding function
@@ -50,6 +52,15 @@ def calculateTV(simulation):
         tv[float(t)] = np.sum(np.abs(np.diff(domain, axis=0)), axis=0)
         tv[float(t)] = np.append(tv[float(t)], np.sum(np.abs(np.diff(domain[:, 4]/domain[:, 0]))))
     return tv
+
+
+# Function for checking the conservation equations; works with conservative variables
+def calculateConservation(simulation, startPos, endPos, gamma):
+    eq = {}
+    for t in list(simulation.keys()):
+        domain = fv.pointConvertPrimitive(simulation[t], gamma)
+        eq[float(t)] = np.trapz(domain, dx=(endPos-startPos)/len(domain), axis=0) * (endPos-startPos)
+    return eq
 
 
 # Determine the analytical solution for a Sod shock test

@@ -5,8 +5,8 @@ from settings import precision
 
 ##############################################################################
 
-modified = 0
-dissipate = 0
+modified = 1
+dissipate = 1
 
 # Extrapolate the cell averages to face averages
 def extrapolate(tube, gamma, solver, boundary):
