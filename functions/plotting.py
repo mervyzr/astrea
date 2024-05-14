@@ -251,8 +251,8 @@ def plotTotalVariation(f, configVariables, savepath):
 
     for N in nList:
         tvDict = analytic.calculateTV(f[str(N)])
-        x = np.asarray(list(tvDict.keys()), dtype=precision)
-        y = np.asarray(list(tvDict.values()), dtype=precision)
+        x = np.asarray(list(tvDict.keys()))
+        y = np.asarray(list(tvDict.values()))
         y1 = y[:,0]  # density
         y2 = y[:,4]  # pressure
         y3 = y[:,1]  # vx
