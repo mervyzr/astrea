@@ -112,10 +112,10 @@ def plotQuantities(f, configVariables, testVariables, savepath):
         # Plot each simulation at the i-th timing
         for j, N in enumerate(nList):
             time_key = str(indexes[j][i])
-            y1 = f[str(N)][time_key][:, 0]   # density
-            y2 = f[str(N)][time_key][:, 4]   # pressure
-            y3 = f[str(N)][time_key][:, 1]   # vx
-            y4 = y2/y1                       # specific thermal energy
+            y1 = f[str(N)][time_key][:,0]   # density
+            y2 = f[str(N)][time_key][:,4]   # pressure
+            y3 = f[str(N)][time_key][:,1]   # vx
+            y4 = y2/y1  # specific thermal energy
             x = np.linspace(startPos, endPos, N)
             y_data = [[y1, y2], [y3, y4]]
 
@@ -288,15 +288,15 @@ def plotConservationEquations(f, configVariables, testVariables, savepath):
     for _j in [0,1,2]:
         ax[_j].set_ylabel(eqLabels[_j], fontsize=18)
         ax[_j].grid(linestyle="--", linewidth=0.5)
-    
+
     for N in nList:
         eqDict = analytic.calculateConservation(f[str(N)], startPos, endPos, gamma)
         x = np.asarray(list(eqDict.keys()))
         y = np.asarray(list(eqDict.values()))
-        y1 = y[:, 0]  # mass
-        y2 = y[:, 4]  # total energy
-        y3 = y[:, 1]  # momentum_x
-        y4 = y[:, 5]  # B*Vol_x
+        y1 = y[:,0]  # mass
+        y2 = y[:,4]  # total energy
+        y3 = y[:,1]  # momentum_x
+        y4 = y[:,5]  # B*Vol_x
         y_data = [[y1, y2], [y3, y4]]
         x.sort()
 
@@ -337,10 +337,10 @@ def makeVideo(f, configVariables, testVariables, savepath, vidpath):
                 ax[_i,_j].set_xlim([startPos, endPos])
                 ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
-            y1 = domain[:, 0]               # density
-            y2 = domain[:, 4]               # pressure
-            y3 = domain[:, 1]               # vx
-            y4 = domain[:, 4]/domain[:, 0]  # specific thermal energy
+            y1 = domain[:,0]  # density
+            y2 = domain[:,4]  # pressure
+            y3 = domain[:,1]  # vx
+            y4 = domain[:,4]/domain[:,0]  # specific thermal energy
             x = np.linspace(startPos, endPos, N)
             y_data = [[y1, y2], [y3, y4]]
 
@@ -391,10 +391,10 @@ def plotInstance(domain, showPlot=True, text="", startPos=0, endPos=1, **kwargs)
         ax[_i,_j].set_xlim([startPos, endPos])
         ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
-    y1 = domain[:, 0]   # density
-    y2 = domain[:, 4]   # pressure
-    y3 = domain[:, 1]   # vx
-    y4 = y2/y1          # specific thermal energy
+    y1 = domain[:,0]   # density
+    y2 = domain[:,4]   # pressure
+    y3 = domain[:,1]   # vx
+    y4 = y2/y1  # specific thermal energy
     x = np.linspace(startPos, endPos, len(y1))
     y_data = [[y1, y2], [y3, y4]]
 
