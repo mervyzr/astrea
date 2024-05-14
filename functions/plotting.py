@@ -185,7 +185,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
     return None
 
 
-def plotSolutionErrors(f, configVariables, testVariables, savepath, prop_coeff=10):
+def plotSolutionErrors(f, configVariables, testVariables, savepath, prop_coeff, norm):
     config, solver, timestep = configVariables['config'], configVariables['solver'], configVariables['timestep']
     startPos, endPos = testVariables['startPos'], testVariables['endPos']
 
@@ -203,7 +203,7 @@ def plotSolutionErrors(f, configVariables, testVariables, savepath, prop_coeff=1
     x, y1, y2, y3, y4 = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
     for N in nList:
         x = np.append(x, f[str(N)].attrs['cells'])
-        solutionErrors = analytic.calculateSolutionError(f[str(N)], startPos, endPos, config)
+        solutionErrors = analytic.calculateSolutionError(f[str(N)], startPos, endPos, config, norm)
         y1 = np.append(y1, solutionErrors[0])  # density
         y2 = np.append(y2, solutionErrors[-1])  # thermal energy
         y3 = np.append(y3, solutionErrors[4])  # pressure
@@ -224,10 +224,10 @@ def plotSolutionErrors(f, configVariables, testVariables, savepath, prop_coeff=1
 
     print(f"{generic.bcolours.OKGREEN}EOC (density){generic.bcolours.ENDC}: {np.diff(np.log(y1))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (pressure){generic.bcolours.ENDC}: {np.diff(np.log(y2))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (vx){generic.bcolours.ENDC}: {np.diff(np.log(y3))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (thermal){generic.bcolours.ENDC}: {np.diff(np.log(y4))/np.diff(np.log(x))}")
 
-    plt.suptitle(r"Solution errors $\epsilon_\nu(\vec{w})$ against resolution $N_\nu$", fontsize=24)
+    plt.suptitle(rf"$L_{norm}$ solution error norm $\epsilon_\nu(\vec{{w}})$ against resolution $N_\nu$", fontsize=24)
     fig.text(0.5, 0.04, r"Resolution $\log{(N_\nu)}$", fontsize=18, ha='center')
 
-    plt.savefig(f"{savepath}/solErr_{solver}_{timestep}.png", dpi=330, facecolor="w")
+    plt.savefig(f"{savepath}/solErr_L{norm}_{solver}_{timestep}.png", dpi=330, facecolor="w")
 
     plt.cla()
     plt.clf()
