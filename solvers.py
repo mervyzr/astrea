@@ -56,7 +56,7 @@ def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
     """# Entropy-stable flux component
     wLs, wRs = fv.makeBoundary(leftSolution, boundary), fv.makeBoundary(rightSolution, boundary)
     fS = fv.makeFlux([wLs, wRs], gamma)
-    
+
     A = fv.makeJacobian(wS, gamma)
     eigenvalues = np.linalg.eigvals(A)
     D = np.zeros((eigenvalues.shape[0], eigenvalues.shape[1], eigenvalues.shape[1]))
@@ -82,7 +82,6 @@ def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
 
     # Return the Riemann fluxes
     return .5 * ((fS[:-1]+fS[1:]) - ((eigvals * qDiff).T)), eigmax
-
 
 
 # Calculate the entropy vector (jump between the left and right states)
