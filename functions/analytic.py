@@ -69,7 +69,7 @@ def calculateConservation(simulation, startPos, endPos, gamma):
 # Function for checking the conservation equations at specific intervals; works with primitive variables
 # The reason is because at the boundaries, some values are lost to the ghost cells and not counted into the conservation plots
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
-def calculateConservationAtInterval(simulate, startPos, endPos, gamma):
+def calculateConservationAtInterval(simulation, startPos, endPos, gamma):
     intervals = np.array([], dtype=float)
     periods = np.arange(11)
     timings = np.asarray(list(simulation.keys()), dtype=float)
