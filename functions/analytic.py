@@ -1,6 +1,6 @@
 import numpy as np
 import scipy as sp
-from scipy.integrate import odeint, quad, solve_ivp
+from scipy.integrate import odeint, quad, solve_ivp, simpson
 
 from functions import fv
 
@@ -62,7 +62,7 @@ def calculateConservation(simulation, startPos, endPos, gamma):
     eq = {}
     for t in list(simulation.keys()):
         domain = fv.pointConvertPrimitive(simulation[t], gamma)
-        eq[float(t)] = np.trapz(domain, dx=(endPos-startPos)/len(domain), axis=0) * (endPos-startPos)
+        eq[float(t)] = simpson(domain, dx=(endPos-startPos)/len(domain), axis=0) * (endPos-startPos)
     return eq
 
 
