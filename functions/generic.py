@@ -50,15 +50,15 @@ def printOutput(instanceTime, seed, cfg, **kwargs):
 
 
 quotes = ["It's not a bug; it's an undocumented feature",\
-    "Experience is the name everyone gives to their mistakes",\
-    "Confusion is part of programming",\
-    "Light attracts bugs",\
-    "Programmer: A machine that turns coffee into code",\
-    "When I wrote this code, only God and I understood what I did. Now only God knows",\
-    "If, at first you do not succeed, call it version 1.0",\
-    "Keep It Simple, Stupid",\
-    "If you torture the data long enough, it will confess",\
-    "To steal ideas from one person is plagiarism; to steal from many is research",\
-    "Never forget the greatest researcher of our time: et al.",\
-    "The difference between screwing around and science is writing it down",\
-    "Computer science is no more about computers than astronomy is about telescopes"]
+        "Experience is the name everyone gives to their mistakes",\
+        "Confusion is part of programming",\
+        "Light attracts bugs",\
+        "Programmer: A machine that turns coffee into code",\
+        "When I wrote this code, only God and I understood what I did. Now only God knows",\
+        "If, at first you do not succeed, call it version 1.0",\
+        "Keep It Simple, Stupid",\
+        "If you torture the data long enough, it will confess",\
+        "To steal ideas from one person is plagiarism; to steal from many is research",\
+        "Never forget the greatest researcher of our time: et al.",\
+        "The difference between screwing around and science is writing it down",\
+        "Computer science is no more about computers than astronomy is about telescopes"]
