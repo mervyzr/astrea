@@ -227,7 +227,7 @@ def plotSolutionErrors(f, configVariables, testVariables, savepath, prop_coeff, 
 
     print(f"{generic.bcolours.OKGREEN}EOC (density){generic.bcolours.ENDC}: {np.diff(np.log(y1))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (pressure){generic.bcolours.ENDC}: {np.diff(np.log(y2))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (vx){generic.bcolours.ENDC}: {np.diff(np.log(y3))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (thermal){generic.bcolours.ENDC}: {np.diff(np.log(y4))/np.diff(np.log(x))}")
 
-    plt.suptitle(rf"$L_{norm}$ solution error norm $\epsilon_\nu(\vec{{w}})$ against resolution $N_\nu$", fontsize=24)
+    plt.suptitle(rf"$L_{norm}$ solution error norm $\epsilon_\nu(\vec{{w}})$ against resolution $N_\nu$ for {config.title()} test", fontsize=24)
     fig.text(0.5, 0.04, r"Resolution $\log{(N_\nu)}$", fontsize=18, ha='center')
 
     plt.savefig(f"{savepath}/solErr_L{norm}_{solver}_{timestep}.png", dpi=330, facecolor="w")
@@ -266,7 +266,7 @@ def plotTotalVariation(f, configVariables, savepath):
         for _i, _j in plotIndexes:
             ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=colours[_i][_j])
 
-        plt.suptitle(rf"Total variation of primitive variables TV($\vec{{w}}$) against time $t$ ($N = {N}$)", fontsize=24)
+        plt.suptitle(rf"Total variation of primitive variables TV($\vec{{w}}$) against time $t$ for {config.title()} test ($N = {N}$)", fontsize=24)
         fig.text(0.5, 0.04, r"Time $t$", fontsize=18, ha='center')
 
         plt.savefig(f"{savepath}/TV_{config}_{solver}_{timestep}_{N}.png", dpi=330)
@@ -299,17 +299,26 @@ def plotConservationEquations(f, configVariables, testVariables, savepath):
         y1 = y[:,0]  # mass
         y2 = y[:,4]  # total energy
         y3 = y[:,1]  # momentum_x
-        y4 = y[:,5]  # B*Vol_x
+        y4 = y[:,5]  # B*vol_x
         y_data = [[y1, y2], [y3, y4]]
         x.sort()
 
         for _i, _j in plotIndexes:
+            y_i, y_f = y_data[_i][_j][0], y_data[_i][_j][-1]
+            try:
+                decimalPoint = int(('%e' % abs(y_f-y_i)).split('-')[1])
+            except IndexError:
+                decimalPoint = int(('%e' % abs(y_f-y_i)).split('+')[1])
             if _i == 0:
                 ax[_j].plot(x, y_data[_i][_j], linewidth=2, color=colours[_i][_j])
+                ax[_j].annotate(round(y_i, decimalPoint), (x[0], y_i), fontsize=12)
+                ax[_j].annotate(round(y_f, decimalPoint), (x[-1], y_f), fontsize=12)
             elif _i == 1 and _j == 0:
                 ax[2].plot(x, y_data[_i][_j], linewidth=2, color=colours[_i][_j])
+                ax[2].annotate(round(y_i, decimalPoint), (x[0], y_i), fontsize=12)
+                ax[2].annotate(round(y_f, decimalPoint), (x[-1], y_f), fontsize=12)
 
-        plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ ($N = {N}$)", fontsize=24)
+        plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ for {config.title()} test ($N = {N}$)", fontsize=24)
         fig.text(0.5, 0.04, r"Time $t$", fontsize=18, ha='center')
 
         plt.savefig(f"{savepath}/conserveEq_{config}_{solver}_{timestep}_{N}.png", dpi=330)
