@@ -12,8 +12,8 @@ The simulation employs a finite volume method and can currently perform various 
 ### Time discretisation
 Time in the simulation is discretised and evolved with a method-of-lines approach. In the following, the strong-stability preserving (SSP) variants of the (explicit) Runge-Kutta (RK) methods are denoted as SSPRK (*i*,*j*), where *i* and *j* refers to *i*-stage and the *j*-th order iterative method respectively. Several SSPRK variants are included for this simulation, with the SSPRK (2,2), SSPRK (3,3) (Shu & Osher, 1988), SSPRK (5,3) (Spiteri & Ruuth, 2002), and SSPRK (5,4) (Gottlieb et al., 2009) methods. The ''classic'' RK4 or the Forward Euler method can also be used.
 
-### Riemann solver
-The Local Lax-Friedrichs method (LeVeque, 1992) is used for solving the Riemann problem at each interface for all reconstruction methods, although this method is highly dissipative and only first-order accurate.
+### Flux and Riemann solver
+The flux between the interpolated (reconstructed) interfaces is calculated using the averaged primitive state (Cargo & Gallice, 1997), and the Local Lax-Friedrichs method (LeVeque, 1992) is then used for solving the Riemann problem at each interface for all reconstruction methods, although this method is highly dissipative and only first-order accurate.
 
 ### Hydrodynamical tests
 Hydrodynamical tests in place are the Sod shock tube test (Sod, 1978), the Sedov blast test (Sedov, 1946), simple advection wave tests (Gaussian, *sin*-curve, square), the Shu-Osher shock tube problem (Shu & Osher, 1989), and five shock tube tests from Toro (Toro, 1999, p.225). An additional magnetohydrodynamics test is included (Ryu & Jones, 1995). Analytical solutions for the Sod shock test (Pfrommer et al., 2006), Gaussian wave test and the *sin*-wave test are overplotted in the saved plots. The solution error (L1 error norm) is also determined when the *sin-wave* or Gaussian test is run.
