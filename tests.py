@@ -17,7 +17,7 @@ if config == "sod":
     initialLeft = np.array([1,0,0,0,1,0,0,0])  # primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
     initialRight = np.array([.125,0,0,0,.1,0,0,0])  # primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
 
-elif config.startswith('sin'):
+elif config == "sin":
     startPos = 0
     endPos = 1
     shockPos = 1
@@ -25,7 +25,17 @@ elif config.startswith('sin'):
     boundary = "wrap"  # periodic
     freq = 2
     initialLeft = np.array([0,1,1,1,1,0,0,0])
-    initialRight = np.array([0,0,0,0,0,0,0,0])
+    initialRight = np.array([0,1,1,1,1,0,0,0])
+
+elif config == "sinc":
+    startPos = -4
+    endPos = 4
+    shockPos = 0
+    tEnd = 20
+    boundary = "edge"  # periodic
+    freq = 10
+    initialLeft = np.array([0,1e-6,1e-6,1e-6,1e-3,0,0,0])
+    initialRight = np.array([0,1e-6,1e-6,1e-6,1e-3,0,0,0])
 
 elif config == "sedov":
     startPos = -10

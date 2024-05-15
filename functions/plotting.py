@@ -132,7 +132,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
                         ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=colours[_i][_j])
                     plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$ ($N = {N}$)", fontsize=24)
 
-        # Adjust ylim and plot analytical solutions for Gaussian and sin-wave tests
+        # Adjust ylim and plot analytical solutions for Gaussian, sin-wave and sinc-wave tests
         if config.startswith("sin") or config.startswith("gaussian"):
             last_sim = f[list(f.keys())[-1]]
             first_config = last_sim[list(last_sim.keys())[0]][0]
@@ -145,8 +145,11 @@ def plotQuantities(f, configVariables, testVariables, savepath):
                 analytical[:,0] = 1e-3 + (1-1e-3) * np.exp(-(x-midpoint)**2/.01)
                 Ptol = 5e-7
             else:
-                analytical[:,0] = 1 + (.1 * np.sin(testVariables['freq']*np.pi*x))
                 Ptol = .005
+                if config == "sinc":
+                    analytical[:,0] = np.sinc(x * testVariables['freq']/np.pi) + 1
+                else:
+                    analytical[:,0] = 1 + (.1 * np.sin(testVariables['freq']*np.pi*x))
 
             Prange = np.linspace(initialConfig[4]-Ptol, initialConfig[4]+Ptol, 9)
             vrange = np.linspace(initialConfig[1]-.005, initialConfig[1]+.005, 9)
@@ -187,7 +190,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
 
 def plotSolutionErrors(f, configVariables, testVariables, savepath, prop_coeff, norm):
     config, solver, timestep = configVariables['config'], configVariables['solver'], configVariables['timestep']
-    startPos, endPos = testVariables['startPos'], testVariables['endPos']
+    startPos, endPos, freq = testVariables['startPos'], testVariables['endPos'], testVariables['freq']
 
     # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]
@@ -203,7 +206,7 @@ def plotSolutionErrors(f, configVariables, testVariables, savepath, prop_coeff, 
     x, y1, y2, y3, y4 = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
     for N in nList:
         x = np.append(x, f[str(N)].attrs['cells'])
-        solutionErrors = analytic.calculateSolutionError(f[str(N)], startPos, endPos, config, norm)
+        solutionErrors = analytic.calculateSolutionError(f[str(N)], freq, startPos, endPos, config, norm)
         y1 = np.append(y1, solutionErrors[0])  # density
         y2 = np.append(y2, solutionErrors[-1])  # specific thermal energy
         y3 = np.append(y3, solutionErrors[4])  # pressure

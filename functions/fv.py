@@ -26,9 +26,12 @@ def initialise(cfg, tst):
         split_point = int(N * ((shock-start)/(end-start)))
         arr[:split_point] = tst['initialLeft']
 
-    if cfg['config'].startswith('sin'):
+    if cfg['config'] == "sin":
         xi = np.linspace(start, end, N)
         arr[:,0] = 1 + (.1 * np.sin(tst['freq']*np.pi*xi))
+    elif cfg['config'] == "sinc":
+        xi = np.linspace(start, end, N)
+        arr[:,0] = np.sinc(xi * tst['freq']/np.pi) + 1
     elif cfg['config'].startswith('gauss'):
         xi = np.linspace(start, end, N)
         arr[:,0] = 1e-3 + (1-1e-3) * np.exp(-(xi-midpoint)**2/.01)
