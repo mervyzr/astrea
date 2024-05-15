@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "cells=", "cfl=", "gamma=", "solver=", "timestep=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile="])
+            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "cells=", "cfl=", "gamma=", "solver=", "timestep=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "cheer="])
         except getopt.GetoptError as e:
             print(f'{generic.bcolours.WARNING}Error: {e}{generic.bcolours.ENDC}')
             sys.exit(2)
@@ -86,6 +86,9 @@ if __name__ == "__main__":
                     configVariables[opt] = arg.lower() == "true"
                 elif opt == "test":
                     configVariables["config"] = arg.lower()
+                elif opt == "cheer":
+                    print(generic.quotes[np.random.randint(len(generic.quotes))])
+                    sys.exit(2)
                 else:
                     configVariables[opt] = arg.lower()
 
