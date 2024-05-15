@@ -57,12 +57,32 @@ def calculateTV(simulation):
     return tv
 
 
-# Function for checking the conservation equations; works with conservative variables
+# Function for checking the conservation equations; works with primitive variables
 def calculateConservation(simulation, startPos, endPos, gamma):
     eq = {}
     for t in list(simulation.keys()):
         domain = fv.pointConvertPrimitive(simulation[t], gamma)
         eq[float(t)] = simpson(domain, dx=(endPos-startPos)/len(domain), axis=0) * (endPos-startPos)
+    return eq
+
+
+# Function for checking the conservation equations at specific intervals; works with primitive variables
+# The reason is because at the boundaries, some values are lost to the ghost cells and not counted into the conservation plots
+# This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
+def calculateConservationAtInterval(simulate, startPos, endPos, gamma):
+    intervals = np.array([], dtype=float)
+    periods = np.arange(11)
+    timings = np.asarray(list(simulation.keys()), dtype=float)
+    for period in periods:
+        intervals = np.append(intervals, timings[np.argmin(abs(timings-period))])
+
+    eq = {}
+    for t in intervals:
+        if t == 0:
+            domain = fv.pointConvertPrimitive(simulation["0"], gamma)
+        else:
+            domain = fv.pointConvertPrimitive(simulation[str(t)], gamma)
+        eq[t] = simpson(domain, dx=(endPos-startPos)/len(domain), axis=0) * (endPos-startPos)
     return eq
 
 
