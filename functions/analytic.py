@@ -19,8 +19,8 @@ def calculateEntropyDensity(tube, g):
     return (tube[:,0] * np.log(tube[:,4]*tube[:,0]**-g))/(g-1)
 
 
-# Function for solution error calculation of sin-wave and Gaussian tests
-def calculateSolutionError(simulation, startPos, endPos, config, norm):
+# Function for solution error calculation of sin-wave, sinc-wave and Gaussian tests
+def calculateSolutionError(simulation, freq, startPos, endPos, config, norm):
     timeKeys = [float(t) for t in simulation.keys()]
     q_num = simulation[str(max(timeKeys))]  # Get last array with (typically largest) time key
 
@@ -31,7 +31,10 @@ def calculateSolutionError(simulation, startPos, endPos, config, norm):
         q_theo[:,0] = 1e-3 + (1-1e-3) * np.exp(-(xi-((endPos+startPos)/2))**2/.01)
     else:
         q_theo[:] = np.array([0,1,1,1,1,0,0,0])
-        q_theo[:,0] = 1 + (.1 * np.sin(2*np.pi*xi))
+        if config == "sinc":
+            q_theo[:,0] = np.sinc(xi * freq/np.pi) + 1
+        else:
+            q_theo[:,0] = 1 + (.1 * np.sin(freq*np.pi*xi))
 
     thermal_num, thermal_theo = q_num[:,4]/q_num[:,0], q_theo[:,4]/q_theo[:,0]
     q_num, q_theo = np.c_[q_num, thermal_num], np.c_[q_theo, thermal_theo]

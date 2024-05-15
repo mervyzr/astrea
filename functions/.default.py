@@ -3,7 +3,7 @@ import numpy as np
 ##############################################################################
 
 # Test configurations
-# : Sod, Sedov, Shu-Osher, Ryu-Jones, Gaussian, sin-wave, square wave, Toro1/2/3/4/5
+# : Sod, Sedov, Shu-Osher, Ryu-Jones, Gaussian, sin-wave, sinc-wave, square wave, Toro1/2/3/4/5
 config = "sod"
 
 # Shock tube parameters
