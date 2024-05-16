@@ -29,7 +29,7 @@ def simulateShock(_configVariables, _testVariables, grp):
 
     # Set dx and t
     dx = abs(_testVariables['endPos']-_testVariables['startPos'])/_configVariables['cells']
-    t = 0
+    t = 0.0
 
     # Initiate live plotting, if enabled
     if _configVariables['livePlot']:

@@ -78,10 +78,7 @@ def calculateConservationAtInterval(simulation, startPos, endPos, gamma):
 
     eq = {}
     for t in intervals:
-        if t == 0:
-            domain = fv.pointConvertPrimitive(simulation["0"], gamma)
-        else:
-            domain = fv.pointConvertPrimitive(simulation[str(t)], gamma)
+        domain = fv.pointConvertPrimitive(simulation[str(t)], gamma)
         eq[t] = simpson(domain, dx=(endPos-startPos)/len(domain), axis=0) * (endPos-startPos)
     return eq
 
