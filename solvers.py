@@ -54,6 +54,7 @@ def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
     eigenvalues = np.linalg.eigvals(A)
 
     """# Entropy-stable flux component
+    wS = fv.makeBoundary(avg_wS, boundary)
     wLs, wRs = fv.makeBoundary(leftSolution, boundary), fv.makeBoundary(rightSolution, boundary)
     fS = fv.makeFlux([wLs, wRs], gamma)
 
