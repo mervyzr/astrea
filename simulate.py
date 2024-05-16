@@ -77,7 +77,9 @@ if __name__ == "__main__":
         else:
             for opt, arg in opts:
                 opt = opt.replace("--","")
-                if opt in ["cells", "snapshots"]:
+                if opt in ["cells"]:
+                    configVariables[opt] = int(arg - arg%2)
+                elif opt in ["snapshots"]:
                     configVariables[opt] = int(arg)
                 elif opt in ["cfl", "gamma"]:
                     configVariables[opt] = float(arg)
