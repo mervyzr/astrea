@@ -2,7 +2,6 @@ import os
 import sys
 import shutil
 import getopt
-import random
 import traceback
 from datetime import datetime
 from time import time, process_time
@@ -18,7 +17,7 @@ from functions import generic, fv, plotting
 ##############################################################################
 
 currentdir = os.getcwd()
-seed = random.randint(0, 1e8)
+seed = np.random.randint(0, 1e8)
 np.random.seed(seed)
 
 
