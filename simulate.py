@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "cells=", "cfl=", "gamma=", "solver=", "timestep=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "cheer"])
+            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "cells=", "cfl=", "gamma=", "solver=", "timestep=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "noprint", "cheer"])
         except getopt.GetoptError as e:
             print(f'{generic.bcolours.WARNING}Error: {e}{generic.bcolours.ENDC}')
             sys.exit(2)
@@ -87,6 +87,8 @@ if __name__ == "__main__":
                     configVariables[opt] = arg.lower() == "true"
                 elif opt == "test":
                     configVariables["config"] = arg.lower()
+                elif opt == "noprint":
+                    noprint = True
                 elif opt == "cheer":
                     print(f"{generic.bcolours.OKGREEN}{generic.quotes[np.random.randint(len(generic.quotes))]}{generic.bcolours.ENDC}")
                     sys.exit(2)
@@ -126,10 +128,12 @@ if __name__ == "__main__":
                 grp.attrs['timestep'] = configVariables['timestep']
 
                 lap, now = process_time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                generic.printOutput(now, seed, configVariables)
+                if not noprint:
+                    generic.printOutput(now, seed, configVariables)
                 simulateShock(configVariables, testVariables, grp)
                 elapsed = process_time() - lap
-                generic.printOutput(now, seed, configVariables, elapsed=elapsed, runLength=len(list(grp.keys())))
+                if not noprint:
+                    generic.printOutput(now, seed, configVariables, elapsed=elapsed, runLength=len(list(grp.keys())))
                 grp.attrs['elapsed'] = elapsed
 
             if (configVariables['savePlots'] or configVariables['saveVideo'] or configVariables['saveFile']) and not os.path.exists(savepath):

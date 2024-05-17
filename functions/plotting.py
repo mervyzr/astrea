@@ -4,14 +4,16 @@ import subprocess
 
 import matplotlib
 from settings import saveVideo, savePlots, precision
-if savePlots or saveVideo:
+if savePlots:
     matplotlib.use('Agg')
 else:
     matplotlib.use('TkAgg')
+if saveVideo:
+    matplotlib.use('Agg')
+    import moviepy.video.io.ImageSequenceClip
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-import moviepy.video.io.ImageSequenceClip
 from matplotlib.patches import Polygon
 
 from functions import generic, analytic
