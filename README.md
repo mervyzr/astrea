@@ -1,4 +1,4 @@
-![Simulation status](https://github.com/mervyzr/mHydyS/actions/workflows/simulation-status.yml/badge.svg) ![Python dependencies](https://github.com/mervyzr/mHydyS/actions/workflows/python-package.yml/badge.svg)
+![Python dependencies](https://github.com/mervyzr/mHydyS/actions/workflows/python-package.yml/badge.svg)
 
 # mHydyS
 `mHydyS` (pronounced *"Hades"*; the *"m"* is silent 😀) is a one-dimensional (magneto-)hydrodynamics shock code for the purpose of simulating shocks with ions and neutrals, with possible radiative heating and cooling.
