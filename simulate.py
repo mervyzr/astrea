@@ -67,6 +67,7 @@ if __name__ == "__main__":
 
     configVariables = cfg.variables
     testVariables = tst.variables
+    noprint = False
 
     if len(sys.argv) > 1:
         try:
