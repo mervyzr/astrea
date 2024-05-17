@@ -29,7 +29,7 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Initiate project
       run: |
-        if [ ! -f settings.py ]; then python setup.py
+        if [ ! -f settings.py ]; then python setup.py; fi
     - name: Configuration test
       run: |
         python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
@@ -96,7 +96,7 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Initiate project
       run: |
-        if [ ! -f settings.py ]; then python setup.py
+        if [ ! -f settings.py ]; then python setup.py; fi
     - name: Configuration test
       run: |
         python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
