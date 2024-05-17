@@ -50,13 +50,13 @@ def simulateShock(_configVariables, _testVariables, grp):
             plotting.updatePlot(tubeSnapshot, t, fig, ax, plots)
 
         # Compute the numerical fluxes at each interface
-        fluxes, eigmax = evo.evolveSpace(domain, _configVariables['gamma'], _configVariables['subgrid'], _testVariables['boundary'])
+        fluxes, eigmax = evo.evolveSpace(domain, _configVariables['gamma'], _configVariables['subgrid'], _configVariables['solver'], _testVariables['boundary'])
 
         # Compute the full time step dt
         dt = _configVariables['cfl'] * dx/eigmax
 
         # Update the solution with the numerical fluxes using iterative methods
-        domain = evo.evolveTime(domain, fluxes, dx, dt, _configVariables['timestep'], _configVariables['gamma'], _configVariables['subgrid'], _testVariables['boundary'])
+        domain = evo.evolveTime(domain, fluxes, dx, dt, _configVariables['timestep'], _configVariables['gamma'], _configVariables['subgrid'], _configVariables['solver'], _testVariables['boundary'])
         t += dt
     return None
 

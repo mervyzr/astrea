@@ -8,7 +8,7 @@ from settings import precision
 from reconstruct import modified, dissipate
 
 # Solve the Riemann (flux) problem (Local Lax-Friedrichs; approximate Roe solver)
-def calculateRiemannFlux(tube, solutions, gamma, subgrid, boundary):
+def calculateRiemannFlux(tube, solutions, gamma, subgrid, solver, boundary):
     # Get the average of the solutions
     if subgrid in ["ppm", "parabolic", "p"]:
         if dissipate and modified:
@@ -46,43 +46,50 @@ def calculateRiemannFlux(tube, solutions, gamma, subgrid, boundary):
     # But because the simulation is only 1D, the "normal"-Laplacian (Taylor expansion) of the face-averaged states and fluxes are zero
     # Thus, the face-averaged and face-centred values are the same (<w>_i+1/2 = w_i+1/2)
     # Same for the averaged and centred fluxes (<F>_i+1/2 = F_i+1/2)
-    wS = fv.makeBoundary(avg_wS, boundary)
-    fS = fv.makeFlux(wS, gamma)
-    mu = fv.makeBoundary(_mu, boundary)
-    fS += mu
-    A = fv.makeJacobian(wS, gamma)
-    eigenvalues = np.linalg.eigvals(A)
+    
+    # HLLC Riemann solver [Toro, 2019]
+    if solver in ["hllc", "hll", "c"]:
+        pass
 
-    """# Entropy-stable flux component
-    wS = fv.makeBoundary(avg_wS, boundary)
-    wLs, wRs = fv.makeBoundary(leftSolution, boundary), fv.makeBoundary(rightSolution, boundary)
-    fS = fv.makeFlux([wLs, wRs], gamma)
-
-    A = fv.makeJacobian(wS, gamma)
-    eigenvalues = np.linalg.eigvals(A)
-    D = np.zeros((eigenvalues.shape[0], eigenvalues.shape[1], eigenvalues.shape[1]))
-    _diag = np.arange(eigenvalues.shape[1])
-    D[:, _diag, _diag] = eigenvalues
-
-    sL, sR = getEntropyVector(wLs, gamma), getEntropyVector(wRs, gamma)
-    dfS = .5 * np.einsum('ijk,ij->ik', A*(D*A.transpose([0,2,1])), sR-sL)
-    fS -= dfS"""
-
-    if subgrid in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
-        # The conversion can be pointwise conversion for the face-averaged values
-        qLs, qRs = fv.pointConvertPrimitive(leftInterface, gamma), fv.pointConvertPrimitive(rightInterface, gamma)
-        qDiff = (qLs - qRs).T
+    # Local Lax-Friedrich solver (1st-order; highly diffusive)
     else:
-        qLs, qRs = fv.pointConvertPrimitive(wS[:-1], gamma), fv.pointConvertPrimitive(wS[1:], gamma)
-        qDiff = (qRs - qLs).T
+        wS = fv.makeBoundary(avg_wS, boundary)
+        fS = fv.makeFlux(wS, gamma)
+        mu = fv.makeBoundary(_mu, boundary)
+        fS += mu
+        A = fv.makeJacobian(wS, gamma)
+        eigenvalues = np.linalg.eigvals(A)
 
-    # Determine the eigenvalues for the computation of the flux and time stepping
-    localEigvals = np.max(np.abs(eigenvalues), axis=1)  # Local max eigenvalue for each cell
-    eigvals = np.max([localEigvals[:-1], localEigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
-    eigmax = np.max([np.max(eigvals), np.finfo(precision).eps])  # Maximum wave speed (max eigenvalue) for system
+        """# Entropy-stable flux component
+        wS = fv.makeBoundary(avg_wS, boundary)
+        wLs, wRs = fv.makeBoundary(leftSolution, boundary), fv.makeBoundary(rightSolution, boundary)
+        fS = fv.makeFlux([wLs, wRs], gamma)
 
-    # Return the Riemann fluxes
-    return .5 * ((fS[:-1]+fS[1:]) - ((eigvals * qDiff).T)), eigmax
+        A = fv.makeJacobian(wS, gamma)
+        eigenvalues = np.linalg.eigvals(A)
+        D = np.zeros((eigenvalues.shape[0], eigenvalues.shape[1], eigenvalues.shape[1]))
+        _diag = np.arange(eigenvalues.shape[1])
+        D[:, _diag, _diag] = eigenvalues
+
+        sL, sR = getEntropyVector(wLs, gamma), getEntropyVector(wRs, gamma)
+        dfS = .5 * np.einsum('ijk,ij->ik', A*(D*A.transpose([0,2,1])), sR-sL)
+        fS -= dfS"""
+
+        if subgrid in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
+            # The conversion can be pointwise conversion for the face-averaged values
+            qLs, qRs = fv.pointConvertPrimitive(leftInterface, gamma), fv.pointConvertPrimitive(rightInterface, gamma)
+            qDiff = (qLs - qRs).T
+        else:
+            qLs, qRs = fv.pointConvertPrimitive(wS[:-1], gamma), fv.pointConvertPrimitive(wS[1:], gamma)
+            qDiff = (qRs - qLs).T
+
+        # Determine the eigenvalues for the computation of the flux and time stepping
+        localEigvals = np.max(np.abs(eigenvalues), axis=1)  # Local max eigenvalue for each cell
+        eigvals = np.max([localEigvals[:-1], localEigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
+        eigmax = np.max([np.max(eigvals), np.finfo(precision).eps])  # Maximum wave speed (max eigenvalue) for system
+
+        # Return the Riemann fluxes
+        return .5 * ((fS[:-1]+fS[1:]) - ((eigvals * qDiff).T)), eigmax
 
 
 # Calculate the entropy vector (jump between the left and right states)
