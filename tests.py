@@ -1,7 +1,6 @@
 import numpy as np
 
 import settings as cfg
-from functions import generic
 
 ##############################################################################
 
@@ -124,7 +123,6 @@ elif "ryu" in config or "jones" in config or "rj" in config:
     initialRight = np.array([1,0,0,0,1,.5641895835477562,1.1283791670955125,.5641895835477562])
 
 else:
-    print(f"{generic.bcolours.WARNING}Test unknown; reverting to Sod shock tube test..{generic.bcolours.ENDC}")
     startPos = 0
     endPos = 1
     shockPos = .5

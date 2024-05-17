@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "cells=", "cfl=", "gamma=", "subgrid=", "timestep=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "noprint", "cheer"])
+            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "cells=", "cfl=", "gamma=", "subgrid=", "timestep=", "solver=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "noprint", "cheer"])
         except getopt.GetoptError as e:
             print(f'{generic.bcolours.WARNING}Error: {e}{generic.bcolours.ENDC}')
             sys.exit(2)
@@ -96,11 +96,19 @@ if __name__ == "__main__":
                 else:
                     configVariables[opt] = arg.lower()
 
-    # Error condition(s)
+    # Print error condition(s)
+    if configVariables['config'] not in ["sod", "sin", "sin-wave", "sinc", "sinc-wave", "sedov", "shu-osher", "shu", "osher", "gaussian", "gauss", "sq", "square", "square-wave", "toro1", "toro2", "toro3", "toro4", "toro5", "ryu-jones", "ryu", "jones", "rj"]:
+        print(f"{generic.bcolours.WARNING}Test unknown; reverting to Sod shock tube test..{generic.bcolours.ENDC}")
+        configVariables['config'] = "sod"
     if configVariables['subgrid'] not in ["ppm", "parabolic", "p", "plm", "linear", "l", "pcm", "constant", "c"]:
         print(f"{generic.bcolours.WARNING}Subgrid option unknown; reverting to piecewise constant method..{generic.bcolours.ENDC}")
+        configVariables['subgrid'] = "pcm"
     if configVariables['timestep'] not in ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)"]:
         print(f"{generic.bcolours.WARNING}Timestepper unknown; reverting to Forward Euler timestepping..{generic.bcolours.ENDC}")
+        configVariables['timestep'] = "euler"
+    if configVariables['solver'] not in ["llf", "lf", "lax","friedrich", "lax-friedrich"]:
+        print(f"{generic.bcolours.WARNING}Solver unknown; reverting to Local Lax-Friedrich solver..{generic.bcolours.ENDC}")
+        configVariables['solver'] = 'lf'
 
 
     if configVariables['runType'].startswith('m'):
@@ -109,6 +117,7 @@ if __name__ == "__main__":
     else:
         if not configVariables['runType'].startswith('s'):
             print(f"{generic.bcolours.WARNING}RunType unknown; running single test..{generic.bcolours.ENDC}")
+            configVariables['runType'] = "single"
         if configVariables['savePlots'] or configVariables['saveVideo']:
             configVariables['livePlot'] = False  # Turn off the live plot
         nList = [configVariables['cells']]

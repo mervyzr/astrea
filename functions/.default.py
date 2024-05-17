@@ -17,6 +17,8 @@ precision = np.float64
 subgrid = "ppm"
 # : Euler, RK4, SSPRK(2,2), SSPRK(3,3), SSPRK(4,3), SSPRK(5,3), SSPRK(5,4)
 timestep = "ssprk(5,4)"
+# : Local Lax-Friedrich (LF)
+solver = "lf"
 
 # Runtime parameters
 # : Single, Multiple
@@ -43,6 +45,7 @@ variables = {
     'precision': precision,
     'subgrid': subgrid.lower(),
     'timestep': timestep.lower(),
+    'solver': solver.lower(),
     'runType': runType.lower(),
     'livePlot': livePlot,
     'savePlots': savePlots,
