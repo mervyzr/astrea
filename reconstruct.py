@@ -9,18 +9,18 @@ modified = 0
 dissipate = 0
 
 # Extrapolate the cell averages to face averages
-def extrapolate(tube, gamma, solver, boundary):
+def extrapolate(tube, gamma, subgrid, boundary):
     # Conversion of conservative variables to primitive variables
-    if solver in ["ppm", "parabolic", "p"]:
+    if subgrid in ["ppm", "parabolic", "p"]:
         wS = fv.convertConservative(tube, gamma, boundary)
     else:
         wS = fv.pointConvertConservative(tube, gamma)
 
-    if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
+    if subgrid in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
         # Pad array with boundary
         w = fv.makeBoundary(wS, boundary)
 
-        if solver in ["ppm", "parabolic", "p"]:
+        if subgrid in ["ppm", "parabolic", "p"]:
             # PPM requires additional ghost cells
             w2 = fv.makeBoundary(wS, boundary, 2)
             w3 = fv.makeBoundary(wS, boundary, 3)
@@ -58,9 +58,9 @@ def extrapolate(tube, gamma, solver, boundary):
 # Reconstruct the interpolants using the limited values
 # Current convention: | i-1 |  <--      i      -->  | i+1 |
 #                           |w_L(i)           w_R(i)|
-def interpolate(extrapolatedValues, limitedValues, solver, boundary):
+def interpolate(extrapolatedValues, limitedValues, subgrid, boundary):
     # Reconstruction of parabolic interpolant
-    if solver in ["ppm", "parabolic", "p"]:
+    if subgrid in ["ppm", "parabolic", "p"]:
         C = 5/4
 
         # Limited modified parabolic interpolant [McCorquodale & Colella, 2011]
@@ -181,7 +181,7 @@ def interpolate(extrapolatedValues, limitedValues, solver, boundary):
                 return [wF_limit_L, wF_limit_R]
 
     # Linear reconstruction [Derigs et al., 2017]
-    elif solver in ["plm", "linear", "l"]:
+    elif subgrid in ["plm", "linear", "l"]:
         tube = np.copy(extrapolatedValues[1:-1])
         gradients = .5 * limitedValues
         return [tube - gradients, tube + gradients]  # (eq. 4.13)

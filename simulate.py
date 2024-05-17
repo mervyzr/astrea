@@ -38,7 +38,7 @@ def simulateShock(_configVariables, _testVariables, grp):
     # Start simulation
     while t <= _testVariables['tEnd']:
         # Saves each instance of the system at time t
-        if _configVariables['solver'] in ["ppm", "parabolic", "p"]:
+        if _configVariables['subgrid'] in ["ppm", "parabolic", "p"]:
             tubeSnapshot = fv.convertConservative(domain, _configVariables['gamma'], _testVariables['boundary'])
         else:
             tubeSnapshot = fv.pointConvertConservative(domain, _configVariables['gamma'])
@@ -50,13 +50,13 @@ def simulateShock(_configVariables, _testVariables, grp):
             plotting.updatePlot(tubeSnapshot, t, fig, ax, plots)
 
         # Compute the numerical fluxes at each interface
-        fluxes, eigmax = evo.evolveSpace(domain, _configVariables['gamma'], _configVariables['solver'], _testVariables['boundary'])
+        fluxes, eigmax = evo.evolveSpace(domain, _configVariables['gamma'], _configVariables['subgrid'], _testVariables['boundary'])
 
         # Compute the full time step dt
         dt = _configVariables['cfl'] * dx/eigmax
 
         # Update the solution with the numerical fluxes using iterative methods
-        domain = evo.evolveTime(domain, fluxes, dx, dt, _configVariables['timestep'], _configVariables['gamma'], _configVariables['solver'], _testVariables['boundary'])
+        domain = evo.evolveTime(domain, fluxes, dx, dt, _configVariables['timestep'], _configVariables['gamma'], _configVariables['subgrid'], _testVariables['boundary'])
         t += dt
     return None
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "cells=", "cfl=", "gamma=", "solver=", "timestep=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "noprint", "cheer"])
+            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "cells=", "cfl=", "gamma=", "subgrid=", "timestep=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "noprint", "cheer"])
         except getopt.GetoptError as e:
             print(f'{generic.bcolours.WARNING}Error: {e}{generic.bcolours.ENDC}')
             sys.exit(2)
@@ -97,8 +97,8 @@ if __name__ == "__main__":
                     configVariables[opt] = arg.lower()
 
     # Error condition(s)
-    if configVariables['solver'] not in ["ppm", "parabolic", "p", "plm", "linear", "l", "pcm", "constant", "c"]:
-        print(f"{generic.bcolours.WARNING}Reconstruct unknown; reverting to piecewise constant reconstruction method..{generic.bcolours.ENDC}")
+    if configVariables['subgrid'] not in ["ppm", "parabolic", "p", "plm", "linear", "l", "pcm", "constant", "c"]:
+        print(f"{generic.bcolours.WARNING}Subgrid option unknown; reverting to piecewise constant method..{generic.bcolours.ENDC}")
     if configVariables['timestep'] not in ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)"]:
         print(f"{generic.bcolours.WARNING}Timestepper unknown; reverting to Forward Euler timestepping..{generic.bcolours.ENDC}")
 
@@ -125,7 +125,7 @@ if __name__ == "__main__":
                 grp.attrs['cells'] = configVariables['cells']
                 grp.attrs['gamma'] = configVariables['gamma']
                 grp.attrs['cfl'] = configVariables['cfl']
-                grp.attrs['solver'] = configVariables['solver']
+                grp.attrs['subgrid'] = configVariables['subgrid']
                 grp.attrs['timestep'] = configVariables['timestep']
 
                 lap, now = process_time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -161,6 +161,6 @@ if __name__ == "__main__":
         os.remove(filename)
     else:
         if configVariables['saveFile']:
-            shutil.move(filename, f"{savepath}/shockTube_{configVariables['config']}_{configVariables['solver']}_{configVariables['timestep']}_{seed}.hdf5")
+            shutil.move(filename, f"{savepath}/shockTube_{configVariables['config']}_{configVariables['subgrid']}_{configVariables['timestep']}_{seed}.hdf5")
         else:
             os.remove(filename)

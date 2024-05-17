@@ -8,9 +8,9 @@ from settings import precision
 from reconstruct import modified, dissipate
 
 # Solve the Riemann (flux) problem (Local Lax-Friedrichs; approximate Roe solver)
-def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
+def calculateRiemannFlux(tube, solutions, gamma, subgrid, boundary):
     # Get the average of the solutions
-    if solver in ["ppm", "parabolic", "p"]:
+    if subgrid in ["ppm", "parabolic", "p"]:
         if dissipate and modified:
             leftSolution, rightSolution = solutions[0]
             _mu = solutions[1]
@@ -33,7 +33,7 @@ def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
 
         avg_wS[:,6:8] = fv.divide((rho_R*leftSolution[:,6:8].T).T + (rho_L*rightSolution[:,6:8].T).T, (rho_L + rho_R)[:,np.newaxis])
 
-    elif solver in ["plm", "linear", "l"]:
+    elif subgrid in ["plm", "linear", "l"]:
         leftSolution, rightSolution = solutions
         _mu = np.zeros_like(tube)
         leftInterface, rightInterface = fv.makeBoundary(leftSolution, boundary)[1:], fv.makeBoundary(rightSolution, boundary)[:-1]
@@ -68,7 +68,7 @@ def calculateRiemannFlux(tube, solutions, gamma, solver, boundary):
     dfS = .5 * np.einsum('ijk,ij->ik', A*(D*A.transpose([0,2,1])), sR-sL)
     fS -= dfS"""
 
-    if solver in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
+    if subgrid in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
         # The conversion can be pointwise conversion for the face-averaged values
         qLs, qRs = fv.pointConvertPrimitive(leftInterface, gamma), fv.pointConvertPrimitive(rightInterface, gamma)
         qDiff = (qLs - qRs).T

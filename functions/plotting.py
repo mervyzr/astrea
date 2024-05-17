@@ -87,7 +87,7 @@ def updatePlot(arr, t, fig, ax, graphs):
 
 # Plot snapshots of quantities for multiple runs
 def plotQuantities(f, configVariables, testVariables, savepath):
-    config, gamma, solver, timestep = configVariables['config'], configVariables['gamma'], configVariables['solver'], configVariables['timestep']
+    config, gamma, subgrid, timestep = configVariables['config'], configVariables['gamma'], configVariables['subgrid'], configVariables['timestep']
     startPos, endPos, shockPos = testVariables['startPos'], testVariables['endPos'], testVariables['shockPos']
 
     # hdf5 keys are string; need to convert back to int and sort again
@@ -182,7 +182,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
             handles, labels = plt.gca().get_legend_handles_labels()
             fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
 
-        plt.savefig(f"{savepath}/wPlot_{config}_{solver}_{timestep}_{round(indexes[-1][i],3)}.png", dpi=330)
+        plt.savefig(f"{savepath}/wPlot_{config}_{subgrid}_{timestep}_{round(indexes[-1][i],3)}.png", dpi=330)
 
         plt.cla()
         plt.clf()
@@ -191,7 +191,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
 
 
 def plotSolutionErrors(f, configVariables, testVariables, savepath, prop_coeff, norm):
-    config, solver, timestep = configVariables['config'], configVariables['solver'], configVariables['timestep']
+    config, subgrid, timestep = configVariables['config'], configVariables['subgrid'], configVariables['timestep']
     startPos, endPos, freq = testVariables['startPos'], testVariables['endPos'], testVariables['freq']
 
     # hdf5 keys are string; need to convert back to int and sort again
@@ -232,7 +232,7 @@ def plotSolutionErrors(f, configVariables, testVariables, savepath, prop_coeff, 
     plt.suptitle(rf"$L_{norm}$ solution error norm $\epsilon_\nu(\vec{{w}})$ against resolution $N_\nu$ for {config.title()} test", fontsize=24)
     fig.text(0.5, 0.04, r"Resolution $\log{(N_\nu)}$", fontsize=18, ha='center')
 
-    plt.savefig(f"{savepath}/solErr_L{norm}_{solver}_{timestep}.png", dpi=330, facecolor="w")
+    plt.savefig(f"{savepath}/solErr_L{norm}_{subgrid}_{timestep}.png", dpi=330, facecolor="w")
 
     plt.cla()
     plt.clf()
@@ -241,7 +241,7 @@ def plotSolutionErrors(f, configVariables, testVariables, savepath, prop_coeff, 
 
 
 def plotTotalVariation(f, configVariables, savepath):
-    config, solver, timestep = configVariables['config'], configVariables['solver'], configVariables['timestep']
+    config, subgrid, timestep = configVariables['config'], configVariables['subgrid'], configVariables['timestep']
 
     # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]
@@ -271,7 +271,7 @@ def plotTotalVariation(f, configVariables, savepath):
         plt.suptitle(rf"Total variation of primitive variables TV($\vec{{w}}$) against time $t$ for {config.title()} test ($N = {N}$)", fontsize=24)
         fig.text(0.5, 0.04, r"Time $t$", fontsize=18, ha='center')
 
-        plt.savefig(f"{savepath}/TV_{config}_{solver}_{timestep}_{N}.png", dpi=330)
+        plt.savefig(f"{savepath}/TV_{config}_{subgrid}_{timestep}_{N}.png", dpi=330)
 
         plt.cla()
         plt.clf()
@@ -280,7 +280,7 @@ def plotTotalVariation(f, configVariables, savepath):
 
 
 def plotConservationEquations(f, configVariables, testVariables, savepath):
-    config, gamma, solver, timestep = configVariables['config'], configVariables['gamma'], configVariables['solver'], configVariables['timestep']
+    config, gamma, subgrid, timestep = configVariables['config'], configVariables['gamma'], configVariables['subgrid'], configVariables['timestep']
     startPos, endPos = testVariables['startPos'], testVariables['endPos']
 
     # hdf5 keys are string; need to convert back to int and sort again
@@ -323,7 +323,7 @@ def plotConservationEquations(f, configVariables, testVariables, savepath):
         plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ for {config.title()} test ($N = {N}$)", fontsize=24)
         fig.text(0.5, 0.04, r"Time $t$", fontsize=18, ha='center')
 
-        plt.savefig(f"{savepath}/conserveEq_{config}_{solver}_{timestep}_{N}.png", dpi=330)
+        plt.savefig(f"{savepath}/conserveEq_{config}_{subgrid}_{timestep}_{N}.png", dpi=330)
 
         plt.cla()
         plt.clf()
@@ -332,7 +332,7 @@ def plotConservationEquations(f, configVariables, testVariables, savepath):
 
 
 def makeVideo(f, configVariables, testVariables, savepath, vidpath):
-    config, solver, timestep = configVariables['config'], configVariables['solver'], configVariables['timestep']
+    config, subgrid, timestep = configVariables['config'], configVariables['subgrid'], configVariables['timestep']
     startPos, endPos = testVariables['startPos'], testVariables['endPos']
 
     # hdf5 keys are string; need to convert back to int and sort again
@@ -376,7 +376,7 @@ def makeVideo(f, configVariables, testVariables, savepath, vidpath):
             counter += 1
 
         try:
-            subprocess.call(["ffmpeg", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{savepath}/vid_{config}_{solver}_{timestep}.mp4"])
+            subprocess.call(["ffmpeg", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{savepath}/vid_{config}_{subgrid}_{timestep}.mp4"])
         except Exception as e:
             print(f"{generic.bcolours.WARNING}ffmpeg failed: {e}{generic.bcolours.ENDC}")
             try:
@@ -384,7 +384,7 @@ def makeVideo(f, configVariables, testVariables, savepath, vidpath):
                 images.sort()
 
                 video = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(images, fps=60)
-                video.write_videofile(f"{savepath}/vid_{config}_{solver}_{timestep}.mp4")
+                video.write_videofile(f"{savepath}/vid_{config}_{subgrid}_{timestep}.mp4")
             except Exception as e:
                 print(f"{generic.bcolours.WARNING}moviepy failed: {e}{generic.bcolours.ENDC}")
                 pass

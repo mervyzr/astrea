@@ -32,53 +32,53 @@ jobs:
         if [ ! -f settings.py ]; then python setup.py; fi
     - name: Configuration test
       run: |
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=sedov --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=shu-osher --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=ryu-jones --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=sin --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=toro1 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=toro2 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=toro3 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=toro4 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=toro5 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-    - name: Solver test
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=sedov --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=shu-osher --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=ryu-jones --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=sin --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=toro1 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=toro2 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=toro3 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=toro4 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=toro5 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+    - name: Subgrid test
       run: |
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=plm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=ppm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=plm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=ppm
     - name: Timestep test
       run: |
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=rk4 --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(2,2) --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(4,3) --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,3) --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --solver=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=rk4 --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(2,2) --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(4,3) --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,3) --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --subgrid=pcm
     - name: Sod shock test
       run: |
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=plm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=ppm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --solver=plm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --solver=ppm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --solver=plm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --solver=ppm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=plm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=ppm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --subgrid=plm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --subgrid=ppm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --subgrid=plm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --subgrid=ppm
     - name: Gaussian wave test
       run: |
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=plm
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=ppm
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --solver=pcm
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --solver=plm
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --solver=ppm
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --solver=pcm
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --solver=plm
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --solver=ppm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=plm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=ppm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --subgrid=pcm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --subgrid=plm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --subgrid=ppm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --subgrid=pcm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --subgrid=plm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --subgrid=ppm
 
   macos-build:
 
@@ -99,50 +99,50 @@ jobs:
         if [ ! -f settings.py ]; then python setup.py; fi
     - name: Configuration test
       run: |
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=sedov --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=shu-osher --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=ryu-jones --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=sin --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=toro1 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=toro2 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=toro3 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=toro4 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=toro5 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-    - name: Solver test
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=sedov --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=shu-osher --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=ryu-jones --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=sin --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=toro1 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=toro2 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=toro3 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=toro4 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=toro5 --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+    - name: Subgrid test
       run: |
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=plm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=ppm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=plm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=ppm
     - name: Timestep test
       run: |
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=rk4 --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(2,2) --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(4,3) --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,3) --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --solver=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=rk4 --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(2,2) --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(4,3) --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,3) --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --subgrid=pcm
     - name: Sod shock test
       run: |
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=plm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=ppm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --solver=plm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --solver=ppm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --solver=pcm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --solver=plm
-        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --solver=ppm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=plm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=ppm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --subgrid=plm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --subgrid=ppm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --subgrid=pcm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --subgrid=plm
+        python simulate.py --test=sod --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --subgrid=ppm
     - name: Gaussian wave test
       run: |
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=pcm
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=plm
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --solver=ppm
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --solver=pcm
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --solver=plm
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --solver=ppm
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --solver=pcm
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --solver=plm
-        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --solver=ppm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=pcm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=plm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=euler --subgrid=ppm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --subgrid=pcm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --subgrid=plm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(3,3) --subgrid=ppm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --subgrid=pcm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --subgrid=plm
+        python simulate.py --test=gaussian --cells=128 --cfl=.5 --gamma=1.4 --runType=single --livePlot=False --savePlots=False --saveVideo=False --saveFile=False --timestep=ssprk(5,4) --subgrid=ppm
