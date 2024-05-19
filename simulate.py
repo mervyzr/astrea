@@ -151,8 +151,9 @@ if __name__ == "__main__":
 
             if configVariables['savePlots']:
                 plotting.plotQuantities(f, configVariables, testVariables, savepath)
-                plotting.plotTotalVariation(f, configVariables, savepath)
-                plotting.plotConservationEquations(f, configVariables, testVariables, savepath)
+                if not configVariables['runType'].startswith('m'):
+                    plotting.plotTotalVariation(f, configVariables, savepath)
+                    plotting.plotConservationEquations(f, configVariables, testVariables, savepath)
                 if configVariables['runType'].startswith('m') and (configVariables['config'].startswith('sin') or configVariables['config'].startswith('gauss')):
                     plotting.plotSolutionErrors(f, configVariables, testVariables, savepath, prop_coeff=10, norm=1)
 
