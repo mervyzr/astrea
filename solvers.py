@@ -7,8 +7,8 @@ from settings import precision
 
 from reconstruct import modified, dissipate
 
-# Solve the Riemann (flux) problem (Local Lax-Friedrichs; approximate Roe solver)
-def calculateRiemannFlux(tube, solutions, gamma, subgrid, solver, boundary):
+# Solve the Riemann (flux) problem (Local Lax-Friedrichs; approximate Riemann solver)
+def calculateRiemannFlux(tube, solutions, gamma, subgrid, scheme, boundary):
     # Get the average of the solutions
     if subgrid in ["ppm", "parabolic", "p"]:
         if dissipate and modified:
@@ -48,10 +48,10 @@ def calculateRiemannFlux(tube, solutions, gamma, subgrid, solver, boundary):
     # Same for the averaged and centred fluxes (<F>_i+1/2 = F_i+1/2)
     
     # HLLC Riemann solver [Toro, 2019]
-    if solver in ["hllc", "hll", "c"]:
+    if scheme in ["hllc", "hll", "c"]:
         pass
 
-    # Local Lax-Friedrich solver (1st-order; highly diffusive)
+    # Local Lax-Friedrich scheme (1st-order; highly diffusive)
     else:
         wS = fv.makeBoundary(avg_wS, boundary)
         fS = fv.makeFlux(wS, gamma)
