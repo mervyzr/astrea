@@ -12,7 +12,7 @@ import numpy as np
 import tests as tst
 import settings as cfg
 import evolvers as evo
-from functions import generic, fv, plotting
+from functions import *
 
 ##############################################################################
 
@@ -50,13 +50,13 @@ def simulateShock(_configVariables, _testVariables, grp):
             plotting.updatePlot(tubeSnapshot, t, fig, ax, plots)
 
         # Compute the numerical fluxes at each interface
-        fluxes, eigmax = evo.evolveSpace(domain, _configVariables['gamma'], _configVariables['subgrid'], _configVariables['solver'], _testVariables['boundary'])
+        fluxes, eigmax = evo.evolveSpace(domain, _configVariables['gamma'], _configVariables['subgrid'], _configVariables['scheme'], _testVariables['boundary'])
 
         # Compute the full time step dt
         dt = _configVariables['cfl'] * dx/eigmax
 
         # Update the solution with the numerical fluxes using iterative methods
-        domain = evo.evolveTime(domain, fluxes, dx, dt, _configVariables['timestep'], _configVariables['gamma'], _configVariables['subgrid'], _configVariables['solver'], _testVariables['boundary'])
+        domain = evo.evolveTime(domain, fluxes, dx, dt, _configVariables['timestep'], _configVariables['gamma'], _configVariables['subgrid'], _configVariables['scheme'], _testVariables['boundary'])
         t += dt
     return None
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "cells=", "cfl=", "gamma=", "subgrid=", "timestep=", "solver=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "noprint", "cheer"])
+            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "cells=", "cfl=", "gamma=", "subgrid=", "timestep=", "scheme=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "noprint", "cheer"])
         except getopt.GetoptError as e:
             print(f'{generic.bcolours.WARNING}Error: {e}{generic.bcolours.ENDC}')
             sys.exit(2)
@@ -106,9 +106,9 @@ if __name__ == "__main__":
     if configVariables['timestep'] not in ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)"]:
         print(f"{generic.bcolours.WARNING}Timestepper unknown; reverting to Forward Euler timestepping..{generic.bcolours.ENDC}")
         configVariables['timestep'] = "euler"
-    if configVariables['solver'] not in ["llf", "lf", "lax","friedrich", "lax-friedrich"]:
-        print(f"{generic.bcolours.WARNING}Solver unknown; reverting to Local Lax-Friedrich solver..{generic.bcolours.ENDC}")
-        configVariables['solver'] = 'lf'
+    if configVariables['scheme'] not in ["llf", "lf", "lax","friedrich", "lax-friedrich", "lw", "lax-wendroff", "wendroff"]:
+        print(f"{generic.bcolours.WARNING}Scheme unknown; reverting to Lax-Friedrich scheme..{generic.bcolours.ENDC}")
+        configVariables['scheme'] = 'lf'
 
 
     if configVariables['runType'].startswith('m'):

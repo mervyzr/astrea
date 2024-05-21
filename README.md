@@ -12,7 +12,7 @@ The space in the simulation is discretised via a uniform Cartesian grid, and emp
 ### Time discretisation
 The time in the simulation can be discretised and treated separately from the spatial component (because of the method-of-lines approach). Higher-order temporal discretisation methods can be employed to match the higher-order spatial components used. In the following, the strong-stability preserving (SSP) variants of the (explicit) Runge-Kutta (RK) methods are denoted as SSPRK (*i*,*j*), where *i* and *j* refers to *i*-stage and the *j*-th order iterative method respectively. Several SSPRK variants are included for this simulation, with the SSPRK (2,2), SSPRK (3,3) (Shu & Osher, 1988), SSPRK (5,3) (Spiteri & Ruuth, 2002), and SSPRK (5,4) (Gottlieb et al., 2009) methods. The ''classic'' RK4 or the Forward Euler method can also be used.
 
-### Flux and Riemann solver
+### Scheme and Riemann solver
 The Local Lax-Friedrichs (LLF) method (LeVeque, 1992) is used for solving the Riemann problem at each interface for all reconstruction methods, although this method is highly dissipative and only first-order accurate. The LLF method is an approximate linearised Riemann solver, i.e., the method aims to find an *exact* solution to the *linearised* or *approximate* version of the (magneto-)hydrodynamic equations. The fluxes and the Jacobian matrices are calculated using the interpolated interfaces, with the Jacobian matrix using an average of these interfaces (Cargo & Gallice, 1997).
 
 ### Hydrodynamical tests
