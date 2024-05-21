@@ -106,7 +106,7 @@ if __name__ == "__main__":
     if configVariables['timestep'] not in ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)"]:
         print(f"{generic.bcolours.WARNING}Timestepper unknown; reverting to Forward Euler timestepping..{generic.bcolours.ENDC}")
         configVariables['timestep'] = "euler"
-    if configVariables['scheme'] not in ["llf", "lf", "lax","friedrich", "lax-friedrich"]:
+    if configVariables['scheme'] not in ["llf", "lf", "lax","friedrich", "lax-friedrich", "lw", "lax-wendroff", "wendroff"]:
         print(f"{generic.bcolours.WARNING}Scheme unknown; reverting to Lax-Friedrich scheme..{generic.bcolours.ENDC}")
         configVariables['scheme'] = 'lf'
 
