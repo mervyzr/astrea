@@ -96,8 +96,8 @@ def calculateRiemannFlux(tube, solutions, gamma, subgrid, scheme, boundary):
             return .5 * ((fS[:-1]+fS[1:]) - ((eigvals * qDiff).T)), eigmax
 
 
-# Operator L as a function of the reconstruction values: [F(i+1/2) - F(i-1/2)]/dx
-def getL(fluxes, dx):
+# Operator L as a function of the reconstruction values; calculate the flux through the surface [F(i+1/2) - F(i-1/2)]/dx
+def calculateFlux(fluxes, dx):
     return -np.diff(fluxes, axis=0)/dx
 
 

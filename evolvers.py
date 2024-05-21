@@ -6,6 +6,11 @@ import reconstruct
 
 ##############################################################################
 
+# Operator L as a function of the reconstruction values; calculate the flux through the surface [F(i+1/2) - F(i-1/2)]/dx
+def getL(fluxes, dx):
+    return -np.diff(fluxes, axis=0)/dx
+
+
 # Evolve the system in space by a standardised workflow
 def evolveSpace(tube, gamma, subgrid, scheme, boundary):
     extrapolatedValues = reconstruct.extrapolate(tube, gamma, subgrid, boundary)
