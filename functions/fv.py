@@ -26,18 +26,17 @@ def initialise(cfg, tst):
         split_point = int(N * ((shock-start)/(end-start)))
         arr[:split_point] = tst['initialLeft']
 
-    if cfg['config'] == "sin":
-        xi = np.linspace(start, end, N)
-        arr[:,0] = 1 + (.1 * np.sin(tst['freq']*np.pi*xi))
-    elif cfg['config'] == "sinc":
-        xi = np.linspace(start, end, N)
-        arr[:,0] = np.sinc(xi * tst['freq']/np.pi) + 1
-    elif cfg['config'].startswith('gauss'):
-        xi = np.linspace(start, end, N)
-        arr[:,0] = 1e-3 + (1-1e-3) * np.exp(-(xi-midpoint)**2/.01)
-    elif "shu" in cfg['config'] or "osher" in cfg['config']:
+    if "shu" in cfg['config'] or "osher" in cfg['config']:
         xi = np.linspace(shock, end, N-split_point)
         arr[split_point:,0] = 1 + (.2 * np.sin(tst['freq']*np.pi*xi))
+    else:
+        xi = np.linspace(start, end, N)
+        if cfg['config'] == "sin":
+            arr[:,0] = 1 + (.1 * np.sin(tst['freq']*np.pi*xi))
+        elif cfg['config'] == "sinc":
+            arr[:,0] = np.sinc(xi * tst['freq']/np.pi) + 1
+        else:
+            arr[:,0] = 1e-3 + (1-1e-3) * np.exp(-(xi-midpoint)**2/.01)
 
     return pointConvertPrimitive(arr, cfg['gamma'])
 
