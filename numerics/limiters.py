@@ -4,7 +4,7 @@ from functions import fv
 
 ##############################################################################
 
-from reconstruct import modified
+from numerics.reconstruct import modified
 
 # Apply limiters based on the reconstruction method
 def applyLimiter(extrapolatedValues, subgrid):

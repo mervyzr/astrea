@@ -1,12 +1,12 @@
 import numpy as np
 
 from functions import fv
-from settings import precision
 
 ##############################################################################
 
 modified = 0
 dissipate = 0
+
 
 # Extrapolate the cell averages to face averages
 # Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |

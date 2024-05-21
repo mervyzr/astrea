@@ -5,7 +5,7 @@ from settings import precision
 
 ##############################################################################
 
-from reconstruct import modified, dissipate
+from numerics.reconstruct import modified, dissipate
 
 # Solve the Riemann (flux) problem (Local Lax-Friedrichs; approximate Riemann solver)
 def calculateRiemannFlux(tube, solutions, gamma, subgrid, scheme, boundary):
