@@ -84,7 +84,7 @@ def convertConservative(tube, g, boundary):
     return pointConvertConservative(q, g) + (np.diff(w[1:], axis=0) - np.diff(w[:-1], axis=0))/24
 
 
-# Make flux based on cell-averaged (primitive) variables
+# Make flux as a function of cell-averaged (primitive) variables
 def makeFlux(tube, g):
     rhos, vecs, pressures, Bfield = tube[:,0], tube[:,1:4], tube[:,4], tube[:,5:8]
     arr = np.zeros_like(tube)

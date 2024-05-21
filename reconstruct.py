@@ -9,6 +9,8 @@ modified = 0
 dissipate = 0
 
 # Extrapolate the cell averages to face averages
+# Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
+#                     |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
 def extrapolate(tube, gamma, subgrid, boundary):
     # Conversion of conservative variables to primitive variables
     if subgrid in ["ppm", "parabolic", "p"]:
@@ -56,8 +58,9 @@ def extrapolate(tube, gamma, subgrid, boundary):
 
 
 # Reconstruct the interpolants using the limited values
-# Current convention: | i-1 |  <--      i      -->  | i+1 |
-#                           |w_L(i)           w_R(i)|
+# Current convention: |               w(i-1/2)                    w(i+1/2)              |
+#                     | i-1          <-- | -->         i         <-- | -->          i+1 |
+#                     |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
 def interpolate(extrapolatedValues, limitedValues, subgrid, boundary):
     # Reconstruction of parabolic interpolant
     if subgrid in ["ppm", "parabolic", "p"]:

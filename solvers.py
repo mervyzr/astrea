@@ -88,12 +88,17 @@ def calculateRiemannFlux(tube, solutions, gamma, subgrid, scheme, boundary):
         eigvals = np.max([localEigvals[:-1], localEigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
         eigmax = np.max([np.max(eigvals), np.finfo(precision).eps])  # Maximum wave speed (max eigenvalue) for system
 
-        # Lax-Wendroff scheme (2nd-order; Richtmyer method)
+        # Lax-Wendroff scheme (2nd-order; MacCormack method)
         if scheme in ["lw", "lax-wendroff", "wendroff"]:
             return .5 * ((fS[:-1]+fS[1:]) - ((eigvals * qDiff).T)), eigmax
         # Local Lax-Friedrich scheme (1st-order; highly diffusive)
         else:
             return .5 * ((fS[:-1]+fS[1:]) - ((eigvals * qDiff).T)), eigmax
+
+
+# Operator L as a function of the reconstruction values: [F(i+1/2) - F(i-1/2)]/dx
+def getL(fluxes, dx):
+    return -np.diff(fluxes, axis=0)/dx
 
 
 # Calculate the entropy vector (jump between the left and right states)
