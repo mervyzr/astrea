@@ -111,8 +111,8 @@ if __name__ == "__main__":
     if simVariables['scheme'] not in ["llf", "lf", "lax","friedrich", "lax-friedrich", "lw", "lax-wendroff", "wendroff"]:
         print(f"{generic.bcolours.WARNING}Scheme unknown; reverting to Lax-Friedrich scheme..{generic.bcolours.ENDC}")
         simVariables['scheme'] = 'lf'
-    if not simVariables['runType'].startswith('s') or not simVariables['runType'].startswith('m'):
-        print(f"{generic.bcolours.WARNING}RunType unknown; reverting to runType='single' simulation..{generic.bcolours.ENDC}")
+    if not (simVariables['runType'].startswith('s') or simVariables['runType'].startswith('m')):
+        print(f"{generic.bcolours.WARNING}Run-type unknown; reverting to runType='single' simulation..{generic.bcolours.ENDC}")
         simVariables['runType'] = "single"
     if simVariables['saveVideo'] and not simVariables['runType'].startswith('s'):
         print(f"{generic.bcolours.WARNING}Videos can only be saved with runType='single'..{generic.bcolours.ENDC}")
