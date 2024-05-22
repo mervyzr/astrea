@@ -11,7 +11,9 @@ dissipate = 0
 # Extrapolate the cell averages to face averages
 # Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
 #                     |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
-def extrapolate(tube, gamma, subgrid, boundary):
+def extrapolate(tube, simVariables):
+    gamma, subgrid, boundary = simVariables.gamma, simVariables.subgrid, simVariables.boundary
+
     # Conversion of conservative variables to primitive variables
     if subgrid in ["ppm", "parabolic", "p"]:
         wS = fv.convertConservative(tube, gamma, boundary)
@@ -20,7 +22,7 @@ def extrapolate(tube, gamma, subgrid, boundary):
 
     if subgrid in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
         # Pad array with boundary
-        w = fv.makeBoundary(wS, boundary)
+        w = fv.makeBoundary(wS, simVariables.boundary)
 
         if subgrid in ["ppm", "parabolic", "p"]:
             # PPM requires additional ghost cells
@@ -61,7 +63,9 @@ def extrapolate(tube, gamma, subgrid, boundary):
 # Current convention: |               w(i-1/2)                    w(i+1/2)              |
 #                     | i-1          <-- | -->         i         <-- | -->          i+1 |
 #                     |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
-def interpolate(extrapolatedValues, limitedValues, subgrid, boundary):
+def interpolate(extrapolatedValues, limitedValues, simVariables):
+    subgrid, boundary = simVariables.subgrid, simVariables.boundary
+
     # Reconstruction of parabolic interpolant
     if subgrid in ["ppm", "parabolic", "p"]:
         C = 5/4

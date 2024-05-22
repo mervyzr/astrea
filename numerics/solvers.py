@@ -8,7 +8,9 @@ from settings import precision
 from numerics.reconstruct import modified, dissipate
 
 # Solve the Riemann (flux) problem (Local Lax-Friedrichs; approximate Riemann solver)
-def calculateRiemannFlux(tube, solutions, gamma, subgrid, scheme, boundary):
+def calculateRiemannFlux(tube, solutions, simVariables):
+    gamma, subgrid, scheme, boundary = simVariables.gamma, simVariables.subgrid, simVariables.scheme, simVariables.boundary
+
     # Get the average of the solutions
     if subgrid in ["ppm", "parabolic", "p"]:
         if dissipate and modified:
