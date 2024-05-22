@@ -3,7 +3,7 @@ import shutil
 import subprocess
 
 import matplotlib
-from settings import saveVideo, savePlots, precision
+from settings import saveVideo, savePlots
 if savePlots:
     matplotlib.use('Agg')
 else:
@@ -89,7 +89,7 @@ def updatePlot(arr, t, fig, ax, graphs):
 
 # Plot snapshots of quantities for multiple runs
 def plotQuantities(f, simVariables, savepath):
-    config, gamma, subgrid, timestep, snapshots = simVariables.config, simVariables.gamma, simVariables.subgrid, simVariables.timestep, simVariables.snapshots
+    config, gamma, subgrid, timestep, precision, snapshots = simVariables.config, simVariables.gamma, simVariables.subgrid, simVariables.timestep, simVariables.precision, simVariables.snapshots
     startPos, endPos, shockPos, freq = simVariables.startPos, simVariables.endPos, simVariables.shockPos, simVariables.freq
 
     # hdf5 keys are string; need to convert back to int and sort again
