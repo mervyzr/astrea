@@ -89,8 +89,8 @@ def updatePlot(arr, t, fig, ax, graphs):
 
 # Plot snapshots of quantities for multiple runs
 def plotQuantities(f, simVariables, savepath):
-    config, gamma, subgrid, timestep, precision, snapshots = simVariables.config, simVariables.gamma, simVariables.subgrid, simVariables.timestep, simVariables.precision, simVariables.snapshots
-    startPos, endPos, shockPos, freq = simVariables.startPos, simVariables.endPos, simVariables.shockPos, simVariables.freq
+    config, subgrid, timestep, precision, snapshots = simVariables.config, simVariables.subgrid, simVariables.timestep, simVariables.precision, simVariables.snapshots
+    startPos, endPos, freq, initialLeft = simVariables.startPos, simVariables.endPos, simVariables.freq, simVariables.initialLeft
 
     # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]
@@ -140,11 +140,10 @@ def plotQuantities(f, simVariables, savepath):
         if config.startswith("sin") or config.startswith("gaussian"):
             last_sim = f[list(f.keys())[-1]]
             first_config = last_sim[list(last_sim.keys())[0]][0]
-            initialConfig = testVariables['initialLeft']
             midpoint = (endPos+startPos)/2
 
-            analytical = np.zeros((N, len(initialConfig)), dtype=precision)
-            analytical[:] = initialConfig
+            analytical = np.zeros((N, len(initialLeft)), dtype=precision)
+            analytical[:] = initialLeft
             if config.startswith("gaussian"):
                 analytical[:,0] = 1e-3 + (1-1e-3) * np.exp(-(x-midpoint)**2/.01)
                 Ptol = 5e-7
@@ -155,12 +154,12 @@ def plotQuantities(f, simVariables, savepath):
                 else:
                     analytical[:,0] = 1 + (.1 * np.sin(freq*np.pi*x))
 
-            Prange = np.linspace(initialConfig[4]-Ptol, initialConfig[4]+Ptol, 9)
-            vrange = np.linspace(initialConfig[1]-.005, initialConfig[1]+.005, 9)
+            Prange = np.linspace(initialLeft[4]-Ptol, initialLeft[4]+Ptol, 9)
+            vrange = np.linspace(initialLeft[1]-.005, initialLeft[1]+.005, 9)
             ax[0,1].set_yticks(Prange)
             ax[1,0].set_yticks(vrange)
-            ax[0,1].set_ylim([initialConfig[4]-Ptol, initialConfig[4]+Ptol])
-            ax[1,0].set_ylim([initialConfig[1]-.005, initialConfig[1]+.005])
+            ax[0,1].set_ylim([initialLeft[4]-Ptol, initialLeft[4]+Ptol])
+            ax[1,0].set_ylim([initialLeft[1]-.005, initialLeft[1]+.005])
 
             y_theo = [[analytical[:, 0], analytical[:, 4]], [analytical[:, 1], analytical[:, 4]/analytical[:, 0]]]
             for _i, _j in plotIndexes:
