@@ -7,7 +7,9 @@ from functions import fv
 from numerics.reconstruct import modified
 
 # Apply limiters based on the reconstruction method
-def applyLimiter(extrapolatedValues, subgrid):
+def applyLimiter(extrapolatedValues, simVariables):
+    subgrid = simVariables.subgrid
+
     # Apply the limiter for parabolic or XPPM
     if subgrid in ["ppm", "parabolic", "p"]:
         if modified:

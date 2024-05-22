@@ -15,12 +15,14 @@ def roundOff(value):
 
 
 # Calculate scaled entropy density for an array [Derigs et al., 2015]
-def calculateEntropyDensity(tube, g):
-    return (tube[:,0] * np.log(tube[:,4]*tube[:,0]**-g))/(g-1)
+def calculateEntropyDensity(tube, gamma):
+    return (tube[:,0] * np.log(tube[:,4]*tube[:,0]**-gamma))/(gamma-1)
 
 
 # Function for solution error calculation of sin-wave, sinc-wave and Gaussian tests
-def calculateSolutionError(simulation, freq, startPos, endPos, config, norm):
+def calculateSolutionError(simulation, simVariables, norm):
+    config, startPos, endPos, freq = simVariables.config, simVariables.startPos, simVariables.endPos, simVariables.freq
+
     timeKeys = [float(t) for t in simulation.keys()]
     q_num = simulation[str(max(timeKeys))]  # Get last array with (typically largest) time key
 
@@ -58,7 +60,9 @@ def calculateTV(simulation):
 
 
 # Function for checking the conservation equations; works with primitive variables
-def calculateConservation(simulation, startPos, endPos, gamma):
+def calculateConservation(simulation, simVariables):
+    gamma, startPos, endPos = simVariables.gamma, simVariables.startPos, simVariables.endPos
+
     eq = {}
     for t in list(simulation.keys()):
         domain = fv.pointConvertPrimitive(simulation[t], gamma)
@@ -69,7 +73,9 @@ def calculateConservation(simulation, startPos, endPos, gamma):
 # Function for checking the conservation equations at specific intervals; works with primitive variables
 # The reason is because at the boundaries, some values are lost to the ghost cells and not counted into the conservation plots
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
-def calculateConservationAtInterval(simulation, startPos, endPos, gamma):
+def calculateConservationAtInterval(simulation, simVariables):
+    gamma, startPos, endPos = simVariables.gamma, simVariables.startPos, simVariables.endPos
+
     intervals = np.array([], dtype=float)
     periods = np.arange(11)
     timings = np.asarray(list(simulation.keys()), dtype=float)
@@ -84,7 +90,9 @@ def calculateConservationAtInterval(simulation, startPos, endPos, gamma):
 
 
 # Determine the analytical solution for a Sod shock test
-def calculateSodAnalytical(tube, t, gamma, start, end, shock):
+def calculateSodAnalytical(tube, t, simVariables):
+    gamma, startPos, endPos, shockPos = simVariables.gamma, simVariables.startPos, simVariables.endPos, simVariables.shockPos
+
     # Define array to be updated and returned
     arr = np.zeros_like(tube)
 
@@ -109,18 +117,18 @@ def calculateSodAnalytical(tube, t, gamma, start, end, shock):
     v_s = vx2/(1-(rho1/rho2))
 
     # Define boundary regions and number of cells within each region
-    boundary54 = roundOff(((shock-(cs5*t)-start)/(end-start)) * len(tube))
-    boundary43 = roundOff(((shock-(v_t*t)-start)/(end-start)) * len(tube))
-    boundary32 = roundOff(((shock+(vx2*t)-start)/(end-start)) * len(tube))
-    boundary21 = roundOff(((shock+(v_s*t)-start)/(end-start)) * len(tube))
+    boundary54 = roundOff(((shockPos-(cs5*t)-startPos)/(endPos-startPos)) * len(tube))
+    boundary43 = roundOff(((shockPos-(v_t*t)-startPos)/(endPos-startPos)) * len(tube))
+    boundary32 = roundOff(((shockPos+(vx2*t)-startPos)/(endPos-startPos)) * len(tube))
+    boundary21 = roundOff(((shockPos+(v_s*t)-startPos)/(endPos-startPos)) * len(tube))
 
     # Define number of cells in the rarefaction wave
-    rarefaction_cells = roundOff(((cs5*t-v_t*t)/(end-start)) * len(tube))
+    rarefaction_cells = roundOff(((cs5*t-v_t*t)/(endPos-startPos)) * len(tube))
     if rarefaction_cells - (boundary43-boundary54) < 0:
         rarefaction_cells += 1
     elif rarefaction_cells - (boundary43-boundary54) > 0:
         rarefaction_cells -= 1
-    rarefaction = np.linspace(shock-(cs5*t), shock-(v_t*t), rarefaction_cells) - shock
+    rarefaction = np.linspace(shockPos-(cs5*t), shockPos-(v_t*t), rarefaction_cells) - shockPos
 
     # Update array for regions 1 and 5 (initial conditions)
     arr[:boundary54] = tube[0]

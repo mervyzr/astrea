@@ -24,14 +24,14 @@ def roundOff(value):
 
 
 # Print status to Terminal
-def printOutput(instanceTime, seed, cfg, **kwargs):
+def printOutput(instanceTime, seed, simVariables, **kwargs):
     _seed = f"{bcolours.OKBLUE}{seed}{bcolours.ENDC}"
-    _config = f"{bcolours.OKCYAN}{cfg['config'].upper()}{bcolours.ENDC}"
-    _cells = f"{bcolours.OKCYAN}{cfg['cells']}{bcolours.ENDC}"
-    _subgrid = f"{bcolours.OKCYAN}{cfg['subgrid'].upper()}{bcolours.ENDC}"
-    _timestep = f"{bcolours.OKCYAN}{cfg['timestep'].upper()}{bcolours.ENDC}"
-    _solver = f"{bcolours.OKCYAN}{cfg['scheme'].upper()}{bcolours.ENDC}"
-    _cfl = f"{bcolours.OKCYAN}{cfg['cfl']}{bcolours.ENDC}"
+    _config = f"{bcolours.OKCYAN}{simVariables.config.upper()}{bcolours.ENDC}"
+    _cells = f"{bcolours.OKCYAN}{simVariables.cells}{bcolours.ENDC}"
+    _subgrid = f"{bcolours.OKCYAN}{simVariables.subgrid.upper()}{bcolours.ENDC}"
+    _timestep = f"{bcolours.OKCYAN}{simVariables.timestep.upper()}{bcolours.ENDC}"
+    _scheme = f"{bcolours.OKCYAN}{simVariables.scheme.upper()}{bcolours.ENDC}"
+    _cfl = f"{bcolours.OKCYAN}{simVariables.cfl}{bcolours.ENDC}"
     if kwargs:
         if kwargs['elapsed'] >= 3600:
             _elapsed = f"{bcolours.FAIL}{str(timedelta(seconds=kwargs['elapsed']))}s{bcolours.ENDC}"
@@ -39,11 +39,11 @@ def printOutput(instanceTime, seed, cfg, **kwargs):
             _elapsed = f"{bcolours.WARNING}{str(timedelta(seconds=kwargs['elapsed']))}s{bcolours.ENDC}"
         else:
             _elapsed = f"{bcolours.OKGREEN}{str(timedelta(seconds=kwargs['elapsed']))}s{bcolours.ENDC}"
-        #_performance = f"{bcolours.OKGREEN}{round(kwargs['elapsed']*1e6/(cfg['cells']*runLength), 3)} \u03BCs/(dt*N){bcolours.ENDC}"
-        print(f"[{instanceTime} | {_seed}] TEST={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, TIMESTEP={_timestep}, SCHEME={_solver} || Elapsed: {_elapsed} ({kwargs['runLength']})")
+        #_performance = f"{bcolours.OKGREEN}{round(kwargs['elapsed']*1e6/(simVariables.cells*runLength), 3)} \u03BCs/(dt*N){bcolours.ENDC}"
+        print(f"[{instanceTime} | {_seed}] TEST={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, TIMESTEP={_timestep}, SCHEME={_scheme} || Elapsed: {_elapsed} ({kwargs['runLength']})")
         pass
     else:
-        print(f"[{instanceTime} | {_seed}] TEST={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, TIMESTEP={_timestep}, SCHEME={_solver} || {bcolours.WARNING}RUNNING SIMULATION..{bcolours.ENDC}", end='\r')
+        print(f"[{instanceTime} | {_seed}] TEST={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, TIMESTEP={_timestep}, SCHEME={_scheme} || {bcolours.WARNING}RUNNING SIMULATION..{bcolours.ENDC}", end='\r')
         pass
 
 

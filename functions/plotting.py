@@ -3,7 +3,7 @@ import shutil
 import subprocess
 
 import matplotlib
-from settings import saveVideo, savePlots, precision
+from settings import saveVideo, savePlots
 if savePlots:
     matplotlib.use('Agg')
 else:
@@ -41,7 +41,9 @@ else:
 
 
 # Initiate the live plot feature
-def initiateLivePlot(startPos, endPos, N):
+def initiateLivePlot(simVariables):
+    startPos, endPos, N = simVariables.startPos, simVariables.endPos, simVariables.cells
+
     plt.ion()
     fig, ax = plt.subplots(nrows=2, ncols=2)
 
@@ -86,9 +88,9 @@ def updatePlot(arr, t, fig, ax, graphs):
 
 
 # Plot snapshots of quantities for multiple runs
-def plotQuantities(f, configVariables, testVariables, savepath):
-    config, gamma, subgrid, timestep = configVariables['config'], configVariables['gamma'], configVariables['subgrid'], configVariables['timestep']
-    startPos, endPos, shockPos = testVariables['startPos'], testVariables['endPos'], testVariables['shockPos']
+def plotQuantities(f, simVariables, savepath):
+    config, gamma, subgrid, timestep, precision, snapshots = simVariables.config, simVariables.gamma, simVariables.subgrid, simVariables.timestep, simVariables.precision, simVariables.snapshots
+    startPos, endPos, shockPos, freq = simVariables.startPos, simVariables.endPos, simVariables.shockPos, simVariables.freq
 
     # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]
@@ -99,7 +101,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
     for i, N in enumerate(nList):
         timings = np.fromiter(f[str(N)].keys(), dtype=precision)
         timings.sort()
-        indexes.append([timing[-1] for timing in np.array_split(timings, abs(int(configVariables['snapshots'])))])
+        indexes.append([timing[-1] for timing in np.array_split(timings, abs(int(snapshots)))])
 
     # Iterate through the timings; the last set of timings refer to the highest resolution
     for i in range(len(indexes[-1])):
@@ -149,9 +151,9 @@ def plotQuantities(f, configVariables, testVariables, savepath):
             else:
                 Ptol = .005
                 if config == "sinc":
-                    analytical[:,0] = np.sinc(x * testVariables['freq']/np.pi) + 1
+                    analytical[:,0] = np.sinc(x * freq/np.pi) + 1
                 else:
-                    analytical[:,0] = 1 + (.1 * np.sin(testVariables['freq']*np.pi*x))
+                    analytical[:,0] = 1 + (.1 * np.sin(freq*np.pi*x))
 
             Prange = np.linspace(initialConfig[4]-Ptol, initialConfig[4]+Ptol, 9)
             vrange = np.linspace(initialConfig[1]-.005, initialConfig[1]+.005, 9)
@@ -167,7 +169,7 @@ def plotQuantities(f, configVariables, testVariables, savepath):
         # Add Sod analytical solution, using the highest resolution and timing
         elif config == "sod":
             tube, _t = f[str(nList[-1])][str(indexes[-1][i])], indexes[-1][i]
-            Sod = analytic.calculateSodAnalytical(tube, _t,  gamma, startPos, endPos, shockPos)
+            Sod = analytic.calculateSodAnalytical(tube, _t, simVariables)
 
             y_theo = [[Sod[:, 0], Sod[:, 4]], [Sod[:, 1], Sod[:, 4]/Sod[:, 0]]]
             for _i, _j in plotIndexes:
@@ -190,9 +192,9 @@ def plotQuantities(f, configVariables, testVariables, savepath):
     return None
 
 
-def plotSolutionErrors(f, configVariables, testVariables, savepath, prop_coeff, norm):
-    config, subgrid, timestep = configVariables['config'], configVariables['subgrid'], configVariables['timestep']
-    startPos, endPos, freq = testVariables['startPos'], testVariables['endPos'], testVariables['freq']
+def plotSolutionErrors(f, simVariables, savepath, prop_coeff=10, norm=1):
+    config, subgrid, timestep = simVariables.config, simVariables.subgrid, simVariables.timestep
+    startPos, endPos, freq = simVariables.startPos, simVariables.endPos, simVariables.freq
 
     # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]
@@ -208,7 +210,7 @@ def plotSolutionErrors(f, configVariables, testVariables, savepath, prop_coeff, 
     x, y1, y2, y3, y4 = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
     for N in nList:
         x = np.append(x, f[str(N)].attrs['cells'])
-        solutionErrors = analytic.calculateSolutionError(f[str(N)], freq, startPos, endPos, config, norm)
+        solutionErrors = analytic.calculateSolutionError(f[str(N)], simVariables, norm)
         y1 = np.append(y1, solutionErrors[0])  # density
         y2 = np.append(y2, solutionErrors[-1])  # specific thermal energy
         y3 = np.append(y3, solutionErrors[4])  # pressure
@@ -240,8 +242,8 @@ def plotSolutionErrors(f, configVariables, testVariables, savepath, prop_coeff, 
     return None
 
 
-def plotTotalVariation(f, configVariables, savepath):
-    config, subgrid, timestep = configVariables['config'], configVariables['subgrid'], configVariables['timestep']
+def plotTotalVariation(f, simVariables, savepath):
+    config, subgrid, timestep = simVariables.config, simVariables.subgrid, simVariables.timestep
 
     # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]
@@ -279,9 +281,9 @@ def plotTotalVariation(f, configVariables, savepath):
     return None
 
 
-def plotConservationEquations(f, configVariables, testVariables, savepath):
-    config, gamma, subgrid, timestep = configVariables['config'], configVariables['gamma'], configVariables['subgrid'], configVariables['timestep']
-    startPos, endPos = testVariables['startPos'], testVariables['endPos']
+def plotConservationEquations(f, simVariables, savepath):
+    config, gamma, subgrid, timestep = simVariables.config, simVariables.gamma, simVariables.subgrid, simVariables.timestep
+    startPos, endPos = simVariables.startPos, simVariables.endPos
 
     # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]
@@ -295,7 +297,7 @@ def plotConservationEquations(f, configVariables, testVariables, savepath):
         ax[_j].grid(linestyle="--", linewidth=0.5)
 
     for N in nList:
-        eqDict = analytic.calculateConservation(f[str(N)], startPos, endPos, gamma)
+        eqDict = analytic.calculateConservation(f[str(N)], simVariables)
         x = np.asarray(list(eqDict.keys()))
         y = np.asarray(list(eqDict.values()))
         y1 = y[:,0]  # mass
@@ -331,9 +333,9 @@ def plotConservationEquations(f, configVariables, testVariables, savepath):
         return None
 
 
-def makeVideo(f, configVariables, testVariables, savepath, vidpath):
-    config, subgrid, timestep = configVariables['config'], configVariables['subgrid'], configVariables['timestep']
-    startPos, endPos = testVariables['startPos'], testVariables['endPos']
+def makeVideo(f, simVariables, savepath, vidpath):
+    config, subgrid, timestep = simVariables.config, simVariables.subgrid, simVariables.timestep
+    startPos, endPos = simVariables.startPos, simVariables.endPos
 
     # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]
