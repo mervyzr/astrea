@@ -29,7 +29,7 @@ def initialise(cfg, tst):
     if "shu" in cfg['config'] or "osher" in cfg['config']:
         xi = np.linspace(shock, end, N-split_point)
         arr[split_point:,0] = 1 + (.2 * np.sin(tst['freq']*np.pi*xi))
-    else:
+    elif cfg['config'] == "sin" or cfg['config'] == "sinc" or cfg['config'].startswith('gauss'):
         xi = np.linspace(start, end, N)
         if cfg['config'] == "sin":
             arr[:,0] = 1 + (.1 * np.sin(tst['freq']*np.pi*xi))
