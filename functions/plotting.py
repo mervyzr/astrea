@@ -1,17 +1,18 @@
 import os
 import shutil
+import platform
 import subprocess
 
-import matplotlib
-from settings import saveVideo, savePlots
-if savePlots:
-    matplotlib.use('Agg')
-else:
-    matplotlib.use('TkAgg')
-if saveVideo:
-    matplotlib.use('Agg')
-    import moviepy.video.io.ImageSequenceClip
 import numpy as np
+import moviepy.video.io.ImageSequenceClip
+if platform.system() == "Darwin":
+    if platform.machine() == "arm64" and platform.mac_ver()[0] > '10.15.7':
+        import matplotlib
+        from settings import savePlots, saveVideo
+        if savePlots or saveVideo:
+            matplotlib.use('Agg')
+        else:
+            matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.patches import Polygon
