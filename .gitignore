@@ -57,3 +57,4 @@ settings.py
 savedData
 *.hdf5
 .vidplots
+.vscode
