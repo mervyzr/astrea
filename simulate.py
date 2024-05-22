@@ -10,7 +10,7 @@ from collections import namedtuple
 import h5py
 import numpy as np
 
-import tests as tst
+import tests
 import settings as cfg
 import evolvers as evo
 from functions import *
@@ -60,7 +60,9 @@ def simulateShock(grp, _simVariables):
 if __name__ == "__main__":
     filename = f"{currentdir}/.shockTemp_{seed}.hdf5"
 
-    simVariables = cfg.variables | tst.variables
+    configVariables = cfg.variables
+    testVariables = tests.generateTestConditions(configVariables['config'])
+    simVariables = configVariables | testVariables
     simVariables['dx'] = abs(simVariables['endPos']-simVariables['startPos'])/simVariables['cells']
     noprint = False
 
