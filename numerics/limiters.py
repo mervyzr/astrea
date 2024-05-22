@@ -8,10 +8,8 @@ from numerics.reconstruct import modified
 
 # Apply limiters based on the reconstruction method
 def applyLimiter(extrapolatedValues, simVariables):
-    subgrid = simVariables.subgrid
-
     # Apply the limiter for parabolic or XPPM
-    if subgrid in ["ppm", "parabolic", "p"]:
+    if simVariables.subgrid in ["ppm", "parabolic", "p"]:
         if modified:
             return extrapolatedValues[1]
         else:
@@ -19,7 +17,7 @@ def applyLimiter(extrapolatedValues, simVariables):
             return faceValueLimiter(wF, w[:-2], wS, w[2:], w2[4:])
 
     # Apply the minmod limiter
-    elif subgrid in ["plm", "linear", "l"]:
+    elif simVariables.subgrid in ["plm", "linear", "l"]:
         return minmodLimiter(extrapolatedValues)
 
     # Do not apply any limiters

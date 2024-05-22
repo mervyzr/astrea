@@ -19,7 +19,7 @@ def evolveSpace(tube, _simVariables):
 
 # Evolve the system in time by a standardised workflow
 def evolveTime(domain, fluxes, dt, _simVariables):
-    dx, gamma, subgrid, timestep, scheme, boundary = _simVariables.dx, _simVariables.gamma, _simVariables.subgrid, _simVariables.timestep, _simVariables.scheme, _simVariables.boundary
+    dx, timestep = _simVariables.dx, _simVariables.timestep
     Lq0 = getL(fluxes, dx)
 
     if timestep == "ssprk(5,4)":
