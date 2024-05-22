@@ -52,13 +52,11 @@ Edit your parameters in *`settings.py`* and run *`simulate.py`* (preferably in t
 │   ├── fv.py
 │   ├── generic.py
 │   └── plotting.py
-├── numerics
-│   ├── __init__.py
-│   ├── limiters.py
-│   ├── reconstruct.py
-│   ├── solvers.py
+├── limiters.py
+├── reconstruct.py
 ├── requirements.txt
 ├── settings.py
 ├── simulate.py
+├── solvers.py
 └── tests.py
 ```
