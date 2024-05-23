@@ -1,6 +1,6 @@
 import numpy as np
 
-from numerics import *
+from numerics import limiters, reconstruct, solvers
 
 ##############################################################################
 

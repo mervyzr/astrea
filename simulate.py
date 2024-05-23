@@ -13,7 +13,7 @@ import numpy as np
 import tests
 import settings as cfg
 import evolvers as evo
-from functions import *
+from functions import fv, generic, plotting
 
 ##############################################################################
 
