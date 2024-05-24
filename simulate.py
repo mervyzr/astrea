@@ -62,13 +62,14 @@ def runSimulation(grp, _simVariables):
 if __name__ == "__main__":
     # Save the HDF5 file (with seed) to store the temporary data
     filename = f"{currentdir}/.shockTemp_{seed}.hdf5"
+    noprint = False
 
     # Generate the simulation variables (dict)
-    configVariables = cfg.variables
+    configList = [var for var in dir(cfg) if '__' not in var and var != 'np']
+    configVariables = generic.tidyDict({k:v for k,v in vars(cfg).items() if k in configList})
     testVariables = tests.generateTestConditions(configVariables['config'])
     simVariables = configVariables | testVariables
     simVariables['dx'] = abs(simVariables['endPos']-simVariables['startPos'])/simVariables['cells']
-    noprint = False
 
     # CLI arguments handler; updates the simulation variables (dict)
     if len(sys.argv) > 1:

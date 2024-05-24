@@ -33,23 +33,3 @@ snapshots = 1
 saveVideo = False
 # : Save the HDF5 file of the simulation
 saveFile = False
-
-
-
-
-variables = {
-    'config': config.lower(),
-    'cells': cells - (cells%2),
-    'cfl': cfl,
-    'gamma': gamma,
-    'precision': precision,
-    'subgrid': subgrid.lower(),
-    'timestep': timestep.lower(),
-    'scheme': scheme.lower(),
-    'runType': runType.lower(),
-    'livePlot': livePlot,
-    'savePlots': savePlots,
-    'snapshots': snapshots,
-    'saveVideo': saveVideo,
-    'saveFile': saveFile
-}

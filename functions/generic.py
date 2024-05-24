@@ -47,7 +47,20 @@ def printOutput(instanceTime, seed, simVariables, **kwargs):
         pass
 
 
-
+# Function for tidying dictionary
+def tidyDict(_dct):
+    dct = {}
+    for k, v in _dct.items():
+        if isinstance(v, int):
+            if k == "cells":
+                dct[k] = int(v) - int(v)%2
+            else:
+                dct[k] = int(v)
+        elif isinstance(v, str):
+            dct[k] = v.lower()
+        else:
+            dct[k] = v
+    return dct
 
 
 quotes = ["It's not a bug; it's an undocumented feature",\
