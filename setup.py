@@ -11,7 +11,7 @@ currentdir = os.getcwd()
 home = os.path.expanduser("~")
 status = 0
 
-if not (os.path.exists(f"{currentdir}/settings.py") or os.path.isdir(f"{home}/.shock_venv")):
+if not os.path.exists(f"{currentdir}/settings.py") or not os.path.isdir(f"{home}/.shock_venv"):
     print("Initialising setup..")
 
     if not os.path.exists(f"{currentdir}/settings.py"):
