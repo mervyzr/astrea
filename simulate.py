@@ -58,8 +58,8 @@ def runSimulation(grp, _simVariables):
 
 ##############################################################################
 
-# Below script is run when simulate.py is run
-if __name__ == "__main__":
+# Main script; includes handlers and core execution of simulation code
+def main():
     # Save the HDF5 file (with seed) to store the temporary data
     filename = f"{currentdir}/.shockTemp_{seed}.hdf5"
     noprint = False
@@ -210,3 +210,7 @@ if __name__ == "__main__":
         else:
             os.remove(filename)
     ###################################### SCRIPT END ######################################
+
+
+if __name__ == "__main__":
+    main()
