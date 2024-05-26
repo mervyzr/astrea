@@ -10,9 +10,9 @@ from collections import namedtuple
 import h5py
 import numpy as np
 
-import tests
-import settings as cfg
-import evolvers as evo
+import settings
+from static import tests
+from numerics import evolvers
 from functions import fv, generic, plotting
 
 ##############################################################################
@@ -46,13 +46,13 @@ def runSimulation(grp, _simVariables):
             plotting.updatePlot(tubeSnapshot, t, fig, ax, graphs)
 
         # Compute the numerical fluxes at each interface
-        fluxes, eigmax = evo.evolveSpace(domain, _simVariables)
+        fluxes, eigmax = evolvers.evolveSpace(domain, _simVariables)
 
         # Compute the full time step dt
         dt = _simVariables.cfl * _simVariables.dx/eigmax
 
         # Update the solution with the numerical fluxes using iterative methods
-        domain = evo.evolveTime(domain, fluxes, dt, _simVariables)
+        domain = evolvers.evolveTime(domain, fluxes, dt, _simVariables)
         t += dt
     return None
 
@@ -65,8 +65,8 @@ def main():
     noprint = False
 
     # Generate the simulation variables (dict)
-    configList = [var for var in dir(cfg) if '__' not in var and var != 'np']
-    configVariables = generic.tidyDict({k:v for k,v in vars(cfg).items() if k in configList})
+    configList = [var for var in dir(settings) if '__' not in var and var != 'np']
+    configVariables = generic.tidyDict({k:v for k,v in vars(settings).items() if k in configList})
     testVariables = tests.generateTestConditions(configVariables['config'])
     simVariables = configVariables | testVariables
     simVariables['dx'] = abs(simVariables['endPos']-simVariables['startPos'])/simVariables['cells']

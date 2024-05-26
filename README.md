@@ -19,7 +19,7 @@ The Local Lax-Friedrichs (LLF) method (LeVeque, 1992) is used for solving the Ri
 Hydrodynamical tests in place are the Sod shock tube test (Sod, 1978), the Sedov blast test (Sedov, 1946), simple advection wave tests (Gaussian, *sin*-curve, square), the Shu-Osher shock tube problem (Shu & Osher, 1989), and five shock tube tests from Toro (Toro, 1999, p.225). An additional magnetohydrodynamics test is included (Ryu & Jones, 1995). Analytical solutions for the Sod shock test (Pfrommer et al., 2006), Gaussian wave test and the *sin*-wave test are overplotted in the saved plots. The solution error (L1 error norm) is also determined when the *sin-wave* or Gaussian test is run.
 
 # Installation
-Clone this repository onto your local machine, and navigate to the cloned repository. Run *`python3 setup.py`* to install a venv (*.shock_venv*) in the home directory. This will also install the requirements for the project in the venv. *It is recommended to run Python projects in virtual environments.*
+Clone this repository onto your local machine, and navigate to the cloned repository. Run *`python3 static/setup.py`* to install a venv (*.shock_venv*) in the home directory. This will also install the requirements for the project in the venv. *It is highly recommended to always run Python projects in separate virtual environments.*
 
 # Usage
 Edit your parameters in *`settings.py`* and run *`simulate.py`* (preferably in the venv).
@@ -28,12 +28,13 @@ Edit your parameters in *`settings.py`* and run *`simulate.py`* (preferably in t
 
 ### Import structure
 - `simulate.py`: Runs the simulation, and contains the update loop
-    - `evolvers.py`: Collates the functions for space and time evolution
-        - `solvers.py`: Contains the Riemann solver
-        - `reconstruct.py`: Functions for the reconstruction methods
-        - `limiters.py`: Implements flux/slope limiters to prevent spurious oscillations in the reconstructed states
-    - `tests.py`: Hydrodynamics test configurations
     - `settings.py`: Parameters for the simulation
+    - `tests.py`: Hydrodynamics test configurations
+    - `numerics`
+        - `evolvers.py`: Collates the functions for space and time evolution
+            - `solvers.py`: Contains the Riemann solver
+            - `reconstruct.py`: Functions for the reconstruction methods
+            - `limiters.py`: Implements flux/slope limiters to prevent spurious oscillations in the reconstructed states
     - `functions`
         - `generic.py`: Generic functions used throughout the code
         - `analytic.py`: Analytical solutions to hydrodynamics tests
@@ -45,7 +46,6 @@ Edit your parameters in *`settings.py`* and run *`simulate.py`* (preferably in t
 ├── LICENSE
 ├── README.md
 ├── __init__.py
-├── evolvers.py
 ├── functions
 │   ├── __init__.py
 │   ├── analytic.py
@@ -54,11 +54,16 @@ Edit your parameters in *`settings.py`* and run *`simulate.py`* (preferably in t
 │   └── plotting.py
 ├── numerics
 │   ├── __init__.py
+|   ├── evolvers.py
 │   ├── limiters.py
 │   ├── reconstruct.py
 │   ├── solvers.py
-├── requirements.txt
 ├── settings.py
 ├── simulate.py
-└── tests.py
+├── static
+│   ├── __init__.py
+│   ├── .default.py
+│   ├── requirements.txt
+│   ├── setup.py
+│   ├── tests.py
 ```
