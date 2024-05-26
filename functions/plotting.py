@@ -192,7 +192,7 @@ def plotQuantities(f, simVariables, savepath):
     return None
 
 
-def plotSolutionErrors(f, simVariables, savepath, prop_coeff=10, norm=1):
+def plotSolutionErrors(f, simVariables, savepath, prop_coeff=1, norm=1):
     config, subgrid, timestep = simVariables.config, simVariables.subgrid, simVariables.timestep
     startPos, endPos, freq = simVariables.startPos, simVariables.endPos, simVariables.freq
 

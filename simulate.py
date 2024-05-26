@@ -122,7 +122,7 @@ def main():
     # Simulation condition handler
     if simVariables['runType'].startswith('m'):
         # Auto-generate the resolutions/grid-sizes for multiple simulations
-        nList = 10 * 2**np.arange(3,11)
+        nList = 2**np.arange(5,14)
 
         # Turn off live plot feature when multiple simulations are run
         if simVariables['livePlot']:
