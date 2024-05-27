@@ -91,7 +91,7 @@ def calculateRiemannFlux(tube, solutions, simVariables):
 
         # Lax-Wendroff scheme (2nd-order; MacCormack method)
         if scheme in ["lw", "lax-wendroff", "wendroff"]:
-            return .5 * ((fS[:-1]+fS[1:]) - ((eigvals * qDiff).T)), eigmax
+            return .5 * ((fS[:-1]+fS[1:]) - ((fv.divide(qDiff, eigvals)).T)), eigmax
         # Local Lax-Friedrich scheme (1st-order; highly diffusive)
         else:
             return .5 * ((fS[:-1]+fS[1:]) - ((eigvals * qDiff).T)), eigmax
