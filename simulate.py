@@ -4,7 +4,7 @@ import shutil
 import getopt
 import traceback
 from datetime import datetime
-from time import time, process_time
+from time import perf_counter
 from collections import namedtuple
 
 import h5py
@@ -165,11 +165,11 @@ def main():
                 grp.attrs['scheme'] = _simVariables.scheme
 
                 ################### CORE ###################
-                lap, now = process_time(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                lap, now = perf_counter(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 if not noprint:
                     generic.printOutput(now, seed, _simVariables)
                 runSimulation(grp, _simVariables)
-                elapsed = process_time() - lap
+                elapsed = perf_counter() - lap
                 grp.attrs['elapsed'] = elapsed
                 if not noprint:
                     generic.printOutput(now, seed, _simVariables, elapsed=elapsed, runLength=len(list(grp.keys())))
