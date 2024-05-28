@@ -52,14 +52,14 @@ def calculateRiemannFlux(tube, solutions, simVariables):
     if scheme in ["hllc", "hll", "c"]:
         pass
 
-    # Lax-... schemes
+    # Roe solver (approximate (linearised) Riemann solver)
     else:
         wS = fv.makeBoundary(avg_wS, boundary)
         fS = fv.makeFlux(wS, gamma)
         mu = fv.makeBoundary(_mu, boundary)
         fS += mu
         A = fv.makeJacobian(wS, gamma)
-        eigenvalues = np.linalg.eigvals(A)
+        characteristics = np.linalg.eigvals(A)
 
         """# Entropy-stable flux component
         wS = fv.makeBoundary(avg_wS, boundary)
@@ -67,10 +67,10 @@ def calculateRiemannFlux(tube, solutions, simVariables):
         fS = fv.makeFlux([wLs, wRs], gamma)
 
         A = fv.makeJacobian(wS, gamma)
-        eigenvalues = np.linalg.eigvals(A)
-        D = np.zeros((eigenvalues.shape[0], eigenvalues.shape[1], eigenvalues.shape[1]))
-        _diag = np.arange(eigenvalues.shape[1])
-        D[:, _diag, _diag] = eigenvalues
+        characteristics = np.linalg.eigvals(A)
+        D = np.zeros((characteristics.shape[0], characteristics.shape[1], characteristics.shape[1]))
+        _diag = np.arange(characteristics.shape[1])
+        D[:, _diag, _diag] = characteristics
 
         sL, sR = getEntropyVector(wLs, gamma), getEntropyVector(wRs, gamma)
         dfS = .5 * np.einsum('ijk,ij->ik', A*(D*A.transpose([0,2,1])), sR-sL)
@@ -85,16 +85,29 @@ def calculateRiemannFlux(tube, solutions, simVariables):
             qDiff = (qRs - qLs).T
 
         # Determine the eigenvalues for the computation of the flux and time stepping
-        localEigvals = np.max(np.abs(eigenvalues), axis=1)  # Local max eigenvalue for each cell
-        eigvals = np.max([localEigvals[:-1], localEigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
-        eigmax = np.max([np.max(eigvals), np.finfo(precision).eps])  # Maximum wave speed (max eigenvalue) for system
+        eigvals = np.max(np.abs(characteristics), axis=1)  # Local max eigenvalue for each cell (1- or 3-Riemann invariant; shock wave or rarefaction wave)
+        maxEigvals = np.max([eigvals[:-1], eigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
+        eigmax = np.max([np.max(maxEigvals), np.finfo(precision).eps])  # Maximum wave speed (max eigenvalue) for time evolution
 
-        # Lax-Wendroff scheme (2nd-order; MacCormack method)
-        if scheme in ["lw", "lax-wendroff", "wendroff"]:
-            return .5 * ((fS[:-1]+fS[1:]) - ((fv.divide(qDiff, eigvals)).T)), eigmax
         # Local Lax-Friedrich scheme (1st-order; highly diffusive)
+        if scheme in ["lf", "llf", "lax-friedrich", "friedrich"]:
+            return .5 * ((fS[1:]+fS[:-1]) - ((maxEigvals * qDiff).T)), eigmax
         else:
-            return .5 * ((fS[:-1]+fS[1:]) - ((eigvals * qDiff).T)), eigmax
+            soundSpeed = np.unique(characteristics, axis=1)[:,1]  # Sound speed for each cell (2-Riemann invariant; entropy wave or contact discontinuity); indexing 1 only works for hydrodynamics
+            normalisedEigvals = fv.divide(soundSpeed**2, eigvals)
+            maxNormalisedEigvals = np.max([normalisedEigvals[:-1], normalisedEigvals[1:]], axis=0)
+
+            # Lax-Wendroff scheme (2nd-order, Jacobian method; overshoots)
+            if scheme in ["lw", "lax-wendroff", "wendroff"]:
+                return .5 * ((fS[1:]+fS[:-1]) - ((maxNormalisedEigvals * qDiff).T)), eigmax
+            # Fromm scheme (2nd-order)
+            elif scheme in ["bw", "beam-warming", "beam", "warming"]:
+                laxWendroffFlux = .5 * ((fS[1:]+fS[:-1]) - ((maxNormalisedEigvals * qDiff).T))
+                beamWarmingFlux = .5 * ((3*fS[1:]-fS[:-1]) - ((maxNormalisedEigvals * qDiff).T))
+                return .5 * (laxWendroffFlux + beamWarmingFlux), eigmax
+            # Revert to Local Lax-Friedrich scheme
+            else:
+                return .5 * ((fS[1:]+fS[:-1]) - ((maxEigvals * qDiff).T)), eigmax
 
 
 # Operator L as a function of the reconstruction values; calculate the flux through the surface [F(i+1/2) - F(i-1/2)]/dx

@@ -109,7 +109,7 @@ def main():
     if simVariables['timestep'] not in ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)"]:
         print(f"{generic.bcolours.WARNING}Timestepper unknown; reverting to Forward Euler timestepping..{generic.bcolours.ENDC}")
         simVariables['timestep'] = "euler"
-    if simVariables['scheme'] not in ["llf", "lf", "lax","friedrich", "lax-friedrich", "lw", "lax-wendroff", "wendroff"]:
+    if simVariables['scheme'] not in ["llf", "lf", "lax","friedrich", "lax-friedrich", "lw", "lax-wendroff", "wendroff", "fr", "fromm"]:
         print(f"{generic.bcolours.WARNING}Scheme unknown; reverting to Lax-Friedrich scheme..{generic.bcolours.ENDC}")
         simVariables['scheme'] = 'lf'
     if not (simVariables['runType'].startswith('s') or simVariables['runType'].startswith('m')):

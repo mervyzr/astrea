@@ -40,10 +40,10 @@ def printOutput(instanceTime, seed, simVariables, **kwargs):
         else:
             _elapsed = f"{bcolours.OKGREEN}{str(timedelta(seconds=kwargs['elapsed']))}s{bcolours.ENDC}"
         #_performance = f"{bcolours.OKGREEN}{round(kwargs['elapsed']*1e6/(simVariables.cells*runLength), 3)} \u03BCs/(dt*N){bcolours.ENDC}"
-        print(f"[{instanceTime} | {_seed}] TEST={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, TIMESTEP={_timestep}, SCHEME={_scheme} || Elapsed: {_elapsed} ({kwargs['runLength']})")
+        print(f"[{instanceTime} | {_seed}] TEST={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SCHEME={_scheme}, TIMESTEP={_timestep} || Elapsed: {_elapsed} ({kwargs['runLength']})")
         pass
     else:
-        print(f"[{instanceTime} | {_seed}] TEST={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, TIMESTEP={_timestep}, SCHEME={_scheme} || {bcolours.WARNING}RUNNING SIMULATION..{bcolours.ENDC}", end='\r')
+        print(f"[{instanceTime} | {_seed}] TEST={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SCHEME={_scheme}, TIMESTEP={_timestep} || {bcolours.WARNING}RUNNING SIMULATION..{bcolours.ENDC}", end='\r')
         pass
 
 
