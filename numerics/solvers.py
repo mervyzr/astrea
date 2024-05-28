@@ -52,7 +52,7 @@ def calculateRiemannFlux(tube, solutions, simVariables):
     if scheme in ["hllc", "hll", "c"]:
         pass
 
-    # Roe solver
+    # Roe solver (approximate (linearised) Riemann solver)
     else:
         wS = fv.makeBoundary(avg_wS, boundary)
         fS = fv.makeFlux(wS, gamma)
