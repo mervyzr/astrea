@@ -13,7 +13,7 @@ gamma = 1.4
 
 # Numerical methods
 precision = np.float64
-# : PCM, PLM, PPM
+# : PCM, PLM, PPM, WENO
 subgrid = "ppm"
 # : Euler, RK4, SSPRK(2,2), SSPRK(3,3), SSPRK(4,3), SSPRK(5,3), SSPRK(5,4)
 timestep = "ssprk(5,4)"
