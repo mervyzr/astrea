@@ -63,6 +63,34 @@ def tidyDict(_dct):
     return dct
 
 
+# Error condition(s) handler; revert to default values for the simulation variables (dict) if unknown
+def handleErrors(dct):
+    acceptedValues = {
+        "config": ["sod", "sin", "sin-wave", "sinc", "sinc-wave", "sedov", "shu-osher", "shu", "osher", "gaussian", "gauss", "sq", "square", "square-wave", "toro1", "toro2", "toro3", "toro4", "toro5", "ryu-jones", "ryu", "jones", "rj"],
+        "subgrid": ["pcm", "constant", "c", "plm", "linear", "l", "ppm", "parabolic", "p"],
+        "timestep": ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)", "(2,2)", "(3,3)", "(4,3)", "(5,3)", "(5,4)"],
+        "scheme": ["lf", "llf", "lax","friedrich", "lax-friedrich", "lw", "lax-wendroff", "wendroff", "fr", "fromm"],
+        "runType": ["s", "single", "m", "multiple", "multi", "many", 1, "1"]
+        }
+    defaultValues = {
+        "config": ["sod", "Test unknown; reverting to Sod shock tube test.."],
+        "subgrid": ["pcm", "Subgrid option unknown; reverting to piecewise constant method.."],
+        "timestep": ["euler", "Timestep unknown; reverting to Forward Euler timestep.."],
+        "scheme": ["lf", "Scheme unknown; reverting to Lax-Friedrich scheme.."],
+        "runType": ["single", "Run type unknown; reverting to runType='single' simulation.."]
+        }
+
+    if dct['saveVideo'] and dct['runType'] not in ["s", "single", "1", 1]:
+        print(f"{bcolours.WARNING}Videos can only be saved with runType='single'..{bcolours.ENDC}")
+        dct['saveVideo'] = False
+
+    for k, lst in acceptedValues.items():
+        if dct[k] not in lst:
+            print(f"{bcolours.WARNING}{defaultValues[k][1]}{bcolours.ENDC}")
+            dct[k] = defaultValues[k][0]
+    return dct
+
+
 quotes = ["It's not a bug; it's an undocumented feature",\
         "Experience is the name everyone gives to their mistakes",\
         "Confusion is part of programming",\

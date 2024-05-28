@@ -74,7 +74,7 @@ def main():
     # CLI arguments handler; updates the simulation variables (dict)
     if len(sys.argv) > 1:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "N=", "cells=", "cfl=", "gamma=", "subgrid=", "timestep=", "scheme=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "noprint", "cheer"])
+            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "N=", "cells=", "cfl=", "gamma=", "subgrid=", "timestep=", "scheme=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "noprint", "echo"])
         except getopt.GetoptError as e:
             print(f'{generic.bcolours.WARNING}Error: {e}{generic.bcolours.ENDC}')
             sys.exit(2)
@@ -93,31 +93,14 @@ def main():
                     simVariables["config"] = arg.lower()
                 elif opt == "noprint":
                     noprint = True
-                elif opt == "cheer":
+                elif opt == "echo":
                     print(f"{generic.bcolours.OKGREEN}{generic.quotes[np.random.randint(len(generic.quotes))]}{generic.bcolours.ENDC}")
                     sys.exit(2)
                 else:
                     simVariables[opt] = arg.lower()
 
-    # Error condition(s) handler; revert to default values for the simulation variables (dict) if unknown
-    if simVariables['config'] not in ["sod", "sin", "sin-wave", "sinc", "sinc-wave", "sedov", "shu-osher", "shu", "osher", "gaussian", "gauss", "sq", "square", "square-wave", "toro1", "toro2", "toro3", "toro4", "toro5", "ryu-jones", "ryu", "jones", "rj"]:
-        print(f"{generic.bcolours.WARNING}Test unknown; reverting to Sod shock tube test..{generic.bcolours.ENDC}")
-        simVariables['config'] = "sod"
-    if simVariables['subgrid'] not in ["ppm", "parabolic", "p", "plm", "linear", "l", "pcm", "constant", "c"]:
-        print(f"{generic.bcolours.WARNING}Subgrid option unknown; reverting to piecewise constant method..{generic.bcolours.ENDC}")
-        simVariables['subgrid'] = "pcm"
-    if simVariables['timestep'] not in ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)", "(2,2)", "(3,3)", "(4,3)", "(5,3)", "(5,4)"]:
-        print(f"{generic.bcolours.WARNING}Timestepper unknown; reverting to Forward Euler timestepping..{generic.bcolours.ENDC}")
-        simVariables['timestep'] = "euler"
-    if simVariables['scheme'] not in ["llf", "lf", "lax","friedrich", "lax-friedrich", "lw", "lax-wendroff", "wendroff", "fr", "fromm"]:
-        print(f"{generic.bcolours.WARNING}Scheme unknown; reverting to Lax-Friedrich scheme..{generic.bcolours.ENDC}")
-        simVariables['scheme'] = 'lf'
-    if not (simVariables['runType'].startswith('s') or simVariables['runType'].startswith('m')):
-        print(f"{generic.bcolours.WARNING}Run-type unknown; reverting to runType='single' simulation..{generic.bcolours.ENDC}")
-        simVariables['runType'] = "single"
-    if simVariables['saveVideo'] and not simVariables['runType'].startswith('s'):
-        print(f"{generic.bcolours.WARNING}Videos can only be saved with runType='single'..{generic.bcolours.ENDC}")
-        simVariables['saveVideo'] = False
+    # Error condition(s) handler
+    simVariables = generic.handleErrors(simVariables)
 
     # Simulation condition handler
     if simVariables['runType'].startswith('m'):
