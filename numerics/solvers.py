@@ -52,14 +52,15 @@ def calculateRiemannFlux(tube, solutions, simVariables):
     if scheme in ["hllc", "hll", "c"]:
         pass
 
-    # Lax-... schemes
+    # Roe solver
     else:
         wS = fv.makeBoundary(avg_wS, boundary)
         fS = fv.makeFlux(wS, gamma)
         mu = fv.makeBoundary(_mu, boundary)
         fS += mu
         A = fv.makeJacobian(wS, gamma)
-        eigenvalues = np.linalg.eigvals(A)
+        characteristics = np.linalg.eigvals(A)
+        eigenvalues = np.unique(characteristics, axis=1)
 
         """# Entropy-stable flux component
         wS = fv.makeBoundary(avg_wS, boundary)
@@ -67,10 +68,10 @@ def calculateRiemannFlux(tube, solutions, simVariables):
         fS = fv.makeFlux([wLs, wRs], gamma)
 
         A = fv.makeJacobian(wS, gamma)
-        eigenvalues = np.linalg.eigvals(A)
-        D = np.zeros((eigenvalues.shape[0], eigenvalues.shape[1], eigenvalues.shape[1]))
-        _diag = np.arange(eigenvalues.shape[1])
-        D[:, _diag, _diag] = eigenvalues
+        characteristics = np.linalg.eigvals(A)
+        D = np.zeros((characteristics.shape[0], characteristics.shape[1], characteristics.shape[1]))
+        _diag = np.arange(characteristics.shape[1])
+        D[:, _diag, _diag] = characteristics
 
         sL, sR = getEntropyVector(wLs, gamma), getEntropyVector(wRs, gamma)
         dfS = .5 * np.einsum('ijk,ij->ik', A*(D*A.transpose([0,2,1])), sR-sL)
@@ -85,13 +86,16 @@ def calculateRiemannFlux(tube, solutions, simVariables):
             qDiff = (qRs - qLs).T
 
         # Determine the eigenvalues for the computation of the flux and time stepping
-        localEigvals = np.max(np.abs(eigenvalues), axis=1)  # Local max eigenvalue for each cell
+        localEigvals = np.max(np.abs(waves), axis=1)  # Local max eigenvalue for each cell
         eigvals = np.max([localEigvals[:-1], localEigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
         eigmax = np.max([np.max(eigvals), np.finfo(precision).eps])  # Maximum wave speed (max eigenvalue) for system
 
-        # Lax-Wendroff scheme (2nd-order; MacCormack method)
+        # Lax-Wendroff scheme (2nd-order; Jacobian method)
         if scheme in ["lw", "lax-wendroff", "wendroff"]:
             return .5 * ((fS[:-1]+fS[1:]) - ((fv.divide(qDiff, eigvals)).T)), eigmax
+        # Beam-Warming scheme (2nd-order; backwards-differencing)
+        elif scheme in ["bw", "beam-warming", "beam", "warming"]:
+            return .5 * (), eigmax
         # Local Lax-Friedrich scheme (1st-order; highly diffusive)
         else:
             return .5 * ((fS[:-1]+fS[1:]) - ((eigvals * qDiff).T)), eigmax
