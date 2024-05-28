@@ -93,7 +93,7 @@ def calculateRiemannFlux(tube, solutions, simVariables):
         if scheme in ["lf", "llf", "lax-friedrich", "friedrich"]:
             return .5 * ((fS[1:]+fS[:-1]) - ((maxEigvals * qDiff).T)), eigmax
         else:
-            soundSpeed = np.unique(characteristics, axis=1)[:,1]  # Sound speed for each cell (2-Riemann invariant; entropy wave or contact discontinuity)
+            soundSpeed = np.unique(characteristics, axis=1)[:,1]  # Sound speed for each cell (2-Riemann invariant; entropy wave or contact discontinuity); indexing 1 only works for hydrodynamics
             normalisedEigvals = fv.divide(soundSpeed**2, eigvals)
             maxNormalisedEigvals = np.max([normalisedEigvals[:-1], normalisedEigvals[1:]], axis=0)
 
