@@ -100,9 +100,11 @@ def calculateRiemannFlux(tube, solutions, simVariables):
             # Lax-Wendroff scheme (2nd-order, Jacobian method; overshoots)
             if scheme in ["lw", "lax-wendroff", "wendroff"]:
                 return .5 * ((fS[1:]+fS[:-1]) - ((maxNormalisedEigvals * qDiff).T)), eigmax
-            # Beam-Warming scheme (2nd-order; overshoots)
+            # Fromm scheme (2nd-order)
             elif scheme in ["bw", "beam-warming", "beam", "warming"]:
-                return .5 * (), eigmax
+                laxWendroffFlux = .5 * ((fS[1:]+fS[:-1]) - ((maxNormalisedEigvals * qDiff).T))
+                beamWarmingFlux = .5 * ((3*fS[1:]-fS[:-1]) - ((maxNormalisedEigvals * qDiff).T))
+                return .5 * (laxWendroffFlux + beamWarmingFlux), eigmax
             # Revert to Local Lax-Friedrich scheme
             else:
                 return .5 * ((fS[1:]+fS[:-1]) - ((maxEigvals * qDiff).T)), eigmax
