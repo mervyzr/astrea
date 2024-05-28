@@ -106,7 +106,7 @@ def main():
     if simVariables['subgrid'] not in ["ppm", "parabolic", "p", "plm", "linear", "l", "pcm", "constant", "c"]:
         print(f"{generic.bcolours.WARNING}Subgrid option unknown; reverting to piecewise constant method..{generic.bcolours.ENDC}")
         simVariables['subgrid'] = "pcm"
-    if simVariables['timestep'] not in ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)"]:
+    if simVariables['timestep'] not in ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)", "(2,2)", "(3,3)", "(4,3)", "(5,3)", "(5,4)"]:
         print(f"{generic.bcolours.WARNING}Timestepper unknown; reverting to Forward Euler timestepping..{generic.bcolours.ENDC}")
         simVariables['timestep'] = "euler"
     if simVariables['scheme'] not in ["llf", "lf", "lax","friedrich", "lax-friedrich", "lw", "lax-wendroff", "wendroff", "fr", "fromm"]:
