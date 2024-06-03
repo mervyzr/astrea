@@ -100,6 +100,7 @@ def calculateRiemannFlux(tube, solutions, simVariables):
             # Lax-Wendroff scheme (2nd-order, Jacobian method; overshoots)
             if scheme in ["lw", "lax-wendroff", "wendroff"]:
                 return .5 * ((fS[1:]+fS[:-1]) - ((maxNormalisedEigvals * qDiff).T)), eigmax
+                #return .5 * ((qLs+qRs) - fv.divide(fS[1:]-fS[:-1], maxEigvals[:, np.newaxis])), eigmax
             # Fromm scheme (2nd-order)
             elif scheme in ["fr", "fromm"]:
                 laxWendroffFlux = .5 * ((fS[1:]+fS[:-1]) - ((maxNormalisedEigvals * qDiff).T))
