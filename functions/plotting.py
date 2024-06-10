@@ -192,33 +192,53 @@ def plotQuantities(f, simVariables, savepath):
     return None
 
 
-def plotSolutionErrors(f, simVariables, savepath, prop_coeff=1, norm=1):
+def plotSolutionErrors(f, simVariables, savepath, norm=1):
     config, subgrid, timestep = simVariables.config, simVariables.subgrid, simVariables.timestep
-    startPos, endPos, freq = simVariables.startPos, simVariables.endPos, simVariables.freq
 
     # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]
     nList.sort()
 
-    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=[21,10])
-    errorLabels = [r"Density $\log{(\epsilon_\nu(\rho))}$", r"Thermal energy $\log{(\epsilon_\nu(\frac{P}{\rho}))}$"]
-
-    for _j in [0,1]:
-        ax[_j].set_ylabel(errorLabels[_j], fontsize=18)
-        ax[_j].grid(linestyle="--", linewidth=0.5)
+    # Solution errors plot
+    fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21,10])
+    errorLabels = [[r"Density $\log{(\epsilon_\nu(\rho))}$", r"Pressure $\log{(\epsilon_\nu(P))}$"], [r"Velocity $\log{(\epsilon_\nu(v_x))}$", r"Thermal energy $\log{(\epsilon_\nu(\frac{P}{\rho}))}$"]]
 
     x, y1, y2, y3, y4 = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
     for N in nList:
         x = np.append(x, f[str(N)].attrs['cells'])
         solutionErrors = analytic.calculateSolutionError(f[str(N)], simVariables, norm)
         y1 = np.append(y1, solutionErrors[0])  # density
-        y2 = np.append(y2, solutionErrors[-1])  # specific thermal energy
-        y3 = np.append(y3, solutionErrors[4])  # pressure
-        y4 = np.append(y4, solutionErrors[1])  # vx
+        y2 = np.append(y2, solutionErrors[4])  # pressure
+        y3 = np.append(y3, solutionErrors[1])  # vx
+        y4 = np.append(y4, solutionErrors[-1])  # specific thermal energy
     y_data = [[y1, y2], [y3, y4]]
 
     for _i, _j in plotIndexes:
-        m, c = np.polyfit(np.log10(x), np.log10(y_data[_i][_j]), 1)
+        ax[_i,_j].set_ylabel(errorLabels[_i][_j], fontsize=18)
+        ax[_i,_j].grid(linestyle="--", linewidth=0.5)
+        ax[_i,_j].loglog(x, y_data[_i][_j], linewidth=2, linestyle="--", marker="o", color=colours[_i][_j])
+
+    plt.suptitle(rf"$L_{norm}$ solution error norm $\epsilon_\nu(\vec{{w}})$ against resolution $N_\nu$ for {config.title()} test", fontsize=24)
+    fig.text(0.5, 0.04, r"Resolution $\log{(N_\nu)}$", fontsize=18, ha='center')
+
+    plt.savefig(f"{savepath}/solErr_L{norm}_{subgrid}_{timestep}.png", dpi=330, facecolor="w")
+
+    plt.cla()
+    plt.clf()
+    plt.close()
+
+    # Order of convergence plot
+    fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21,10])
+
+    x_diff = x[1:]
+    y_diff = [[np.log2(y1[:-1]/y1[1:]), np.log2(y2[:-1]/y2[1:])], [np.log2(y3[:-1]/y3[1:]), np.log2(y4[:-1]/y4[1:])]]
+
+    for _i, _j in plotIndexes:
+        ax[_i,_j].set_ylabel(plotLabels[_i][_j], fontsize=18)
+        ax[_i,_j].grid(linestyle="--", linewidth=0.5)
+        ax[_i,_j].plot(x_diff, y_diff[_i][_j], linewidth=2, linestyle="--", marker="o", color=colours[_i][_j])
+
+        """m, c = np.polyfit(np.log10(x), np.log10(y_data[_i][_j]), 1)
         if _i == 0:
             for order in [1,2,4]:
                 alpha = 10**(c + np.log10(prop_coeff))
@@ -229,12 +249,12 @@ def plotSolutionErrors(f, simVariables, savepath, prop_coeff=1, norm=1):
             ax[_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|\text{{EOC}}_{{max}}|$ = {round(max(np.abs(np.diff(np.log(y_data[_i][_j]))/np.diff(np.log(x)))), 4)}")
             ax[_j].legend(prop={'size': 14})
 
-    print(f"{generic.bcolours.OKGREEN}EOC (density){generic.bcolours.ENDC}: {np.diff(np.log(y1))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (pressure){generic.bcolours.ENDC}: {np.diff(np.log(y2))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (vx){generic.bcolours.ENDC}: {np.diff(np.log(y3))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (thermal){generic.bcolours.ENDC}: {np.diff(np.log(y4))/np.diff(np.log(x))}")
+    print(f"{generic.bcolours.OKGREEN}EOC (density){generic.bcolours.ENDC}: {np.diff(np.log(y1))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (pressure){generic.bcolours.ENDC}: {np.diff(np.log(y2))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (vx){generic.bcolours.ENDC}: {np.diff(np.log(y3))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (thermal){generic.bcolours.ENDC}: {np.diff(np.log(y4))/np.diff(np.log(x))}")"""
 
-    plt.suptitle(rf"$L_{norm}$ solution error norm $\epsilon_\nu(\vec{{w}})$ against resolution $N_\nu$ for {config.title()} test", fontsize=24)
-    fig.text(0.5, 0.04, r"Resolution $\log{(N_\nu)}$", fontsize=18, ha='center')
+    plt.suptitle(rf"Order of convergence against resolution $N_\nu$ for {config.title()} test", fontsize=24)
+    fig.text(0.5, 0.04, r"Resolution $N$", fontsize=18, ha='center')
 
-    plt.savefig(f"{savepath}/solErr_L{norm}_{subgrid}_{timestep}.png", dpi=330, facecolor="w")
+    plt.savefig(f"{savepath}/convergence_{subgrid}_{timestep}.png", dpi=330, facecolor="w")
 
     plt.cla()
     plt.clf()
