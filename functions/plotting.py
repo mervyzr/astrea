@@ -248,7 +248,7 @@ def plotSolutionErrors(f, simVariables, savepath, coeff=1, norm=1):
     for _i, _i in plotIndexes:
         if _i == _j:
             ax[_i].set_ylabel(plotLabels[_i][_j], fontsize=18)
-            ax[_i].grid(linestyle="--", linestyle=0.5)
+            ax[_i].grid(linestyle="--", linewidth=0.5)
             ax[_i].plot(x_diff, y_diff[_i][_j], linewidth=2, linestyle="--", marker="o", color=colours[_i][_j])
 
     plt.suptitle(rf"Order of convergence against resolution $N_\nu$ for {config.title()} test", fontsize=24)
