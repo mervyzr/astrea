@@ -50,7 +50,52 @@ def calculateRiemannFlux(tube, solutions, simVariables):
     
     # HLLC Riemann solver [Toro, 2019]
     if scheme in ["hllc", "hll", "c"]:
-        pass
+        rhoL, uL, pL = rightInterface[:,0], rightInterface[:,1], rightInterface[:,4]
+        rhoR, uR, pR = leftInterface[:,0], leftInterface[:,1], leftInterface[:,4]
+        QL, QR = fv.pointConvertPrimitive(rightInterface, gamma), fv.pointConvertPrimitive(leftInterface, gamma)
+        fL, fR = fv.makeFlux(rightInterface, gamma), fv.makeFlux(leftInterface, gamma)
+
+        zeta = (gamma-1)/(2*gamma)
+        aL, aR = np.sqrt(gamma*fv.divide(pL, rhoL)), np.sqrt(gamma*fv.divide(pR, rhoR))
+        twoRarefactionApprox = fv.divide(aL+aR-(((gamma-1)/2)*(uR-uL)), fv.divide(aL, pL**zeta)+fv.divide(aR, pR**zeta))**(1/zeta)
+
+        qL, qR = np.ones_like(pL), np.ones_like(pR)
+        _qL, _qR = np.sqrt(1 + (((gamma+1)/(2*gamma))*(fv.divide(twoRarefactionApprox, pL)-1))), np.sqrt(1 + (((gamma+1)/(2*gamma))*(fv.divide(twoRarefactionApprox, pR)-1)))
+        qL[twoRarefactionApprox > pL] = _qL[twoRarefactionApprox > pL]
+        qR[twoRarefactionApprox > pR] = _qR[twoRarefactionApprox > pR]
+
+        sL, sR = uL - aL*qL, uR - aR*qR
+        s_star = fv.divide(pR - pL + (rhoL*uL*(sL-uL)) - (rhoR*uR*(sR-uR)), rhoL*(sL-uL) - rhoR*(sR-uR))
+
+        coeffL, coeffR = fv.divide(sL-uL, sL-s_star), fv.divide(sR-uR, sR-s_star)
+        _QL, _QR = (coeffL*QL.T).T, (coeffR*QR.T).T
+
+        _QL[:,1] = rhoL * coeffL * s_star
+        _QR[:,1] = rhoR * coeffR * s_star
+        _pL, _pR = np.copy(_QL[:,4]), np.copy(_QR[:,4])
+        _BL, _BR = np.copy(_QL[:,5:8]), np.copy(_QR[:,5:8])
+        _QL[:,4] = rhoL * coeffL * (fv.divide(_pL, rhoL) + ((s_star-uL)*(s_star+fv.divide(pL, rhoL*(sL-uL)))))
+        _QR[:,4] = rhoR * coeffR * (fv.divide(_pR, rhoR) + ((s_star-uR)*(s_star+fv.divide(pR, rhoR*(sR-uR)))))
+        _QL[:,5:8] = (rhoL * coeffL * _BL.T).T
+        _QR[:,5:8] = (rhoR * coeffR * _BR.T).T
+
+        flux = np.copy(fL)
+        _fL, _fR = fL + (sL*(_QL-QL).T).T, fR + (sR*(_QR-QR).T).T
+        flux[(sL <= 0) & (0 <= s_star)] = _fL[(sL <= 0) & (0 <= s_star)]
+        flux[(s_star <= 0) & (0 <= sR)] = _fR[(s_star <= 0) & (0 <= sR)]
+        flux[0 >= sR] = fR[0 >= sR]
+
+        wS = fv.makeBoundary(avg_wS, boundary)
+        fS = fv.makeFlux(wS, gamma)
+        mu = fv.makeBoundary(_mu, boundary)
+        fS += mu
+        A = fv.makeJacobian(wS, gamma)
+        characteristics = np.linalg.eigvals(A)
+        eigvals = np.max(np.abs(characteristics), axis=1)  # Local max eigenvalue for each cell (1- or 3-Riemann invariant; shock wave or rarefaction wave)
+        maxEigvals = np.max([eigvals[:-1], eigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
+        eigmax = np.max([np.max(maxEigvals), np.finfo(precision).eps])  # Maximum wave speed (max eigenvalue) for time evolution
+
+        return flux, eigmax
 
     # Roe solver (approximate (linearised) Riemann solver)
     else:
