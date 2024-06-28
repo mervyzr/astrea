@@ -191,7 +191,7 @@ def plotQuantities(f, simVariables, savepath):
     return None
 
 
-def plotSolutionErrors(f, simVariables, savepath, coeff=1, norm=1):
+def plotSolutionErrors(f, simVariables, savepath, coeff, norm=1):
     config, subgrid, timestep = simVariables.config, simVariables.subgrid, simVariables.timestep
 
     # hdf5 keys are string; need to convert back to int and sort again

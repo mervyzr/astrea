@@ -105,7 +105,8 @@ def main():
     # Simulation condition handler
     if simVariables['runType'].startswith('m'):
         # Auto-generate the resolutions/grid-sizes for multiple simulations
-        nList = 2**np.arange(5,14)
+        coeff = 10
+        nList = coeff*2**np.arange(5,11)
 
         # Turn off live plot feature when multiple simulations are run
         if simVariables['livePlot']:
@@ -170,7 +171,7 @@ def main():
                     plotting.plotTotalVariation(f, _simVariables, savepath)
                     plotting.plotConservationEquations(f, _simVariables, savepath)
                 if _simVariables.runType.startswith('m') and (_simVariables.config.startswith('sin') or _simVariables.config.startswith('gauss')):
-                    plotting.plotSolutionErrors(f, _simVariables, savepath)
+                    plotting.plotSolutionErrors(f, _simVariables, savepath, coeff)
 
             # Save video (only for runType=single)
             if _simVariables.saveVideo and _simVariables.runType.startswith('s'):
