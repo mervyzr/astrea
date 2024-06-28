@@ -49,7 +49,7 @@ def calculateRiemannFlux(tube, solutions, simVariables):
     # Same for the averaged and centred fluxes (<F>_i+1/2 = F_i+1/2)
     
     # HLLC Riemann solver [Toro, 2019]
-    if scheme in ["hllc", "hll", "c"]:
+    if scheme in ["hllc", "c"]:
         rhoL, uL, pL = rightInterface[:,0], rightInterface[:,1], rightInterface[:,4]
         rhoR, uR, pR = leftInterface[:,0], leftInterface[:,1], leftInterface[:,4]
         QL, QR = fv.pointConvertPrimitive(rightInterface, gamma), fv.pointConvertPrimitive(leftInterface, gamma)

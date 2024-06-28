@@ -69,7 +69,7 @@ def handleErrors(dct):
         "config": ["sod", "sin", "sin-wave", "sinc", "sinc-wave", "sedov", "shu-osher", "shu", "osher", "gaussian", "gauss", "sq", "square", "square-wave", "toro1", "toro2", "toro3", "toro4", "toro5", "ryu-jones", "ryu", "jones", "rj"],
         "subgrid": ["pcm", "constant", "c", "plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"],
         "timestep": ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)", "(2,2)", "(3,3)", "(4,3)", "(5,3)", "(5,4)"],
-        "scheme": ["lf", "llf", "lax","friedrich", "lax-friedrich", "lw", "lax-wendroff", "wendroff", "fr", "fromm", "hllc"],
+        "scheme": ["lf", "llf", "lax","friedrich", "lax-friedrich", "lw", "lax-wendroff", "wendroff", "hllc", "c"],
         "runType": ["s", "single", "m", "multiple", "multi", "many", 1, "1"]
         }
     defaultValues = {
