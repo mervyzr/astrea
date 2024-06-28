@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.patches import Polygon
 
-from functions import generic, analytic
+from functions import analytic, fv, generic
 
 ##############################################################################
 
@@ -91,7 +91,7 @@ def updatePlot(arr, t, fig, ax, graphs):
 # Plot snapshots of quantities for multiple runs
 def plotQuantities(f, simVariables, savepath):
     config, subgrid, timestep, precision, snapshots = simVariables.config, simVariables.subgrid, simVariables.timestep, simVariables.precision, simVariables.snapshots
-    startPos, endPos, freq, initialLeft = simVariables.startPos, simVariables.endPos, simVariables.freq, simVariables.initialLeft
+    startPos, endPos, params, initialLeft = simVariables.startPos, simVariables.endPos, simVariables.misc, simVariables.initialLeft
 
     # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]
@@ -141,19 +141,18 @@ def plotQuantities(f, simVariables, savepath):
         if config.startswith("sin") or config.startswith("gaussian"):
             last_sim = f[list(f.keys())[-1]]
             first_config = last_sim[list(last_sim.keys())[0]][0]
-            midpoint = (endPos+startPos)/2
 
             analytical = np.zeros((N, len(initialLeft)), dtype=precision)
             analytical[:] = initialLeft
             if config.startswith("gaussian"):
-                analytical[:,0] = 1e-3 + (1-1e-3) * np.exp(-(x-midpoint)**2/.01)
+                analytical[:,0] = fv.gauss_func(x, params)
                 Ptol = 5e-7
             else:
                 Ptol = .005
                 if config == "sinc":
-                    analytical[:,0] = np.sinc(x * freq/np.pi) + 1
+                    analytical[:,0] = fv.sinc_func(x, params)
                 else:
-                    analytical[:,0] = 1 + (.1 * np.sin(freq*np.pi*x))
+                    analytical[:,0] = fv.sin_func(x, params)
 
             Prange = np.linspace(initialLeft[4]-Ptol, initialLeft[4]+Ptol, 9)
             vrange = np.linspace(initialLeft[1]-.005, initialLeft[1]+.005, 9)

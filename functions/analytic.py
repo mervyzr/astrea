@@ -21,22 +21,22 @@ def calculateEntropyDensity(tube, gamma):
 
 # Function for solution error calculation of sin-wave, sinc-wave and Gaussian tests
 def calculateSolutionError(simulation, simVariables, norm):
-    config, startPos, endPos, freq = simVariables.config, simVariables.startPos, simVariables.endPos, simVariables.freq
+    config, startPos, endPos, params = simVariables.config, simVariables.startPos, simVariables.endPos, simVariables.misc
 
     timeKeys = [float(t) for t in simulation.keys()]
     q_num = simulation[str(max(timeKeys))]  # Get last array with (typically largest) time key
 
     xi = np.linspace(startPos, endPos, len(q_num))
     q_theo = np.copy(q_num)
+    q_theo[:] = simVariables.initialLeft
+
     if config.startswith("gauss"):
-        q_theo[:] = np.array([0,1,1,1,1e-6,0,0,0])
-        q_theo[:,0] = 1e-3 + (1-1e-3) * np.exp(-(xi-((endPos+startPos)/2))**2/.01)
+        q_theo[:,0] = fv.gauss_func(xi, params)
     else:
-        q_theo[:] = np.array([0,1,1,1,1,0,0,0])
         if config == "sinc":
-            q_theo[:,0] = np.sinc(xi * freq/np.pi) + 1
+            q_theo[:,0] = fv.sinc_func(xi, params)
         else:
-            q_theo[:,0] = 1 + (.1 * np.sin(freq*np.pi*xi))
+            q_theo[:,0] = fv.sin_func(xi, params)
 
     thermal_num, thermal_theo = q_num[:,4]/q_num[:,0], q_theo[:,4]/q_theo[:,0]
     q_num, q_theo = np.c_[q_num, thermal_num], np.c_[q_theo, thermal_theo]
@@ -62,8 +62,8 @@ def calculateTV(simulation):
 # Function for checking the conservation equations; works with primitive variables
 def calculateConservation(simulation, simVariables):
     gamma, startPos, endPos = simVariables.gamma, simVariables.startPos, simVariables.endPos
-
     eq = {}
+
     for t in list(simulation.keys()):
         domain = fv.pointConvertPrimitive(simulation[t], gamma)
         eq[float(t)] = simpson(domain, dx=(endPos-startPos)/len(domain), axis=0) * (endPos-startPos)
@@ -75,6 +75,7 @@ def calculateConservation(simulation, simVariables):
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
 def calculateConservationAtInterval(simulation, simVariables):
     gamma, startPos, endPos = simVariables.gamma, simVariables.startPos, simVariables.endPos
+    eq = {}
 
     intervals = np.array([], dtype=float)
     periods = np.arange(11)
@@ -82,7 +83,6 @@ def calculateConservationAtInterval(simulation, simVariables):
     for period in periods:
         intervals = np.append(intervals, timings[np.argmin(abs(timings-period))])
 
-    eq = {}
     for t in intervals:
         domain = fv.pointConvertPrimitive(simulation[str(t)], gamma)
         eq[t] = simpson(domain, dx=(endPos-startPos)/len(domain), axis=0) * (endPos-startPos)

@@ -8,26 +8,26 @@ def divide(dividend, divisor):
 
 
 # Generic Gaussian function
-def gauss_func(x, ampl=.9999, fwhm=.01, y_offset=1e-3):
+def gauss_func(x, params):
     peakPos = (x[0]+x[-1])/2
-    return y_offset + ampl*np.exp(-((x-peakPos)**2)/fwhm)
+    return params['y_offset'] + params['ampl']*np.exp(-((x-peakPos)**2)/params['fwhm'])
 
 
 # Generic sin function
-def sin_func(x, freq, ampl=.1, y_offset=1):
-    return y_offset + ampl*np.sin(freq*np.pi*x)
+def sin_func(x, params):
+    return params['y_offset'] + params['ampl']*np.sin(params['freq']*np.pi*x)
 
 
 # Generic sinc function
-def sinc_func(x, freq, ampl=1, y_offset=1):
-    return y_offset + ampl*np.sinc(x*freq/np.pi)
+def sinc_func(x, params):
+    return params['y_offset'] + params['ampl']*np.sinc(x*params['freq']/np.pi)
 
 
 # Initialise the discrete solution array with initial conditions and primitive variables w
 # Returns the solution array in conserved variables q
 def initialise(simVariables):
     config, N, gamma, precision = simVariables.config, simVariables.cells, simVariables.gamma, simVariables.precision
-    start, end, shock, freq = simVariables.startPos, simVariables.endPos, simVariables.shockPos, simVariables.freq
+    start, end, shock, params = simVariables.startPos, simVariables.endPos, simVariables.shockPos, simVariables.misc
     initialLeft, initialRight = simVariables.initialLeft, simVariables.initialRight
 
     arr = np.zeros((N, len(initialRight)), dtype=precision)
@@ -44,15 +44,15 @@ def initialise(simVariables):
 
     if "shu" in config or "osher" in config:
         xi = np.linspace(shock, end, N-split_point)
-        arr[split_point:,0] = sin_func(xi, freq, ampl=.2)
+        arr[split_point:,0] = sin_func(xi, params)
     elif config == "sin" or config == "sinc" or config.startswith('gauss'):
         xi = np.linspace(start, end, N)
         if config == "sin":
-            arr[:,0] = sin_func(xi, freq)
+            arr[:,0] = sin_func(xi, params)
         elif config == "sinc":
-            arr[:,0] = sinc_func(xi, freq)
+            arr[:,0] = sinc_func(xi, params)
         else:
-            arr[:,0] = gauss_func(xi)
+            arr[:,0] = gauss_func(xi, params)
 
     return pointConvertPrimitive(arr, gamma)
 
