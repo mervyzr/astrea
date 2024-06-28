@@ -2,15 +2,32 @@ import numpy as np
 
 ##############################################################################
 
+# For handling division-by-zero warnings during array divisions
 def divide(dividend, divisor):
     return np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
+
+
+# Generic Gaussian function
+def gauss_func(x, params):
+    peakPos = (x[0]+x[-1])/2
+    return params['y_offset'] + params['ampl']*np.exp(-((x-peakPos)**2)/params['fwhm'])
+
+
+# Generic sin function
+def sin_func(x, params):
+    return params['y_offset'] + params['ampl']*np.sin(params['freq']*np.pi*x)
+
+
+# Generic sinc function
+def sinc_func(x, params):
+    return params['y_offset'] + params['ampl']*np.sinc(x*params['freq']/np.pi)
 
 
 # Initialise the discrete solution array with initial conditions and primitive variables w
 # Returns the solution array in conserved variables q
 def initialise(simVariables):
     config, N, gamma, precision = simVariables.config, simVariables.cells, simVariables.gamma, simVariables.precision
-    start, end, shock, freq = simVariables.startPos, simVariables.endPos, simVariables.shockPos, simVariables.freq
+    start, end, shock, params = simVariables.startPos, simVariables.endPos, simVariables.shockPos, simVariables.misc
     initialLeft, initialRight = simVariables.initialLeft, simVariables.initialRight
 
     arr = np.zeros((N, len(initialRight)), dtype=precision)
@@ -27,15 +44,15 @@ def initialise(simVariables):
 
     if "shu" in config or "osher" in config:
         xi = np.linspace(shock, end, N-split_point)
-        arr[split_point:,0] = 1 + (.2 * np.sin(freq*np.pi*xi))
+        arr[split_point:,0] = sin_func(xi, params)
     elif config == "sin" or config == "sinc" or config.startswith('gauss'):
         xi = np.linspace(start, end, N)
         if config == "sin":
-            arr[:,0] = 1 + (.1 * np.sin(freq*np.pi*xi))
+            arr[:,0] = sin_func(xi, params)
         elif config == "sinc":
-            arr[:,0] = np.sinc(xi * freq/np.pi) + 1
+            arr[:,0] = sinc_func(xi, params)
         else:
-            arr[:,0] = 1e-3 + (1-1e-3) * np.exp(-(xi-midpoint)**2/.01)
+            arr[:,0] = gauss_func(xi, params)
 
     return pointConvertPrimitive(arr, gamma)
 

@@ -9,9 +9,9 @@ def generateTestConditions(config):
         shockPos = .5
         tEnd = .2
         boundary = "edge"  # outflow
-        freq = None
         initialLeft = np.array([1,0,0,0,1,0,0,0])  # primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
         initialRight = np.array([.125,0,0,0,.1,0,0,0])  # primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
+        misc = None
 
     elif config == "sin":
         startPos = 0
@@ -19,9 +19,9 @@ def generateTestConditions(config):
         shockPos = 1
         tEnd = 2
         boundary = "wrap"  # periodic
-        freq = 2
         initialLeft = np.array([0,1,1,1,1,0,0,0])
         initialRight = np.array([0,1,1,1,1,0,0,0])
+        misc = {'freq':2, 'ampl':.1, 'y_offset':1}
 
     elif config == "sinc":
         startPos = -4
@@ -29,9 +29,9 @@ def generateTestConditions(config):
         shockPos = 0
         tEnd = 20
         boundary = "edge"  # periodic
-        freq = 10
         initialLeft = np.array([0,1e-6,1e-6,1e-6,1e-3,0,0,0])
         initialRight = np.array([0,1e-6,1e-6,1e-6,1e-3,0,0,0])
+        misc = {'freq':10, 'ampl':1, 'y_offset':1}
 
     elif config == "sedov":
         startPos = -10
@@ -39,9 +39,9 @@ def generateTestConditions(config):
         shockPos = .5  # blast boundary
         tEnd = .6
         boundary = "edge"  # outflow
-        freq = None
         initialLeft = np.array([1,0,0,0,100,0,0,0])
         initialRight = np.array([1,0,0,0,1,0,0,0])
+        misc = None
 
     elif "shu" in config or "osher" in config:
         startPos = -1
@@ -49,9 +49,9 @@ def generateTestConditions(config):
         shockPos = -.8
         tEnd = .47
         boundary = "edge"  # outflow
-        freq = 5
         initialLeft = np.array([3.857143,2.629369,0,0,10.3333,0,0,0])
         initialRight = np.array([0,0,0,0,1,0,0,0])
+        misc = {'freq':5, 'ampl':.2, 'y_offset':1}
 
     elif config.startswith('gauss'):
         startPos = 0
@@ -59,9 +59,9 @@ def generateTestConditions(config):
         shockPos = 1
         tEnd = 1
         boundary = "wrap"  # periodic
-        freq = None
         initialLeft = np.array([0,1,1,1,1e-6,0,0,0])
         initialRight = np.array([0,0,0,0,0,0,0,0])
+        misc = {'ampl':.9999, 'fwhm':.01, 'y_offset':1}
 
     elif config.startswith('sq'):
         startPos = -1
@@ -69,15 +69,15 @@ def generateTestConditions(config):
         shockPos = 1/3
         tEnd = .05
         boundary = "wrap"  # periodic
-        freq = None
         initialLeft = np.array([1,1,0,0,1,0,0,0])
         initialRight = np.array([.01,1,0,0,1,0,0,0])
+        misc = None
 
     elif "toro" in config:
         startPos = 0
         endPos = 1
         boundary = "edge"  # outflow
-        freq = None
+        misc = None
 
         if "2" in config:
             shockPos = .5
@@ -115,9 +115,9 @@ def generateTestConditions(config):
         shockPos = 0
         tEnd = .15
         boundary = "edge"  # outflow
-        freq = None
         initialLeft = np.array([1.08,1.2,.01,.5,.95,.5641895835477562,1.0155412503859613,.5641895835477562])
         initialRight = np.array([1,0,0,0,1,.5641895835477562,1.1283791670955125,.5641895835477562])
+        misc = None
 
     else:
         startPos = 0
@@ -125,8 +125,8 @@ def generateTestConditions(config):
         shockPos = .5
         tEnd = .2
         boundary = "edge"  # outflow
-        freq = None
-        initialLeft = np.array([1,0,0,0,1,0,0,0])  # primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
-        initialRight = np.array([.125,0,0,0,.1,0,0,0])  # primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
+        initialLeft = np.array([1,0,0,0,1,0,0,0])
+        initialRight = np.array([.125,0,0,0,.1,0,0,0])
+        misc = None
 
-    return {'startPos':startPos, 'endPos':endPos, 'shockPos':shockPos, 'tEnd':tEnd, 'boundary':boundary.lower(), 'freq':freq, 'initialLeft':initialLeft, 'initialRight':initialRight}
+    return {'startPos':startPos, 'endPos':endPos, 'shockPos':shockPos, 'tEnd':tEnd, 'boundary':boundary.lower(), 'misc':misc, 'initialLeft':initialLeft, 'initialRight':initialRight}

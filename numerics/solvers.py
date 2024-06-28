@@ -48,9 +48,49 @@ def calculateRiemannFlux(tube, solutions, simVariables):
     # Thus, the face-averaged and face-centred values are the same (<w>_i+1/2 = w_i+1/2)
     # Same for the averaged and centred fluxes (<F>_i+1/2 = F_i+1/2)
     
-    # HLLC Riemann solver [Toro, 2019]
-    if scheme in ["hllc", "hll", "c"]:
+    # HLLC Riemann solver [Fleischmann et. al., 2020]
+    if scheme in ["hllc", "c"]:
         rhoL, uL, pL = rightInterface[:,0], rightInterface[:,1], rightInterface[:,4]
+        rhoR, uR, pR = leftInterface[:,0], leftInterface[:,1], leftInterface[:,4]
+        QL, QR = fv.pointConvertPrimitive(rightInterface, gamma), fv.pointConvertPrimitive(leftInterface, gamma)
+        fL, fR = fv.makeFlux(rightInterface, gamma), fv.makeFlux(leftInterface, gamma)
+
+        zeta = (gamma-1)/(2*gamma)
+        cL, cR = np.sqrt(gamma*fv.divide(pL, rhoL)), np.sqrt(gamma*fv.divide(pR, rhoR))
+        u_hat = fv.divide(uL*np.sqrt(rhoL) + uR*np.sqrt(rhoR), np.sqrt(rhoL) + np.sqrt(rhoR))
+        c2_hat = fv.divide(np.sqrt(rhoL)*cL**2 + np.sqrt(rhoR)*cR**2, np.sqrt(rhoL) + np.sqrt(rhoR)) + .5*((uR-uL)**2)*fv.divide(np.sqrt(rhoL)*np.sqrt(rhoR), (np.sqrt(rhoL)+np.sqrt(rhoR))**2)
+
+        sL, sR = np.minimum(uL-cL, u_hat-np.sqrt(c2_hat)), np.maximum(uR+cR, u_hat+np.sqrt(c2_hat))
+        s_star = fv.divide(pR - pL + (rhoL*uL*(sL-uL)) - (rhoR*uR*(sR-uR)), rhoL*(sL-uL) - rhoR*(sR-uR))
+
+        coeffL, coeffR = fv.divide(sL-uL, sL-s_star), fv.divide(sR-uR, sR-s_star)
+        _QL, _QR = (coeffL*QL.T).T, (coeffR*QR.T).T
+
+        _QL[:,1] = rhoL * coeffL * s_star
+        _QR[:,1] = rhoR * coeffR * s_star
+        _QL[:,4] = _QL[:,4] + coeffL*(s_star-uL)*(rhoL*s_star + fv.divide(pL, sL-uL))
+        _QR[:,4] = _QR[:,4] + coeffR*(s_star-uR)*(rhoR*s_star + fv.divide(pR, sR-uR))
+
+        flux = np.copy(fL)
+        _fL, _fR = fL + (sL*(_QL-QL).T).T, fR + (sR*(_QR-QR).T).T
+        flux[(sL < 0) & (s_star >= 0)] = _fL[(sL < 0) & (s_star >= 0)]
+        flux[(sR > 0) & (s_star <= 0)] = _fR[(sR > 0) & (s_star <= 0)]
+        flux[sR <= 0] = fR[sR <= 0]
+
+        wS = fv.makeBoundary(avg_wS, boundary)
+        fS = fv.makeFlux(wS, gamma)
+        mu = fv.makeBoundary(_mu, boundary)
+        fS += mu
+        A = fv.makeJacobian(wS, gamma)
+        characteristics = np.linalg.eigvals(A)
+        eigvals = np.max(np.abs(characteristics), axis=1)  # Local max eigenvalue for each cell (1- or 3-Riemann invariant; shock wave or rarefaction wave)
+        maxEigvals = np.max([eigvals[:-1], eigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
+        eigmax = np.max([np.max(maxEigvals), np.finfo(precision).eps])  # Maximum wave speed (max eigenvalue) for time evolution
+
+
+
+
+        """rhoL, uL, pL = rightInterface[:,0], rightInterface[:,1], rightInterface[:,4]
         rhoR, uR, pR = leftInterface[:,0], leftInterface[:,1], leftInterface[:,4]
         QL, QR = fv.pointConvertPrimitive(rightInterface, gamma), fv.pointConvertPrimitive(leftInterface, gamma)
         fL, fR = fv.makeFlux(rightInterface, gamma), fv.makeFlux(leftInterface, gamma)
@@ -68,7 +108,7 @@ def calculateRiemannFlux(tube, solutions, simVariables):
         s_star = fv.divide(pR - pL + (rhoL*uL*(sL-uL)) - (rhoR*uR*(sR-uR)), rhoL*(sL-uL) - rhoR*(sR-uR))
 
         coeffL, coeffR = fv.divide(sL-uL, sL-s_star), fv.divide(sR-uR, sR-s_star)
-        _QL, _QR = (coeffL*QL.T).T, (coeffR*QR.T).T
+        _QL, _QR = np.copy((coeffL*QL.T).T), np.copy((coeffR*QR.T).T)
 
         _QL[:,1] = rhoL * coeffL * s_star
         _QR[:,1] = rhoR * coeffR * s_star
@@ -80,7 +120,7 @@ def calculateRiemannFlux(tube, solutions, simVariables):
         _QR[:,5:8] = (rhoR * coeffR * _BR.T).T
 
         flux = np.copy(fL)
-        _fL, _fR = fL + (sL*(_QL-QL).T).T, fR + (sR*(_QR-QR).T).T
+        _fL, _fR = np.copy(fL + (sL*(_QL-QL).T).T), np.copy(fR + (sR*(_QR-QR).T).T)
         flux[(sL <= 0) & (0 <= s_star)] = _fL[(sL <= 0) & (0 <= s_star)]
         flux[(s_star <= 0) & (0 <= sR)] = _fR[(s_star <= 0) & (0 <= sR)]
         flux[0 >= sR] = fR[0 >= sR]
@@ -93,7 +133,7 @@ def calculateRiemannFlux(tube, solutions, simVariables):
         characteristics = np.linalg.eigvals(A)
         eigvals = np.max(np.abs(characteristics), axis=1)  # Local max eigenvalue for each cell (1- or 3-Riemann invariant; shock wave or rarefaction wave)
         maxEigvals = np.max([eigvals[:-1], eigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
-        eigmax = np.max([np.max(maxEigvals), np.finfo(precision).eps])  # Maximum wave speed (max eigenvalue) for time evolution
+        eigmax = np.max([np.max(maxEigvals), np.finfo(precision).eps])  # Maximum wave speed (max eigenvalue) for time evolution"""
 
         return flux, eigmax
 
