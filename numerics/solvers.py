@@ -48,7 +48,7 @@ def calculateRiemannFlux(tube, solutions, simVariables):
     # Thus, the face-averaged and face-centred values are the same (<w>_i+1/2 = w_i+1/2)
     # Same for the averaged and centred fluxes (<F>_i+1/2 = F_i+1/2)
     
-    # HLLC Riemann solver [Toro, 2019]
+    # HLLC Riemann solver [Fleischmann et. al., 2020]
     if scheme in ["hllc", "c"]:
         rhoL, uL, pL = rightInterface[:,0], rightInterface[:,1], rightInterface[:,4]
         rhoR, uR, pR = leftInterface[:,0], leftInterface[:,1], leftInterface[:,4]
