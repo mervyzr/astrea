@@ -4,7 +4,7 @@ from functions import fv
 
 ##############################################################################
 
-modified = 0
+modified = 1
 dissipate = 0
 
 
