@@ -245,7 +245,7 @@ def plotSolutionErrors(f, simVariables, savepath, coeff=1, norm=1):
     x_diff = x[1:]
     y_diff = [[np.log2(y1[:-1]/y1[1:]), np.log2(y2[:-1]/y2[1:])], [np.log2(y3[:-1]/y3[1:]), np.log2(y4[:-1]/y4[1:])]]
 
-    for _i, _i in plotIndexes:
+    for _i, _j in plotIndexes:
         if _i == _j:
             ax[_i].set_ylabel(plotLabels[_i][_j], fontsize=18)
             ax[_i].grid(linestyle="--", linewidth=0.5)
