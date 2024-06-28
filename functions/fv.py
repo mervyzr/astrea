@@ -2,8 +2,25 @@ import numpy as np
 
 ##############################################################################
 
+# For handling division-by-zero warnings during array divisions
 def divide(dividend, divisor):
     return np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
+
+
+# Generic Gaussian function
+def gauss_func(x, ampl=.9999, fwhm=.01, y_offset=1e-3):
+    peakPos = (x[0]+x[-1])/2
+    return y_offset + ampl*np.exp(-((x-peakPos)**2)/fwhm)
+
+
+# Generic sin function
+def sin_func(x, freq, ampl=.1, y_offset=1):
+    return y_offset + ampl*np.sin(freq*np.pi*x)
+
+
+# Generic sinc function
+def sinc_func(x, freq, ampl=1, y_offset=1):
+    return y_offset + ampl*np.sinc(x*freq/np.pi)
 
 
 # Initialise the discrete solution array with initial conditions and primitive variables w
@@ -27,15 +44,15 @@ def initialise(simVariables):
 
     if "shu" in config or "osher" in config:
         xi = np.linspace(shock, end, N-split_point)
-        arr[split_point:,0] = 1 + (.2 * np.sin(freq*np.pi*xi))
+        arr[split_point:,0] = sin_func(xi, freq, ampl=.2)
     elif config == "sin" or config == "sinc" or config.startswith('gauss'):
         xi = np.linspace(start, end, N)
         if config == "sin":
-            arr[:,0] = 1 + (.1 * np.sin(freq*np.pi*xi))
+            arr[:,0] = sin_func(xi, freq)
         elif config == "sinc":
-            arr[:,0] = np.sinc(xi * freq/np.pi) + 1
+            arr[:,0] = sinc_func(xi, freq)
         else:
-            arr[:,0] = 1e-3 + (1-1e-3) * np.exp(-(xi-midpoint)**2/.01)
+            arr[:,0] = gauss_func(xi)
 
     return pointConvertPrimitive(arr, gamma)
 
