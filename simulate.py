@@ -87,7 +87,7 @@ def main():
                     simVariables[opt] = int(arg)
                 elif opt in ["cfl", "gamma"]:
                     simVariables[opt] = float(arg)
-                elif opt in ["livePlot", "savePlot", "saveVideo", "saveFile"]:
+                elif opt in ["livePlot", "savePlots", "saveVideo", "saveFile"]:
                     simVariables[opt] = arg.lower() == "true"
                 elif opt == "test":
                     simVariables["config"] = arg.lower()
