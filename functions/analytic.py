@@ -250,7 +250,7 @@ def calculateSedovAnalytical(tube, t, gamma, start, end, shock):
 
 
 
-# Determine the analytical solution for a Sedov blast wave
+"""# Determine the analytical solution for a Sedov blast wave [Dullemond & Springel, 2012]
 def calculateSedovAnalytical(tube, t, gamma, start, end, shock, steps=100):
 
     # Solving the 1st-order coupled differential equations to determine the scaling of the post-shock variables
@@ -282,4 +282,89 @@ def calculateSedovAnalytical(tube, t, gamma, start, end, shock, steps=100):
         if abs(I - 1) <= 1e-6:
             break
 
-    return None
+    return None"""
+
+
+# Determine the analytical solution for a Sedov blast wave (n = 1, 2, 3 for 1D, 2D, 3D respectively) [Timmes et. al., 2005]
+def calculateSedovAnalytical(simInstance, t, simVariables, n=1):
+    rho0, vx0, vy0, vz0, P0, Bx0, By0, Bz0 = simVariables.initialRight
+    startPos, endPos, N, gamma = simVariables.startPos, simVariables.endPos, simVariables.cells, simVariables.gamma
+
+    rho, vx, P = simInstance[int(len(simInstance)/2):,0], simInstance[int(len(simInstance)/2):,1], simInstance[int(len(simInstance)/2):,4]
+    r = np.linspace((startPos+endPos)/2, endPos, int(N/2))
+    E_blast = simVariables.initialLeft[4]/(simVariables.initialLeft[0]*(gamma-1))
+
+    # Define the exponents
+    a0, a2, a3, a5 = 2/(n-2), (1-gamma)/(n+2*(gamma-1)), n/(2*gamma-1+n), 2/(gamma-2)
+    a1 = (((n+2)*gamma)/(2+n*(gamma-1))) * (((2*n*(2-gamma))/(gamma*(n+2)**2))-a2)
+    a4 = (a1*(n+2))/(2-gamma)
+
+    # Define frequently used components
+    a = .25 * (n+2) * (gamma+1)
+    b = (gamma+1)/(gamma-1)
+    c = .5 * gamma * (n+2)
+    d = ((n+2)*(gamma+1))/((n+2)*(gamma+1)-2*(2+n*(gamma-1)))
+    e = .5 * (2 + n*(gamma-1))
+
+    # Define the dimensionless shock speed and post-shock state
+    v0, vs = 2/(gamma*(n+2)), 4/((n+2)*(gamma+1))
+
+    # Define the energy integrals
+    J1 = quad(
+        lambda v: (
+            ((gamma+1)/(1-gamma))
+            * (v**2)
+            * (a0/v + a2*c/(c*v-1) - a1*e/(1-e*v))
+            * ((((a*v)**a0) * ((b*(c*v-1))**a2) * ((d*(1-e*v))**a1))**(-(n+2)))
+            * ((b*(c*v-1))**a3)
+            * ((d*(1-e*v))**a4)
+            * ((b*(1-c*v/gamma))**a5)
+        ), v0, vs
+    )[0]
+    J2 = quad(
+        lambda v: (
+            (-(gamma+1)/(2*gamma))
+            * ((c*v-gamma)/(1-c*v))
+            * (v**2)
+            * (a0/v + a2*c/(c*v-1) - a1*e/(1-e*v))
+            * ((((a*v)**a0) * ((b*(c*v-1))**a2) * ((d*(1-e*v))**a1))**(-(n+2)))
+            * ((b*(c*v-1))**a3)
+            * ((d*(1-e*v))**a4)
+            * ((b*(1-c*v/gamma))**a5)
+        ), v0, vs
+    )[0]
+
+    # Define the dimensionless energy of the shock
+    if n == 1:
+        alpha = .5*J1 + J2/(gamma-1)
+    else:
+        alpha = np.pi * (n-1) * (J1 + 2*J2/(gamma-1))
+    E_dim = E_blast/alpha
+
+    # Define post-shock variables
+    r2 = ((E_dim/rho0)**(1/(n+2))) * (t**(2/(n+2)))
+    us = (2/(n+2)) * (r2/t)
+    u2 = 2*us/(gamma+1)
+    rho2 = b * rho0
+    P2 = (2*rho0*us**2)/(gamma+1)
+
+    # Root-finding for similarity value
+    fV = lambda Vs: r2*((a*Vs)**-a0)*((b*(c*Vs-1))**-a2)*((d*(1-e*Vs))**-a1) - r
+    initial = np.ones_like(r)/10
+    V_star = sp.optimize.fsolve(fV, initial)[0]
+
+    # Define the Sedov functions
+    _lambda = ((a*V_star)**-a0)*((b*(c*V_star-1))**-a2)*((d*(1-e*V_star))**-a1)
+    f = a * vx * _lambda
+    g = ((b*(c*vx-1))**a3) * ((d*(1-e*vx))**a4) * ((b*(1-.5*vx*(n+2)))**a5)
+    h = ((a*vx)**(n*a0)) * ((d*(1-e*vx))**(a4-2*a1)) * ((b*(1-.5*vx*(n+2)))**(1+a5))
+
+    # Define the solution
+    arr = np.copy(simInstance[int(len(simInstance)/2):])
+    arr[:] = simVariables.initialRight
+
+    arr[:,0][r < r2] = (rho2*g)[r < r2]
+    arr[:,1][r < r2] = (u2*f)[r < r2]
+    arr[:,4][r < r2] = (P2*h)[r < r2]
+
+    return np.concatenate((np.flip(arr, axis=0), arr))
