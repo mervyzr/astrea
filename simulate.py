@@ -108,7 +108,7 @@ def main():
     if simVariables['runType'].startswith('m'):
         # Auto-generate the resolutions/grid-sizes for multiple simulations
         coeff = 5
-        nList = coeff*2**np.arange(5,12)
+        nList = coeff*2**np.arange(2,12)
 
         # Turn off live plot feature when multiple simulations are run
         if simVariables['livePlot']:
