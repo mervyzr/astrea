@@ -17,7 +17,7 @@ def generateTestConditions(config):
         startPos = 0
         endPos = 1
         shockPos = 1
-        tEnd = 2
+        tEnd = 1
         boundary = "wrap"  # periodic
         initialLeft = np.array([0,1,1,1,1,0,0,0])
         initialRight = np.array([0,1,1,1,1,0,0,0])
