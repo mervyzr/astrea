@@ -67,37 +67,39 @@ def main():
     # Generate the simulation variables (dict)
     configList = [var for var in dir(settings) if '__' not in var and var != 'np']
     configVariables = generic.tidyDict({k:v for k,v in vars(settings).items() if k in configList})
-    testVariables = tests.generateTestConditions(configVariables['config'])
-    simVariables = configVariables | testVariables
-    simVariables['dx'] = abs(simVariables['endPos']-simVariables['startPos'])/simVariables['cells']
 
     # CLI arguments handler; updates the simulation variables (dict)
     if len(sys.argv) > 1:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "N=", "cells=", "cfl=", "gamma=", "subgrid=", "timestep=", "scheme=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "noprint", "echo"])
+            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "N=", "n=", "cells=", "cfl=", "gamma=", "subgrid=", "timestep=", "scheme=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "noprint", "echo"])
         except getopt.GetoptError as e:
             print(f'{generic.bcolours.WARNING}Error: {e}{generic.bcolours.ENDC}')
             sys.exit(2)
         else:
             for opt, arg in opts:
                 opt = opt.replace("--","")
-                if opt in ["cells", "N"]:
-                    simVariables[opt] = int(arg) - int(arg)%2
+                if opt in ["cells", "N", "n"]:
+                    configVariables[opt] = int(arg) - int(arg)%2
                 elif opt in ["snapshots"]:
-                    simVariables[opt] = int(arg)
+                    configVariables[opt] = int(arg)
                 elif opt in ["cfl", "gamma"]:
-                    simVariables[opt] = float(arg)
+                    configVariables[opt] = float(arg)
                 elif opt in ["livePlot", "savePlots", "saveVideo", "saveFile"]:
-                    simVariables[opt] = arg.lower() == "true"
+                    configVariables[opt] = arg.lower() == "true"
                 elif opt in ["test", "config"]:
-                    simVariables["config"] = arg.lower()
+                    configVariables["config"] = arg.lower()
                 elif opt == "noprint":
                     noprint = True
                 elif opt == "echo":
                     print(f"{generic.bcolours.OKGREEN}{generic.quotes[np.random.randint(len(generic.quotes))]}{generic.bcolours.ENDC}")
                     sys.exit(2)
                 else:
-                    simVariables[opt] = arg.lower()
+                    configVariables[opt] = arg.lower()
+
+    # Generate test configuration
+    testVariables = tests.generateTestConditions(configVariables['config'])
+    simVariables = configVariables | testVariables
+    simVariables['dx'] = abs(simVariables['endPos']-simVariables['startPos'])/simVariables['cells']
 
     # Error condition(s) handler
     simVariables = generic.handleErrors(simVariables)
