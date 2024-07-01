@@ -163,7 +163,7 @@ def plotQuantities(f, simVariables, savepath):
 
             y_theo = [[analytical[:, 0], analytical[:, 4]], [analytical[:, 1], analytical[:, 4]/analytical[:, 0]]]
             for _i, _j in plotIndexes:
-                ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+                ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label=f"{config.title()} analytical solution")
 
         # Add Sod analytical solution, using the highest resolution and timing
         elif config == "sod":
@@ -172,7 +172,7 @@ def plotQuantities(f, simVariables, savepath):
 
             y_theo = [[Sod[:, 0], Sod[:, 4]], [Sod[:, 1], Sod[:, 4]/Sod[:, 0]]]
             for _i, _j in plotIndexes:
-                ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+                ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label="Sod analytical solution")
 
         # Add Sedov analytical solution, using the highest resolution and timing
         elif config == "sedov":
@@ -245,19 +245,25 @@ def plotSolutionErrors(f, simVariables, savepath, coeff, norm=1):
     plt.close()
 
     # Order of convergence plot
-    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=[21,10])
+    fig, ax = plt.subplots(figsize=[21,10])
+
+    ax.set_ylabel("Order of convergence", fontsize=18)
+    ax.grid(linestyle="--", linewidth=0.5)
 
     x_diff = x[1:]
     y_diff = [[np.log2(y1[:-1]/y1[1:]), np.log2(y2[:-1]/y2[1:])], [np.log2(y3[:-1]/y3[1:]), np.log2(y4[:-1]/y4[1:])]]
 
     for _i, _j in plotIndexes:
         if _i == _j:
-            ax[_i].set_ylabel(plotLabels[_i][_j], fontsize=18)
-            ax[_i].grid(linestyle="--", linewidth=0.5)
-            ax[_i].plot(x_diff, y_diff[_i][_j], linewidth=2, linestyle="--", marker="o", color=colours[_i][_j])
+            ax.plot(x_diff, y_diff[_i][_j], linewidth=2, linestyle="--", marker="o", color=colours[_i][_j], label=plotLabels[_i][_j])
 
     plt.suptitle(rf"Order of convergence against resolution $N_\nu$ for {config.title()} test", fontsize=24)
     fig.text(0.5, 0.04, r"Resolution $N$", fontsize=18, ha='center')
+    _xticklabels = [item.get_text() for item in ax.get_xticklabels()]
+    _xticklabels = [rf"${int(x[a])}\rightarrow{int(x[a+1])}$" for a in range(len(x)-1)]
+    ax.set_xticks(x_diff)
+    ax.set_xticklabels(_xticklabels, rotation=45, fontsize=15)
+    ax.legend(prop={'size': 18})
 
     plt.savefig(f"{savepath}/convergeOrder_{subgrid}_{timestep}_{scheme}.png", dpi=330, facecolor="w")
 
