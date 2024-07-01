@@ -163,7 +163,7 @@ def plotQuantities(f, simVariables, savepath):
 
             y_theo = [[analytical[:, 0], analytical[:, 4]], [analytical[:, 1], analytical[:, 4]/analytical[:, 0]]]
             for _i, _j in plotIndexes:
-                ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label=f"{config.title()} analytical solution")
+                ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label=rf"{config.title()}$_{{theo}}$")
 
         # Add Sod analytical solution, using the highest resolution and timing
         elif config == "sod":
@@ -172,7 +172,7 @@ def plotQuantities(f, simVariables, savepath):
 
             y_theo = [[Sod[:, 0], Sod[:, 4]], [Sod[:, 1], Sod[:, 4]/Sod[:, 0]]]
             for _i, _j in plotIndexes:
-                ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label="Sod analytical solution")
+                ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label=r"Sod$_{theo}$")
 
         # Add Sedov analytical solution, using the highest resolution and timing
         elif config == "sedov":
@@ -186,8 +186,12 @@ def plotQuantities(f, simVariables, savepath):
 
         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
         if len(f) != 1 or config == "sod" or config.startswith("gauss") or config.startswith("sin"):
+            if len(f) > 5:
+                _ncol = 2
+            else:
+                _ncol = 1
             handles, labels = plt.gca().get_legend_handles_labels()
-            fig.legend(handles, labels, prop={'size': 16}, loc='upper right')
+            fig.legend(handles, labels, prop={'size': 16}, loc='upper right', ncol=_ncol)
 
         plt.savefig(f"{savepath}/wPlot_{config}_{subgrid}_{timestep}_{scheme}_{round(indexes[-1][i],3)}.png", dpi=330)
 
