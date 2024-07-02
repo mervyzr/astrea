@@ -266,7 +266,7 @@ def plotSolutionErrors(f, simVariables, savepath, coeff, norm=1):
     _xticklabels = [item.get_text() for item in ax.get_xticklabels()]
     _xticklabels = [rf"${int(x[a])}\rightarrow{int(x[a+1])}$" for a in range(len(x)-1)]
     ax.set_xticks(x_diff)
-    ax.set_xticklabels(_xticklabels, rotation=45, fontsize=15)
+    ax.set_xticklabels(_xticklabels, rotation=45, fontsize=12, ha="right")
     ax.legend(prop={'size': 18})
 
     plt.savefig(f"{savepath}/convergeOrder_{subgrid}_{timestep}_{scheme}.png", dpi=330, facecolor="w")
