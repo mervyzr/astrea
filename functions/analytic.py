@@ -368,3 +368,136 @@ def calculateSedovAnalytical(simInstance, t, simVariables, n=1):
     arr[:,4][r < r2] = (P2*h)[r < r2]
 
     return np.concatenate((np.flip(arr, axis=0), arr))
+
+
+
+# Determine the analytical solution for a Sedov blast wave (n = 1, 2, 3 for 1D, 2D, 3D respectively) [Kamm & Timmes, 2007]
+def calculateSedovAnalytical(simInstance, t, simVariables, j=1, sol_params=[0, 1e-4]):
+    w, eps = sol_params
+    gamma = simVariables.gamma
+
+    #rho0, vx0, vy0, vz0, P0, Bx0, By0, Bz0 = simVariables.initialRight
+    #startPos, endPos, N, gamma = simVariables.startPos, simVariables.endPos, simVariables.cells, simVariables.gamma
+
+    #rho, vx, P = simInstance[int(len(simInstance)/2):,0], simInstance[int(len(simInstance)/2):,1], simInstance[int(len(simInstance)/2):,4]
+    #r = np.linspace((startPos+endPos)/2, endPos, int(N/2))
+    #E_blast = simVariables.initialLeft[4]/(simVariables.initialLeft[0]*(gamma-1))
+
+
+
+
+
+    if w >= j:
+        w = j - 1
+    beta = j + 2 - w
+    if j == 3:
+        C0 = 4*np.pi
+    elif j == 2:
+        C0 = 2*np.pi
+    else:
+        C0 = 2
+
+    # Define the removable singularities that might cause issues
+    w1 = (3*j - 2 + gamma*(2-j))/(gamma+1)
+    w2 = (2*(gamma-1) + j)/gamma
+    w3 = j * (2-gamma)
+
+    # Define the similarity variables for post-shock velocity and location of singular point
+    V2 = 4/beta
+    Vstar = 2/(j*(gamma-1)+2)
+
+    # Use the similarity variables to determine the solution type
+    if abs(V2-Vstar) <= eps:
+        solution = "singular"
+    elif V2 > Vstar + eps:
+        solution = "vacuum"
+    else:
+        solution = "standard"
+
+    # Define the shock position as a function of time
+    r2 = ((E_blast*t**2)/(alpha*rho0))**(1/beta)
+
+    # Define the speed of the shock
+    us = 2/beta * r2/t
+
+    # Define the post-shock values, assuming the pre-shock pressure is negligible
+    u2 = 2*us/(gamma+1)
+    rho2 = rho0 * (gamma+1)/(gamma-1)
+    P2 = 2 * us**2 * rho0/(gamma+1)
+    E2 = P2/(rho2*(gamma-1))
+    c2 = np.sqrt(gamma*P2/rho2)
+
+    # Define the exponents
+    a0 = 2/beta
+    a2 = (1-gamma)/(gamma*(w2-w))
+    a1 = ((beta*gamma)/(2+j*(gamma-1))) * ((2*(j*(2-gamma) - w))/(gamma*beta**2) - a2)
+    a3 = (j-w)/(gamma*(w2-w))
+    a4 = (a1 * beta * (j-w))/(w3 - w)
+    a5 = (w*(1+gamma) - 2*j)/(w3 - w)
+
+    # Define the frequently-used combinations
+    a = .25 * beta * (gamma+1)
+    b = (gamma+1)/(gamma-1)
+    c = .5 * gamma * beta
+    d = (beta * (gamma+1))/(beta*(gamma+1) - 2*(2+j*(gamma-1)))
+    e = .5 * (2 + j*(gamma-1))
+
+    # Define the auxiliary functions and their derivatives
+    x1 = lambda V: a * V
+    x2 = lambda V: b * (c*V - 1)
+    x3 = lambda V: d * (1 - e*V)
+    x4 = lambda V: b * (1 - (c*V/gamma))
+    dx1 = a
+    dx2 = b * c
+    dx3 = -d * e
+    dx4 = -b * c/gamma
+
+    # Define the Sedov functions
+    if solution == "singular":
+        _lambda = r_want/r2
+        dlambda = 0
+        f = _lambda
+        g = _lambda**(j-2)
+        h = _lambda**j
+        J2 = (gamma+1)/(j*((gamma-1)*j + 2)**2)
+        J1 = 2*J2/(gamma-1)
+        alpha = 2**(j-1) * np.pi * J2
+    else:
+        if solution == "vacuum":
+            _lambda = dlambda = f = g = h = 0
+            Vmin = 2/beta
+        elif abs(w-w2) <= eps:
+            _lambda = lambda V: x1(V)**-a0 * x2(V)**((gamma-1)/(2*e)) * np.exp(((gamma+1)/(2*e)) * ((1-x1(V))/(x1(V)-((gamma+1)/(2*gamma)))))
+            dlambda = lambda V: -_lambda(V) * ((dx1*a0/x1(V)) + (dx2*(gamma-1)/(2*e*x2(V))) - (dx1*((gamma+1)/(2*e))*(1/(x1(V)-((gamma+1)/(2*gamma))))*(1+((1-x1(V))/(x1(V)-((gamma+1)/(2*gamma)))))))
+            f = lambda V: x1(V) * _lambda(V)
+            g = lambda V: x1(V)**(a0*w) * x2(V)**((4-j-(2*gamma)/(2*e))) * x4(V)**a5 * np.exp(((gamma+1)/e) * ((1-x1(V))/(x1(V)-((gamma+1)/(2*gamma)))))
+            h = lambda V: x1(V)**(a0*w) * x3(V)**-((j*gamma)/(2*e)) * x4(V)**(1+a5)
+        elif abs(w-w3) <= eps:
+            _lambda = lambda V: x1(V)**-a0 * x2(V)**-a2 * x4(V)**-a1
+            dlambda = lambda V: -_lambda(V) * ((dx1*a0/x1(V)) + (dx2*a2/x2(V)) + (dx4*a1/x4(V)))
+            f = lambda V: x1(V) * _lambda(V)
+            g = lambda V: x1(V)**(a0*w) * x2(V)**(a3+(a2*w)) * x4(V)**(1-e/2) * np.exp((-(j*gamma*(gamma+1))/(2*e)) * ((1-x1(V))/(((gamma+1)/2)-x1(V))))
+            h = lambda V: x1(V)**(a0*w) * x4(V)**((j*(gamma-1)-gamma)/e) * np.exp((-(j*gamma*(gamma+1))/(2*e)) * ((1-x1(V))/(((gamma+1)/2)-x1(V))))
+        else:
+            _lambda = lambda V: x1(V)**-a0 * x2(V)**-a2 * x3(V)**-a1
+            dlambda = lambda V: -_lambda(V) * ((dx1*a0/x1(V)) + (dx2*a2/x2(V)) + (dx3*a1/x3(V)))
+            f = lambda V: x1(V) * _lambda(V)
+            g = lambda V: x1(V)**(a0*w) * x2(V)**(a3+(a2*w)) * x3(V)**(a4+(a1*w)) * x4(V)**a5
+            h = lambda V: x1(V)**(a0*w) * x3(V)**(a4+(a1*(w-2))) * x4(V)**(1+a5)
+            Vmin = 2/(beta*gamma)
+        
+        # Evaluate the energy integrals
+        J1 = quad()
+        J2 = quad()
+
+
+
+
+
+
+
+
+
+
+
+    pass
