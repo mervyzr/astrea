@@ -176,12 +176,11 @@ def plotQuantities(f, simVariables, savepath):
 
         # Add Sedov analytical solution, using the highest resolution and timing
         elif config == "sedov":
-            #tube, _t = f[str(nList[-1])][str(indexes[-1][i])], indexes[-1][i]
-            #Sedov = analytic.calculateSedovAnalytical(tube, _t, simVariables)
+            """Sedov = analytic.calculateSedovAnalytical(indexes[-1][i], simVariables)
 
-            #y_theo = [[Sedov[:, 0], Sedov[:, 4]], [Sedov[:, 1], Sedov[:, 4]/Sedov[:, 0]]]
-            #for _i, _j in plotIndexes:
-            #    ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label="Analytical solution")
+            y_theo = [[Sedov[1], Sedov[2]], [Sedov[3], Sedov[3]/Sedov[1]]]
+            for _i, _j in plotIndexes:
+                ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label=r"Sedov$_{theo}$")"""
             pass
 
         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
