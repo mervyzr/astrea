@@ -221,20 +221,21 @@ def plotSolutionErrors(f, simVariables, savepath, coeff, norm=1):
         y4 = np.append(y4, solutionErrors[-1])  # specific thermal energy
     y_data = [[y1, y2], [y3, y4]]
 
-    """print(f"{generic.bcolours.OKGREEN}EOC (density){generic.bcolours.ENDC}: {np.diff(np.log(y1))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (pressure){generic.bcolours.ENDC}: {np.diff(np.log(y2))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (vx){generic.bcolours.ENDC}: {np.diff(np.log(y3))/np.diff(np.log(x))}\n{generic.bcolours.OKGREEN}EOC (thermal){generic.bcolours.ENDC}: {np.diff(np.log(y4))/np.diff(np.log(x))}")"""
-
     for _i, _j in plotIndexes:
         if _i == _j:
             ax[_i].set_ylabel(errorLabels[_i][_j], fontsize=18)
             ax[_i].grid(linestyle="--", linewidth=0.5)
 
-            m, c = np.polyfit(np.log10(x), np.log10(y_data[_i][_j]), 1)
+            EOC = np.diff(np.log(y_data[_i][_j]))/np.diff(np.log(x))
+            idx = np.random.randint(0, len(EOC))
+            c = np.log10(y_data[_i][_j][idx]) - EOC[idx]*np.log10(x[idx])
+
             for order in [1,2,4]:
                 alpha = 10**(c + np.log10(coeff))
                 ytheo = alpha*x**(-order)
                 ax[_j].loglog(x, ytheo, linewidth=1, color="black", linestyle="--")
                 ax[_j].annotate(rf"$O(N^{order})$", (x[-1], ytheo[-1]), fontsize=12)
-            ax[_j].loglog(x, y_data[_i][_j], linewidth=2, linestyle="--", marker="o", color=colours[_i][_j], label=f"grad. = {round(m,4)}")
+            ax[_j].loglog(x, y_data[_i][_j], linewidth=2, linestyle="--", marker="o", color=colours[_i][_j])
             ax[_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|\text{{EOC}}_{{max}}|$ = {round(max(np.abs(np.diff(np.log(y_data[_i][_j]))/np.diff(np.log(x)))), 4)}")
             ax[_j].legend(prop={'size': 14})
 
