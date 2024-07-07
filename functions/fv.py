@@ -23,8 +23,7 @@ def sinc_func(x, params):
     return params['y_offset'] + params['ampl']*np.sinc(x*params['freq']/np.pi)
 
 
-# Initialise the discrete solution array with initial conditions and primitive variables w
-# Returns the solution array in conserved variables q
+# Initialise the discrete solution array with initial conditions and primitive variables w. Returns the solution array in conserved variables q
 def initialise(simVariables):
     config, N, gamma, precision = simVariables.config, simVariables.cells, simVariables.gamma, simVariables.precision
     start, end, shock, params = simVariables.startPos, simVariables.endPos, simVariables.shockPos, simVariables.misc
