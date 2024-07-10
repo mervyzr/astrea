@@ -1,4 +1,5 @@
 import numpy as np
+import scipy as sp
 
 from functions import fv
 
@@ -122,6 +123,9 @@ def calculateRiemannFlux(tube, solutions, simVariables):
         eigmax = np.max([np.max(maxEigvals), np.finfo(precision).eps])  # Maximum wave speed (max eigenvalue) for time evolution"""
 
         return flux, eigmax
+    
+    elif scheme in ["osher-solomon", "osher", "solomon", "os"]:
+        pass
 
     # Roe solver (approximate (linearised) Riemann solver)
     else:
