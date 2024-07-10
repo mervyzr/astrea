@@ -155,25 +155,25 @@ def makeFlux(interpolatedValues, gamma):
 
 # Jacobian matrix based on primitive variables
 def makeJacobian(tube, gamma):
-    rho, vx, pressure, Bfield = tube[:,0], tube[:,1], tube[:,4], tube[:,5:8]
-    gridLength, variables = len(tube), len(tube[0])
-
+    rho, vx, pressure, Bfield = tube[...,0], tube[...,1], tube[...,4], tube[...,5:8]
+    
     # Create empty square arrays for each cell
-    arr = np.zeros((gridLength, variables, variables))
-    i,j = np.diag_indices(variables)
+    _arr = np.zeros_like(tube)
+    arr = np.repeat(_arr[..., np.newaxis], _arr.shape[-1], axis=-1)
+    i, j = np.diag_indices(_arr.shape[-1])
 
     # Replace matrix with values
-    arr[:,i,j] = vx[:,None]  # diagonal elements
-    arr[:,0,1] = rho
-    arr[:,1,4] = 1/rho
-    arr[:,4,1] = gamma*pressure
+    arr[...,i,j] = vx[...,None]  # diagonal elements
+    arr[...,0,1] = rho
+    arr[...,1,4] = 1/rho
+    arr[...,4,1] = gamma*pressure
 
-    arr[:,1,6] = Bfield[:,1]/rho
-    arr[:,1,7] = Bfield[:,2]/rho
-    arr[:,2,6] = -Bfield[:,0]/rho
-    arr[:,3,7] = -Bfield[:,0]/rho
-    arr[:,6,1] = Bfield[:,1]
-    arr[:,6,2] = -Bfield[:,0]
-    arr[:,7,1] = Bfield[:,2]
-    arr[:,7,3] = -Bfield[:,0]
+    arr[...,1,6] = Bfield[...,1]/rho
+    arr[...,1,7] = Bfield[...,2]/rho
+    arr[...,2,6] = -Bfield[...,0]/rho
+    arr[...,3,7] = -Bfield[...,0]/rho
+    arr[...,6,1] = Bfield[...,1]
+    arr[...,6,2] = -Bfield[...,0]
+    arr[...,7,1] = Bfield[...,2]
+    arr[...,7,3] = -Bfield[...,0]
     return arr

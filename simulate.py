@@ -9,6 +9,7 @@ from collections import namedtuple
 
 import h5py
 import numpy as np
+import scipy as sp
 
 import settings
 from static import tests
@@ -100,6 +101,10 @@ def main():
     testVariables = tests.generateTestConditions(configVariables['config'])
     simVariables = configVariables | testVariables
     simVariables['dx'] = abs(simVariables['endPos']-simVariables['startPos'])/simVariables['cells']
+    if simVariables['scheme'] in ['osher-solomon', 'osher', 'solomon', 'os']:
+        _roots, _weights = sp.special.roots_legendre(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
+        simVariables['roots'] = .5*_roots + .5  # Gauss-Legendre quadrature with interval [0,1]
+        simVariables['weights'] = _weights/2  # Gauss-Legendre quadrature with interval [0,1]
 
     # Error condition(s) handler
     simVariables = generic.handleErrors(simVariables)
