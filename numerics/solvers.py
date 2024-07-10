@@ -19,21 +19,7 @@ def calculateRiemannFlux(tube, solutions, simVariables):
             leftSolution, rightSolution = solutions
             _mu = np.zeros_like(tube)
         leftInterface, rightInterface = fv.makeBoundary(leftSolution, boundary)[1:], fv.makeBoundary(rightSolution, boundary)[:-1]
-        #avg_wS = .5 * (leftSolution + rightSolution)
-
-        avg_wS = np.copy(tube)
-        rho_L, rho_R = np.sqrt(leftSolution[:,0]), np.sqrt(rightSolution[:,0])
-
-        avg_wS[:,0] = rho_L * rho_R
-        avg_wS[:,1:4] = fv.divide((rho_L*leftSolution[:,1:4].T).T + (rho_R*rightSolution[:,1:4].T).T, (rho_L + rho_R)[:,np.newaxis])
-
-        H_L = fv.divide(leftSolution[:,4], leftSolution[:,0])*gamma/(gamma-1) + .5*np.linalg.norm(leftSolution[:,1:4], axis=1)**2 + fv.divide(np.linalg.norm(leftSolution[:,5:8], axis=1)**2, leftSolution[:,0])
-        H_R = fv.divide(rightSolution[:,4], rightSolution[:,0])*gamma/(gamma-1) + .5*np.linalg.norm(rightSolution[:,1:4], axis=1)**2 + fv.divide(np.linalg.norm(rightSolution[:,5:8], axis=1)**2, rightSolution[:,0])
-        H = fv.divide(rho_L*H_L + rho_R*H_R, rho_L + rho_R)
-        avg_wS[:,4] = (avg_wS[:,0]*H - .5*avg_wS[:,0]*np.linalg.norm(avg_wS[:,1:4], axis=1)**2 - np.linalg.norm(avg_wS[:,5:8], axis=1)**2) * (gamma-1)/gamma
-
-        avg_wS[:,6:8] = fv.divide((rho_R*leftSolution[:,6:8].T).T + (rho_L*rightSolution[:,6:8].T).T, (rho_L + rho_R)[:,np.newaxis])
-
+        avg_wS = .5 * (leftSolution + rightSolution)
     elif subgrid in ["plm", "linear", "l"]:
         leftSolution, rightSolution = solutions
         _mu = np.zeros_like(tube)
@@ -211,3 +197,22 @@ def getEntropyVector(w, g):
     arr[:,4] = -factor
     arr[:,5:8] = (w[:,5:8].T * factor).T
     return arr
+
+
+# Calculate the Roe-averaged primitive variables from the left- & right-interface states for use in Roe solver in order to better capture shocks [Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
+def getRoeAverage(wS, qS, gamma):
+    wL, wR = wS
+    qL, qR = qS
+
+    avg = np.zeros_like(wL)
+    rho_L, rho_R = np.sqrt(wL[:,0]), np.sqrt(wR[:,0])
+
+    avg[:,0] = rho_L * rho_R
+    avg[:,1:4] = fv.divide((rho_L*wL[:,1:4].T).T + (rho_R*wR[:,1:4].T).T, (rho_L + rho_R)[:,np.newaxis])
+    avg[:,6:8] = fv.divide((rho_R*wL[:,6:8].T).T + (rho_L*wR[:,6:8].T).T, (rho_L + rho_R)[:,np.newaxis])
+
+    H_L, H_R = fv.divide(qL[:,4] + wL[:,4] + .5*np.linalg.norm(wL[:,5:8], axis=1)**2, wL[:,0]), fv.divide(qR[:,4] + wR[:,4] + .5*np.linalg.norm(wR[:,5:8], axis=1)**2, wR[:,0])
+    H = fv.divide(rho_L*H_L + rho_R*H_R, rho_L + rho_R)
+    avg[:,4] = ((gamma-1)/gamma) * (avg[:,0]*H - .5*(avg[:,0]*np.linalg.norm(avg[:,1:4], axis=1)**2 + np.linalg.norm(avg[:,5:8], axis=1)**2))
+
+    return avg
