@@ -1,4 +1,5 @@
 import numpy as np
+import scipy as sp
 
 from functions import fv
 
@@ -34,7 +35,7 @@ def calculateRiemannFlux(tube, solutions, simVariables):
     # Thus, the face-averaged and face-centred values are the same (<w>_i+1/2 = w_i+1/2)
     # Same for the averaged and centred fluxes (<F>_i+1/2 = F_i+1/2)
     
-    # HLLC Riemann solver [Fleischmann et. al., 2020]
+    # HLLC Riemann solver [Fleischmann et al., 2020]
     if scheme in ["hllc", "c"]:
         rhoL, uL, pL = rightInterface[:,0], rightInterface[:,1], rightInterface[:,4]
         rhoR, uR, pR = leftInterface[:,0], leftInterface[:,1], leftInterface[:,4]
@@ -123,7 +124,33 @@ def calculateRiemannFlux(tube, solutions, simVariables):
 
         return flux, eigmax
 
-    # Roe solver (approximate (linearised) Riemann solver)
+    # Osher-Solomon(-Dumbser) Riemann solver [Dumbser & Toro, 2011]
+    elif scheme in ["osher-solomon", "osher", "solomon", "os"]:
+        roots, weights = simVariables.roots, simVariables.weights
+
+        qLs, qRs = fv.pointConvertPrimitive(leftInterface, gamma), fv.pointConvertPrimitive(rightInterface, gamma)
+        avg_wS = getRoeAverage([leftInterface, rightInterface], [qLs, qRs], gamma)
+
+        arr_L, arr_R = np.repeat(qLs[None,:], len(roots), axis=0), np.repeat(qRs[None,:], len(roots), axis=0)
+        psi = arr_R + (roots*(arr_L-arr_R).T).T
+
+        A = fv.makeJacobian(psi, gamma)
+        characteristics = np.linalg.eigvals(A)
+
+        _D_plus = .5 * (qLs-qRs) * (avg_wS + np.sum((weights * np.abs(characteristics).T).T, axis=0))
+        D_minus = .5 * (qLs-qRs) * (avg_wS - np.sum((weights * np.abs(characteristics).T).T, axis=0))
+        D_plus = fv.makeBoundary(_D_plus, boundary)[:-2]
+
+        wS = fv.makeBoundary(avg_wS, boundary)
+        _A = fv.makeJacobian(wS, gamma)
+        _characteristics = np.linalg.eigvals(_A)
+        eigvals = np.max(np.abs(_characteristics), axis=1)
+        maxEigvals = np.max([eigvals[:-1], eigvals[1:]], axis=0)
+        eigmax = np.max([np.max(maxEigvals), np.finfo(precision).eps])
+
+        return D_minus+D_plus, eigmax
+
+    #  Approximate (linearised) Riemann solver
     else:
         wS = fv.makeBoundary(avg_wS, boundary)
         fS = fv.makeFlux(wS, gamma)
