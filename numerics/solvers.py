@@ -127,7 +127,7 @@ def calculateRiemannFlux(tube, solutions, simVariables):
     elif scheme in ["osher-solomon", "osher", "solomon", "os"]:
         pass
 
-    # Roe solver (approximate (linearised) Riemann solver)
+    #  Approximate (linearised) Riemann solver
     else:
         wS = fv.makeBoundary(avg_wS, boundary)
         fS = fv.makeFlux(wS, gamma)
