@@ -1,6 +1,6 @@
 import numpy as np
 
-from numerics import limiters, reconstruct, solvers
+from numerics import limiters, reconstruct, solvers, pcm, plm
 
 ##############################################################################
 
@@ -9,12 +9,17 @@ def getL(fluxes, dx):
     return -np.diff(fluxes, axis=0)/dx
 
 
-# Evolve the system in space by a standardised workflow
+"""# Evolve the system in space by a standardised workflow
 def evolveSpace(tube, _simVariables):
     extrapolatedValues = reconstruct.extrapolate(tube, _simVariables)
     limitedValues = limiters.applyLimiter(extrapolatedValues, _simVariables)
     solutions = reconstruct.interpolate(extrapolatedValues, limitedValues, _simVariables)
-    return solvers.calculateRiemannFlux(tube, solutions, _simVariables)
+    return solvers.calculateRiemannFlux(tube, solutions, _simVariables)"""
+
+
+# Evolve the system in space by a standardised workflow
+def evolveSpace(tube, _simVariables):
+    return pcm.run(tube, _simVariables)
 
 
 # Evolve the system in time by a standardised workflow
