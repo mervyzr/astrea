@@ -1,13 +1,35 @@
+from collections import namedtuple
+
 import numpy as np
 
 from functions import fv
+from numerics import limiters, solvers
 
 ##############################################################################
 
 modified = 1
 dissipate = 0
 
+# Piecewise parabolic reconstruction method (PPM)
+def run(tube, simVariables):
+    gamma, precision, scheme, boundary = simVariables.gamma, simVariables.precision, simVariables.scheme, simVariables.boundary
+    Data = namedtuple('Data', ['flux', 'eigmax'])
 
+    # Extrapolate the cell averages to face averages
+    # Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
+    #                     |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
+
+    # Convert to primitive variables
+    wS = fv.convertConservative(tube, gamma, boundary)
+
+    # Pad array with boundary & apply (TVD) slope limiters
+    w = fv.makeBoundary(wS, boundary)
+    limitedValues = limiters.minmodLimiter(w)
+
+
+
+
+    pass
 # Extrapolate the cell averages to face averages
 # Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
 #                     |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
