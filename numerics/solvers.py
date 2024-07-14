@@ -7,25 +7,6 @@ from functions import fv
 
 from numerics.reconstruct import modified, dissipate
 
-
-
-# (Local) Lax-Friedrich scheme (1st-order; highly diffusive)
-def calculateLaxFriedrichFlux(flux, qDiff, eigenvalues):
-    return .5 * ((flux[1:]+flux[:-1]) - ((eigenvalues * qDiff).T))
-
-
-# Lax-Wendroff scheme (2nd-order, Jacobian method; contains overshoots)
-def calculateLaxWendroffFlux(flux, qDiff, eigenvalues, characteristics):
-    # Sound speed for each cell (2-Riemann invariant; entropy wave or contact discontinuity); indexing 1 only works for hydrodynamics
-    soundSpeed = np.unique(characteristics, axis=1)[:,1]
-    normalisedEigvals = fv.divide(soundSpeed**2, eigenvalues)
-    maxNormalisedEigvals = np.max([normalisedEigvals[:-1], normalisedEigvals[1:]], axis=0)
-
-    return .5 * ((flux[1:]+flux[:-1]) - ((maxNormalisedEigvals * qDiff).T))
-    #return .5 * ((qLs+qRs) - fv.divide(fS[1:]-fS[:-1], maxEigvals[:, np.newaxis]))
-
-
-
 # Solve the Riemann (flux) problem (Local Lax-Friedrichs; approximate Riemann solver)
 def calculateRiemannFlux(tube, solutions, simVariables):
     gamma, subgrid, scheme, precision, boundary = simVariables.gamma, simVariables.subgrid, simVariables.scheme, simVariables.precision, simVariables.boundary

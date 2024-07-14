@@ -47,13 +47,13 @@ def runSimulation(grp, _simVariables):
             plotting.updatePlot(tubeSnapshot, t, fig, ax, graphs)
 
         # Compute the numerical fluxes at each interface
-        data = evolvers.evolveSpace(domain, _simVariables)
+        fluxes, eigmax = evolvers.evolveSpace(domain, _simVariables)
 
         # Compute the full time step dt
-        dt = _simVariables.cfl * _simVariables.dx/data.eigmax
+        dt = _simVariables.cfl * _simVariables.dx/eigmax
 
         # Update the solution with the numerical fluxes using iterative methods
-        domain = evolvers.evolveTime(domain, data.flux, dt, _simVariables)
+        domain = evolvers.evolveTime(domain, fluxes, dt, _simVariables)
         t += dt
     return None
 
