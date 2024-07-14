@@ -22,7 +22,7 @@ def extrapolate(tube, simVariables):
 
     if subgrid in ["ppm", "parabolic", "p", "plm", "linear", "l"]:
         # Pad array with boundary
-        w = fv.makeBoundary(wS, boundary)
+        w = fv.makeBoundary(wS, simVariables.boundary)
 
         if subgrid in ["ppm", "parabolic", "p"]:
             # PPM requires additional ghost cells
