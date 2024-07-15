@@ -45,7 +45,11 @@ def run(tube, simVariables):
 
     eigmax = np.max([np.max(maxEigvals), np.finfo(precision).eps])  # Maximum wave speed (max eigenvalue) for time evolution
 
-    if scheme in ["lw", "lax-wendroff", "wendroff"]:
+    if scheme in ["hllc", "c"]:
+        data = Data(solvers.calculateHLLCFlux(wLs, wRs, gamma, boundary), eigmax)
+    elif scheme in ["os", "osher-solomon", "osher", "solomon"]:
+        data = Data(solvers.calculateOSFlux([wLs, wRs], [qLs, qRs], gamma, boundary, simVariables.roots, simVariables.weights), eigmax)
+    elif scheme in ["lw", "lax-wendroff", "wendroff"]:
         data = Data(solvers.calculateLaxWendroffFlux(f, qDiff, eigvals, characteristics), eigmax)
     else:
         data = Data(solvers.calculateLaxFriedrichFlux(f, qDiff, maxEigvals), eigmax)

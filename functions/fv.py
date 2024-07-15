@@ -113,8 +113,34 @@ def makeFlux(tube, gamma):
     return arr
 
 
-"""# Entropy-stable flux calculation based on left and right interpolated primitive variables [Winters & Gassner, 2015]
-def makeFlux(interpolatedValues, gamma):
+# Jacobian matrix based on primitive variables
+def makeJacobian(tube, gamma):
+    rho, vx, pressure, Bfield = tube[...,0], tube[...,1], tube[...,4], tube[...,5:8]
+    
+    # Create empty square arrays for each cell
+    _arr = np.zeros_like(tube)
+    arr = np.repeat(_arr[..., np.newaxis], _arr.shape[-1], axis=-1)
+    i, j = np.diag_indices(_arr.shape[-1])
+
+    # Replace matrix with values
+    arr[...,i,j] = vx[...,None]  # diagonal elements
+    arr[...,0,1] = rho
+    arr[...,1,4] = 1/rho
+    arr[...,4,1] = gamma*pressure
+
+    arr[...,1,6] = Bfield[...,1]/rho
+    arr[...,1,7] = Bfield[...,2]/rho
+    arr[...,2,6] = -Bfield[...,0]/rho
+    arr[...,3,7] = -Bfield[...,0]/rho
+    arr[...,6,1] = Bfield[...,1]
+    arr[...,6,2] = -Bfield[...,0]
+    arr[...,7,1] = Bfield[...,2]
+    arr[...,7,3] = -Bfield[...,0]
+    return arr
+
+
+# Entropy-stable flux calculation based on left and right interpolated primitive variables [Winters & Gassner, 2015]
+def makeEntropyFlux(interpolatedValues, gamma):
     wL, wR = interpolatedValues
     arr = np.zeros_like(wL)
 
@@ -150,30 +176,16 @@ def makeFlux(interpolatedValues, gamma):
     arr[:,4] = (gamma/(gamma-1))*vx_hat*P2_hat + .5*rho_hat*vx_hat*(vx_hat**2 + (vy_hat**2)*(vz_hat**2)) + vx_dot*(By_hat**2 + Bz_hat**2) - Bx_hat*(vy_dot*By_hat + vz_dot*Bz_hat)
     arr[:,6] = vx_dot*By_hat - vy_dot*Bx_hat
     arr[:,7] = vx_dot*Bz_hat - vz_dot*Bx_hat
-    return arr"""
+    return arr
 
 
-# Jacobian matrix based on primitive variables
-def makeJacobian(tube, gamma):
-    rho, vx, pressure, Bfield = tube[...,0], tube[...,1], tube[...,4], tube[...,5:8]
-    
-    # Create empty square arrays for each cell
-    _arr = np.zeros_like(tube)
-    arr = np.repeat(_arr[..., np.newaxis], _arr.shape[-1], axis=-1)
-    i, j = np.diag_indices(_arr.shape[-1])
+# Calculate the entropy vector (jump between the left and right states)
+def getEntropyVector(w, g):
+    arr = np.copy(w)
+    factor = w[:,0]/w[:,4]
 
-    # Replace matrix with values
-    arr[...,i,j] = vx[...,None]  # diagonal elements
-    arr[...,0,1] = rho
-    arr[...,1,4] = 1/rho
-    arr[...,4,1] = gamma*pressure
-
-    arr[...,1,6] = Bfield[...,1]/rho
-    arr[...,1,7] = Bfield[...,2]/rho
-    arr[...,2,6] = -Bfield[...,0]/rho
-    arr[...,3,7] = -Bfield[...,0]/rho
-    arr[...,6,1] = Bfield[...,1]
-    arr[...,6,2] = -Bfield[...,0]
-    arr[...,7,1] = Bfield[...,2]
-    arr[...,7,3] = -Bfield[...,0]
+    arr[:,0] = ((g-np.log(w[:,4]*w[:,0]**-g))/(g-1)) - (.5*w[:,0]*np.linalg.norm(w[:,1:4], axis=1)**2)/w[:,4]
+    arr[:,1:4] = (w[:,1:4].T * factor).T
+    arr[:,4] = -factor
+    arr[:,5:8] = (w[:,5:8].T * factor).T
     return arr
