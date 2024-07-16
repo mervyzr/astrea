@@ -12,8 +12,8 @@ import numpy as np
 import scipy as sp
 
 import settings
+import evolvers
 from static import tests
-from numerics import evolvers
 from functions import fv, generic, plotting
 
 ##############################################################################
