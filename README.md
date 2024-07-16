@@ -19,7 +19,7 @@ The space in the simulation is discretised via a uniform Cartesian grid, and emp
 The time in the simulation can be discretised and treated separately from the spatial component (because of the method-of-lines approach). Higher-order temporal discretisation methods can be employed to match the higher-order spatial components used. In the following, the strong-stability preserving (SSP) variants of the (explicit) Runge-Kutta (RK) methods are denoted as SSPRK (*i*,*j*), where *i* and *j* refers to *i*-stage and the *j*-th order iterative method respectively. Several SSPRK variants are included for this simulation, with the SSPRK (2,2), SSPRK (3,3) (Shu & Osher, 1988), SSPRK (5,3) (Spiteri & Ruuth, 2002), and SSPRK (5,4) (Gottlieb et al., 2009) methods. The ''classic'' RK4 or the Forward Euler method can also be used.
 
 ### Scheme and Riemann solver
-With the discretisation of the space in the simulation, a Riemann problem is created at each interface between consecutive cells, with each cell containing the subgrid profile. In this code, approximate Riemann solvers are used (linear and non-linear) in order to perform the conservative update. The Local Lax-Friedrichs (LLF) method (LeVeque, 1992) is an approximate linearised Riemann solver (i.e. the method aims to find an *exact* solution to the *linearised* or *approximate* version of the (magneto-)hydrodynamic equations) that is very stable and robust, however it is highly dissipative and only first-order. The fluxes and the Jacobian matrices are calculated using the interpolated interfaces, with the Jacobian matrix using an average of these interfaces (Cargo & Gallice, 1997). The code also allows for the Lax-Wendroff scheme (Lax & Wendroff, 1960), which is another approximate linearised Riemann solver but it is second-order. The main issue with linear schemes is that the schemes will cause spurrious oscillations, according to Godunov's Theorem (Godunov, 1954). Therefore, the HLLC Riemann solver (Fleischmann et. al., 2020) can also be used for this code, that allows for higher-order reconstruction methods and also reduces the spurrious oscillations, albeit with some dissipation.
+With the discretisation of the space in the simulation, a Riemann problem is created at each interface between consecutive cells, with each cell containing the subgrid profile. In this code, approximate Riemann solvers are used (linear and non-linear) in order to perform the conservative update. The Local Lax-Friedrichs (LLF) scheme (LeVeque, 1992) is an approximate linearised Riemann solver (i.e. the method aims to find an *exact* solution to the *linearised* or *approximate* version of the (magneto-)hydrodynamic equations) that is very stable and robust, however it is highly dissipative and only first-order. The fluxes and the Jacobian matrices are calculated using the interpolated interfaces, with the Jacobian matrix using an average of these interfaces (Cargo & Gallice, 1997). The code also allows for the Lax-Wendroff scheme (Lax & Wendroff, 1960), which is another approximate linearised Riemann solver but it is second-order. The main issue with linear schemes is that the schemes will cause spurrious oscillations, according to Godunov's Theorem (Godunov, 1954). Therefore, the HLLC Riemann solver (Fleischmann et. al., 2020) can also be used for this code, that allows for higher-order reconstruction methods and also reduces the spurrious oscillations, albeit with some dissipation.
 
 ### Hydrodynamical tests
 Hydrodynamical tests in place are the Sod shock tube test (Sod, 1978), the Sedov blast test (Sedov, 1946), simple advection wave tests (Gaussian, *sin*-curve, square), the Shu-Osher shock tube problem (Shu & Osher, 1989), and five shock tube tests from Toro (Toro, 1999, p.225). An additional magnetohydrodynamics test is included (Ryu & Jones, 1995). Analytical solutions for the Sod shock test (Pfrommer et al., 2006), Gaussian wave test and the *sin*-wave test are overplotted in the saved plots. The solution error (L1 error norm) is also determined when the *sin-wave* or Gaussian test is run.
@@ -36,11 +36,15 @@ Edit your parameters in *`settings.py`* and run *`simulate.py`* (preferably in t
 - `simulate.py`: Runs the simulation, and contains the update loop
     - `settings.py`: Parameters for the simulation
     - `tests.py`: Hydrodynamics test configurations
+    - `evolvers.py`: Collates the schemes for space and time evolution
+    - `schemes`
+        - `pcm.py`: Piecewise constant method [Godunov, 1959]
+        - `plm.py`: Piecewise linear method [Derigs et al., 2018]
+        - `ppm.py`: Piecewise parabolic method [Felker & Stone, 2015]
+        - `weno.py`: WENO method [Shu, 2009]
     - `numerics`
-        - `evolvers.py`: Collates the functions for space and time evolution
-            - `solvers.py`: Contains the Riemann solver
-            - `reconstruct.py`: Functions for the reconstruction methods
-            - `limiters.py`: Implements flux/slope limiters to prevent spurious oscillations in the reconstructed states
+        - `solvers.py`: Contains the Riemann solvers
+        - `limiters.py`: Implements flux/slope limiters to prevent spurious oscillations in the reconstructed states
     - `functions`
         - `generic.py`: Generic functions used throughout the code
         - `fv.py`: Re-usable/generic code specific to the finite volume method
@@ -52,6 +56,7 @@ Edit your parameters in *`settings.py`* and run *`simulate.py`* (preferably in t
 ├── LICENSE
 ├── README.md
 ├── __init__.py
+├── evolvers.py
 ├── functions
 │   ├── __init__.py
 │   ├── analytic.py
@@ -60,10 +65,14 @@ Edit your parameters in *`settings.py`* and run *`simulate.py`* (preferably in t
 │   └── plotting.py
 ├── numerics
 │   ├── __init__.py
-|   ├── evolvers.py
 │   ├── limiters.py
-│   ├── reconstruct.py
 │   ├── solvers.py
+├── schemes
+│   ├── __init__.py
+│   ├── pcm.py
+│   ├── plm.py
+│   ├── ppm.py
+│   ├── weno.py
 ├── settings.py
 ├── simulate.py
 ├── static
