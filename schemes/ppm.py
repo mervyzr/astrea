@@ -85,16 +85,15 @@ def run(tube, simVariables):
         wL, wR = wS - phi*d_uL_bar, wS + phi*d_uR_bar  # (eq. 98)
     else:
         wL, wR = wF_limit_L, wF_limit_R
+
+    # Get the average solution
+    avg_wS = .5 * (wL + wR)
     
     # Pad the reconstructed interfaces
     wLs, wRs = fv.makeBoundary(wL, boundary)[1:], fv.makeBoundary(wR, boundary)[:-1]
 
-    # Get the average solution
-    avg_wS = .5 * (wL + wR)
-
-    # Convert the primitive variables, and compute the state differences
+    # Convert the primitive variables
     qLs, qRs = fv.convertPrimitive(wLs, gamma, boundary), fv.convertPrimitive(wRs, gamma, boundary)
-    qDiff = (qLs-qRs).T
 
     # Compute the fluxes and the Jacobian
     _w = fv.makeBoundary(avg_wS, boundary)
@@ -102,21 +101,7 @@ def run(tube, simVariables):
     A = fv.makeJacobian(_w, gamma)
     characteristics = np.linalg.eigvals(A)
 
-    # Determine the eigenvalues for the computation of time stepping
-    eigvals = np.max(np.abs(characteristics), axis=1)  # Local max eigenvalue for each cell (1- or 3-Riemann invariant; shock wave or rarefaction wave)
-    maxEigvals = np.max([eigvals[:-1], eigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
-
-    eigmax = np.max([np.max(maxEigvals), np.finfo(precision).eps])  # Maximum wave speed (max eigenvalue) for time evolution
-
-    if scheme in ["hllc", "c"]:
-        data = Data(solvers.calculateHLLCFlux(wLs, wRs, gamma, boundary), eigmax)
-    elif scheme in ["os", "osher-solomon", "osher", "solomon"]:
-        data = Data(solvers.calculateOSFlux([wLs, wRs], [qLs, qRs], gamma, boundary, simVariables.roots, simVariables.weights), eigmax)
-    elif scheme in ["lw", "lax-wendroff", "wendroff"]:
-        data = Data(solvers.calculateLaxWendroffFlux(f, qDiff, eigvals, characteristics), eigmax)
-    else:
-        data = Data(solvers.calculateLaxFriedrichFlux(f, qDiff, maxEigvals), eigmax)
-    return data
+    return solvers.calculateRiemannFlux(simVariables, f=f, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
 
 
 # Modified piecewise parabolic reconstruction method (m-PPM); does not have interface limiting
@@ -217,15 +202,14 @@ def runModified(tube, simVariables, dissipate=False):
     else:
         wL, wR = wF_limit_L, wF_limit_R
 
-    # Pad the reconstructed interfaces
-    wLs, wRs = fv.makeBoundary(wL, boundary)[1:], fv.makeBoundary(wR, boundary)[:-1]
-
     # Get the average solution
     avg_wS = .5 * (wL + wR)
 
-    # Convert the primitive variables, and compute the state differences
+    # Pad the reconstructed interfaces
+    wLs, wRs = fv.makeBoundary(wL, boundary)[1:], fv.makeBoundary(wR, boundary)[:-1]
+
+    # Convert the primitive variables
     qLs, qRs = fv.convertPrimitive(wLs, gamma, boundary), fv.convertPrimitive(wRs, gamma, boundary)
-    qDiff = (qLs-qRs).T
 
     # Compute the fluxes and the Jacobian
     _w = fv.makeBoundary(avg_wS, boundary)
@@ -240,21 +224,7 @@ def runModified(tube, simVariables, dissipate=False):
     A = fv.makeJacobian(_w, gamma)
     characteristics = np.linalg.eigvals(A)
 
-    # Determine the eigenvalues for the computation of time stepping
-    eigvals = np.max(np.abs(characteristics), axis=1)  # Local max eigenvalue for each cell (1- or 3-Riemann invariant; shock wave or rarefaction wave)
-    maxEigvals = np.max([eigvals[:-1], eigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
-
-    eigmax = np.max([np.max(maxEigvals), np.finfo(precision).eps])  # Maximum wave speed (max eigenvalue) for time evolution
-
-    if scheme in ["hllc", "c"]:
-        data = Data(solvers.calculateHLLCFlux(wLs, wRs, gamma, boundary), eigmax)
-    elif scheme in ["os", "osher-solomon", "osher", "solomon"]:
-        data = Data(solvers.calculateOSFlux([wLs, wRs], [qLs, qRs], gamma, boundary, simVariables.roots, simVariables.weights), eigmax)
-    elif scheme in ["lw", "lax-wendroff", "wendroff"]:
-        data = Data(solvers.calculateLaxWendroffFlux(f, qDiff, eigvals, characteristics), eigmax)
-    else:
-        data = Data(solvers.calculateLaxFriedrichFlux(f, qDiff, maxEigvals), eigmax)
-    return data
+    return solvers.calculateRiemannFlux(simVariables, f=f, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
 
 
 # Calculate the coefficients of the slope flattener for the parabolic extrapolants using pressure and v_x [Colella, 1990]

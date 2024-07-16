@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 import numpy as np
 
 from functions import fv
@@ -8,6 +10,47 @@ from functions import fv
 # But because the simulation is only 1D, the "normal"-Laplacian (Taylor expansion) of the face-averaged states and fluxes are zero
 # Thus, the face-averaged and face-centred values are the same (<w>_i+1/2 = w_i+1/2)
 # Same for the averaged and centred fluxes (<F>_i+1/2 = F_i+1/2)
+
+
+# Intercell numerical fluxes between L and R interfaces based on Riemann solver
+def calculateRiemannFlux(simVariables, *args, **kwargs):
+    Data = namedtuple('Data', ['flux', 'eigmax'])
+
+    # Determine the eigenvalues for the computation of time stepping
+    eigvals = np.max(np.abs(kwargs["characteristics"]), axis=1)  # Local max eigenvalue for each cell (1- or 3-Riemann invariant; shock wave or rarefaction wave)
+    maxEigvals = np.max([eigvals[:-1], eigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
+
+    eigmax = np.max([np.max(maxEigvals), np.finfo(simVariables.precision).eps])  # Maximum wave speed (max eigenvalue) for time evolution
+
+    # HLL-type schemes
+    if simVariables.scheme in ["hllc", "c"]:
+        if simVariables.subgrid in ["plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"]:
+            wLs, wRs = kwargs["wLs"], kwargs["wRs"]
+        else:
+            wLs, wRs = kwargs["w"][:-1], kwargs["w"][1:]
+        return Data(calculateHLLCFlux(wLs, wRs, simVariables.gamma, simVariables.boundary), eigmax)
+
+    # Osher-Solomon schemes
+    elif simVariables.scheme in ["os", "osher-solomon", "osher", "solomon"]:
+        if simVariables.subgrid in ["plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"]:
+            wS = [kwargs["wLs"], kwargs["wRs"]]
+            qS = [kwargs["qLs"], kwargs["qRs"]]
+        else:
+            wS = [kwargs["wS"], kwargs["wS"]]
+            qS = [kwargs["qS"], kwargs["qS"]]
+        return Data(calculateDOTSFlux(wS, qS, simVariables.gamma, simVariables.boundary, simVariables.roots, simVariables.weights), eigmax)
+
+    # Roe-type/Lax-type schemes
+    else:
+        if simVariables.subgrid in ["plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"]:
+            qDiff = (kwargs["qLs"]-kwargs["qRs"]).T
+        else:
+            qDiff = (kwargs["qS"][1:]-kwargs["qS"][:-1]).T
+
+        if simVariables.scheme in ["lw", "lax-wendroff", "wendroff"]:
+            return Data(calculateLaxWendroffFlux(kwargs["f"], qDiff, eigvals, kwargs["characteristics"]), eigmax)
+        else:
+            return Data(calculateLaxFriedrichFlux(kwargs["f"], qDiff, maxEigvals), eigmax)
 
 
 # (Local) Lax-Friedrich scheme (1st-order; highly diffusive)
@@ -58,10 +101,11 @@ def calculateHLLCFlux(wLs, wRs, gamma, boundary):
     return flux
 
 
-# Osher-Solomon(-Dumbser) Riemann solver [Dumbser & Toro, 2011]
-def calculateOSFlux(wS, qS, gamma, boundary, roots, weights):
+# Osher-Solomon(-Dumbser-Toro) Riemann solver [Dumbser & Toro, 2011]
+def calculateDOTSFlux(wS, qS, gamma, boundary, roots, weights):
     wLs, wRs = wS
     qLs, qRs = qS
+
     avg_wS = getRoeAverage([wLs, wRs], [qLs, qRs], gamma)
 
     arr_L, arr_R = np.repeat(qLs[None,:], len(roots), axis=0), np.repeat(qRs[None,:], len(roots), axis=0)

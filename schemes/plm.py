@@ -32,25 +32,10 @@ def run(tube, simVariables):
     # Convert the primitive variables, and compute the state differences
     # The conversion can be pointwise conversion for face-average values as it is still 2nd-order
     qLs, qRs = fv.pointConvertPrimitive(wLs, gamma), fv.pointConvertPrimitive(wRs, gamma)
-    qDiff = (qLs-qRs).T
 
     # Compute the fluxes and the Jacobian
     f = fv.makeFlux(w, gamma)
     A = fv.makeJacobian(w, gamma)
     characteristics = np.linalg.eigvals(A)
 
-    # Determine the eigenvalues for the computation of time stepping
-    eigvals = np.max(np.abs(characteristics), axis=1)  # Local max eigenvalue for each cell (1- or 3-Riemann invariant; shock wave or rarefaction wave)
-    maxEigvals = np.max([eigvals[:-1], eigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
-
-    eigmax = np.max([np.max(maxEigvals), np.finfo(precision).eps])  # Maximum wave speed (max eigenvalue) for time evolution
-
-    if scheme in ["hllc", "c"]:
-        data = Data(solvers.calculateHLLCFlux(wLs, wRs, gamma, boundary), eigmax)
-    elif scheme in ["os", "osher-solomon", "osher", "solomon"]:
-        data = Data(solvers.calculateOSFlux([wLs, wRs], [qLs, qRs], gamma, boundary, simVariables.roots, simVariables.weights), eigmax)
-    elif scheme in ["lw", "lax-wendroff", "wendroff"]:
-        data = Data(solvers.calculateLaxWendroffFlux(f, qDiff, eigvals, characteristics), eigmax)
-    else:
-        data = Data(solvers.calculateLaxFriedrichFlux(f, qDiff, maxEigvals), eigmax)
-    return data
+    return solvers.calculateRiemannFlux(simVariables, f=f, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
