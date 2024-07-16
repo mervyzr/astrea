@@ -133,7 +133,6 @@ def calculateDOTSFlux(wS, qS, gamma, boundary, roots, weights):
 
     # Compute the Jacobian of the path integral and get the eigenvalues
     A = fv.makeJacobian(psi, gamma) # weight, cell, 8x8 matrix
-    absA = np.abs(A)
     characteristics = np.linalg.eigvals(A)
 
     # Define the right eigenvector
