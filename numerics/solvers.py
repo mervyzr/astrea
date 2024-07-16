@@ -101,7 +101,7 @@ def calculateHLLCFlux(wLs, wRs, gamma, boundary):
     return flux
 
 
-# Osher-Solomon(-Dumbser-Toro) Riemann solver [Dumbser & Toro, 2011]
+"""# Osher-Solomon(-Dumbser-Toro) Riemann solver [Dumbser & Toro, 2011]
 def calculateDOTSFlux(wS, qS, gamma, boundary, roots, weights):
     wLs, wRs = wS
     qLs, qRs = qS
@@ -113,6 +113,37 @@ def calculateDOTSFlux(wS, qS, gamma, boundary, roots, weights):
 
     A = fv.makeJacobian(psi, gamma)
     characteristics = np.linalg.eigvals(A)
+
+    _D_plus = .5 * (qLs-qRs) * (avg_wS + np.sum((weights * np.abs(characteristics).T).T, axis=0))
+    D_minus = .5 * (qLs-qRs) * (avg_wS - np.sum((weights * np.abs(characteristics).T).T, axis=0))
+    D_plus = fv.makeBoundary(_D_plus, boundary)[:-2]
+    return D_minus+D_plus"""
+
+
+# Osher-Solomon(-Dumbser-Toro) Riemann solver [Dumbser & Toro, 2011]
+def calculateDOTSFlux(wS, qS, gamma, boundary, roots, weights):
+    wLs, wRs = wS
+    qLs, qRs = qS
+
+    avg_wS = getRoeAverage([wLs, wRs], [qLs, qRs], gamma)
+
+    # Define the path integral for the Osher-Solomon dissipation term
+    arr_L, arr_R = np.repeat(qLs[None,:], len(roots), axis=0), np.repeat(qRs[None,:], len(roots), axis=0)
+    psi = arr_R + (roots*(arr_L-arr_R).T).T
+
+    # Compute the Jacobian of the path integral and get the eigenvalues
+    A = fv.makeJacobian(psi, gamma) # weight, cell, 8x8 matrix
+    absA = np.abs(A)
+    characteristics = np.linalg.eigvals(A)
+
+    # Define the right eigenvector
+    rightEigenvector = np.zeros_like(A)
+
+    # Determine the absolute value of the Jacobian
+    _Gamma = np.maximum(characteristics, np.zeros_like(characteristics)) - np.minimum(characteristics, np.zeros_like(characteristics))
+    _lambda = np.zeros_like(A)
+    i,j = np.diag_indices(psi.shape[-1])
+    _lambda[...,i,j] = _Gamma[...,i]
 
     _D_plus = .5 * (qLs-qRs) * (avg_wS + np.sum((weights * np.abs(characteristics).T).T, axis=0))
     D_minus = .5 * (qLs-qRs) * (avg_wS - np.sum((weights * np.abs(characteristics).T).T, axis=0))
