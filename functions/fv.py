@@ -139,6 +139,83 @@ def makeJacobian(tube, gamma):
     return arr
 
 
+def makeRightEigenvector(tube, gamma):
+    # Define right eigenvectors for each cell in the tube
+    rightEigenvectors = np.zeros_like(tube)
+    rightEigenvectors = np.repeat(rightEigenvectors[..., np.newaxis], rightEigenvectors.shape[-1], axis=-1)
+
+    # Define speeds
+    soundSpeed = np.sqrt(gamma * divide(tube[:,4], tube[:,0]))
+    alfvenSpeed = np.sqrt(divide(np.linalg.norm(tube[:,5:8], axis=1)**2, tube[:,0]))
+    alfvenSpeedx = divide(tube[:,5], np.sqrt(tube[:,0]))
+
+    fastMagnetosonicWave = .5 * (soundSpeed**2 + alfvenSpeed**2 + np.sqrt(((soundSpeed**2 + alfvenSpeed**2)**2) - (4*(soundSpeed**2)*(alfvenSpeedx**2))))
+    slowMagnetosonicWave = .5 * (soundSpeed**2 + alfvenSpeed**2 - np.sqrt(((soundSpeed**2 + alfvenSpeed**2)**2) - (4*(soundSpeed**2)*(alfvenSpeedx**2))))
+
+    # Define frequently used components
+    S = np.sign(tube[:,5])
+    alpha_f = np.ones_like(soundSpeed)
+    alpha_s = np.zeros_like(soundSpeed)
+    alpha_f[fastMagnetosonicWave != slowMagnetosonicWave] = (np.sqrt(divide(soundSpeed**2 - slowMagnetosonicWave**2, fastMagnetosonicWave**2 - slowMagnetosonicWave**2)))[fastMagnetosonicWave != slowMagnetosonicWave]
+    alpha_s[fastMagnetosonicWave != slowMagnetosonicWave] = (np.sqrt(divide(fastMagnetosonicWave**2 - soundSpeed**2, fastMagnetosonicWave**2 - slowMagnetosonicWave**2)))[fastMagnetosonicWave != slowMagnetosonicWave]
+    beta_y = divide(tube[:,6], np.sqrt(tube[:,6]**2 + tube[:,7]**2))
+    beta_z = divide(tube[:,7], np.sqrt(tube[:,6]**2 + tube[:,7]**2))
+    C_ff = fastMagnetosonicWave * alpha_f
+    C_ss = slowMagnetosonicWave * alpha_s
+    Q_f = C_ff * S
+    Q_s = C_ss * S
+    A_f = soundSpeed * alpha_f * np.sqrt(tube[:,0])
+    A_s = soundSpeed * alpha_s * np.sqrt(tube[:,0])
+
+    # Generate the right eigenvectors
+    # First row
+    rightEigenvectors[...,0,0] = tube[:,0] * alpha_f
+    rightEigenvectors[...,0,2] = tube[:,0] * alpha_s
+    rightEigenvectors[...,0,3] = 1
+    rightEigenvectors[...,0,4] = tube[:,0] * alpha_s
+    rightEigenvectors[...,0,7] = tube[:,0] * alpha_f
+    # Second row
+    rightEigenvectors[...,1,0] = -C_ff
+    rightEigenvectors[...,1,2] = -C_ss
+    rightEigenvectors[...,1,4] = C_ss
+    rightEigenvectors[...,1,7] = C_ff
+    # Third row
+    rightEigenvectors[...,2,0] = Q_s * beta_y
+    rightEigenvectors[...,2,1] = -beta_z
+    rightEigenvectors[...,2,2] = -Q_f * beta_y
+    rightEigenvectors[...,2,4] = Q_f * beta_y
+    rightEigenvectors[...,2,6] = beta_z
+    rightEigenvectors[...,2,7] = -Q_s * beta_y
+    # Fourth row
+    rightEigenvectors[...,3,0] = Q_s * beta_z
+    rightEigenvectors[...,3,1] = beta_y
+    rightEigenvectors[...,3,2] = -Q_f * beta_z
+    rightEigenvectors[...,3,4] = Q_f * beta_z
+    rightEigenvectors[...,3,6] = -beta_y
+    rightEigenvectors[...,3,7] = -Q_s * beta_z
+    # Fifth row
+    rightEigenvectors[...,4,0] = tube[:,0] * alpha_f * soundSpeed**2
+    rightEigenvectors[...,4,2] = tube[:,0] * alpha_s * soundSpeed**2
+    rightEigenvectors[...,4,4] = tube[:,0] * alpha_s * soundSpeed**2
+    rightEigenvectors[...,4,7] = tube[:,0] * alpha_f * soundSpeed**2
+    # Seventh row
+    rightEigenvectors[...,6,0] = A_s * beta_y
+    rightEigenvectors[...,6,1] = -beta_z * S * np.sqrt(tube[:,0])
+    rightEigenvectors[...,6,2] = -A_f * beta_y
+    rightEigenvectors[...,6,4] = -A_f * beta_y
+    rightEigenvectors[...,6,6] = -beta_z * S * np.sqrt(tube[:,0])
+    rightEigenvectors[...,6,7] = A_s * beta_y
+    # Eighth row
+    rightEigenvectors[...,7,0] = A_s * beta_z
+    rightEigenvectors[...,7,1] = -beta_y * S * np.sqrt(tube[:,0])
+    rightEigenvectors[...,7,2] = -A_f * beta_z
+    rightEigenvectors[...,7,4] = -A_f * beta_z
+    rightEigenvectors[...,7,6] = -beta_y * S * np.sqrt(tube[:,0])
+    rightEigenvectors[...,7,7] = A_s * beta_z
+
+    return rightEigenvectors
+
+
 # Entropy-stable flux calculation based on left and right interpolated primitive variables [Winters & Gassner, 2015]
 def makeEntropyFlux(interpolatedValues, gamma):
     wL, wR = interpolatedValues
