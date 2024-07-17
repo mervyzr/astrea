@@ -34,8 +34,8 @@ def run(tube, simVariables):
     qLs, qRs = fv.pointConvertPrimitive(wLs, gamma), fv.pointConvertPrimitive(wRs, gamma)
 
     # Compute the fluxes and the Jacobian
-    f = fv.makeFlux(w, gamma)
+    fLs, fRs = fv.makeFlux(wLs, gamma), fv.makeFlux(wRs, gamma)
     A = fv.makeJacobian(w, gamma)
     characteristics = np.linalg.eigvals(A)
 
-    return solvers.calculateRiemannFlux(simVariables, f=f, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
+    return solvers.calculateRiemannFlux(simVariables, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, w=w, characteristics=characteristics)
