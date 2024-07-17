@@ -127,7 +127,7 @@ def calculateDOTSFlux(w, qS, fluxes, gamma, roots, weights):
     qLs, qRs = qS
 
     # Define the right eigenvectors
-    rightEigenvectors = fv.makeRightEigenvector(w, gamma)
+    rightEigenvectors = fv.makeRightEigenvector(w[1:], gamma)
     _rightEigenvectors = np.repeat(rightEigenvectors[None,:], len(roots), axis=0)
 
     # Define the path integral for the Osher-Solomon dissipation term
