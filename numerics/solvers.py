@@ -33,39 +33,41 @@ def calculateRiemannFlux(simVariables, *args, **kwargs):
     # Osher-Solomon schemes
     elif simVariables.scheme in ["os", "osher-solomon", "osher", "solomon"]:
         if simVariables.subgrid in ["plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"]:
-            wS = [kwargs["wLs"], kwargs["wRs"]]
             qS = [kwargs["qLs"], kwargs["qRs"]]
+            fluxes = kwargs["fLs"] + kwargs["fRs"]
         else:
-            wS = [kwargs["wS"], kwargs["wS"]]
-            qS = [kwargs["qS"], kwargs["qS"]]
-        return Data(calculateDOTSFlux(wS, qS, simVariables.gamma, simVariables.boundary, simVariables.roots, simVariables.weights), eigmax)
+            qS = [kwargs["qS"][:-1], kwargs["qS"][1:]]
+            fluxes = kwargs["f"][1:] + kwargs["f"][:-1]
+        return Data(calculateDOTSFlux(kwargs["w"], qS, fluxes, simVariables.gamma, simVariables.roots, simVariables.weights), eigmax)
 
     # Roe-type/Lax-type schemes
     else:
         if simVariables.subgrid in ["plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"]:
-            qDiff = (kwargs["qLs"]-kwargs["qRs"]).T
+            qDiff = (kwargs["qLs"] - kwargs["qRs"]).T
+            fluxes = kwargs["fLs"] + kwargs["fRs"]
         else:
-            qDiff = (kwargs["qS"][1:]-kwargs["qS"][:-1]).T
+            qDiff = (kwargs["qS"][1:] - kwargs["qS"][:-1]).T
+            fluxes = kwargs["f"][1:] + kwargs["f"][:-1]
 
         if simVariables.scheme in ["lw", "lax-wendroff", "wendroff"]:
-            return Data(calculateLaxWendroffFlux(kwargs["f"], qDiff, eigvals, kwargs["characteristics"]), eigmax)
+            return Data(calculateLaxWendroffFlux(fluxes, qDiff, eigvals, kwargs["characteristics"]), eigmax)
         else:
-            return Data(calculateLaxFriedrichFlux(kwargs["f"], qDiff, maxEigvals), eigmax)
+            return Data(calculateLaxFriedrichFlux(fluxes, qDiff, maxEigvals), eigmax)
 
 
 # (Local) Lax-Friedrich scheme (1st-order; highly diffusive)
-def calculateLaxFriedrichFlux(flux, qDiff, eigenvalues):
-    return .5 * ((flux[1:]+flux[:-1]) - ((eigenvalues * qDiff).T))
+def calculateLaxFriedrichFlux(fluxes, qDiff, eigenvalues):
+    return .5 * (fluxes - ((eigenvalues * qDiff).T))
 
 
 # Lax-Wendroff scheme (2nd-order, Jacobian method; contains overshoots)
-def calculateLaxWendroffFlux(flux, qDiff, eigenvalues, characteristics):
+def calculateLaxWendroffFlux(fluxes, qDiff, eigenvalues, characteristics):
     # Sound speed for each cell (2-Riemann invariant; entropy wave or contact discontinuity); indexing 1 only works for hydrodynamics
     soundSpeed = np.unique(characteristics, axis=1)[:,1]
     normalisedEigvals = fv.divide(soundSpeed**2, eigenvalues)
     maxNormalisedEigvals = np.max([normalisedEigvals[:-1], normalisedEigvals[1:]], axis=0)
 
-    return .5 * ((flux[1:]+flux[:-1]) - ((maxNormalisedEigvals * qDiff).T))
+    return .5 * (fluxes - ((maxNormalisedEigvals * qDiff).T))
     #return .5 * ((qLs+qRs) - fv.divide(fS[1:]-fS[:-1], maxEigvals[:, np.newaxis]))
 
 
@@ -101,8 +103,8 @@ def calculateHLLCFlux(wLs, wRs, gamma, boundary):
     return flux
 
 
-"""# Osher-Solomon(-Dumbser-Toro) Riemann solver [Dumbser & Toro, 2011]
-def calculateDOTSFlux(wS, qS, gamma, boundary, roots, weights):
+"""# Osher-Solomon Riemann solver [Castro et al., 2016]
+def calculateOSFlux(wS, qS, gamma, boundary, roots, weights):
     wLs, wRs = wS
     qLs, qRs = qS
 
@@ -121,33 +123,40 @@ def calculateDOTSFlux(wS, qS, gamma, boundary, roots, weights):
 
 
 # Osher-Solomon(-Dumbser-Toro) Riemann solver [Dumbser & Toro, 2011]
-def calculateDOTSFlux(wS, qS, gamma, boundary, roots, weights):
-    wLs, wRs = wS
+def calculateDOTSFlux(w, qS, fluxes, gamma, roots, weights):
     qLs, qRs = qS
 
-    avg_wS = getRoeAverage([wLs, wRs], [qLs, qRs], gamma)
+    # Define the right eigenvectors
+    rightEigenvectors = fv.makeRightEigenvector(w, gamma)
+    _rightEigenvectors = np.repeat(rightEigenvectors[None,:], len(roots), axis=0)
 
     # Define the path integral for the Osher-Solomon dissipation term
     arr_L, arr_R = np.repeat(qLs[None,:], len(roots), axis=0), np.repeat(qRs[None,:], len(roots), axis=0)
     psi = arr_R + (roots*(arr_L-arr_R).T).T
 
     # Compute the Jacobian of the path integral and get the eigenvalues
-    A = fv.makeJacobian(psi, gamma) # weight, cell, 8x8 matrix
+    A = fv.makeJacobian(psi, gamma)
     characteristics = np.linalg.eigvals(A)
 
-    # Define the right eigenvector
-    rightEigenvector = np.zeros_like(A)
-
-    # Determine the absolute value of the Jacobian
-    _Gamma = np.maximum(characteristics, np.zeros_like(characteristics)) - np.minimum(characteristics, np.zeros_like(characteristics))
+    # Determine the absolute value of the eigenvalues
+    _Gamma = np.abs(characteristics)
     _lambda = np.zeros_like(A)
     i,j = np.diag_indices(psi.shape[-1])
     _lambda[...,i,j] = _Gamma[...,i]
 
-    _D_plus = .5 * (qLs-qRs) * (avg_wS + np.sum((weights * np.abs(characteristics).T).T, axis=0))
-    D_minus = .5 * (qLs-qRs) * (avg_wS - np.sum((weights * np.abs(characteristics).T).T, axis=0))
-    D_plus = fv.makeBoundary(_D_plus, boundary)[:-2]
-    return D_minus+D_plus
+    # Compute the absolute value of the Jacobian
+    absA = _rightEigenvectors @ _lambda @ np.linalg.inv(_rightEigenvectors)
+
+    # Compute the Dumbser-Toro Jacobian with the Gauss-Legendre quadrature
+    jacobian = np.sum((weights*absA.T).T, axis=0)
+
+    # Compute the Osher-Solomon dissipation term
+    _qLs = jacobian @ qLs[..., np.newaxis]
+    _qRs = jacobian @ qRs[..., np.newaxis]
+    _qLs = _qLs.reshape(len(_qLs), len(_qLs[0]))
+    _qRs = _qRs.reshape(len(_qRs), len(_qRs[0]))
+
+    return .5*(fluxes - (_qLs-_qRs))
 
 
 # HLLC Riemann solver [Toro, 2019]
