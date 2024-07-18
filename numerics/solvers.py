@@ -126,17 +126,17 @@ def calculateOSFlux(wS, qS, gamma, boundary, roots, weights):
 def calculateDOTSFlux(w, qS, fluxes, gamma, roots, weights):
     qLs, qRs = qS
 
-    # Define the right eigenvectors
-    rightEigenvectors = fv.makeRightEigenvector(w[1:], gamma)
-    _rightEigenvectors = np.repeat(rightEigenvectors[None,:], len(roots), axis=0)
-
     # Define the path integral for the Osher-Solomon dissipation term
     arr_L, arr_R = np.repeat(qLs[None,:], len(roots), axis=0), np.repeat(qRs[None,:], len(roots), axis=0)
     psi = arr_R + (roots*(arr_L-arr_R).T).T
 
-    """# Generate the diagonal matrix of eigenvalues
+    # Define the right eigenvectors
+    rightEigenvectors = fv.makeRightEigenvector(psi, gamma)
+    _rightEigenvectors = np.repeat(rightEigenvectors[None,:], len(roots), axis=0)
+
+    # Generate the diagonal matrix of eigenvalues
     _lambda = np.zeros_like(rightEigenvectors)
-    rhos, vecs, pressures, Bfield = w[1:][:,0], w[1:][:,1:4], w[1:][:,4], w[1:][:,5:8]/np.sqrt(4*np.pi)
+    rhos, vx, pressures, Bfield = psi[:,0], psi[:,1], psi[:,4], psi[:,5:8]/np.sqrt(4*np.pi)
 
     # Define speeds
     soundSpeed = np.sqrt(gamma * fv.divide(pressures, rhos))
@@ -146,10 +146,21 @@ def calculateDOTSFlux(w, qS, fluxes, gamma, roots, weights):
     slowMagnetosonicWave = .5 * (soundSpeed**2 + alfvenSpeed**2 - np.sqrt(((soundSpeed**2 + alfvenSpeed**2)**2) - (4*(soundSpeed**2)*(alfvenSpeedx**2))))
 
     # Compute the diagonal matrix of eigenvalues
-    i,j = np.diag_indices(_lambda.shape[-1])"""
+    _lambda[...,0,0] = vx - fastMagnetosonicWave
+    _lambda[...,1,1] = vx - alfvenSpeedx
+    _lambda[...,2,2] = vx - slowMagnetosonicWave
+    _lambda[...,3,3] = vx
+    _lambda[...,4,4] = vx
+    _lambda[...,5,5] = vx + slowMagnetosonicWave
+    _lambda[...,6,6] = vx + alfvenSpeedx
+    _lambda[...,7,7] = vx + fastMagnetosonicWave
+    eigenvalues = np.repeat(_lambda[None,:], len(roots), axis=0)
+    _eigenvalues = np.abs(eigenvalues)
 
+    # Compute the absolute value of the Jacobian
+    absA = _rightEigenvectors @ _eigenvalues @ np.linalg.inv(_rightEigenvectors)
 
-    # Compute the Jacobian of the path integral and get the eigenvalues
+    """# Compute the Jacobian of the path integral and get the eigenvalues
     A = fv.makeJacobian(psi, gamma)
     characteristics = np.linalg.eigvals(A)
 
@@ -160,7 +171,7 @@ def calculateDOTSFlux(w, qS, fluxes, gamma, roots, weights):
     _lambda[...,i,j] = _Gamma[...,i]
 
     # Compute the absolute value of the Jacobian
-    absA = _rightEigenvectors @ _lambda @ np.linalg.inv(_rightEigenvectors)
+    absA = _rightEigenvectors @ _lambda @ np.linalg.inv(_rightEigenvectors)"""
 
     # Compute the Dumbser-Toro Jacobian with the Gauss-Legendre quadrature
     jacobian = np.sum((weights*absA.T).T, axis=0)
