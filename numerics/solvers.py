@@ -156,7 +156,7 @@ def calculateDOTSFlux(qS, fluxes, gamma, roots, weights):
     _eigenvalues = np.abs(_lambda)
 
     # Compute the absolute value of the Jacobian
-    absA = _rightEigenvectors @ _eigenvalues @ np.linalg.inv(_rightEigenvectors)
+    absA = _rightEigenvectors @ _eigenvalues @ np.linalg.pinv(_rightEigenvectors)
 
     # Compute the Dumbser-Toro Jacobian with the Gauss-Legendre quadrature
     jacobian = np.sum((weights*absA.T).T, axis=0)
