@@ -139,6 +139,7 @@ def makeJacobian(tube, gamma):
     return arr
 
 
+# Make the right eigenvector for adiabatic magnetohydrodynamics
 def makeRightEigenvector(tubes, gamma):
     rhos, pressures, Bfields = tubes[...,0], tubes[...,4], tubes[...,5:8]/np.sqrt(4*np.pi)
 
