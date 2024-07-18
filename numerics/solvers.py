@@ -134,6 +134,21 @@ def calculateDOTSFlux(w, qS, fluxes, gamma, roots, weights):
     arr_L, arr_R = np.repeat(qLs[None,:], len(roots), axis=0), np.repeat(qRs[None,:], len(roots), axis=0)
     psi = arr_R + (roots*(arr_L-arr_R).T).T
 
+    """# Generate the diagonal matrix of eigenvalues
+    _lambda = np.zeros_like(rightEigenvectors)
+    rhos, vecs, pressures, Bfield = w[1:][:,0], w[1:][:,1:4], w[1:][:,4], w[1:][:,5:8]/np.sqrt(4*np.pi)
+
+    # Define speeds
+    soundSpeed = np.sqrt(gamma * fv.divide(pressures, rhos))
+    alfvenSpeed = np.sqrt(fv.divide(np.linalg.norm(Bfield, axis=1)**2, rhos))
+    alfvenSpeedx = fv.divide(Bfield[:,0], np.sqrt(rhos))
+    fastMagnetosonicWave = .5 * (soundSpeed**2 + alfvenSpeed**2 + np.sqrt(((soundSpeed**2 + alfvenSpeed**2)**2) - (4*(soundSpeed**2)*(alfvenSpeedx**2))))
+    slowMagnetosonicWave = .5 * (soundSpeed**2 + alfvenSpeed**2 - np.sqrt(((soundSpeed**2 + alfvenSpeed**2)**2) - (4*(soundSpeed**2)*(alfvenSpeedx**2))))
+
+    # Compute the diagonal matrix of eigenvalues
+    i,j = np.diag_indices(_lambda.shape[-1])"""
+
+
     # Compute the Jacobian of the path integral and get the eigenvalues
     A = fv.makeJacobian(psi, gamma)
     characteristics = np.linalg.eigvals(A)
