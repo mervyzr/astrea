@@ -38,4 +38,4 @@ def run(tube, simVariables):
     A = fv.makeJacobian(w, gamma)
     characteristics = np.linalg.eigvals(A)
 
-    return solvers.calculateRiemannFlux(simVariables, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, w=w, characteristics=characteristics)
+    return solvers.calculateRiemannFlux(simVariables, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)

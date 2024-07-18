@@ -38,7 +38,7 @@ def calculateRiemannFlux(simVariables, *args, **kwargs):
         else:
             qS = [kwargs["qS"][:-1], kwargs["qS"][1:]]
             fluxes = kwargs["f"][1:] + kwargs["f"][:-1]
-        return Data(calculateDOTSFlux(kwargs["w"], qS, fluxes, simVariables.gamma, simVariables.roots, simVariables.weights), eigmax)
+        return Data(calculateDOTSFlux(qS, fluxes, simVariables.gamma, simVariables.roots, simVariables.weights), eigmax)
 
     # Roe-type/Lax-type schemes
     else:
@@ -123,7 +123,7 @@ def calculateOSFlux(wS, qS, gamma, boundary, roots, weights):
 
 
 # Osher-Solomon(-Dumbser-Toro) Riemann solver [Dumbser & Toro, 2011]
-def calculateDOTSFlux(w, qS, fluxes, gamma, roots, weights):
+def calculateDOTSFlux(qS, fluxes, gamma, roots, weights):
     qLs, qRs = qS
 
     # Define the path integral for the Osher-Solomon dissipation term
@@ -131,47 +131,32 @@ def calculateDOTSFlux(w, qS, fluxes, gamma, roots, weights):
     psi = arr_R + (roots*(arr_L-arr_R).T).T
 
     # Define the right eigenvectors
-    rightEigenvectors = fv.makeRightEigenvector(psi, gamma)
-    _rightEigenvectors = np.repeat(rightEigenvectors[None,:], len(roots), axis=0)
+    _rightEigenvectors = fv.makeRightEigenvector(psi, gamma)
 
     # Generate the diagonal matrix of eigenvalues
-    _lambda = np.zeros_like(rightEigenvectors)
-    rhos, vx, pressures, Bfield = psi[:,0], psi[:,1], psi[:,4], psi[:,5:8]/np.sqrt(4*np.pi)
+    _lambda = np.zeros_like(_rightEigenvectors)
+    rhos, vxs, pressures, Bfields = psi[...,0], psi[...,1], psi[...,4], psi[...,5:8]/np.sqrt(4*np.pi)
 
     # Define speeds
     soundSpeed = np.sqrt(gamma * fv.divide(pressures, rhos))
-    alfvenSpeed = np.sqrt(fv.divide(np.linalg.norm(Bfield, axis=1)**2, rhos))
-    alfvenSpeedx = fv.divide(Bfield[:,0], np.sqrt(rhos))
+    alfvenSpeed = np.sqrt(fv.divide(np.linalg.norm(Bfields, axis=2)**2, rhos))
+    alfvenSpeedx = fv.divide(Bfields[...,0], np.sqrt(rhos))
     fastMagnetosonicWave = .5 * (soundSpeed**2 + alfvenSpeed**2 + np.sqrt(((soundSpeed**2 + alfvenSpeed**2)**2) - (4*(soundSpeed**2)*(alfvenSpeedx**2))))
     slowMagnetosonicWave = .5 * (soundSpeed**2 + alfvenSpeed**2 - np.sqrt(((soundSpeed**2 + alfvenSpeed**2)**2) - (4*(soundSpeed**2)*(alfvenSpeedx**2))))
 
     # Compute the diagonal matrix of eigenvalues
-    _lambda[...,0,0] = vx - fastMagnetosonicWave
-    _lambda[...,1,1] = vx - alfvenSpeedx
-    _lambda[...,2,2] = vx - slowMagnetosonicWave
-    _lambda[...,3,3] = vx
-    _lambda[...,4,4] = vx
-    _lambda[...,5,5] = vx + slowMagnetosonicWave
-    _lambda[...,6,6] = vx + alfvenSpeedx
-    _lambda[...,7,7] = vx + fastMagnetosonicWave
-    eigenvalues = np.repeat(_lambda[None,:], len(roots), axis=0)
-    _eigenvalues = np.abs(eigenvalues)
+    _lambda[...,0,0] = vxs - fastMagnetosonicWave
+    _lambda[...,1,1] = vxs - alfvenSpeedx
+    _lambda[...,2,2] = vxs - slowMagnetosonicWave
+    _lambda[...,3,3] = vxs
+    _lambda[...,4,4] = vxs
+    _lambda[...,5,5] = vxs + slowMagnetosonicWave
+    _lambda[...,6,6] = vxs + alfvenSpeedx
+    _lambda[...,7,7] = vxs + fastMagnetosonicWave
+    _eigenvalues = np.abs(_lambda)
 
     # Compute the absolute value of the Jacobian
     absA = _rightEigenvectors @ _eigenvalues @ np.linalg.inv(_rightEigenvectors)
-
-    """# Compute the Jacobian of the path integral and get the eigenvalues
-    A = fv.makeJacobian(psi, gamma)
-    characteristics = np.linalg.eigvals(A)
-
-    # Determine the absolute value of the eigenvalues
-    _Gamma = np.abs(characteristics)
-    _lambda = np.zeros_like(A)
-    i,j = np.diag_indices(psi.shape[-1])
-    _lambda[...,i,j] = _Gamma[...,i]
-
-    # Compute the absolute value of the Jacobian
-    absA = _rightEigenvectors @ _lambda @ np.linalg.inv(_rightEigenvectors)"""
 
     # Compute the Dumbser-Toro Jacobian with the Gauss-Legendre quadrature
     jacobian = np.sum((weights*absA.T).T, axis=0)

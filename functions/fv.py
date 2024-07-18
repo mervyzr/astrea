@@ -139,29 +139,29 @@ def makeJacobian(tube, gamma):
     return arr
 
 
-def makeRightEigenvector(tube, gamma):
-    rhos, vecs, pressures, Bfield = tube[:,0], tube[:,1:4], tube[:,4], tube[:,5:8]/np.sqrt(4*np.pi)
+def makeRightEigenvector(tubes, gamma):
+    rhos, pressures, Bfields = tubes[...,0], tubes[...,4], tubes[...,5:8]/np.sqrt(4*np.pi)
 
-    # Define right eigenvectors for each cell in the tube
-    rightEigenvectors = np.zeros_like(tube)
-    rightEigenvectors = np.repeat(rightEigenvectors[..., np.newaxis], rightEigenvectors.shape[-1], axis=-1)
+    # Define the right eigenvectors for each cell in each tube
+    _rightEigenvectors = np.zeros_like(tubes)
+    rightEigenvectors = np.repeat(_rightEigenvectors[..., np.newaxis], _rightEigenvectors.shape[-1], axis=-1)
 
-    # Define speeds
+    # Define speed
     soundSpeed = np.sqrt(gamma * divide(pressures, rhos))
-    alfvenSpeed = np.sqrt(divide(np.linalg.norm(Bfield, axis=1)**2, rhos))
-    alfvenSpeedx = divide(Bfield[:,0], np.sqrt(rhos))
+    alfvenSpeed = np.sqrt(divide(np.linalg.norm(Bfields, axis=2)**2, rhos))
+    alfvenSpeedx = divide(Bfields[...,0], np.sqrt(rhos))
 
     fastMagnetosonicWave = .5 * (soundSpeed**2 + alfvenSpeed**2 + np.sqrt(((soundSpeed**2 + alfvenSpeed**2)**2) - (4*(soundSpeed**2)*(alfvenSpeedx**2))))
     slowMagnetosonicWave = .5 * (soundSpeed**2 + alfvenSpeed**2 - np.sqrt(((soundSpeed**2 + alfvenSpeed**2)**2) - (4*(soundSpeed**2)*(alfvenSpeedx**2))))
 
     # Define frequently used components
-    S = np.sign(Bfield[:,0])
+    S = np.sign(Bfields[...,0])
     alpha_f = np.ones_like(soundSpeed)
     alpha_s = np.zeros_like(soundSpeed)
     alpha_f[fastMagnetosonicWave != slowMagnetosonicWave] = (np.sqrt(divide(soundSpeed**2 - slowMagnetosonicWave**2, fastMagnetosonicWave**2 - slowMagnetosonicWave**2)))[fastMagnetosonicWave != slowMagnetosonicWave]
     alpha_s[fastMagnetosonicWave != slowMagnetosonicWave] = (np.sqrt(divide(fastMagnetosonicWave**2 - soundSpeed**2, fastMagnetosonicWave**2 - slowMagnetosonicWave**2)))[fastMagnetosonicWave != slowMagnetosonicWave]
-    beta_y = divide(Bfield[:,1], np.sqrt(Bfield[:,1]**2 + Bfield[:,2]**2))
-    beta_z = divide(Bfield[:,2], np.sqrt(Bfield[:,1]**2 + Bfield[:,2]**2))
+    beta_y = divide(Bfields[...,1], np.sqrt(Bfields[...,1]**2 + Bfields[...,2]**2))
+    beta_z = divide(Bfields[...,2], np.sqrt(Bfields[...,1]**2 + Bfields[...,2]**2))
     C_ff = fastMagnetosonicWave * alpha_f
     C_ss = slowMagnetosonicWave * alpha_s
     Q_f = C_ff * S
