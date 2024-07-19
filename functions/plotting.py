@@ -4,7 +4,6 @@ import platform
 import subprocess
 
 import numpy as np
-import moviepy.video.io.ImageSequenceClip
 if platform.system() == "Darwin":
     if platform.machine() == "arm64" and platform.mac_ver()[0] > '10.15.7':
         import matplotlib
@@ -415,19 +414,8 @@ def makeVideo(f, simVariables, savepath, vidpath):
         try:
             subprocess.call(["ffmpeg", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{savepath}/vid_{config}_{subgrid}_{timestep}_{scheme}.mp4"])
         except Exception as e:
-            print(f"{generic.bcolours.WARNING}ffmpeg failed: {e}{generic.bcolours.ENDC}")
-            try:
-                images = [os.path.join(vidpath,img) for img in os.listdir(vidpath) if img.endswith(".png")]
-                images.sort()
-
-                video = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(images, fps=60)
-                video.write_videofile(f"{savepath}/vid_{config}_{subgrid}_{timestep}_{scheme}.mp4")
-            except Exception as e:
-                print(f"{generic.bcolours.WARNING}moviepy failed: {e}{generic.bcolours.ENDC}")
-                pass
-                print(f"{generic.bcolours.FAIL}Video creation failed{generic.bcolours.ENDC}")
-            else:
-                shutil.rmtree(vidpath)
+            print(f"{generic.bcolours.FAIL}Video creation failed{generic.bcolours.ENDC}")
+            pass
         else:
             shutil.rmtree(vidpath)
     return None
