@@ -220,43 +220,68 @@ def makeRightEigenvector(tubes, gamma):
     return rightEigenvectors
 
 
-# Entropy-stable flux calculation based on left and right interpolated primitive variables [Winters & Gassner, 2015]
-def makeEntropyFlux(interpolatedValues, gamma):
-    wL, wR = interpolatedValues
-    arr = np.zeros_like(wL)
+# Entropy-stable flux calculation based on left and right interpolated primitive variables [Derigs et al., 2016]
+def makeEntropyFlux(wS, gamma):
+    wLs, wRs = wS
+    arr = np.zeros_like(wLs)
 
-    def make_z(w):
-        _arr = np.copy(w)
-        x = np.sqrt(divide(w[:,0], w[:,4]))
+    def divide(dividend, divisor):
+        return np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
 
-        _arr[:,0] = x
-        _arr[:,1:4] = (x*w[:,1:4].T).T
-        _arr[:,4] = np.sqrt(w[:,0]*w[:,4])
+    # Compute the jump term
+    def jump(term):
+        return term[1] - term[0]
 
-        return _arr
+    # Compute arithmetic mean
+    def arith_mean(term):
+        return .5 * (term[0] + term[1])
 
-    z_wL, z_wR = make_z(wL), make_z(wR)
-    avg_z = .5 * (z_wL + z_wR)
-    ln_z = divide((z_wL - z_wR), (np.log(z_wL, out=np.zeros_like(z_wL), where=z_wL!=0) - np.log(z_wR, out=np.zeros_like(z_wR), where=z_wR!=0)))
+    # Stable numerical procedure for computing logarithmic mean [Ismail & Roe, 2009]
+    def lon(term):
+        L, R = term
+        zeta = np.divide(L, R, out=np.zeros_like(L), where=R!=0)
+        f = np.divide(zeta-1, zeta+1, out=np.zeros_like(zeta), where=(zeta+1)!=0)
+        u = f*f
 
-    rho_hat = avg_z[:,0]*ln_z[:,4]
-    P1_hat = divide(avg_z[:,4], avg_z[:,0])
-    P2_hat = ((gamma+1)/(2*gamma)) * divide(ln_z[:,4], ln_z[:,0]) + ((gamma-1)/(2*gamma)) * divide(avg_z[:,4], avg_z[:,0])
-    vx_hat, vy_hat, vz_hat = divide(avg_z[:,1], avg_z[:,0]), divide(avg_z[:,2], avg_z[:,0]), divide(avg_z[:,3], avg_z[:,0])
-    vx_dot = divide((z_wL[:,0]*z_wL[:,1] + z_wR[:,0]*z_wR[:,1]), (z_wL[:,0]**2 + z_wR[:,0]**2))
-    vy_dot = divide((z_wL[:,0]*z_wL[:,2] + z_wR[:,0]*z_wR[:,2]), (z_wL[:,0]**2 + z_wR[:,0]**2))
-    vz_dot = divide((z_wL[:,0]*z_wL[:,3] + z_wR[:,0]*z_wR[:,3]), (z_wL[:,0]**2 + z_wR[:,0]**2))
-    Bx_hat, By_hat, Bz_hat = avg_z[:,5], avg_z[:,6], avg_z[:,7]
-    Bx_dot, By_dot, Bz_dot = .5 * (z_wL[:,5]**2+z_wR[:,5]**2), .5 * (z_wL[:,6]**2+z_wR[:,6]**2), .5 * (z_wL[:,7]**2+z_wR[:,7]**2)
-    BxBy, BxBz = .5 * (z_wL[:,5]*z_wL[:,6] + z_wR[:,5]*z_wR[:,6]), .5 * (z_wL[:,5]*z_wL[:,7] + z_wR[:,5]*z_wR[:,7])
+        if (u < 1e-2).any():
+            F = 1 + u/3 + u*u/5 + u*u*u/7
+        else:
+            F = np.log(zeta)/2/f
+        return (L+R)/(2*F)
 
-    arr[:,0] = rho_hat*vx_hat
-    arr[:,1] = P1_hat + rho_hat*vx_hat**2 - Bx_dot + .5*(Bx_dot+By_dot+Bz_dot)
-    arr[:,2] = rho_hat*vx_hat*vy_hat - BxBy
-    arr[:,3] = rho_hat*vx_hat*vz_hat - BxBz
-    arr[:,4] = (gamma/(gamma-1))*vx_hat*P2_hat + .5*rho_hat*vx_hat*(vx_hat**2 + (vy_hat**2)*(vz_hat**2)) + vx_dot*(By_hat**2 + Bz_hat**2) - Bx_hat*(vy_dot*By_hat + vz_dot*Bz_hat)
-    arr[:,6] = vx_dot*By_hat - vy_dot*Bx_hat
-    arr[:,7] = vx_dot*Bz_hat - vz_dot*Bx_hat
+    # Define frequently used terms
+    z1 = np.array([np.sqrt(divide(wLs[:,0], wLs[:,4])), np.sqrt(divide(wRs[:,0], wRs[:,4]))])
+    z5 = np.array([np.sqrt(wLs[:,0]*wLs[:,4]), np.sqrt(wRs[:,0]*wRs[:,4])])
+    vx, vy, vz = np.array([wLs[:,1], wRs[:,1]]), np.array([wLs[:,2], wRs[:,2]]), np.array([wLs[:,3], wRs[:,3]])
+
+    # Compute the averages
+    rho_hat = arith_mean(z1) * lon(z5)
+    P1_hat = divide(arith_mean(z5), arith_mean(z1))
+    P2_hat = ((gamma+1)/(2*gamma))*(divide(lon(z5), lon(z1))) + ((gamma-1)/(2*gamma))*(divide(arith_mean(z5), arith_mean(z1)))
+    u1_hat = divide(arith_mean((vx.T*z1.T).T), arith_mean(z1))
+    v1_hat = divide(arith_mean((vy.T*z1.T).T), arith_mean(z1))
+    w1_hat = divide(arith_mean((vz.T*z1.T).T), arith_mean(z1))
+    u2_hat = divide(arith_mean((vx.T*(z1**2).T).T), arith_mean(z1**2))
+    v2_hat = divide(arith_mean((vy.T*(z1**2).T).T), arith_mean(z1**2))
+    w2_hat = divide(arith_mean((vz.T*(z1**2).T).T), arith_mean(z1**2))
+    B1_hat = arith_mean(np.array([wLs[:,5], wRs[:,5]]))
+    B1_dot = arith_mean(np.array([wLs[:,5]**2, wRs[:,5]**2]))
+    B2_hat = arith_mean(np.array([wLs[:,6], wRs[:,6]]))
+    B2_dot = arith_mean(np.array([wLs[:,6]**2, wRs[:,6]**2]))
+    B3_hat = arith_mean(np.array([wLs[:,7], wRs[:,7]]))
+    B3_dot = arith_mean(np.array([wLs[:,7]**2, wRs[:,7]**2]))
+    B1B2 = arith_mean(np.array([wLs[:,5]*wLs[:,6], wRs[:,5]*wRs[:,6]]))
+    B1B3 = arith_mean(np.array([wLs[:,5]*wLs[:,7], wRs[:,5]*wRs[:,7]]))
+
+    # Update the entropy-conserving flux vector; suitable for smooth solutions [Winters & Gassner, 2015]
+    arr[:,0] = rho_hat * u1_hat
+    arr[:,1] = P1_hat + rho_hat*u1_hat**2 + .5*(B1_dot+B2_dot+B3_dot) - B1_dot
+    arr[:,2] = rho_hat*u1_hat*v1_hat - B1B2
+    arr[:,3] = rho_hat*u1_hat*w1_hat - B1B3
+    arr[:,4] = (gamma/(gamma-1))*u1_hat*P2_hat + .5*rho_hat*u1_hat*(u1_hat**2 + v1_hat**2 + w1_hat**2) + u2_hat*(B2_hat**2 + B3_hat**2) - B1_hat*(v2_hat*B2_hat + w2_hat*B3_hat)
+    arr[:,6] = u2_hat*B2_hat - v2_hat*B1_hat
+    arr[:,7] = u2_hat*B3_hat - w2_hat*B1_hat
+
     return arr
 
 
