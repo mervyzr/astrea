@@ -7,6 +7,19 @@ def divide(dividend, divisor):
     return np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
 
 
+# Stable numerical procedure for computing logarithmic mean [Ismail & Roe, 2009]
+def lon(aL, aR):
+    zeta = np.divide(aL, aR, out=np.zeros_like(aL), where=aR!=0)
+    f = np.divide(zeta-1, zeta+1, out=np.zeros_like(zeta), where=(zeta+1)!=0)
+    u = f*f
+
+    if u < 1e-2:
+        F = 1 + u/3 + u*u/5 + u*u*u/7
+    else:
+        F = np.log(zeta)/2/f
+    return (aL+aR)/(2*F)
+
+
 # Generic Gaussian function
 def gauss_func(x, params):
     peakPos = (x[0]+x[-1])/2
@@ -218,6 +231,10 @@ def makeRightEigenvector(tubes, gamma):
     rightEigenvectors[...,7,7] = A_s * beta_z
 
     return rightEigenvectors
+
+
+# Entropy-stable flux calculation based on left and right interpolated primitive variables [Winters & Gassner, 2015]
+
 
 
 # Entropy-stable flux calculation based on left and right interpolated primitive variables [Winters & Gassner, 2015]
