@@ -8,17 +8,16 @@ import venv
 
 
 currentdir = os.getcwd()
-home = os.path.expanduser("~")
 
-if not os.path.exists(f"{currentdir}/settings.py") or not os.path.isdir(f"{currentdir}/.mhydys_venv"):
+if not os.path.exists(f"{currentdir}/settings.py") or not os.path.isdir(f"{currentdir}/.venv"):
     print("Initialising setup..")
 
     if not os.path.exists(f"{currentdir}/settings.py"):
         shutil.copy2(f"{currentdir}/static/.default.py", f"{currentdir}/settings.py")
 
-    if not os.path.isdir(f"{currentdir}/.mhydys_venv"):
+    if not os.path.isdir(f"{currentdir}/.venv"):
         print("Creating Python venv for simulation..")
-        venv_dir = os.path.join(currentdir, ".mhydys_venv")
+        venv_dir = os.path.join(currentdir, ".venv")
         venv.create(venv_dir, with_pip=True)
         subprocess.run(["bin/pip", "install", "-q", "-r", os.path.abspath("static/requirements.txt")], cwd=venv_dir)
 
