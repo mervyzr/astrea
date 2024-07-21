@@ -97,7 +97,7 @@ def run(tube, simVariables):
 
     # Compute the fluxes and the Jacobian
     _w = fv.makeBoundary(avg_wS, boundary)
-    fLs, fRs = fv.makeFlux(wLs, gamma), fv.makeFlux(wRs, gamma)
+    fLs, fRs = fv.makeFluxTerm(wLs, gamma), fv.makeFluxTerm(wRs, gamma)
     A = fv.makeJacobian(_w, gamma)
     characteristics = np.linalg.eigvals(A)
 
@@ -213,7 +213,7 @@ def runModified(tube, simVariables, dissipate=False):
 
     # Compute the fluxes and the Jacobian
     _w = fv.makeBoundary(avg_wS, boundary)
-    fLs, fRs = fv.makeFlux(wLs, gamma), fv.makeFlux(wRs, gamma)
+    fLs, fRs = fv.makeFluxTerm(wLs, gamma), fv.makeFluxTerm(wRs, gamma)
 
     if dissipate:
         qS = fv.makeBoundary(tube, boundary)

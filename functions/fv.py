@@ -99,7 +99,7 @@ def convertConservative(tube, gamma, boundary):
 
 
 # Make flux as a function of cell-averaged (primitive) variables
-def makeFlux(tube, gamma):
+def makeFluxTerm(tube, gamma):
     rhos, vecs, pressures, Bfield = tube[:,0], tube[:,1:4], tube[:,4], tube[:,5:8]
     arr = np.zeros_like(tube)
 
@@ -139,8 +139,8 @@ def makeJacobian(tube, gamma):
     return arr
 
 
-# Make the right eigenvector for adiabatic magnetohydrodynamics
-def makeRightEigenvector(tubes, gamma):
+# Make the right eigenvector for adiabatic magnetohydrodynamics in Osher-Solomon flux
+def makeOSRightEigenvectors(tubes, gamma):
     rhos, pressures, Bfields = tubes[...,0], tubes[...,4], tubes[...,5:8]/np.sqrt(4*np.pi)
 
     # Define the right eigenvectors for each cell in each tube
@@ -220,78 +220,128 @@ def makeRightEigenvector(tubes, gamma):
     return rightEigenvectors
 
 
-# Entropy-stable flux calculation based on left and right interpolated primitive variables [Derigs et al., 2016]
-def makeEntropyFlux(wS, gamma):
-    wLs, wRs = wS
-    arr = np.zeros_like(wLs)
+# Make the right eigenvector for adiabatic magnetohydrodynamics in entropy-stable flux (primitive variables)
+def makeESRightEigenvectors(tube, gamma):
+    rhos, pressures, Bfields = tube[...,0], tube[...,4], tube[...,5:8]
+    vx, vy, vz = tube[...,1], tube[...,2], tube[...,3]
 
     def divide(dividend, divisor):
         return np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
 
-    # Compute the jump term
-    def jump(term):
-        return term[1] - term[0]
+    # Define the right eigenvectors for each cell in each tube
+    _rightEigenvectors = np.zeros_like(tube)
+    rightEigenvectors = np.repeat(_rightEigenvectors[..., np.newaxis], _rightEigenvectors.shape[-1], axis=-1)
 
-    # Compute arithmetic mean
-    def arith_mean(term):
-        return .5 * (term[0] + term[1])
+    # Define speeds
+    soundSpeed = np.sqrt(gamma * divide(pressures, rhos))
+    alfvenSpeed = np.sqrt(divide(np.linalg.norm(Bfields, axis=1)**2, rhos))
+    alfvenSpeedx = divide(tube[...,5], np.sqrt(rhos))
+    fastMagnetosonicWave = .5 * (soundSpeed**2 + alfvenSpeed**2 + np.sqrt(((soundSpeed**2 + alfvenSpeed**2)**2) - (4*(soundSpeed**2)*(alfvenSpeedx**2))))
+    slowMagnetosonicWave = .5 * (soundSpeed**2 + alfvenSpeed**2 - np.sqrt(((soundSpeed**2 + alfvenSpeed**2)**2) - (4*(soundSpeed**2)*(alfvenSpeedx**2))))
 
-    # Stable numerical procedure for computing logarithmic mean [Ismail & Roe, 2009]
-    def lon(term):
-        L, R = term
-        zeta = np.divide(L, R, out=np.zeros_like(L), where=R!=0)
-        f = np.divide(zeta-1, zeta+1, out=np.zeros_like(zeta), where=(zeta+1)!=0)
-        u = f*f
+    # Define frequently used components
+    S = np.sign(tube[...,5])
+    S[S == 0] = 1
+    alpha_f = np.sqrt(divide(soundSpeed**2 - slowMagnetosonicWave**2, fastMagnetosonicWave**2 - slowMagnetosonicWave**2))
+    alpha_s = np.sqrt(divide(fastMagnetosonicWave**2 - soundSpeed**2, fastMagnetosonicWave**2 - slowMagnetosonicWave**2))
+    b_perpend = np.sqrt(divide(tube[...,6]**2 + tube[...,7]**2, rhos))
+    beta2 = divide(tube[...,6], np.sqrt(tube[...,6]**2 + tube[...,7]**2))
+    beta3 = divide(tube[...,7], np.sqrt(tube[...,6]**2 + tube[...,7]**2))
 
-        if (u < 1e-2).any():
-            F = 1 + u/3 + u*u/5 + u*u*u/7
-        else:
-            F = np.log(zeta)/2/f
-        return (L+R)/(2*F)
+    psi_plus_slow = (
+        .5*alpha_s*rhos*np.linalg.norm(tube[...,1:4], axis=1)**2
+        - soundSpeed*alpha_f*rhos*b_perpend
+        + (alpha_s*rhos*soundSpeed**2)/(gamma-1)
+        + alpha_s*slowMagnetosonicWave*rhos*vx
+        + alpha_f*fastMagnetosonicWave*rhos*S*(vy*beta2 + vz*beta3)
+        )
+    psi_minus_slow = (
+        .5*alpha_s*rhos*np.linalg.norm(tube[...,1:4], axis=1)**2
+        - soundSpeed*alpha_f*rhos*b_perpend
+        + (alpha_s*rhos*soundSpeed**2)/(gamma-1)
+        - alpha_s*slowMagnetosonicWave*rhos*vx
+        - alpha_f*fastMagnetosonicWave*rhos*S*(vy*beta2 + vz*beta3)
+        )
+    psi_plus_fast = (
+        .5*alpha_f*rhos*np.linalg.norm(tube[...,1:4], axis=1)**2
+        + soundSpeed*alpha_s*rhos*b_perpend
+        + (alpha_f*rhos*soundSpeed**2)/(gamma-1)
+        + alpha_f*fastMagnetosonicWave*rhos*vx
+        - alpha_s*slowMagnetosonicWave*rhos*S*(vy*beta2 + vz*beta3)
+        )
+    psi_minus_fast = (
+        .5*alpha_f*rhos*np.linalg.norm(tube[...,1:4], axis=1)**2
+        + soundSpeed*alpha_s*rhos*b_perpend
+        + (alpha_f*rhos*soundSpeed**2)/(gamma-1)
+        - alpha_f*fastMagnetosonicWave*rhos*vx
+        + alpha_s*slowMagnetosonicWave*rhos*S*(vy*beta2 + vz*beta3)
+        )
 
-    # Define frequently used terms
-    z1 = np.array([np.sqrt(divide(wLs[:,0], wLs[:,4])), np.sqrt(divide(wRs[:,0], wRs[:,4]))])
-    z5 = np.array([np.sqrt(wLs[:,0]*wLs[:,4]), np.sqrt(wRs[:,0]*wRs[:,4])])
-    vx, vy, vz = np.array([wLs[:,1], wRs[:,1]]), np.array([wLs[:,2], wRs[:,2]]), np.array([wLs[:,3], wRs[:,3]])
+    # Generate the right eigenvectors
+    # First column (Fast+ magnetoacoustic wave)
+    rightEigenvectors[...,0,0] = rhos * alpha_f
+    rightEigenvectors[...,1,0] = rhos * alpha_f * (vx + fastMagnetosonicWave)
+    rightEigenvectors[...,2,0] = rhos * (alpha_f*vy - alpha_s*slowMagnetosonicWave*beta2*S)
+    rightEigenvectors[...,3,0] = rhos * (alpha_f*vz - alpha_s*slowMagnetosonicWave*beta3*S)
+    rightEigenvectors[...,4,0] = psi_plus_fast
+    rightEigenvectors[...,6,0] = alpha_s * soundSpeed * beta2 * np.sqrt(rhos)
+    rightEigenvectors[...,7,0] = alpha_s * soundSpeed * beta3 * np.sqrt(rhos)
+    # Second column (Alfven+ wave)
+    rightEigenvectors[...,2,1] = beta3 * rhos**1.5
+    rightEigenvectors[...,3,1] = -beta2 * rhos**1.5
+    rightEigenvectors[...,4,1] = (beta3*vy - beta2*vz) * rhos**1.5
+    rightEigenvectors[...,6,1] = -rhos * beta3
+    rightEigenvectors[...,7,1] = rhos * beta2
+    # Third column (Slow+ magnetoacoustic wave)
+    rightEigenvectors[...,0,2] = rhos * alpha_s
+    rightEigenvectors[...,1,2] = rhos * alpha_s * (vx + slowMagnetosonicWave)
+    rightEigenvectors[...,2,2] = rhos * (alpha_s*vy + alpha_f*fastMagnetosonicWave*beta2*S)
+    rightEigenvectors[...,3,2] = rhos * (alpha_s*vz + alpha_f*fastMagnetosonicWave*beta3*S)
+    rightEigenvectors[...,4,2] = psi_plus_slow
+    rightEigenvectors[...,6,2] = -alpha_f * soundSpeed * beta2 * np.sqrt(rhos)
+    rightEigenvectors[...,7,2] = -alpha_f * soundSpeed * beta3 * np.sqrt(rhos)
+    # Fourth column (Entropy wave)
+    rightEigenvectors[...,0,3] = 1
+    rightEigenvectors[...,1,3] = vx
+    rightEigenvectors[...,2,3] = vy
+    rightEigenvectors[...,3,3] = vz
+    rightEigenvectors[...,4,3] = .5 * np.linalg.norm(tube[...,1:4], axis=1)**2
+    # Fifth column (Divergence wave)
+    rightEigenvectors[...,4,4] = tube[...,5]
+    rightEigenvectors[...,5,4] = 1
+    # Sixth column (Slow- magnetoacoustic wave)
+    rightEigenvectors[...,0,5] = rhos * alpha_s
+    rightEigenvectors[...,1,5] = rhos * alpha_s * (vx - slowMagnetosonicWave)
+    rightEigenvectors[...,2,5] = rhos * (alpha_s*vy - alpha_f*fastMagnetosonicWave*beta2*S)
+    rightEigenvectors[...,3,5] = rhos * (alpha_s*vz - alpha_f*fastMagnetosonicWave*beta3*S)
+    rightEigenvectors[...,4,5] = psi_minus_slow
+    rightEigenvectors[...,6,5] = -alpha_f * soundSpeed * beta2 * np.sqrt(rhos)
+    rightEigenvectors[...,7,5] = -alpha_f * soundSpeed * beta3 * np.sqrt(rhos)
+    # Seventh column (Alfven- wave)
+    rightEigenvectors[...,2,6] = -beta3 * rhos**1.5
+    rightEigenvectors[...,3,6] = beta2 * rhos**1.5
+    rightEigenvectors[...,4,6] = (beta2*vz - beta3*vy) * rhos**1.5
+    rightEigenvectors[...,6,6] = -rhos * beta3
+    rightEigenvectors[...,7,6] = rhos * beta2
+    # Eighth column (Fast- magnetoacoustic wave)
+    rightEigenvectors[...,0,7] = rhos * alpha_f
+    rightEigenvectors[...,1,7] = rhos * alpha_f * (vx - fastMagnetosonicWave)
+    rightEigenvectors[...,2,7] = rhos * (alpha_f*vy + alpha_s*slowMagnetosonicWave*beta2*S)
+    rightEigenvectors[...,3,7] = rhos * (alpha_f*vz + alpha_s*slowMagnetosonicWave*beta3*S)
+    rightEigenvectors[...,4,7] = psi_minus_fast
+    rightEigenvectors[...,6,7] = alpha_s * soundSpeed * beta2 * np.sqrt(rhos)
+    rightEigenvectors[...,7,7] = alpha_s * soundSpeed * beta3 * np.sqrt(rhos)
 
-    # Compute the averages
-    rho_hat = arith_mean(z1) * lon(z5)
-    P1_hat = divide(arith_mean(z5), arith_mean(z1))
-    P2_hat = ((gamma+1)/(2*gamma))*(divide(lon(z5), lon(z1))) + ((gamma-1)/(2*gamma))*(divide(arith_mean(z5), arith_mean(z1)))
-    u1_hat = divide(arith_mean((vx.T*z1.T).T), arith_mean(z1))
-    v1_hat = divide(arith_mean((vy.T*z1.T).T), arith_mean(z1))
-    w1_hat = divide(arith_mean((vz.T*z1.T).T), arith_mean(z1))
-    u2_hat = divide(arith_mean((vx.T*(z1**2).T).T), arith_mean(z1**2))
-    v2_hat = divide(arith_mean((vy.T*(z1**2).T).T), arith_mean(z1**2))
-    w2_hat = divide(arith_mean((vz.T*(z1**2).T).T), arith_mean(z1**2))
-    B1_hat = arith_mean(np.array([wLs[:,5], wRs[:,5]]))
-    B1_dot = arith_mean(np.array([wLs[:,5]**2, wRs[:,5]**2]))
-    B2_hat = arith_mean(np.array([wLs[:,6], wRs[:,6]]))
-    B2_dot = arith_mean(np.array([wLs[:,6]**2, wRs[:,6]**2]))
-    B3_hat = arith_mean(np.array([wLs[:,7], wRs[:,7]]))
-    B3_dot = arith_mean(np.array([wLs[:,7]**2, wRs[:,7]**2]))
-    B1B2 = arith_mean(np.array([wLs[:,5]*wLs[:,6], wRs[:,5]*wRs[:,6]]))
-    B1B3 = arith_mean(np.array([wLs[:,5]*wLs[:,7], wRs[:,5]*wRs[:,7]]))
+    # Scale the right eigenvectors with a diagonal scaling matrix, so as to prevent degeneracies [Barth, 1999]
+    diag_scaler = np.zeros_like(rightEigenvectors)
+    diag_scaler[...,0,0] = 1/(2*gamma*rhos)
+    diag_scaler[...,1,1] = divide(pressures, 2*rhos**2)
+    diag_scaler[...,2,2] = 1/(2*gamma*rhos)
+    diag_scaler[...,3,3] = (rhos*(gamma-1))/gamma
+    diag_scaler[...,4,4] = divide(pressures, rhos)
+    diag_scaler[...,5,5] = 1/(2*gamma*rhos)
+    diag_scaler[...,6,6] = divide(pressures, 2*rhos**2)
+    diag_scaler[...,7,7] = 1/(2*gamma*rhos)
+    R_dot = rightEigenvectors @ np.sqrt(diag_scaler)
 
-    # Update the entropy-conserving flux vector; suitable for smooth solutions [Winters & Gassner, 2015]
-    arr[:,0] = rho_hat * u1_hat
-    arr[:,1] = P1_hat + rho_hat*u1_hat**2 + .5*(B1_dot+B2_dot+B3_dot) - B1_dot
-    arr[:,2] = rho_hat*u1_hat*v1_hat - B1B2
-    arr[:,3] = rho_hat*u1_hat*w1_hat - B1B3
-    arr[:,4] = (gamma/(gamma-1))*u1_hat*P2_hat + .5*rho_hat*u1_hat*(u1_hat**2 + v1_hat**2 + w1_hat**2) + u2_hat*(B2_hat**2 + B3_hat**2) - B1_hat*(v2_hat*B2_hat + w2_hat*B3_hat)
-    arr[:,6] = u2_hat*B2_hat - v2_hat*B1_hat
-    arr[:,7] = u2_hat*B3_hat - w2_hat*B1_hat
-
-    return arr
-
-
-# Calculate the entropy vector (jump between the left and right states)
-def getEntropyVector(w, g):
-    arr = np.copy(w)
-    factor = w[:,0]/w[:,4]
-
-    arr[:,0] = ((g-np.log(w[:,4]*w[:,0]**-g))/(g-1)) - (.5*w[:,0]*np.linalg.norm(w[:,1:4], axis=1)**2)/w[:,4]
-    arr[:,1:4] = (w[:,1:4].T * factor).T
-    arr[:,4] = -factor
-    arr[:,5:8] = (w[:,5:8].T * factor).T
-    return arr
+    return R_dot

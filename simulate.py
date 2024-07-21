@@ -106,7 +106,7 @@ def main():
         simVariables['roots'] = .5*_roots + .5  # Gauss-Legendre quadrature with interval [0,1]
         simVariables['weights'] = _weights/2  # Gauss-Legendre quadrature with interval [0,1]
 
-    # Error condition(s) handler
+    # Error condition(s) handler; filter erroneous entries
     simVariables = generic.handleErrors(simVariables)
 
     # Simulation condition handler

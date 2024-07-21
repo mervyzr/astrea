@@ -34,7 +34,7 @@ def run(tube, simVariables):
     qLs, qRs = fv.pointConvertPrimitive(wLs, gamma), fv.pointConvertPrimitive(wRs, gamma)
 
     # Compute the fluxes and the Jacobian
-    fLs, fRs = fv.makeFlux(wLs, gamma), fv.makeFlux(wRs, gamma)
+    fLs, fRs = fv.makeFluxTerm(wLs, gamma), fv.makeFluxTerm(wRs, gamma)
     A = fv.makeJacobian(w, gamma)
     characteristics = np.linalg.eigvals(A)
 
