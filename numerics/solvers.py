@@ -45,7 +45,7 @@ def calculateRiemannFlux(simVariables, *args, **kwargs):
         if simVariables.subgrid in ["plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"]:
             qDiff = (kwargs["qLs"] - kwargs["qRs"]).T
             #fluxes = kwargs["fLs"] + kwargs["fRs"]
-            fluxes = fv.makeEntropyFlux([kwargs["wLs"], kwargs["wRs"]], simVariables.gamma)
+            fluxes = fv.makeECFlux([kwargs["wLs"], kwargs["wRs"]], simVariables.gamma)
         else:
             qDiff = (kwargs["qS"][1:] - kwargs["qS"][:-1]).T
             fluxes = kwargs["f"][1:] + kwargs["f"][:-1]

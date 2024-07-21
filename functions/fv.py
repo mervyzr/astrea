@@ -220,8 +220,8 @@ def makeOSRightEigenvectors(tubes, gamma):
     return rightEigenvectors
 
 
-# Entropy-stable flux calculation based on left and right interpolated primitive variables [Derigs et al., 2016]
-def makeEntropyFlux(wS, gamma):
+# Entropy-conserving flux calculation based on left and right interpolated primitive variables [Winters & Gassner, 2015]
+def makeECFlux(wS, gamma):
     wLs, wRs = wS
     arr = np.zeros_like(wLs)
 
