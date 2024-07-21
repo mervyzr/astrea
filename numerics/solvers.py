@@ -132,7 +132,7 @@ def calculateDOTSFlux(qS, fluxes, gamma, roots, weights):
     psi = arr_R + (roots*(arr_L-arr_R).T).T
 
     # Define the right eigenvectors
-    _rightEigenvectors = fv.makeRightEigenvector(psi, gamma)
+    _rightEigenvectors = fv.makeOSRightEigenvectors(psi, gamma)
 
     # Generate the diagonal matrix of eigenvalues
     _lambda = np.zeros_like(_rightEigenvectors)

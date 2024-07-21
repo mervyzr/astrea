@@ -139,8 +139,8 @@ def makeJacobian(tube, gamma):
     return arr
 
 
-# Make the right eigenvector for adiabatic magnetohydrodynamics
-def makeRightEigenvector(tubes, gamma):
+# Make the right eigenvector for adiabatic magnetohydrodynamics in Osher-Solomon flux
+def makeOSRightEigenvectors(tubes, gamma):
     rhos, pressures, Bfields = tubes[...,0], tubes[...,4], tubes[...,5:8]/np.sqrt(4*np.pi)
 
     # Define the right eigenvectors for each cell in each tube
