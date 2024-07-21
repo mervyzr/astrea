@@ -12,6 +12,7 @@ cfl = .5
 gamma = 1.4
 
 # Numerical methods
+dim = 1
 precision = np.float64
 # : PCM, PLM, PPM, WENO
 subgrid = "ppm"

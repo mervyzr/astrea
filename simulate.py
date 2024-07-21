@@ -72,7 +72,7 @@ def main():
     # CLI arguments handler; updates the simulation variables (dict)
     if len(sys.argv) > 1:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "N=", "n=", "cells=", "cfl=", "gamma=", "subgrid=", "timestep=", "scheme=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "noprint", "echo"])
+            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "N=", "n=", "cells=", "cfl=", "gamma=", "dim=", "subgrid=", "timestep=", "scheme=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "noprint", "echo"])
         except getopt.GetoptError as e:
             print(f'{generic.bcolours.WARNING}Error: {e}{generic.bcolours.ENDC}')
             sys.exit(2)
@@ -81,7 +81,7 @@ def main():
                 opt = opt.replace("--","")
                 if opt in ["cells", "N", "n"]:
                     configVariables[opt] = int(arg) - int(arg)%2
-                elif opt in ["snapshots"]:
+                elif opt in ["snapshots", "dim"]:
                     configVariables[opt] = int(arg)
                 elif opt in ["cfl", "gamma"]:
                     configVariables[opt] = float(arg)

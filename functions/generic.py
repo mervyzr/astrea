@@ -67,6 +67,7 @@ def tidyDict(_dct):
 def handleErrors(dct):
     acceptedValues = {
         "config": ["sod", "sin", "sin-wave", "sinc", "sinc-wave", "sedov", "shu-osher", "shu", "osher", "gaussian", "gauss", "sq", "square", "square-wave", "toro1", "toro2", "toro3", "toro4", "toro5", "ryu-jones", "ryu", "jones", "rj"],
+        "dim": ["one", 1, "two", 2],
         "subgrid": ["pcm", "constant", "c", "plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"],
         "timestep": ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)", "(2,2)", "(3,3)", "(4,3)", "(5,3)", "(5,4)"],
         "scheme": ["lf", "llf", "lax","friedrich", "lax-friedrich", "lw", "lax-wendroff", "wendroff", "hllc", "c", "osher-solomon", "osher", "solomon", "os", "entropy", "stable", "entropy-stable", "es"],
@@ -74,6 +75,7 @@ def handleErrors(dct):
         }
     defaultValues = {
         "config": ["sod", "Test unknown; reverting to Sod shock tube test.."],
+        "dim": [1, "Invalid value for dimensions; reverting to 1D.."],
         "subgrid": ["pcm", "Subgrid option unknown; reverting to piecewise constant method.."],
         "timestep": ["euler", "Timestep unknown; reverting to Forward Euler timestep.."],
         "scheme": ["lf", "Scheme unknown; reverting to Lax-Friedrich scheme.."],
