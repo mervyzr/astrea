@@ -29,7 +29,7 @@ def run(tube, simVariables):
     # Pad the reconstructed interfaces
     wLs, wRs = fv.makeBoundary(wL, boundary)[1:], fv.makeBoundary(wR, boundary)[:-1]
 
-    # Convert the primitive variables, and compute the state differences
+    # Convert the primitive variables
     # The conversion can be pointwise conversion for face-average values as it is still 2nd-order
     qLs, qRs = fv.pointConvertPrimitive(wLs, gamma), fv.pointConvertPrimitive(wRs, gamma)
 
