@@ -25,7 +25,7 @@ def sinc_func(x, params):
 
 # Initialise the discrete solution array with initial conditions and primitive variables w. Returns the solution array in conserved variables q
 def initialise(simVariables):
-    config, N, gamma, precision = simVariables.config, simVariables.cells, simVariables.gamma, simVariables.precision
+    config, N, gamma, dim, precision = simVariables.config, simVariables.cells, simVariables.gamma, simVariables.dim, simVariables.precision
     start, end, shock, params = simVariables.startPos, simVariables.endPos, simVariables.shockPos, simVariables.misc
     initialLeft, initialRight = simVariables.initialLeft, simVariables.initialRight
 
@@ -53,63 +53,85 @@ def initialise(simVariables):
         else:
             arr[:,0] = gauss_func(xi, params)
 
+    if dim >= 2:
+        arr = np.repeat(arr[..., np.newaxis], arr.shape[0], axis=-1).transpose(0,2,1)
+        if dim == 3:
+            arr = np.repeat(arr[..., np.newaxis], arr.shape[0], axis=-1).transpose(0,1,3,2)
+
     return pointConvertPrimitive(arr, gamma)
 
 
 # Make boundary conditions
-def makeBoundary(tube, boundary, stencil=1):
+def makeBoundary(tube, boundary, stencil=1, axis=None):
     arr = np.copy(tube)
-    return np.pad(arr, [(stencil,stencil), (0,0)], mode=boundary)
+    if axis == None:
+        padding = [(stencil,stencil)] * tube.ndim
+        padding[-1] = (0,0)
+    else:
+        padding = [(0,0)] * tube.ndim
+        padding[axis] = (stencil,stencil)
+    return np.pad(arr, padding, mode=boundary)
 
 
 # Pointwise (exact) conversion of primitive variables w to conservative variables q (up to 2nd-order accurate)
 def pointConvertPrimitive(tube, gamma):
     arr = np.copy(tube)
-    rhos, vecs, pressures, Bfield = tube[:,0], tube[:,1:4], tube[:,4], tube[:,5:8]
-    arr[:,4] = (pressures/(gamma-1)) + (.5*rhos*np.linalg.norm(vecs, axis=1)**2) + (.5*np.linalg.norm(Bfield, axis=1)**2)
-    arr[:,1:4] = (vecs.T * rhos).T
-    arr[:,5:8] = Bfield
+    rhos, vecs, pressures, Bfield = tube[...,0], tube[...,1:4], tube[...,4], tube[...,5:8]
+    arr[...,4] = (pressures/(gamma-1)) + (.5*rhos*np.linalg.norm(vecs, axis=-1)**2) + (.5*np.linalg.norm(Bfield, axis=-1)**2)
+    arr[...,1:4] = (vecs.T * rhos.T).T
+    arr[...,5:8] = Bfield
     return arr
 
 
 # Pointwise (exact) conversion of conservative variables q to primitive variables w (up to 2nd-order accurate)
 def pointConvertConservative(tube, gamma):
     arr = np.copy(tube)
-    rhos, vecs, energies, Bfield = tube[:,0], (tube[:,1:4].T / tube[:,0]).T, tube[:,4], tube[:,5:8]
-    arr[:,4] = (gamma-1) * (energies - (.5*rhos*np.linalg.norm(vecs, axis=1)**2) - (.5*np.linalg.norm(Bfield, axis=1)**2))
-    arr[:,1:4] = vecs
-    arr[:,5:8] = Bfield
+    rhos, energies, Bfield = tube[...,0], tube[...,4], tube[...,5:8]
+    vecs = np.divide(tube[...,1:4].T, tube[...,0].T, out=np.zeros_like(tube[...,1:4].T), where=tube[...,0].T!=0).T
+    arr[...,4] = (gamma-1) * (energies - (.5*rhos*np.linalg.norm(vecs, axis=-1)**2) - (.5*np.linalg.norm(Bfield, axis=-1)**2))
+    arr[...,1:4] = vecs
+    arr[...,5:8] = Bfield
     return arr
 
 
 # Converting (cell-/face-averaged) primitive variables w to conservative variables q through a higher-order approx.
 def convertPrimitive(tube, gamma, boundary):
-    arr = makeBoundary(tube, boundary)
-    w = tube - (np.diff(arr[1:], axis=0) - np.diff(arr[:-1], axis=0))/24  # 2nd-order Taylor expansion (Laplacian)
-    q = pointConvertPrimitive(arr, gamma)
-    return pointConvertPrimitive(w, gamma) + (np.diff(q[1:], axis=0) - np.diff(q[:-1], axis=0))/24
+    limit = len(tube) + 1
+    w, q = tube, np.zeros_like(tube)
+    for i in range(tube.ndim-2):
+        _w = makeBoundary(tube, boundary, axis=i)
+        w -= (np.diff(_w.take(indices=range(1,limit+1), axis=i), axis=i) - np.diff(_w.take(indices=range(limit), axis=i), axis=i))/24
+
+        _q = pointConvertPrimitive(_w, gamma)
+        q += (np.diff(_q.take(indices=range(1,limit+1), axis=i), axis=i) - np.diff(_q.take(indices=range(limit), axis=i), axis=i))/24
+    return pointConvertPrimitive(w, gamma) + q
 
 
 # Converting (cell-/face-averaged) conservative variables q to primitive variables w through a higher-order approx.
 def convertConservative(tube, gamma, boundary):
-    arr = makeBoundary(tube, boundary)
-    q = tube - (np.diff(arr[1:], axis=0) - np.diff(arr[:-1], axis=0))/24  # 2nd-order Taylor expansion (Laplacian)
-    w = pointConvertConservative(arr, gamma)
-    return pointConvertConservative(q, gamma) + (np.diff(w[1:], axis=0) - np.diff(w[:-1], axis=0))/24
+    limit = len(tube) + 1
+    w, q = np.zeros_like(tube), tube
+    for i in range(tube.ndim-2):
+        _q = makeBoundary(tube, boundary, axis=i)
+        q -= (np.diff(_q.take(indices=range(1,limit+1), axis=i), axis=i) - np.diff(_q.take(indices=range(limit), axis=i), axis=i))/24
+
+        _w = pointConvertConservative(_q, gamma)
+        w += (np.diff(_w.take(indices=range(1,limit+1), axis=i), axis=i) - np.diff(_w.take(indices=range(limit), axis=i), axis=i))/24
+    return pointConvertConservative(q, gamma) + w
 
 
 # Make flux as a function of cell-averaged (primitive) variables
 def makeFluxTerm(tube, gamma):
-    rhos, vecs, pressures, Bfield = tube[:,0], tube[:,1:4], tube[:,4], tube[:,5:8]
+    rhos, vecs, pressures, Bfield = tube[...,0], tube[...,1:4], tube[...,4], tube[...,5:8]
     arr = np.zeros_like(tube)
 
-    arr[:,0] = rhos*vecs[:,0]
-    arr[:,1] = rhos*(vecs[:,0]**2) + pressures + (.5*np.linalg.norm(Bfield, axis=1)**2) - Bfield[:,0]**2
-    arr[:,2] = rhos*vecs[:,0]*vecs[:,1] - Bfield[:,0]*Bfield[:,1]
-    arr[:,3] = rhos*vecs[:,0]*vecs[:,2] - Bfield[:,0]*Bfield[:,2]
-    arr[:,4] = (vecs[:,0]*((.5*rhos*np.linalg.norm(vecs, axis=1)**2) + ((gamma*pressures)/(gamma-1)))) + (vecs[:,0]*np.linalg.norm(Bfield, axis=1)**2) - (Bfield[:,0]*np.sum(Bfield*vecs, axis=1))
-    arr[:,6] = Bfield[:,1]*vecs[:,0] - Bfield[:,0]*vecs[:,1]
-    arr[:,7] = Bfield[:,2]*vecs[:,0] - Bfield[:,0]*vecs[:,2]
+    arr[...,0] = rhos*vecs[...,0]
+    arr[...,1] = rhos*(vecs[...,0]**2) + pressures + (.5*np.linalg.norm(Bfield, axis=-1)**2) - Bfield[...,0]**2
+    arr[...,2] = rhos*vecs[...,0]*vecs[...,1] - Bfield[...,0]*Bfield[...,1]
+    arr[...,3] = rhos*vecs[...,0]*vecs[...,2] - Bfield[...,0]*Bfield[...,2]
+    arr[...,4] = (vecs[...,0]*((.5*rhos*np.linalg.norm(vecs, axis=-1)**2) + ((gamma*pressures)/(gamma-1)))) + (vecs[...,0]*np.linalg.norm(Bfield, axis=-1)**2) - (Bfield[...,0]*np.sum(Bfield*vecs, axis=-1))
+    arr[...,6] = Bfield[...,1]*vecs[...,0] - Bfield[...,0]*vecs[...,1]
+    arr[...,7] = Bfield[...,2]*vecs[...,0] - Bfield[...,0]*vecs[...,2]
     return arr
 
 
@@ -128,10 +150,10 @@ def makeJacobian(tube, gamma):
     arr[...,1,4] = 1/rho
     arr[...,4,1] = gamma*pressure
 
-    arr[...,1,6] = Bfield[...,1]/rho
-    arr[...,1,7] = Bfield[...,2]/rho
-    arr[...,2,6] = -Bfield[...,0]/rho
-    arr[...,3,7] = -Bfield[...,0]/rho
+    arr[...,1,6] = np.divide(Bfield[...,1], rho, out=np.zeros_like(Bfield[...,1]), where=rho!=0)
+    arr[...,1,7] = np.divide(Bfield[...,2], rho, out=np.zeros_like(Bfield[...,2]), where=rho!=0)
+    arr[...,2,6] = np.divide(-Bfield[...,0], rho, out=np.zeros_like(-Bfield[...,0]), where=rho!=0)
+    arr[...,3,7] = np.divide(-Bfield[...,0], rho, out=np.zeros_like(-Bfield[...,0]), where=rho!=0)
     arr[...,6,1] = Bfield[...,1]
     arr[...,6,2] = -Bfield[...,0]
     arr[...,7,1] = Bfield[...,2]
