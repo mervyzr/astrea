@@ -1,5 +1,3 @@
-from collections import namedtuple
-
 import numpy as np
 
 from functions import fv
@@ -10,8 +8,7 @@ from numerics import limiters, solvers
 # Piecewise parabolic reconstruction method (PPM)
 def run(tube, simVariables):
     C = 5/4
-    gamma, precision, scheme, boundary = simVariables.gamma, simVariables.precision, simVariables.scheme, simVariables.boundary
-    Data = namedtuple('Data', ['flux', 'eigmax'])
+    gamma, boundary = simVariables.gamma, simVariables.boundary
 
     # Convert to primitive variables
     wS = fv.convertConservative(tube, gamma, boundary)
@@ -107,8 +104,7 @@ def run(tube, simVariables):
 # Modified piecewise parabolic reconstruction method (m-PPM); does not have interface limiting
 def runModified(tube, simVariables, dissipate=False):
     C = 5/4
-    gamma, precision, scheme, boundary = simVariables.gamma, simVariables.precision, simVariables.scheme, simVariables.boundary
-    Data = namedtuple('Data', ['flux', 'eigmax'])
+    gamma, boundary = simVariables.gamma, simVariables.boundary
 
     # Convert to primitive variables
     wS = fv.convertConservative(tube, gamma, boundary)
@@ -254,10 +250,6 @@ def calculateFlattenCoeff(wS, boundary, slope_determinants=[.33, .75, .85]):
 
 # Implement artificial viscosity
 def applyArtificialViscosity(wS, gamma, boundary, viscosity_determinants=[.3, .3]):
-
-    def calculateSoundSpeed(pressures, densities, g):
-        return np.sqrt((g*pressures)/densities)
-
     alpha, beta = viscosity_determinants
 
     vxs = np.pad(wS[:,1], 1, mode=boundary)

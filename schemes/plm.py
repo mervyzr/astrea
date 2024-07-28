@@ -1,5 +1,3 @@
-from collections import namedtuple
-
 import numpy as np
 
 from functions import fv
@@ -12,8 +10,7 @@ from numerics import limiters, solvers
 #                     | i-1          <-- | -->         i         <-- | -->          i+1 |
 #                     |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
 def run(tube, simVariables):
-    gamma, precision, scheme, boundary = simVariables.gamma, simVariables.precision, simVariables.scheme, simVariables.boundary
-    Data = namedtuple('Data', ['flux', 'eigmax'])
+    gamma, boundary = simVariables.gamma, simVariables.boundary
 
     # Convert to primitive variables; able to use pointwise conversion as it is still 2nd-order
     wS = fv.pointConvertConservative(tube, gamma)

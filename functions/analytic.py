@@ -16,7 +16,7 @@ def roundOff(value):
 
 # Calculate scaled entropy density for an array [Derigs et al., 2015]
 def calculateEntropyDensity(tube, gamma):
-    return (tube[:,0] * np.log(tube[:,4]*tube[:,0]**-gamma))/(gamma-1)
+    return (tube[...,0] * np.log(tube[...,4]*tube[...,0]**-gamma))/(gamma-1)
 
 
 # Function for solution error calculation of sin-wave, sinc-wave and Gaussian tests
@@ -55,7 +55,7 @@ def calculateTV(simulation):
     for t in list(simulation.keys()):
         domain = simulation[t]
         tv[float(t)] = np.sum(np.abs(np.diff(domain, axis=0)), axis=0)
-        tv[float(t)] = np.append(tv[float(t)], np.sum(np.abs(np.diff(domain[:, 4]/domain[:, 0]))))
+        tv[float(t)] = np.append(tv[float(t)], np.sum(np.abs(np.diff(domain[:,4]/domain[:,0]))))
     return tv
 
 

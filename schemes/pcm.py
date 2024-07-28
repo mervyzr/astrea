@@ -7,7 +7,7 @@ from numerics import solvers
 
 # Piecewise constant reconstruction method (PCM)
 def run(tube, simVariables):
-    gamma, precision, scheme, boundary = simVariables.gamma, simVariables.precision, simVariables.scheme, simVariables.boundary
+    gamma, boundary = simVariables.gamma, simVariables.boundary
 
     # Convert to primitive variables
     wS = fv.pointConvertConservative(tube, gamma)
