@@ -1,6 +1,6 @@
 import numpy as np
 import scipy as sp
-from scipy.integrate import odeint, quad, solve_ivp, simpson
+from scipy.integrate import quad, simpson
 
 from functions import fv
 
@@ -54,35 +54,39 @@ def calculateTV(simulation):
 
 # Function for checking the conservation equations; works with primitive variables
 def calculateConservation(simulation, simVariables):
-    gamma, startPos, endPos = simVariables.gamma, simVariables.startPos, simVariables.endPos
+    N, gamma, dim, startPos, endPos = simVariables.cells, simVariables.gamma, simVariables.dim, simVariables.startPos, simVariables.endPos
     eq = {}
 
     for t in list(simulation.keys()):
         domain = fv.pointConvertPrimitive(simulation[t], gamma)
-        eq[float(t)] = simpson(domain, dx=(endPos-startPos)/len(domain), axis=0) * (endPos-startPos)
+        for i in reversed(range(dim)):
+            domain = simpson(domain, dx=(endPos-startPos)/N, axis=i) * (endPos-startPos)
+        eq[float(t)] = domain
     return eq
 
 
 # Function for checking the conservation equations at specific intervals; works with primitive variables
 # The reason is because at the boundaries, some values are lost to the ghost cells and not counted into the conservation plots
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
-def calculateConservationAtInterval(simulation, simVariables):
-    gamma, startPos, endPos = simVariables.gamma, simVariables.startPos, simVariables.endPos
+def calculateConservationAtInterval(simulation, simVariables, interval=10):
+    N, gamma, dim, startPos, endPos, tEnd = simVariables.cells, simVariables.gamma, simVariables.dim, simVariables.startPos, simVariables.endPos, simVariables.tEnd
     eq = {}
 
     intervals = np.array([], dtype=float)
-    periods = np.arange(11)
+    periods = np.linspace(0, tEnd, interval)
     timings = np.asarray(list(simulation.keys()), dtype=float)
     for period in periods:
         intervals = np.append(intervals, timings[np.argmin(abs(timings-period))])
 
     for t in intervals:
         domain = fv.pointConvertPrimitive(simulation[str(t)], gamma)
-        eq[t] = simpson(domain, dx=(endPos-startPos)/len(domain), axis=0) * (endPos-startPos)
+        for i in reversed(range(dim)):
+            domain = simpson(domain, dx=(endPos-startPos)/N, axis=i) * (endPos-startPos)
+        eq[t] = domain
     return eq
 
 
-# Determine the analytical solution for a Sod shock test
+# Determine the analytical solution for a Sod shock test, in 1D
 def calculateSodAnalytical(tube, t, simVariables):
     gamma, startPos, endPos, shockPos = simVariables.gamma, simVariables.startPos, simVariables.endPos, simVariables.shockPos
 
