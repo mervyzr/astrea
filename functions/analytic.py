@@ -21,32 +21,20 @@ def calculateEntropyDensity(tube, gamma):
 
 # Function for solution error calculation of sin-wave, sinc-wave and Gaussian tests
 def calculateSolutionError(simulation, simVariables, norm):
-    config, startPos, endPos, params = simVariables.config, simVariables.startPos, simVariables.endPos, simVariables.misc
-
     timeKeys = [float(t) for t in simulation.keys()]
-    q_num = simulation[str(max(timeKeys))]  # Get last array with (typically largest) time key
+    w_num = simulation[str(max(timeKeys))]  # Get last array with (typically largest) time key
 
-    xi = np.linspace(startPos, endPos, len(q_num))
-    q_theo = np.copy(q_num)
-    q_theo[:] = simVariables.initialLeft
+    w_theo = fv.initialise(simVariables)
 
-    if config.startswith("gauss"):
-        q_theo[:,0] = fv.gauss_func(xi, params)
-    else:
-        if config == "sinc":
-            q_theo[:,0] = fv.sinc_func(xi, params)
-        else:
-            q_theo[:,0] = fv.sin_func(xi, params)
-
-    thermal_num, thermal_theo = q_num[:,4]/q_num[:,0], q_theo[:,4]/q_theo[:,0]
-    q_num, q_theo = np.c_[q_num, thermal_num], np.c_[q_theo, thermal_theo]
+    thermal_num, thermal_theo = fv.divide(w_num[...,4], w_num[...,0]), fv.divide(w_theo[...,4], w_theo[...,0])
+    w_num, w_theo = np.concatenate((w_num, thermal_num[...,None]), axis=-1), np.concatenate((w_theo, thermal_theo[...,None]), axis=-1)
 
     if norm > 10:
-        return np.max(np.abs(q_num-q_theo), axis=0)
+        return np.max(np.abs(w_num-w_theo), axis=tuple(range(simVariables.dim)))
     elif norm <= 0:
-        return np.sum(np.abs(q_num-q_theo), axis=0)/len(q_num)
+        return np.sum(np.abs(w_num-w_theo), axis=tuple(range(simVariables.dim)))/(simVariables.cells**simVariables.dim)
     else:
-        return (np.sum(np.abs(q_num-q_theo)**norm, axis=0)/len(q_num))**(1/norm)
+        return (np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(range(simVariables.dim)))/(simVariables.cells**simVariables.dim))**(1/norm)
 
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
@@ -54,8 +42,13 @@ def calculateTV(simulation):
     tv = {}
     for t in list(simulation.keys()):
         domain = simulation[t]
-        tv[float(t)] = np.sum(np.abs(np.diff(domain, axis=0)), axis=0)
-        tv[float(t)] = np.append(tv[float(t)], np.sum(np.abs(np.diff(domain[:,4]/domain[:,0]))))
+        thermal = fv.divide(domain[...,4], domain[...,0])
+        length = domain.ndim - 1
+        for i in range(length):
+            domain = np.diff(domain, axis=i)
+            thermal = np.diff(thermal, axis=i)
+        tv[float(t)] = np.sum(np.abs(domain), axis=tuple(range(length)))
+        tv[float(t)] = np.append(tv[float(t)], np.sum(np.abs(thermal)))
     return tv
 
 
