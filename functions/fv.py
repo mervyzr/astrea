@@ -29,7 +29,9 @@ def initialise(simVariables):
     start, end, shock, params = simVariables.startPos, simVariables.endPos, simVariables.shockPos, simVariables.misc
     initialLeft, initialRight = simVariables.initialLeft, simVariables.initialRight
 
-    arr = np.zeros((N, len(initialRight)), dtype=precision)
+    _i = (N,) * dim
+    _i += (len(initialRight),)
+    arr = np.zeros(_i, dtype=precision)
     arr[:] = initialRight
 
     midpoint = (end+start)/2
@@ -47,16 +49,11 @@ def initialise(simVariables):
     elif config == "sin" or config == "sinc" or config.startswith('gauss'):
         xi = np.linspace(start, end, N)
         if config == "sin":
-            arr[:,0] = sin_func(xi, params)
+            arr[...,0] = sin_func(xi, params)
         elif config == "sinc":
-            arr[:,0] = sinc_func(xi, params)
+            arr[...,0] = sinc_func(xi, params)
         else:
-            arr[:,0] = gauss_func(xi, params)
-
-    if dim >= 2:
-        arr = np.repeat(arr[..., np.newaxis], arr.shape[0], axis=-1).transpose(0,2,1)
-        if dim == 3:
-            arr = np.repeat(arr[..., np.newaxis], arr.shape[0], axis=-1).transpose(0,1,3,2)
+            arr[...,0] = gauss_func(xi, params)
 
     return pointConvertPrimitive(arr, gamma)
 
@@ -79,7 +76,6 @@ def pointConvertPrimitive(tube, gamma):
     rhos, vecs, pressures, Bfield = tube[...,0], tube[...,1:4], tube[...,4], tube[...,5:8]
     arr[...,4] = (pressures/(gamma-1)) + (.5*rhos*np.linalg.norm(vecs, axis=-1)**2) + (.5*np.linalg.norm(Bfield, axis=-1)**2)
     arr[...,1:4] = (vecs.T * rhos.T).T
-    arr[...,5:8] = Bfield
     return arr
 
 
@@ -90,7 +86,6 @@ def pointConvertConservative(tube, gamma):
     vecs = np.divide(tube[...,1:4].T, tube[...,0].T, out=np.zeros_like(tube[...,1:4].T), where=tube[...,0].T!=0).T
     arr[...,4] = (gamma-1) * (energies - (.5*rhos*np.linalg.norm(vecs, axis=-1)**2) - (.5*np.linalg.norm(Bfield, axis=-1)**2))
     arr[...,1:4] = vecs
-    arr[...,5:8] = Bfield
     return arr
 
 
@@ -98,7 +93,7 @@ def pointConvertConservative(tube, gamma):
 def convertPrimitive(tube, gamma, boundary):
     limit = len(tube) + 1
     w, q = tube, np.zeros_like(tube)
-    for i in range(tube.ndim-2):
+    for i in range(tube.ndim-1):
         _w = makeBoundary(tube, boundary, axis=i)
         w -= (np.diff(_w.take(indices=range(1,limit+1), axis=i), axis=i) - np.diff(_w.take(indices=range(limit), axis=i), axis=i))/24
 
@@ -111,7 +106,7 @@ def convertPrimitive(tube, gamma, boundary):
 def convertConservative(tube, gamma, boundary):
     limit = len(tube) + 1
     w, q = np.zeros_like(tube), tube
-    for i in range(tube.ndim-2):
+    for i in range(tube.ndim-1):
         _q = makeBoundary(tube, boundary, axis=i)
         q -= (np.diff(_q.take(indices=range(1,limit+1), axis=i), axis=i) - np.diff(_q.take(indices=range(limit), axis=i), axis=i))/24
 
