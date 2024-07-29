@@ -60,7 +60,7 @@ def generateTestConditions(config):
         tEnd = 1
         boundary = "wrap"  # periodic
         initialLeft = np.array([0,1,1,1,1e-6,0,0,0])
-        initialRight = np.array([0,0,0,0,0,0,0,0])
+        initialRight = np.array([0,1,1,1,1e-6,0,0,0])
         misc = {'ampl':.9999, 'fwhm':.01, 'y_offset':1}
 
     elif config.startswith('sq'):
