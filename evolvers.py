@@ -6,7 +6,9 @@ from schemes import pcm, plm, ppm, weno
 
 # Operator L as a function of the reconstruction values; calculate the flux through the surface [F(i+1/2) - F(i-1/2)]/dx
 def getL(fluxes, dx):
-    return -np.diff(fluxes, axis=0)/dx
+    for i in range(fluxes.ndim-1):
+        fluxes = np.diff(fluxes, axis=i)
+    return -fluxes/dx
 
 
 # Evolve the system in space by a standardised workflow

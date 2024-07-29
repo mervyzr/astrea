@@ -28,7 +28,7 @@ np.random.seed(seed)
 def runSimulation(grp, _simVariables):
     # Initialise the discrete solution array with conserved variables <q>
     # Even though the solution array is discrete, the variables are averages (FV) instead of points (FD)
-    domain = fv.initialise(_simVariables)
+    domain = fv.initialise(_simVariables, convert=True)
 
     # Initiate live plotting, if enabled
     if _simVariables.livePlot:
