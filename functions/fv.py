@@ -95,7 +95,7 @@ def pointConvertConservative(tube, gamma):
 # Converting (cell-/face-averaged) primitive variables w to conservative variables q through a higher-order approx.
 def convertPrimitive(tube, gamma, boundary):
     limit = len(tube) + 1
-    w, q = tube, np.zeros_like(tube)
+    w, q = np.copy(tube), np.zeros_like(tube)
     for i in range(tube.ndim-1):
         _w = makeBoundary(tube, boundary, axis=i)
         w -= (np.diff(_w.take(indices=range(1,limit+1), axis=i), axis=i) - np.diff(_w.take(indices=range(limit), axis=i), axis=i))/24
@@ -108,7 +108,7 @@ def convertPrimitive(tube, gamma, boundary):
 # Converting (cell-/face-averaged) conservative variables q to primitive variables w through a higher-order approx.
 def convertConservative(tube, gamma, boundary):
     limit = len(tube) + 1
-    w, q = np.zeros_like(tube), tube
+    w, q = np.zeros_like(tube), np.copy(tube)
     for i in range(tube.ndim-1):
         _q = makeBoundary(tube, boundary, axis=i)
         q -= (np.diff(_q.take(indices=range(1,limit+1), axis=i), axis=i) - np.diff(_q.take(indices=range(limit), axis=i), axis=i))/24

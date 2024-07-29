@@ -42,25 +42,21 @@ else:
 
 # Initiate the live plot feature
 def initiateLivePlot(simVariables):
-    startPos, endPos, N = simVariables.startPos, simVariables.endPos, simVariables.cells
+    N, dim, startPos, endPos = simVariables.cells, simVariables.dim, simVariables.startPos, simVariables.endPos
 
     plt.ion()
     fig, ax = plt.subplots(nrows=2, ncols=2)
-
-    plot_x = np.linspace(startPos, endPos, N)
-
-    ax[0,1].yaxis.set_label_position("right")
-    ax[1,1].yaxis.set_label_position("right")
-
-    ax[0,1].yaxis.tick_right()
-    ax[1,1].yaxis.tick_right()
+    axis = np.linspace(startPos, endPos, N)
 
     graphs = []
     for _i, _j in plotIndexes:
-        ax[_i,_j].set_ylabel(plotLabels[_i][_j])
         ax[_i,_j].set_xlim([startPos, endPos])
         ax[_i,_j].grid(linestyle='--', linewidth=0.5)
-        graph, = ax[_i,_j].plot(plot_x, plot_x, linewidth=2, color=colours[_i][_j])
+        ax[_i,_j].set_ylabel(plotLabels[_i][_j])
+        if _j == 1:
+            ax[_i,_j].yaxis.set_label_position("right")
+            ax[_i,_j].yaxis.tick_right()
+        graph, = ax[_i,_j].plot(axis, axis, linewidth=2, color=colours[_i][_j])
         graphs.append(graph)
 
     return fig, ax, graphs
