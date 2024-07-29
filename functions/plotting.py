@@ -15,6 +15,7 @@ if platform.system() == "Darwin":
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.patches import Polygon
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from functions import analytic, fv, generic
 
@@ -31,6 +32,7 @@ try:
 except Exception as e:
     plt.style.use("default")
     colours = [["blue", "red"], ["green", "darkviolet"]]
+    twoDColours = [["viridis", "hot"], ["cividis", "plasma"]]
     pass
 else:
     if _style != "default":
@@ -38,26 +40,45 @@ else:
         colours = [_color[:2], _color[2:4]]
     else:
         colours = [["blue", "red"], ["green", "darkviolet"]]
+        twoDColours = [["viridis", "hot"], ["cividis", "plasma"]]
 
 
 # Initiate the live plot feature
 def initiateLivePlot(simVariables):
     N, dim, startPos, endPos = simVariables.cells, simVariables.dim, simVariables.startPos, simVariables.endPos
-
     plt.ion()
-    fig, ax = plt.subplots(nrows=2, ncols=2)
-    axis = np.linspace(startPos, endPos, N)
 
-    graphs = []
-    for _i, _j in plotIndexes:
-        ax[_i,_j].set_xlim([startPos, endPos])
-        ax[_i,_j].grid(linestyle='--', linewidth=0.5)
-        ax[_i,_j].set_ylabel(plotLabels[_i][_j])
-        if _j == 1:
-            ax[_i,_j].yaxis.set_label_position("right")
-            ax[_i,_j].yaxis.tick_right()
-        graph, = ax[_i,_j].plot(axis, axis, linewidth=2, color=colours[_i][_j])
-        graphs.append(graph)
+    if 0 < dim < 3:
+        fig, ax = plt.subplots(nrows=2, ncols=2)
+        if dim == 2:
+            plt.subplots_adjust(wspace=.2)
+
+        graphs = []
+        for _i, _j in plotIndexes:
+            ax[_i,_j].set_ylabel(plotLabels[_i][_j])
+            if dim == 1:
+                if _j == 1:
+                    ax[_i,_j].yaxis.tick_right()
+                    ax[_i,_j].yaxis.set_label_position("right")
+                ax[_i,_j].set_xlim([startPos, endPos])
+                ax[_i,_j].grid(linestyle='--', linewidth=0.5)
+                graph, = ax[_i,_j].plot(np.linspace(startPos, endPos, N), np.linspace(startPos, endPos, N), linewidth=2, color=colours[_i][_j])
+            else:
+                if _j == 1:
+                    ax[_i,_j].yaxis.set_label_position("right")
+                    ax[_i,_j].yaxis.labelpad = 55
+                graph = ax[_i,_j].imshow(np.zeros((N,N)), interpolation="bilinear", cmap=twoDColours[_i][_j])
+                divider = make_axes_locatable(ax[_i,_j])
+                cax = divider.append_axes('right', size='5%', pad=0.05)
+                fig.colorbar(graph, cax=cax, orientation='vertical')
+            graphs.append(graph)
+    else:
+        fig = plt.figure(figsize=plt.figaspect(0.5))
+        for subplot in range(4):
+            ax = fig.add_subplot(2, 2, subplot+1, projection='3d')
+            img = ax.scatter(N, N, N, c=N, cmap=plt.viridis)
+            fig.colorbar(img)
+            graphs.append(ax)
 
     return fig, ax, graphs
 
@@ -65,16 +86,24 @@ def initiateLivePlot(simVariables):
 # Update live plot
 def updatePlot(arr, t, fig, ax, graphs):
     graphTL, graphTR, graphBL, graphBR = graphs
+    dim = arr.ndim - 1
 
-    graphTL.set_ydata(arr[:,0])  # density
-    graphTR.set_ydata(arr[:,4])  # pressure
-    graphBL.set_ydata(arr[:,1])  # vx
-    graphBR.set_ydata(arr[:,4]/arr[:,0])  # specific thermal energy
-    #graphBR.set_ydata(analytic.calculateEntropyDensity(arr, 1.4))  # scaled entropy density
+    if dim > 1:
+        graphTL.set_data(arr[...,0])  # density
+        graphTR.set_data(arr[...,4])  # pressure
+        graphBL.set_data(arr[...,1])  # vx
+        graphBR.set_data(arr[...,4]/arr[...,0])  # specific thermal energy
+        fig.text(0.04, 0.4, r"Cell position $y$", ha='center', rotation='vertical')
+    else:
+        graphTL.set_ydata(arr[:,0])  # density
+        graphTR.set_ydata(arr[:,4])  # pressure
+        graphBL.set_ydata(arr[:,1])  # vx
+        graphBR.set_ydata(arr[:,4]/arr[:,0])  # specific thermal energy
+        #graphBR.set_ydata(analytic.calculateEntropyDensity(arr, 1.4))  # scaled entropy density
 
-    for _i, _j in plotIndexes:
-        ax[_i,_j].relim()
-        ax[_i,_j].autoscale_view()
+        for _i, _j in plotIndexes:
+            ax[_i,_j].relim()
+            ax[_i,_j].autoscale_view()
 
     plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(t,4)}$")
     fig.text(0.5, 0.04, r"Cell position $x$", ha='center')
