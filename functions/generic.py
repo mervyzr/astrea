@@ -67,7 +67,7 @@ def tidyDict(_dct):
 def handleErrors(dct):
     acceptedValues = {
         "config": ["sod", "sin", "sin-wave", "sinc", "sinc-wave", "sedov", "shu-osher", "shu", "osher", "gaussian", "gauss", "sq", "square", "square-wave", "toro1", "toro2", "toro3", "toro4", "toro5", "ryu-jones", "ryu", "jones", "rj"],
-        "dim": [1, 2],
+        "dim": [1, 2, 3],
         "subgrid": ["pcm", "constant", "c", "plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"],
         "timestep": ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)", "(2,2)", "(3,3)", "(4,3)", "(5,3)", "(5,4)"],
         "scheme": ["lf", "llf", "lax","friedrich", "lax-friedrich", "lw", "lax-wendroff", "wendroff", "hllc", "c", "osher-solomon", "osher", "solomon", "os", "entropy", "stable", "entropy-stable", "es"],
@@ -82,14 +82,29 @@ def handleErrors(dct):
         "runType": ["single", "Run type unknown; reverting to runType='single' simulation.."]
         }
 
-    if dct['saveVideo'] and dct['runType'] not in ["s", "single", "1", 1]:
-        print(f"{bcolours.WARNING}Videos can only be saved with runType='single'..{bcolours.ENDC}")
-        dct['saveVideo'] = False
-
     for k, lst in acceptedValues.items():
         if dct[k] not in lst:
             print(f"{bcolours.WARNING}{defaultValues[k][1]}{bcolours.ENDC}")
             dct[k] = defaultValues[k][0]
+
+    if dct['runType'] not in ["s", "single", "1", 1] and dct['runType'].startswith('m'):
+        if dct['saveVideo']:
+            print(f"{bcolours.WARNING}Videos can only be saved with runType='single'..{bcolours.ENDC}")
+            dct['saveVideo'] = False
+        if dct['livePlot']:
+            print(f"{bcolours.WARNING}Live plots can only be switched on for single simulation runs..{bcolours.ENDC}")
+            dct['livePlot'] = False
+
+    if dct['runType'] in ["s", "single", "1", 1] and (dct['savePlots'] or dct['saveVideo']) and (dct['livePlot']):
+        print(f"{bcolours.WARNING}Switching off live plot when saving media because live plot interferes with matplotlib.savefig..{bcolours.ENDC}")
+        dct['livePlot'] = False
+
+    if (dct['dim'] < 1 or dct['dim'] > 2) and (dct['livePlot'] or dct['savePlots'] or dct['saveVideo']):
+        print(f"{bcolours.WARNING}Saving media currently not supported for 3D..{bcolours.ENDC}")
+        dct['livePlot'] = False
+        dct['savePlots'] = False
+        dct['saveVideo'] = False
+
     return dct
 
 
