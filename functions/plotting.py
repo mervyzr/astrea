@@ -27,12 +27,12 @@ beautify = False
 
 plotIndexes = [[0,0], [0,1], [1,0], [1,1]]
 plotLabels = [[r"Density $\rho$", r"Pressure $P$"], [r"Velocity $v_x$", r"Specific thermal energy $\frac{P}{\rho}$"]]
+twoDColours = [["viridis", "hot"], ["cividis", "plasma"]]
 try:
     plt.style.use(_style)
 except Exception as e:
     plt.style.use("default")
     colours = [["blue", "red"], ["green", "darkviolet"]]
-    twoDColours = [["viridis", "hot"], ["cividis", "plasma"]]
     pass
 else:
     if _style != "default":
@@ -40,7 +40,6 @@ else:
         colours = [_color[:2], _color[2:4]]
     else:
         colours = [["blue", "red"], ["green", "darkviolet"]]
-        twoDColours = [["viridis", "hot"], ["cividis", "plasma"]]
 
 
 # Initiate the live plot feature
@@ -48,64 +47,54 @@ def initiateLivePlot(simVariables):
     N, dim, startPos, endPos = simVariables.cells, simVariables.dim, simVariables.startPos, simVariables.endPos
     plt.ion()
 
-    if 0 < dim < 3:
-        fig, ax = plt.subplots(nrows=2, ncols=2)
+    fig, ax = plt.subplots(nrows=2, ncols=2)
+    plt.subplots_adjust(wspace=.2)
+
+    graphs = []
+    for _i, _j in plotIndexes:
+        ax[_i,_j].set_ylabel(plotLabels[_i][_j])
         if dim == 2:
-            plt.subplots_adjust(wspace=.2)
-
-        graphs = []
-        for _i, _j in plotIndexes:
-            ax[_i,_j].set_ylabel(plotLabels[_i][_j])
-            if dim == 1:
-                if _j == 1:
-                    ax[_i,_j].yaxis.tick_right()
-                    ax[_i,_j].yaxis.set_label_position("right")
-                ax[_i,_j].set_xlim([startPos, endPos])
-                ax[_i,_j].grid(linestyle='--', linewidth=0.5)
-                graph, = ax[_i,_j].plot(np.linspace(startPos, endPos, N), np.linspace(startPos, endPos, N), linewidth=2, color=colours[_i][_j])
-            else:
-                if _j == 1:
-                    ax[_i,_j].yaxis.set_label_position("right")
-                    ax[_i,_j].yaxis.labelpad = 55
-                graph = ax[_i,_j].imshow(np.zeros((N,N)), interpolation="bilinear", cmap=twoDColours[_i][_j])
-                divider = make_axes_locatable(ax[_i,_j])
-                cax = divider.append_axes('right', size='5%', pad=0.05)
-                fig.colorbar(graph, cax=cax, orientation='vertical')
-            graphs.append(graph)
-    else:
-        fig = plt.figure(figsize=plt.figaspect(0.5))
-        for subplot in range(4):
-            ax = fig.add_subplot(2, 2, subplot+1, projection='3d')
-            img = ax.scatter(N, N, N, c=N, cmap=plt.viridis)
-            fig.colorbar(img)
-            graphs.append(ax)
-
+            if _j == 1:
+                ax[_i,_j].yaxis.set_label_position("right")
+                ax[_i,_j].yaxis.labelpad = 55
+            graph = ax[_i,_j].imshow(np.zeros((N,N)), interpolation="bilinear", cmap=twoDColours[_i][_j])
+            divider = make_axes_locatable(ax[_i,_j])
+            cax = divider.append_axes('right', size='5%', pad=0.05)
+            fig.colorbar(graph, cax=cax, orientation='vertical')
+        else:
+            if _j == 1:
+                ax[_i,_j].yaxis.tick_right()
+                ax[_i,_j].yaxis.set_label_position("right")
+            ax[_i,_j].set_xlim([startPos, endPos])
+            ax[_i,_j].grid(linestyle='--', linewidth=0.5)
+            graph, = ax[_i,_j].plot(np.linspace(startPos, endPos, N), np.linspace(startPos, endPos, N), linewidth=2, color=colours[_i][_j])
+        graphs.append(graph)
     return fig, ax, graphs
 
 
 # Update live plot
-def updatePlot(arr, t, fig, ax, graphs):
+def updatePlot(arr, t, fig, ax, graphs, dim):
     graphTL, graphTR, graphBL, graphBR = graphs
-    dim = arr.ndim - 1
 
-    if dim > 1:
+    if dim == 2:
         graphTL.set_data(arr[...,0])  # density
         graphTR.set_data(arr[...,4])  # pressure
         graphBL.set_data(arr[...,1])  # vx
         graphBR.set_data(arr[...,4]/arr[...,0])  # specific thermal energy
         fig.text(0.04, 0.4, r"Cell position $y$", ha='center', rotation='vertical')
+        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ at $t = {round(t,4)}$")
     else:
         graphTL.set_ydata(arr[:,0])  # density
         graphTR.set_ydata(arr[:,4])  # pressure
         graphBL.set_ydata(arr[:,1])  # vx
         graphBR.set_ydata(arr[:,4]/arr[:,0])  # specific thermal energy
         #graphBR.set_ydata(analytic.calculateEntropyDensity(arr, 1.4))  # scaled entropy density
+        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(t,4)}$")
 
-        for _i, _j in plotIndexes:
-            ax[_i,_j].relim()
-            ax[_i,_j].autoscale_view()
-
-    plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(t,4)}$")
+    for _i, _j in plotIndexes:
+        ax[_i,_j].relim()
+        ax[_i,_j].autoscale_view()
+    
     fig.text(0.5, 0.04, r"Cell position $x$", ha='center')
     fig.canvas.draw()
     fig.canvas.flush_events()
@@ -114,12 +103,17 @@ def updatePlot(arr, t, fig, ax, graphs):
 
 # Plot snapshots of quantities for multiple runs
 def plotQuantities(f, simVariables, savepath):
-    config, subgrid, timestep, scheme, precision, snapshots = simVariables.config, simVariables.subgrid, simVariables.timestep, simVariables.scheme, simVariables.precision, simVariables.snapshots
+    config, dim, subgrid, timestep, scheme, precision, snapshots = simVariables.config, simVariables.dim, simVariables.subgrid, simVariables.timestep, simVariables.scheme, simVariables.precision, simVariables.snapshots
     startPos, endPos, params, initialLeft = simVariables.startPos, simVariables.endPos, simVariables.misc, simVariables.initialLeft
 
     # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]
     nList.sort()
+
+    if dim == 2:
+        figsize = [15, 10]
+    else:
+        figsize = [21, 10]
 
     # Separate the timings based on the number of snapshots; returns a list of lists with the timing intervals for each simulation
     indexes = []
@@ -130,20 +124,21 @@ def plotQuantities(f, simVariables, savepath):
 
     # Iterate through the timings; the last set of timings refer to the highest resolution
     for i in range(len(indexes[-1])):
-        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
+        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=figsize)
 
         # Set up figure
         for _i, _j in plotIndexes:
             ax[_i,_j].set_ylabel(plotLabels[_i][_j], fontsize=18)
-            ax[_i,_j].set_xlim([startPos, endPos])
-            ax[_i,_j].grid(linestyle="--", linewidth=0.5)
+            if dim == 1:
+                ax[_i,_j].set_xlim([startPos, endPos])
+                ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
         # Plot each simulation at the i-th timing
         for j, N in enumerate(nList):
             time_key = str(indexes[j][i])
-            y1 = f[str(N)][time_key][:,0]   # density
-            y2 = f[str(N)][time_key][:,4]   # pressure
-            y3 = f[str(N)][time_key][:,1]   # vx
+            y1 = f[str(N)][time_key][...,0]   # density
+            y2 = f[str(N)][time_key][...,4]   # pressure
+            y3 = f[str(N)][time_key][...,1]   # vx
             y4 = y2/y1  # specific thermal energy
             x = np.linspace(startPos, endPos, N)
             y_data = [[y1, y2], [y3, y4]]
@@ -151,70 +146,78 @@ def plotQuantities(f, simVariables, savepath):
             # density, pressure, vx, thermal energy
             for _i, _j in plotIndexes:
                 if len(f) != 1:
-                    ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, label=f"N = {N}")
-                    plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$", fontsize=24)
-                else:
-                    if beautify:
-                        gradient_plot([x, y_data[_i][_j]], [_i,_j], ax, linewidth=2, color=colours[_i][_j])
+                    if dim == 2:
+                        print(f"{generic.bcolours.WARNING}Stacking 2D plots over one another will not yield any discernible results..{generic.bcolours.ENDC}")
                     else:
-                        #ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=colours[_i][_j], color=colours[_i][_j])
-                        ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=colours[_i][_j])
-                    plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$ ($N = {N}$)", fontsize=24)
-
-        # Adjust ylim and plot analytical solutions for Gaussian, sin-wave and sinc-wave tests
-        if config.startswith("sin") or config.startswith("gaussian"):
-            last_sim = f[list(f.keys())[-1]]
-            first_config = last_sim[list(last_sim.keys())[0]][0]
-
-            analytical = np.zeros((N, len(initialLeft)), dtype=precision)
-            analytical[:] = initialLeft
-            if config.startswith("gaussian"):
-                analytical[:,0] = fv.gauss_func(x, params)
-                Ptol = 5e-7
-            else:
-                Ptol = .005
-                if config == "sinc":
-                    analytical[:,0] = fv.sinc_func(x, params)
+                        ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, label=f"N = {N}")
+                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$", fontsize=24)
                 else:
-                    analytical[:,0] = fv.sin_func(x, params)
+                    if dim == 2:
+                        graph = ax[_i,_j].imshow(y_data[_i][_j], interpolation="bilinear", cmap=twoDColours[_i][_j])
+                        divider = make_axes_locatable(ax[_i,_j])
+                        cax = divider.append_axes('right', size='5%', pad=0.05)
+                        fig.colorbar(graph, cax=cax, orientation='vertical')
+                    else:
+                        if beautify:
+                            gradient_plot([x, y_data[_i][_j]], [_i,_j], ax, linewidth=2, color=colours[_i][_j])
+                        else:
+                            #ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=colours[_i][_j], color=colours[_i][_j])
+                            ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=colours[_i][_j])
+                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$ ($N = {N}$)", fontsize=24)
 
-            Prange = np.linspace(initialLeft[4]-Ptol, initialLeft[4]+Ptol, 9)
-            vrange = np.linspace(initialLeft[1]-.005, initialLeft[1]+.005, 9)
-            ax[0,1].set_yticks(Prange)
-            ax[1,0].set_yticks(vrange)
-            ax[0,1].set_ylim([initialLeft[4]-Ptol, initialLeft[4]+Ptol])
-            ax[1,0].set_ylim([initialLeft[1]-.005, initialLeft[1]+.005])
+        # Add analytical solutions only for 1D
+        if dim == 2:
+            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ at $t \approx {round(indexes[-1][i],3)}$ ($N = {N}$)", fontsize=24)
+            fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
+            fig.text(0.04, 0.4, r"Cell position $y$", fontsize=18, ha='center')
+        # Add analytical solutions only for 1D
+        else:
+            # Adjust ylim and plot analytical solutions for Gaussian, sin-wave and sinc-wave tests
+            if config.startswith("sin") or config.startswith("gaussian"):
+                last_sim = f[list(f.keys())[-1]]
+                first_config = last_sim[list(last_sim.keys())[0]][0]
 
-            y_theo = [[analytical[:, 0], analytical[:, 4]], [analytical[:, 1], analytical[:, 4]/analytical[:, 0]]]
-            for _i, _j in plotIndexes:
-                ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label=rf"{config.title()}$_{{theo}}$")
+                analytical = np.zeros((N, len(initialLeft)), dtype=precision)
+                analytical[:] = initialLeft
+                if config.startswith("gaussian"):
+                    analytical[:,0] = fv.gauss_func(x, params)
+                    Ptol = 5e-7
+                else:
+                    Ptol = .005
+                    if config == "sinc":
+                        analytical[:,0] = fv.sinc_func(x, params)
+                    else:
+                        analytical[:,0] = fv.sin_func(x, params)
 
-        # Add Sod analytical solution, using the highest resolution and timing
-        elif config == "sod":
-            tube, _t = f[str(nList[-1])][str(indexes[-1][i])], indexes[-1][i]
-            Sod = analytic.calculateSodAnalytical(tube, _t, simVariables)
+                Prange = np.linspace(initialLeft[4]-Ptol, initialLeft[4]+Ptol, 9)
+                vrange = np.linspace(initialLeft[1]-.005, initialLeft[1]+.005, 9)
+                ax[0,1].set_yticks(Prange)
+                ax[1,0].set_yticks(vrange)
+                ax[0,1].set_ylim([initialLeft[4]-Ptol, initialLeft[4]+Ptol])
+                ax[1,0].set_ylim([initialLeft[1]-.005, initialLeft[1]+.005])
 
-            y_theo = [[Sod[:, 0], Sod[:, 4]], [Sod[:, 1], Sod[:, 4]/Sod[:, 0]]]
-            for _i, _j in plotIndexes:
-                ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label=r"Sod$_{theo}$")
+                y_theo = [[analytical[:, 0], analytical[:, 4]], [analytical[:, 1], analytical[:, 4]/analytical[:, 0]]]
+                for _i, _j in plotIndexes:
+                    ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label=rf"{config.title()}$_{{theo}}$")
 
-        # Add Sedov analytical solution, using the highest resolution and timing
-        elif config == "sedov":
-            """Sedov = analytic.calculateSedovAnalytical(indexes[-1][i], simVariables)
+            # Add Sod analytical solution, using the highest resolution and timing
+            elif config == "sod":
+                tube, _t = f[str(nList[-1])][str(indexes[-1][i])], indexes[-1][i]
+                Sod = analytic.calculateSodAnalytical(tube, _t, simVariables)
 
-            y_theo = [[Sedov[1], Sedov[2]], [Sedov[3], Sedov[3]/Sedov[1]]]
-            for _i, _j in plotIndexes:
-                ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label=r"Sedov$_{theo}$")"""
-            pass
+                y_theo = [[Sod[:, 0], Sod[:, 4]], [Sod[:, 1], Sod[:, 4]/Sod[:, 0]]]
+                for _i, _j in plotIndexes:
+                    ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label=r"Sod$_{theo}$")
 
-        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
-        if len(f) != 1 or config == "sod" or config.startswith("gauss") or config.startswith("sin"):
-            if len(f) > 5:
-                _ncol = 2
-            else:
-                _ncol = 1
-            handles, labels = plt.gca().get_legend_handles_labels()
-            fig.legend(handles, labels, prop={'size': 16}, loc='upper right', ncol=_ncol)
+            fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
+            if len(f) != 1 or config == "sod" or config.startswith("gauss") or config.startswith("sin"):
+                if len(f) > 5:
+                    _ncol = 2
+                else:
+                    _ncol = 1
+                handles, labels = plt.gca().get_legend_handles_labels()
+                fig.legend(handles, labels, prop={'size': 16}, loc='upper right', ncol=_ncol)
+
 
         plt.savefig(f"{savepath}/wPlot_{config}_{subgrid}_{timestep}_{scheme}_{round(indexes[-1][i],3)}.png", dpi=330)
 
@@ -266,7 +269,7 @@ def plotSolutionErrors(f, simVariables, savepath, coeff, norm=1):
     plt.suptitle(rf"$L_{norm}$ solution error norm $\epsilon_\nu(\vec{{w}})$ against resolution $N_\nu$ for {config.title()} test", fontsize=24)
     fig.text(0.5, 0.04, r"Resolution $\log{(N_\nu)}$", fontsize=18, ha='center')
 
-    plt.savefig(f"{savepath}/solErr_L{norm}_{subgrid}_{timestep}_{scheme}.png", dpi=330, facecolor="w")
+    plt.savefig(f"{savepath}/solErr_L{norm}_{subgrid}_{timestep}_{scheme}.png", dpi=330)
 
     plt.cla()
     plt.clf()
@@ -293,7 +296,7 @@ def plotSolutionErrors(f, simVariables, savepath, coeff, norm=1):
     ax.set_xticklabels(_xticklabels, rotation=45, fontsize=12, ha="right")
     ax.legend(prop={'size': 18})
 
-    plt.savefig(f"{savepath}/convergeOrder_{subgrid}_{timestep}_{scheme}.png", dpi=330, facecolor="w")
+    plt.savefig(f"{savepath}/convergeOrder_{subgrid}_{timestep}_{scheme}.png", dpi=330)
 
     plt.cla()
     plt.clf()
@@ -316,13 +319,13 @@ def plotTotalVariation(f, simVariables, savepath):
         ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
     for N in nList:
-        tvDict = analytic.calculateTV(f[str(N)])
+        tvDict = analytic.calculateTV(f[str(N)], simVariables)
         x = np.asarray(list(tvDict.keys()))
         y = np.asarray(list(tvDict.values()))
-        y1 = y[:,0]  # density
-        y2 = y[:,4]  # pressure
-        y3 = y[:,1]  # vx
-        y4 = y[:,-1]  # specific thermal energy
+        y1 = y[...,0]  # density
+        y2 = y[...,4]  # pressure
+        y3 = y[...,1]  # vx
+        y4 = y[...,-1]  # specific thermal energy
         y_data = [[y1, y2], [y3, y4]]
         x.sort()
 
@@ -341,8 +344,7 @@ def plotTotalVariation(f, simVariables, savepath):
 
 
 def plotConservationEquations(f, simVariables, savepath):
-    config, gamma, subgrid, timestep, scheme = simVariables.config, simVariables.gamma, simVariables.subgrid, simVariables.timestep, simVariables.scheme
-    startPos, endPos = simVariables.startPos, simVariables.endPos
+    config, subgrid, timestep, scheme = simVariables.config, simVariables.subgrid, simVariables.timestep, simVariables.scheme
 
     # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]
@@ -359,10 +361,10 @@ def plotConservationEquations(f, simVariables, savepath):
         eqDict = analytic.calculateConservation(f[str(N)], simVariables)
         x = np.asarray(list(eqDict.keys()))
         y = np.asarray(list(eqDict.values()))
-        y1 = y[:,0]  # mass
-        y2 = y[:,4]  # total energy
-        y3 = y[:,1]  # momentum_x
-        y4 = y[:,5]  # B*vol_x
+        y1 = y[...,0]  # mass
+        y2 = y[...,4]  # total energy
+        y3 = y[...,1]  # momentum_x
+        y4 = y[...,5]  # B*vol_x
         y_data = [[y1, y2], [y3, y4]]
         x.sort()
 
@@ -393,42 +395,56 @@ def plotConservationEquations(f, simVariables, savepath):
 
 
 def makeVideo(f, simVariables, savepath, vidpath):
-    config, subgrid, timestep, scheme = simVariables.config, simVariables.subgrid, simVariables.timestep, simVariables.scheme
+    config, dim, subgrid, timestep, scheme = simVariables.config, simVariables.dim, simVariables.subgrid, simVariables.timestep, simVariables.scheme
     startPos, endPos = simVariables.startPos, simVariables.endPos
 
     # hdf5 keys are string; need to convert back to int and sort again
     nList = [int(n) for n in f.keys()]
     nList.sort()
 
+    if dim == 2:
+        figsize = [15, 10]
+    else:
+        figsize = [21, 10]
+
     for N in nList:
         simulation = f[str(N)]
         counter = 0
 
         for t, domain in simulation.items():
-            fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
+            fig, ax = plt.subplots(nrows=2, ncols=2, figsize=figsize)
 
             for _i, _j in plotIndexes:
                 ax[_i,_j].set_ylabel(plotLabels[_i][_j], fontsize=18)
-                ax[_i,_j].set_xlim([startPos, endPos])
-                ax[_i,_j].grid(linestyle="--", linewidth=0.5)
+                if dim == 1:
+                    ax[_i,_j].set_xlim([startPos, endPos])
+                    ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
-            y1 = domain[:,0]  # density
-            y2 = domain[:,4]  # pressure
-            y3 = domain[:,1]  # vx
-            y4 = domain[:,4]/domain[:,0]  # specific thermal energy
+            y1 = domain[...,0]  # density
+            y2 = domain[...,4]  # pressure
+            y3 = domain[...,1]  # vx
+            y4 = y2/y1  # specific thermal energy
             x = np.linspace(startPos, endPos, N)
             y_data = [[y1, y2], [y3, y4]]
 
             for _i, _j in plotIndexes:
-                if beautify:
-                    gradient_plot([x, y_data[_i][_j]], [_i,_j], ax, linewidth=2, color=colours[_i][_j])
+                if dim == 2:
+                    graph = ax[_i,_j].imshow(y_data[_i][_j], interpolation="bilinear", cmap=twoDColours[_i][_j])
+                    divider = make_axes_locatable(ax[_i,_j])
+                    cax = divider.append_axes('right', size='5%', pad=0.05)
+                    fig.colorbar(graph, cax=cax, orientation='vertical')
+                    plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=24)
+                    fig.text(0.04, 0.4, r"Cell position $y$", fontsize=18, ha='center')
                 else:
-                    ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=colours[_i][_j])
+                    if beautify:
+                        gradient_plot([x, y_data[_i][_j]], [_i,_j], ax, linewidth=2, color=colours[_i][_j])
+                    else:
+                        ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=colours[_i][_j])
+                    plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=24)
 
-            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=24)
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
 
-            plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330, facecolor="w")
+            plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330)
 
             plt.cla()
             plt.clf()
@@ -448,26 +464,43 @@ def makeVideo(f, simVariables, savepath, vidpath):
 
 # Useful function for plotting each instance of the domain (livePlot must be switched OFF)
 def plotInstance(domain, showPlot=True, text="", startPos=0, endPos=1, **kwargs):
-    fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21, 10])
+    try:
+        dim = kwargs['dim']
+    except Exception as e:
+        pass
+    else:
+        dim = 1
+
+    fig, ax = plt.subplots(nrows=2, ncols=2)
 
     for index, (_i,_j) in enumerate(plotIndexes):
         ax[_i,_j].set_ylabel(plotLabels[index], fontsize=18)
-        ax[_i,_j].set_xlim([startPos, endPos])
-        ax[_i,_j].grid(linestyle="--", linewidth=0.5)
+        if dim == 1:
+            ax[_i,_j].set_xlim([startPos, endPos])
+            ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
-    y1 = domain[:,0]   # density
-    y2 = domain[:,4]   # pressure
-    y3 = domain[:,1]   # vx
+    y1 = domain[...,0]   # density
+    y2 = domain[...,4]   # pressure
+    y3 = domain[...,1]   # vx
     y4 = y2/y1  # specific thermal energy
     x = np.linspace(startPos, endPos, len(y1))
     y_data = [[y1, y2], [y3, y4]]
 
     for _i, _j in plotIndexes:
-        if beautify:
-            gradient_plot([x, y_data[_i][_j]], [_i,_j], ax, linewidth=2, color=colours[_i][_j])
+        if dim == 2:
+            graph = ax[_i,_j].imshow(y_data[_i][_j], interpolation="bilinear", cmap=twoDColours[_i][_j])
+            divider = make_axes_locatable(ax[_i,_j])
+            cax = divider.append_axes('right', size='5%', pad=0.05)
+            fig.colorbar(graph, cax=cax, orientation='vertical')
+            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ {text}", fontsize=24)
+            fig.text(0.04, 0.4, r"Cell position $y$", fontsize=18, ha='center')
         else:
-            ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=colours[_i][_j])
-    plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}", fontsize=24)
+            if beautify:
+                gradient_plot([x, y_data[_i][_j]], [_i,_j], ax, linewidth=2, color=colours[_i][_j])
+            else:
+                ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=colours[_i][_j])
+            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}", fontsize=24)
+
     fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
 
     if showPlot:
@@ -475,7 +508,7 @@ def plotInstance(domain, showPlot=True, text="", startPos=0, endPos=1, **kwargs)
     else:
         step = kwargs['step']
         seed = kwargs['seed']
-        plt.savefig(f"{seed}_{step}_{text.replace(' ','').title()}.png", dpi=330, facecolor="w")
+        plt.savefig(f"{seed}_{step}_{text.replace(' ','').title()}.png", dpi=330)
 
     plt.cla()
     plt.clf()
