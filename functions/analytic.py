@@ -38,21 +38,20 @@ def calculateSolutionError(simulation, simVariables, norm):
 
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
-def calculateTV(simulation):
+def calculateTV(simulation, simVariables):
     tv = {}
     for t in list(simulation.keys()):
         domain = simulation[t]
         thermal = fv.divide(domain[...,4], domain[...,0])
-        length = domain.ndim - 1
-        for i in range(length):
+        for i in range(simVariables.dim):
             domain = np.diff(domain, axis=i)
             thermal = np.diff(thermal, axis=i)
-        tv[float(t)] = np.sum(np.abs(domain), axis=tuple(range(length)))
+        tv[float(t)] = np.sum(np.abs(domain), axis=tuple(range(simVariables.dim)))
         tv[float(t)] = np.append(tv[float(t)], np.sum(np.abs(thermal)))
     return tv
 
 
-# Function for checking the conservation equations; works with primitive variables
+# Function for checking the conservation equations; works with primitive variables but needs to be converted
 def calculateConservation(simulation, simVariables):
     N, gamma, dim, startPos, endPos = simVariables.cells, simVariables.gamma, simVariables.dim, simVariables.startPos, simVariables.endPos
     eq = {}
@@ -65,7 +64,7 @@ def calculateConservation(simulation, simVariables):
     return eq
 
 
-# Function for checking the conservation equations at specific intervals; works with primitive variables
+# Function for checking the conservation equations at specific intervals; works with primitive variables but needs to be converted
 # The reason is because at the boundaries, some values are lost to the ghost cells and not counted into the conservation plots
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
 def calculateConservationAtInterval(simulation, simVariables, interval=10):

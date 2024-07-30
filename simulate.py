@@ -44,7 +44,7 @@ def runSimulation(grp, _simVariables):
 
         # Update the live plot, if enabled
         if _simVariables.livePlot:
-            plotting.updatePlot(tubeSnapshot, t, fig, ax, graphs)
+            plotting.updatePlot(tubeSnapshot, t, fig, ax, graphs, _simVariables.dim)
 
         # Compute the numerical fluxes at each interface
         fluxes, eigmax = evolvers.evolveSpace(domain, _simVariables)
@@ -114,18 +114,8 @@ def main():
         # Auto-generate the resolutions/grid-sizes for multiple simulations
         coeff = 5
         nList = coeff*2**np.arange(2,12)
-
-        # Turn off live plot feature when multiple simulations are run
-        if simVariables['livePlot']:
-            print(f"{generic.bcolours.WARNING}Live plots can only be switched on for single simulation runs..{generic.bcolours.ENDC}")
-        simVariables['livePlot'] = False
     else:
         nList = [simVariables['cells']]
-
-        # Turn off the live plot feature when saving plots or videos; live plot interferes with matplotlib savefig
-        if simVariables['savePlots'] or simVariables['saveVideo']:
-            simVariables['livePlot'] = False
-
 
     ###################################### SCRIPT INITIATE ######################################
     # Start the script; run in a try-except-else to handle crashes and prevent exiting code entirely
