@@ -67,7 +67,7 @@ def calculateLaxFriedrichFlux(fluxes, qDiff, eigenvalues):
 # Lax-Wendroff scheme (2nd-order, Jacobian method; contains overshoots)
 def calculateLaxWendroffFlux(fluxes, qDiff, eigenvalues, characteristics):
     # Sound speed for each cell (2-Riemann invariant; entropy wave or contact discontinuity); indexing 1 only works for hydrodynamics
-    soundSpeed = np.unique(characteristics, axis=1)[:,1]
+    soundSpeed = np.unique(characteristics, axis=1)[...,1]
     normalisedEigvals = fv.divide(soundSpeed**2, eigenvalues)
     maxNormalisedEigvals = np.max([normalisedEigvals[:-1], normalisedEigvals[1:]], axis=0)
 
@@ -78,8 +78,8 @@ def calculateLaxWendroffFlux(fluxes, qDiff, eigenvalues, characteristics):
 # HLLC Riemann solver [Fleischmann et al., 2020]
 def calculateHLLCFlux(wLs, wRs, gamma, boundary):
     # The convention here is using the opposite (LR -> RL)
-    rhoL, uL, pL = wRs[:,0], wRs[:,1], wRs[:,4]
-    rhoR, uR, pR = wLs[:,0], wLs[:,1], wLs[:,4]
+    rhoL, uL, pL = wRs[...,0], wRs[...,1], wRs[...,4]
+    rhoR, uR, pR = wLs[...,0], wLs[...,1], wLs[...,4]
     QL, QR = fv.convertPrimitive(wRs, gamma, boundary), fv.convertPrimitive(wLs, gamma, boundary)
     fL, fR = fv.makeFluxTerm(wRs, gamma), fv.makeFluxTerm(wLs, gamma)
 
@@ -94,10 +94,10 @@ def calculateHLLCFlux(wLs, wRs, gamma, boundary):
     coeffL, coeffR = fv.divide(sL-uL, sL-s_star), fv.divide(sR-uR, sR-s_star)
     _QL, _QR = (coeffL*QL.T).T, (coeffR*QR.T).T
 
-    _QL[:,1] = rhoL * coeffL * s_star
-    _QR[:,1] = rhoR * coeffR * s_star
-    _QL[:,4] = _QL[:,4] + coeffL*(s_star-uL)*(rhoL*s_star + fv.divide(pL, sL-uL))
-    _QR[:,4] = _QR[:,4] + coeffR*(s_star-uR)*(rhoR*s_star + fv.divide(pR, sR-uR))
+    _QL[...,1] = rhoL * coeffL * s_star
+    _QR[...,1] = rhoR * coeffR * s_star
+    _QL[...,4] = _QL[...,4] + coeffL*(s_star-uL)*(rhoL*s_star + fv.divide(pL, sL-uL))
+    _QR[...,4] = _QR[...,4] + coeffR*(s_star-uR)*(rhoR*s_star + fv.divide(pR, sR-uR))
 
     flux = np.copy(fL)
     _fL, _fR = fL + (sL*(_QL-QL).T).T, fR + (sR*(_QR-QR).T).T
@@ -184,9 +184,9 @@ def calculateESFlux(wS, gamma):
         return (L+R)/(2*F)
 
     # Define frequently used terms
-    z1 = np.array([np.sqrt(fv.divide(wLs[:,0], wLs[:,4])), np.sqrt(fv.divide(wRs[:,0], wRs[:,4]))])
-    z5 = np.array([np.sqrt(wLs[:,0]*wLs[:,4]), np.sqrt(wRs[:,0]*wRs[:,4])])
-    vx, vy, vz = np.array([wLs[:,1], wRs[:,1]]), np.array([wLs[:,2], wRs[:,2]]), np.array([wLs[:,3], wRs[:,3]])
+    z1 = np.array([np.sqrt(fv.divide(wLs[...,0], wLs[...,4])), np.sqrt(fv.divide(wRs[...,0], wRs[...,4]))])
+    z5 = np.array([np.sqrt(wLs[...,0]*wLs[...,4]), np.sqrt(wRs[...,0]*wRs[...,4])])
+    vx, vy, vz = np.array([wLs[...,1], wRs[...,1]]), np.array([wLs[...,2], wRs[...,2]]), np.array([wLs[...,3], wRs[...,3]])
 
     # Compute the averages
     rho_hat = arith_mean(z1) * lon(z5)
@@ -198,23 +198,23 @@ def calculateESFlux(wS, gamma):
     u2_hat = fv.divide(arith_mean((vx.T*(z1**2).T).T), arith_mean(z1**2))
     v2_hat = fv.divide(arith_mean((vy.T*(z1**2).T).T), arith_mean(z1**2))
     w2_hat = fv.divide(arith_mean((vz.T*(z1**2).T).T), arith_mean(z1**2))
-    B1_hat = arith_mean(np.array([wLs[:,5], wRs[:,5]]))
-    B1_dot = arith_mean(np.array([wLs[:,5]**2, wRs[:,5]**2]))
-    B2_hat = arith_mean(np.array([wLs[:,6], wRs[:,6]]))
-    B2_dot = arith_mean(np.array([wLs[:,6]**2, wRs[:,6]**2]))
-    B3_hat = arith_mean(np.array([wLs[:,7], wRs[:,7]]))
-    B3_dot = arith_mean(np.array([wLs[:,7]**2, wRs[:,7]**2]))
-    B1B2 = arith_mean(np.array([wLs[:,5]*wLs[:,6], wRs[:,5]*wRs[:,6]]))
-    B1B3 = arith_mean(np.array([wLs[:,5]*wLs[:,7], wRs[:,5]*wRs[:,7]]))
+    B1_hat = arith_mean(np.array([wLs[...,5], wRs[...,5]]))
+    B1_dot = arith_mean(np.array([wLs[...,5]**2, wRs[...,5]**2]))
+    B2_hat = arith_mean(np.array([wLs[...,6], wRs[...,6]]))
+    B2_dot = arith_mean(np.array([wLs[...,6]**2, wRs[...,6]**2]))
+    B3_hat = arith_mean(np.array([wLs[...,7], wRs[...,7]]))
+    B3_dot = arith_mean(np.array([wLs[...,7]**2, wRs[...,7]**2]))
+    B1B2 = arith_mean(np.array([wLs[...,5]*wLs[...,6], wRs[...,5]*wRs[...,6]]))
+    B1B3 = arith_mean(np.array([wLs[...,5]*wLs[...,7], wRs[...,5]*wRs[...,7]]))
 
     # Update the entropy-conserving flux vector; suitable for smooth solutions
-    ec_flux[:,0] = rho_hat * u1_hat
-    ec_flux[:,1] = P1_hat + rho_hat*u1_hat**2 + .5*(B1_dot+B2_dot+B3_dot) - B1_dot
-    ec_flux[:,2] = rho_hat*u1_hat*v1_hat - B1B2
-    ec_flux[:,3] = rho_hat*u1_hat*w1_hat - B1B3
-    ec_flux[:,4] = (gamma/(gamma-1))*u1_hat*P2_hat + .5*rho_hat*u1_hat*(u1_hat**2 + v1_hat**2 + w1_hat**2) + u2_hat*(B2_hat**2 + B3_hat**2) - B1_hat*(v2_hat*B2_hat + w2_hat*B3_hat)
-    ec_flux[:,6] = u2_hat*B2_hat - v2_hat*B1_hat
-    ec_flux[:,7] = u2_hat*B3_hat - w2_hat*B1_hat
+    ec_flux[...,0] = rho_hat * u1_hat
+    ec_flux[...,1] = P1_hat + rho_hat*u1_hat**2 + .5*(B1_dot+B2_dot+B3_dot) - B1_dot
+    ec_flux[...,2] = rho_hat*u1_hat*v1_hat - B1B2
+    ec_flux[...,3] = rho_hat*u1_hat*w1_hat - B1B3
+    ec_flux[...,4] = (gamma/(gamma-1))*u1_hat*P2_hat + .5*rho_hat*u1_hat*(u1_hat**2 + v1_hat**2 + w1_hat**2) + u2_hat*(B2_hat**2 + B3_hat**2) - B1_hat*(v2_hat*B2_hat + w2_hat*B3_hat)
+    ec_flux[...,6] = u2_hat*B2_hat - v2_hat*B1_hat
+    ec_flux[...,7] = u2_hat*B3_hat - w2_hat*B1_hat
 
 
     # Entropy-stable flux with dissipation term section [Derigs et al., 2016]
@@ -248,14 +248,14 @@ def calculateESFlux(wS, gamma):
 
     # Define the jump in the entropy vector
     entropyVector = np.zeros_like(wLs)
-    entropyVector[:,0] = ((gamma-np.log(wRs[:,4]*wRs[:,0]**-gamma))/(gamma-1) - fv.divide(.5*wRs[:,0]*np.linalg.norm(wRs[:,1:4])**2, wRs[:,4])) - ((gamma-np.log(wLs[:,4]*wLs[:,0]**-gamma))/(gamma-1) - fv.divide(.5*wLs[:,0]*np.linalg.norm(wLs[:,1:4])**2, wLs[:,4]))
-    entropyVector[:,4] = fv.divide(wLs[:,0], wLs[:,4]) - fv.divide(wRs[:,0], wRs[:,4])
-    entropyVector[:,1:4] = fv.divide((wRs[:,0]*wRs[:,1:4].T), wRs[:,4]).T - fv.divide((wLs[:,0]*wLs[:,1:4].T), wLs[:,4]).T
-    entropyVector[:,5:8] = fv.divide((wRs[:,0]*wRs[:,5:8].T), wRs[:,4]).T - fv.divide((wLs[:,0]*wLs[:,5:8].T), wLs[:,4]).T
+    entropyVector[...,0] = ((gamma-np.log(wRs[...,4]*wRs[...,0]**-gamma))/(gamma-1) - fv.divide(.5*wRs[...,0]*np.linalg.norm(wRs[...,1:4])**2, wRs[...,4])) - ((gamma-np.log(wLs[...,4]*wLs[...,0]**-gamma))/(gamma-1) - fv.divide(.5*wLs[...,0]*np.linalg.norm(wLs[...,1:4])**2, wLs[...,4]))
+    entropyVector[...,4] = fv.divide(wLs[...,0], wLs[...,4]) - fv.divide(wRs[...,0], wRs[...,4])
+    entropyVector[...,1:4] = fv.divide((wRs[...,0]*wRs[...,1:4].T), wRs[...,4]).T - fv.divide((wLs[...,0]*wLs[...,1:4].T), wLs[...,4]).T
+    entropyVector[...,5:8] = fv.divide((wRs[...,0]*wRs[...,5:8].T), wRs[...,4]).T - fv.divide((wLs[...,0]*wLs[...,5:8].T), wLs[...,4]).T
     entropyVector = -entropyVector
 
     # Compute the hydrid entropy stabilisation
-    Epsilon = np.sqrt(np.abs(fv.divide(wLs[:,4]-wRs[:,4], wLs[:,4]+wRs[:,4])))
+    Epsilon = np.sqrt(np.abs(fv.divide(wLs[...,4]-wRs[...,4], wLs[...,4]+wRs[...,4])))
     eigenvalues = ((1-Epsilon) * roeEigenvalues.T).T + (Epsilon * lffEigenvalues.T).T
 
     # Calculate the dissipation term
@@ -268,8 +268,8 @@ def calculateESFlux(wS, gamma):
 
 """# HLLC Riemann solver [Toro, 2019]
 def calculateToroFlux(wLs, wRs, gamma, boundary):
-    rhoL, uL, pL = wRs[:,0], wRs[:,1], wRs[:,4]
-    rhoR, uR, pR = wLs[:,0], wLs[:,1], wLs[:,4]
+    rhoL, uL, pL = wRs[...,0], wRs[...,1], wRs[...,4]
+    rhoR, uR, pR = wLs[...,0], wLs[...,1], wLs[...,4]
     QL, QR = fv.convertPrimitive(wRs, gamma, boundary), fv.convertPrimitive(wLs, gamma, boundary)
     fL, fR = fv.makeFluxTerm(wRs, gamma), fv.makeFluxTerm(wLs, gamma)
 
@@ -288,14 +288,14 @@ def calculateToroFlux(wLs, wRs, gamma, boundary):
     coeffL, coeffR = fv.divide(sL-uL, sL-s_star), fv.divide(sR-uR, sR-s_star)
     _QL, _QR = np.copy((coeffL*QL.T).T), np.copy((coeffR*QR.T).T)
 
-    _QL[:,1] = rhoL * coeffL * s_star
-    _QR[:,1] = rhoR * coeffR * s_star
-    _pL, _pR = np.copy(_QL[:,4]), np.copy(_QR[:,4])
-    _BL, _BR = np.copy(_QL[:,5:8]), np.copy(_QR[:,5:8])
-    _QL[:,4] = rhoL * coeffL * (fv.divide(_pL, rhoL) + ((s_star-uL)*(s_star+fv.divide(pL, rhoL*(sL-uL)))))
-    _QR[:,4] = rhoR * coeffR * (fv.divide(_pR, rhoR) + ((s_star-uR)*(s_star+fv.divide(pR, rhoR*(sR-uR)))))
-    _QL[:,5:8] = (rhoL * coeffL * _BL.T).T
-    _QR[:,5:8] = (rhoR * coeffR * _BR.T).T
+    _QL[...,1] = rhoL * coeffL * s_star
+    _QR[...,1] = rhoR * coeffR * s_star
+    _pL, _pR = np.copy(_QL[...,4]), np.copy(_QR[...,4])
+    _BL, _BR = np.copy(_QL[...,5:8]), np.copy(_QR[...,5:8])
+    _QL[...,4] = rhoL * coeffL * (fv.divide(_pL, rhoL) + ((s_star-uL)*(s_star+fv.divide(pL, rhoL*(sL-uL)))))
+    _QR[...,4] = rhoR * coeffR * (fv.divide(_pR, rhoR) + ((s_star-uR)*(s_star+fv.divide(pR, rhoR*(sR-uR)))))
+    _QL[...,5:8] = (rhoL * coeffL * _BL.T).T
+    _QR[...,5:8] = (rhoR * coeffR * _BR.T).T
 
     flux = np.copy(fL)
     _fL, _fR = np.copy(fL + (sL*(_QL-QL).T).T), np.copy(fR + (sR*(_QR-QR).T).T)
@@ -305,39 +305,20 @@ def calculateToroFlux(wLs, wRs, gamma, boundary):
     return flux"""
 
 
-"""# Osher-Solomon Riemann solver [Castro et al., 2016]
-def calculateOSFlux(wS, qS, gamma, boundary, roots, weights):
-    wLs, wRs = wS
-    qLs, qRs = qS
-
-    avg_wS = getRoeAverage([wLs, wRs], [qLs, qRs], gamma)
-
-    arr_L, arr_R = np.repeat(qLs[None,:], len(roots), axis=0), np.repeat(qRs[None,:], len(roots), axis=0)
-    psi = arr_R + (roots*(arr_L-arr_R).T).T
-
-    A = fv.makeJacobian(psi, gamma)
-    characteristics = np.linalg.eigvals(A)
-
-    _D_plus = .5 * (qLs-qRs) * (avg_wS + np.sum((weights * np.abs(characteristics).T).T, axis=0))
-    D_minus = .5 * (qLs-qRs) * (avg_wS - np.sum((weights * np.abs(characteristics).T).T, axis=0))
-    D_plus = fv.makeBoundary(_D_plus, boundary)[:-2]
-    return D_minus+D_plus"""
-
-
 # Calculate the Roe-averaged primitive variables from the left- & right-interface states for use in Roe solver in order to better capture shocks [Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
 def getRoeAverage(wS, qS, gamma):
     wL, wR = wS
     qL, qR = qS
 
     avg = np.zeros_like(wL)
-    rho_L, rho_R = np.sqrt(wL[:,0]), np.sqrt(wR[:,0])
+    rho_L, rho_R = np.sqrt(wL[...,0]), np.sqrt(wR[...,0])
 
-    avg[:,0] = rho_L * rho_R
-    avg[:,1:4] = fv.divide((rho_L*wL[:,1:4].T).T + (rho_R*wR[:,1:4].T).T, (rho_L + rho_R)[:,np.newaxis])
-    avg[:,6:8] = fv.divide((rho_R*wL[:,6:8].T).T + (rho_L*wR[:,6:8].T).T, (rho_L + rho_R)[:,np.newaxis])
+    avg[...,0] = rho_L * rho_R
+    avg[...,1:4] = fv.divide((rho_L*wL[...,1:4].T).T + (rho_R*wR[...,1:4].T).T, (rho_L + rho_R)[:,np.newaxis])
+    avg[...,6:8] = fv.divide((rho_R*wL[...,6:8].T).T + (rho_L*wR[...,6:8].T).T, (rho_L + rho_R)[:,np.newaxis])
 
-    H_L, H_R = fv.divide(qL[:,4] + wL[:,4] + .5*np.linalg.norm(wL[:,5:8], axis=1)**2, wL[:,0]), fv.divide(qR[:,4] + wR[:,4] + .5*np.linalg.norm(wR[:,5:8], axis=1)**2, wR[:,0])
+    H_L, H_R = fv.divide(qL[...,4] + wL[...,4] + .5*np.linalg.norm(wL[...,5:8], axis=1)**2, wL[...,0]), fv.divide(qR[...,4] + wR[...,4] + .5*np.linalg.norm(wR[...,5:8], axis=1)**2, wR[...,0])
     H = fv.divide(rho_L*H_L + rho_R*H_R, rho_L + rho_R)
-    avg[:,4] = ((gamma-1)/gamma) * (avg[:,0]*H - .5*(avg[:,0]*np.linalg.norm(avg[:,1:4], axis=1)**2 + np.linalg.norm(avg[:,5:8], axis=1)**2))
+    avg[...,4] = ((gamma-1)/gamma) * (avg[...,0]*H - .5*(avg[...,0]*np.linalg.norm(avg[...,1:4], axis=1)**2 + np.linalg.norm(avg[...,5:8], axis=1)**2))
 
     return avg
