@@ -63,7 +63,7 @@ def runSimulation(grp, _simVariables):
 def main():
     # Save the HDF5 file (with seed) to store the temporary data
     filename = f"{currentdir}/.shockTemp_{seed}.hdf5"
-    noprint = False
+    noprint, debug = False, False
 
     # Generate the simulation variables (dict)
     configList = [var for var in dir(settings) if '__' not in var and var != 'np']
@@ -72,9 +72,9 @@ def main():
     # CLI arguments handler; updates the simulation variables (dict)
     if len(sys.argv) > 1:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "N=", "n=", "cells=", "cfl=", "gamma=", "dim=", "subgrid=", "timestep=", "scheme=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "noprint", "echo"])
+            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "N=", "n=", "cells=", "cfl=", "gamma=", "dim=", "subgrid=", "timestep=", "scheme=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "debug", "noprint", "echo"])
         except getopt.GetoptError as e:
-            print(f'{generic.bcolours.WARNING}Error: {e}{generic.bcolours.ENDC}')
+            print(f'{generic.bcolours.WARNING}-- Error: {e}{generic.bcolours.ENDC}')
             sys.exit(2)
         else:
             for opt, arg in opts:
@@ -91,6 +91,8 @@ def main():
                     configVariables["config"] = arg.lower()
                 elif opt == "noprint":
                     noprint = True
+                elif opt == "debug":
+                    debug = True
                 elif opt == "echo":
                     print(f"{generic.bcolours.OKGREEN}{generic.quotes[np.random.randint(len(generic.quotes))]}{generic.bcolours.ENDC}")
                     sys.exit(2)
@@ -179,8 +181,12 @@ def main():
 
     # Exception handling; deletes the temporary HDF5 database to prevent clutter
     except Exception as e:
-        print(f"{generic.bcolours.WARNING}-- Error: {e} --{generic.bcolours.ENDC}\n")
-        print(traceback.format_exc())
+        print(end='\x1b[2K')
+        if debug:
+            print(f"\n{generic.bcolours.FAIL}-------    Error    -------{generic.bcolours.ENDC}")
+            print(traceback.format_exc())
+        else:
+            print(f"{generic.bcolours.FAIL}-- Error: {e}{generic.bcolours.ENDC}")
         os.remove(filename)
 
     # If no errors;
