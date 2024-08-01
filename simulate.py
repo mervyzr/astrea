@@ -74,7 +74,7 @@ def main():
         try:
             opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "N=", "n=", "cells=", "cfl=", "gamma=", "dim=", "subgrid=", "timestep=", "scheme=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "debug", "noprint", "echo"])
         except getopt.GetoptError as e:
-            print(f'{generic.bcolours.WARNING}Error: {e}{generic.bcolours.ENDC}')
+            print(f'{generic.bcolours.WARNING}-- Error: {e}{generic.bcolours.ENDC}')
             sys.exit(2)
         else:
             for opt, arg in opts:
@@ -181,10 +181,12 @@ def main():
 
     # Exception handling; deletes the temporary HDF5 database to prevent clutter
     except Exception as e:
+        print(end='\x1b[2K')
         if debug:
-            print(f"\n{generic.bcolours.FAIL}---   Error   ---{generic.bcolours.ENDC}")
+            print(f"\n{generic.bcolours.FAIL}-------    Error    -------{generic.bcolours.ENDC}")
             print(traceback.format_exc())
-        print(f"{generic.bcolours.FAIL}---  {e}  ---{generic.bcolours.ENDC}\n")
+        else:
+            print(f"{generic.bcolours.FAIL}-- Error: {e}{generic.bcolours.ENDC}")
         os.remove(filename)
 
     # If no errors;
