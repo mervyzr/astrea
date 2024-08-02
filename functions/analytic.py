@@ -24,7 +24,17 @@ def calculateSolutionError(simulation, simVariables, norm):
     timeKeys = [float(t) for t in simulation.keys()]
     w_num = simulation[str(max(timeKeys))]  # Get last array with (typically largest) time key
 
-    w_theo = fv.initialise(simVariables)
+    xi = np.linspace(simVariables.startPos, simVariables.endPos, len(w_num))
+    w_theo = np.copy(w_num)
+    w_theo[:] = simVariables.initialLeft
+
+    if simVariables.config.startswith("gauss"):
+        w_theo[...,0] = fv.gauss_func(xi, simVariables.misc)
+    else:
+        if simVariables.config == "sinc":
+            w_theo[...,0] = fv.sinc_func(xi, simVariables.misc)
+        else:
+            w_theo[...,0] = fv.sin_func(xi, simVariables.misc)
 
     thermal_num, thermal_theo = fv.divide(w_num[...,4], w_num[...,0]), fv.divide(w_theo[...,4], w_theo[...,0])
     w_num, w_theo = np.concatenate((w_num, thermal_num[...,None]), axis=-1), np.concatenate((w_theo, thermal_theo[...,None]), axis=-1)
