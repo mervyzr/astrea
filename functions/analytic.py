@@ -42,9 +42,9 @@ def calculateSolutionError(simulation, simVariables, norm):
     if norm > 10:
         return np.max(np.abs(w_num-w_theo), axis=tuple(range(simVariables.dim)))
     elif norm <= 0:
-        return np.sum(np.abs(w_num-w_theo), axis=tuple(range(simVariables.dim)))/(simVariables.cells**simVariables.dim)
+        return np.sum(np.abs(w_num-w_theo), axis=tuple(range(simVariables.dim)))/len(w_num)
     else:
-        return (np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(range(simVariables.dim)))/(simVariables.cells**simVariables.dim))**(1/norm)
+        return (np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(range(simVariables.dim)))/len(w_num))**(1/norm)
 
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
