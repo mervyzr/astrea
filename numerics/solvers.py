@@ -27,7 +27,7 @@ def calculateRiemannFlux(simVariables, *args, **kwargs):
         if simVariables.subgrid in ["plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"]:
             wLs, wRs = kwargs["wLs"], kwargs["wRs"]
         else:
-            wLs, wRs = kwargs["w"][:-1], kwargs["w"][1:]
+            wLs, wRs = kwargs["w"][1:], kwargs["w"][:-1]
         return Data(calculateHLLCFlux(wLs, wRs, simVariables), eigmax)
 
     # Osher-Solomon schemes
