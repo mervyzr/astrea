@@ -7,16 +7,19 @@ from numerics import solvers
 
 # Piecewise constant reconstruction method (PCM)
 def run(tube, simVariables):
-    gamma, boundary = simVariables.gamma, simVariables.boundary
+    gamma, boundary, permutations = simVariables.gamma, simVariables.boundary, simVariables.permutations
 
-    # Convert to primitive variables
-    wS = fv.pointConvertConservative(tube, gamma)
-    qS = fv.makeBoundary(tube, boundary)
+    # Rotate grid and apply algorithm for each axis
+    for axes in permutations:
 
-    # Compute the fluxes and the Jacobian
-    w = fv.makeBoundary(wS, boundary)
-    f = fv.makeFluxTerm(w, gamma)
-    A = fv.makeJacobian(w, gamma)
-    characteristics = np.linalg.eigvals(A)
+        # Convert to primitive variables
+        wS = fv.pointConvertConservative(tube.transpose(axes), gamma)
+        qS = fv.makeBoundary(tube.transpose(axes), boundary)
+
+        # Compute the fluxes and the Jacobian
+        w = fv.makeBoundary(wS, boundary)
+        f = fv.makeFluxTerm(w, gamma)
+        A = fv.makeJacobian(w, gamma)
+        characteristics = np.linalg.eigvals(A)
 
     return solvers.calculateRiemannFlux(simVariables, f=f, wS=wS, w=w, qS=qS, characteristics=characteristics)

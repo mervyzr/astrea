@@ -1,3 +1,5 @@
+from itertools import permutations
+
 import numpy as np
 
 ##############################################################################
@@ -62,14 +64,10 @@ def initialise(simVariables, convert=False):
 
 
 # Make boundary conditions
-def makeBoundary(tube, boundary, stencil=1, axis=None):
+def makeBoundary(tube, boundary, stencil=1):
     arr = np.copy(tube)
-    if axis == None:
-        padding = [(stencil,stencil)] * tube.ndim
-        padding[-1] = (0,0)
-    else:
-        padding = [(0,0)] * tube.ndim
-        padding[axis] = (stencil,stencil)
+    padding = [(0,0)] * tube.ndim
+    padding[0] = (stencil,stencil)
     return np.pad(arr, padding, mode=boundary)
 
 
@@ -93,28 +91,30 @@ def pointConvertConservative(tube, gamma):
 
 
 # Converting (cell-/face-averaged) primitive variables w to conservative variables q through a higher-order approx.
-def convertPrimitive(tube, gamma, boundary):
-    limit = len(tube) + 1
+def convertPrimitive(tube, simVariables):
+    gamma, boundary, permutations = simVariables.gamma, simVariables.boundary, simVariables.permutations
     w, q = np.copy(tube), np.zeros_like(tube)
-    for i in range(tube.ndim-1):
-        _w = makeBoundary(tube, boundary, axis=i)
-        w -= (np.diff(_w.take(indices=range(1,limit+1), axis=i), axis=i) - np.diff(_w.take(indices=range(limit), axis=i), axis=i))/24
+
+    for axes in permutations:
+        _w = makeBoundary(tube.transpose(axes), boundary)
+        w -= (np.diff(_w[1:], axis=0) - np.diff(_w[:-1], axis=0))/24
 
         _q = pointConvertPrimitive(_w, gamma)
-        q += (np.diff(_q.take(indices=range(1,limit+1), axis=i), axis=i) - np.diff(_q.take(indices=range(limit), axis=i), axis=i))/24
+        q += (np.diff(_q[1:], axis=0) - np.diff(_q[:-1], axis=0))/24
     return pointConvertPrimitive(w, gamma) + q
 
 
 # Converting (cell-/face-averaged) conservative variables q to primitive variables w through a higher-order approx.
-def convertConservative(tube, gamma, boundary):
-    limit = len(tube) + 1
+def convertConservative(tube, simVariables):
+    gamma, boundary, permutations = simVariables.gamma, simVariables.boundary, simVariables.permutations
     w, q = np.zeros_like(tube), np.copy(tube)
-    for i in range(tube.ndim-1):
-        _q = makeBoundary(tube, boundary, axis=i)
-        q -= (np.diff(_q.take(indices=range(1,limit+1), axis=i), axis=i) - np.diff(_q.take(indices=range(limit), axis=i), axis=i))/24
+
+    for axes in permutations:
+        _q = makeBoundary(tube.transpose(axes), boundary)
+        q -= (np.diff(_q[1:], axis=0) - np.diff(_q[:-1], axis=0))/24
 
         _w = pointConvertConservative(_q, gamma)
-        w += (np.diff(_w.take(indices=range(1,limit+1), axis=i), axis=i) - np.diff(_w.take(indices=range(limit), axis=i), axis=i))/24
+        w += (np.diff(_w[1:], axis=0) - np.diff(_w[:-1], axis=0))/24
     return pointConvertConservative(q, gamma) + w
 
 

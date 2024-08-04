@@ -10,11 +10,7 @@ from numerics import solvers
 #                     | i-1          <-- | -->         i         <-- | -->          i+1 |
 #                     |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
 def run(tube, simVariables):
-    gamma, boundary = simVariables.gamma, simVariables.boundary
-
-    # Convert to primitive variables
-    wS = fv.convertConservative(tube, gamma, boundary)
-    w = fv.makeBoundary(wS, boundary)
+    gamma, boundary, permutations = simVariables.gamma, simVariables.boundary, simVariables.permutations
 
     # Function to generate the WENO interface values
     def makeFaceValue(_wS, _boundary):
@@ -49,18 +45,27 @@ def run(tube, simVariables):
 
         return weight1*u1 + weight2*u2 + weight3*u3
 
-    # WENO reconstruction [Shu, 2009]
-    wL, wR = makeFaceValue(w[2:], boundary), makeFaceValue(wS, boundary)
+    # Rotate grid and apply algorithm for each axis
+    for axes in permutations:
 
-    # Pad the reconstructed interfaces
-    wLs, wRs = fv.makeBoundary(wL, boundary)[1:], fv.makeBoundary(wR, boundary)[:-1]
+        # Convert to primitive variables
+        wS = fv.convertConservative(tube.transpose(axes), simVariables)
 
-    # Convert the primitive variables, and compute the state differences
-    qLs, qRs = fv.convertPrimitive(wLs, gamma, boundary), fv.convertPrimitive(wRs, gamma, boundary)
+        # Pad array with boundary
+        w = fv.makeBoundary(wS, boundary)
 
-    # Compute the fluxes and the Jacobian
-    fLs, fRs = fv.makeFluxTerm(wLs, gamma), fv.makeFluxTerm(wRs, gamma)
-    A = fv.makeJacobian(w, gamma)
-    characteristics = np.linalg.eigvals(A)
+        # WENO reconstruction [Shu, 2009]
+        wL, wR = makeFaceValue(w[2:], boundary), makeFaceValue(w[1:-1], boundary)
+
+        # Pad the reconstructed interfaces
+        wLs, wRs = fv.makeBoundary(wL, boundary)[1:], fv.makeBoundary(wR, boundary)[:-1]
+
+        # Convert the primitive variables, and compute the state differences
+        qLs, qRs = fv.convertPrimitive(wLs, simVariables), fv.convertPrimitive(wRs, simVariables)
+
+        # Compute the fluxes and the Jacobian
+        fLs, fRs = fv.makeFluxTerm(wLs, gamma), fv.makeFluxTerm(wRs, gamma)
+        A = fv.makeJacobian(w, gamma)
+        characteristics = np.linalg.eigvals(A)
 
     return solvers.calculateRiemannFlux(simVariables, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)

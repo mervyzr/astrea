@@ -3,6 +3,7 @@ import sys
 import shutil
 import getopt
 import traceback
+import itertools
 from datetime import datetime
 from time import perf_counter
 from collections import namedtuple
@@ -102,14 +103,17 @@ def main():
     # Generate test configuration
     testVariables = tests.generateTestConditions(configVariables['config'])
     simVariables = configVariables | testVariables
+
+    # Error condition(s) handler; filter erroneous entries
+    simVariables = generic.handleErrors(simVariables)
+
+    # Generate frequently used variables
     simVariables['dx'] = abs(simVariables['endPos']-simVariables['startPos'])/simVariables['cells']
+    simVariables['permutations'] = [axes for axes in list(itertools.permutations(list(range(simVariables['dim']+1)))) if axes[-1] == simVariables['dim']]
     if simVariables['scheme'] in ['osher-solomon', 'osher', 'solomon', 'os']:
         _roots, _weights = sp.special.roots_legendre(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
         simVariables['roots'] = .5*_roots + .5  # Gauss-Legendre quadrature with interval [0,1]
         simVariables['weights'] = _weights/2  # Gauss-Legendre quadrature with interval [0,1]
-
-    # Error condition(s) handler; filter erroneous entries
-    simVariables = generic.handleErrors(simVariables)
 
     # Simulation condition handler
     if simVariables['runType'].startswith('m'):
