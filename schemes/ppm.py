@@ -11,7 +11,7 @@ def run(tube, simVariables):
     gamma, boundary = simVariables.gamma, simVariables.boundary
 
     # Convert to primitive variables
-    wS = fv.convertConservative(tube, gamma, boundary)
+    wS = fv.convertConservative(tube, simVariables)
 
     # Extrapolate the cell averages to face averages
     # Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
@@ -90,7 +90,7 @@ def run(tube, simVariables):
     wLs, wRs = fv.makeBoundary(wL, boundary)[1:], fv.makeBoundary(wR, boundary)[:-1]
 
     # Convert the primitive variables
-    qLs, qRs = fv.convertPrimitive(wLs, gamma, boundary), fv.convertPrimitive(wRs, gamma, boundary)
+    qLs, qRs = fv.convertPrimitive(wLs, simVariables), fv.convertPrimitive(wRs, simVariables)
 
     # Compute the fluxes and the Jacobian
     _w = fv.makeBoundary(avg_wS, boundary)
@@ -107,7 +107,7 @@ def runModified(tube, simVariables, dissipate=False):
     gamma, boundary = simVariables.gamma, simVariables.boundary
 
     # Convert to primitive variables
-    wS = fv.convertConservative(tube, gamma, boundary)
+    wS = fv.convertConservative(tube, simVariables)
 
     # Extrapolate the cell averages to face averages
     # Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
@@ -205,7 +205,7 @@ def runModified(tube, simVariables, dissipate=False):
     wLs, wRs = fv.makeBoundary(wL, boundary)[1:], fv.makeBoundary(wR, boundary)[:-1]
 
     # Convert the primitive variables
-    qLs, qRs = fv.convertPrimitive(wLs, gamma, boundary), fv.convertPrimitive(wRs, gamma, boundary)
+    qLs, qRs = fv.convertPrimitive(wLs, simVariables), fv.convertPrimitive(wRs, simVariables)
 
     # Compute the fluxes and the Jacobian
     _w = fv.makeBoundary(avg_wS, boundary)

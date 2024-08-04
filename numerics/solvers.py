@@ -28,7 +28,7 @@ def calculateRiemannFlux(simVariables, *args, **kwargs):
             wLs, wRs = kwargs["wLs"], kwargs["wRs"]
         else:
             wLs, wRs = kwargs["w"][:-1], kwargs["w"][1:]
-        return Data(calculateHLLCFlux(wLs, wRs, simVariables.gamma, simVariables.boundary), eigmax)
+        return Data(calculateHLLCFlux(wLs, wRs, simVariables), eigmax)
 
     # Osher-Solomon schemes
     elif simVariables.scheme in ["os", "osher-solomon", "osher", "solomon"]:
@@ -76,11 +76,13 @@ def calculateLaxWendroffFlux(fluxes, qDiff, eigenvalues, characteristics):
 
 
 # HLLC Riemann solver [Fleischmann et al., 2020]
-def calculateHLLCFlux(wLs, wRs, gamma, boundary):
+def calculateHLLCFlux(wLs, wRs, simVariables):
+    gamma = simVariables.gamma
+
     # The convention here is using the opposite (LR -> RL)
     rhoL, uL, pL = wRs[...,0], wRs[...,1], wRs[...,4]
     rhoR, uR, pR = wLs[...,0], wLs[...,1], wLs[...,4]
-    QL, QR = fv.convertPrimitive(wRs, gamma, boundary), fv.convertPrimitive(wLs, gamma, boundary)
+    QL, QR = fv.convertPrimitive(wRs, simVariables), fv.convertPrimitive(wLs, simVariables)
     fL, fR = fv.makeFluxTerm(wRs, gamma), fv.makeFluxTerm(wLs, gamma)
 
     zeta = (gamma-1)/(2*gamma)
@@ -267,10 +269,12 @@ def calculateESFlux(wS, gamma):
 
 
 """# HLLC Riemann solver [Toro, 2019]
-def calculateToroFlux(wLs, wRs, gamma, boundary):
+def calculateToroFlux(wLs, wRs, simVariables):
+    gamma = simVariables.gamma
+
     rhoL, uL, pL = wRs[...,0], wRs[...,1], wRs[...,4]
     rhoR, uR, pR = wLs[...,0], wLs[...,1], wLs[...,4]
-    QL, QR = fv.convertPrimitive(wRs, gamma, boundary), fv.convertPrimitive(wLs, gamma, boundary)
+    QL, QR = fv.convertPrimitive(wRs, simVariables), fv.convertPrimitive(wLs, simVariables)
     fL, fR = fv.makeFluxTerm(wRs, gamma), fv.makeFluxTerm(wLs, gamma)
 
     zeta = (gamma-1)/(2*gamma)

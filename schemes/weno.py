@@ -13,7 +13,7 @@ def run(tube, simVariables):
     gamma, boundary = simVariables.gamma, simVariables.boundary
 
     # Convert to primitive variables
-    wS = fv.convertConservative(tube, gamma, boundary)
+    wS = fv.convertConservative(tube, simVariables)
     w = fv.makeBoundary(wS, boundary)
 
     # Function to generate the WENO interface values
@@ -56,7 +56,7 @@ def run(tube, simVariables):
     wLs, wRs = fv.makeBoundary(wL, boundary)[1:], fv.makeBoundary(wR, boundary)[:-1]
 
     # Convert the primitive variables, and compute the state differences
-    qLs, qRs = fv.convertPrimitive(wLs, gamma, boundary), fv.convertPrimitive(wRs, gamma, boundary)
+    qLs, qRs = fv.convertPrimitive(wLs, simVariables), fv.convertPrimitive(wRs, simVariables)
 
     # Compute the fluxes and the Jacobian
     fLs, fRs = fv.makeFluxTerm(wLs, gamma), fv.makeFluxTerm(wRs, gamma)
