@@ -5,7 +5,7 @@ from functions import fv
 ##############################################################################
 
 # Function for limiting the face-values for PPM [Colella et al., 2011, p. 26]
-def interfaceLimiter(w_face, w_minusOne, w_cell, w_plusOne, w_plusTwo, C=5/4):
+def interfaceLimiter(w_face, w_minusOne, w_cell, w_plusOne, w_plusTwo, C):
     # Initial check for local extrema (eq. 84)
     local_extrema = (w_face - w_cell)*(w_plusOne - w_face) < 0
 

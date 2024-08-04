@@ -92,26 +92,30 @@ def pointConvertConservative(tube, gamma):
 
 # Converting (cell-/face-averaged) primitive variables w to conservative variables q through a higher-order approx.
 def convertPrimitive(tube, simVariables):
+    gamma, boundary, permutations = simVariables.gamma, simVariables.boundary, simVariables.permutations
     w, q = np.copy(tube), np.zeros_like(tube)
-    for axes in simVariables.permutations:
-        _w = makeBoundary(tube.transpose(axes), simVariables.boundary)
+
+    for axes in permutations:
+        _w = makeBoundary(tube.transpose(axes), boundary)
         w -= (np.diff(_w[1:], axis=0) - np.diff(_w[:-1], axis=0))/24
 
-        _q = pointConvertPrimitive(_w, simVariables.gamma)
+        _q = pointConvertPrimitive(_w, gamma)
         q += (np.diff(_q[1:], axis=0) - np.diff(_q[:-1], axis=0))/24
-    return pointConvertPrimitive(w, simVariables.gamma) + q
+    return pointConvertPrimitive(w, gamma) + q
 
 
 # Converting (cell-/face-averaged) conservative variables q to primitive variables w through a higher-order approx.
 def convertConservative(tube, simVariables):
+    gamma, boundary, permutations = simVariables.gamma, simVariables.boundary, simVariables.permutations
     w, q = np.zeros_like(tube), np.copy(tube)
-    for axes in simVariables.permutations:
-        _q = makeBoundary(tube.transpose(axes), simVariables.boundary)
+
+    for axes in permutations:
+        _q = makeBoundary(tube.transpose(axes), boundary)
         q -= (np.diff(_q[1:], axis=0) - np.diff(_q[:-1], axis=0))/24
 
-        _w = pointConvertConservative(_q, simVariables.gamma)
+        _w = pointConvertConservative(_q, gamma)
         w += (np.diff(_w[1:], axis=0) - np.diff(_w[:-1], axis=0))/24
-    return pointConvertConservative(q, simVariables.gamma) + w
+    return pointConvertConservative(q, gamma) + w
 
 
 # Make flux as a function of cell-averaged (primitive) variables

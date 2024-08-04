@@ -10,29 +10,32 @@ from numerics import limiters, solvers
 #                     | i-1          <-- | -->         i         <-- | -->          i+1 |
 #                     |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
 def run(tube, simVariables):
-    gamma, boundary = simVariables.gamma, simVariables.boundary
+    gamma, boundary, permutations = simVariables.gamma, simVariables.boundary, simVariables.permutations
 
-    # Convert to primitive variables; able to use pointwise conversion as it is still 2nd-order
-    wS = fv.pointConvertConservative(tube, gamma)
+    # Rotate grid and apply algorithm for each axis
+    for axes in permutations:
 
-    # Pad array with boundary & apply (TVD) slope limiters
-    w = fv.makeBoundary(wS, boundary)
-    limitedValues = limiters.minmodLimiter(w)
+        # Convert to primitive variables; able to use pointwise conversion as it is still 2nd-order
+        wS = fv.pointConvertConservative(tube.transpose(axes), gamma)
 
-    # Linear reconstruction [Derigs et al., 2017]
-    gradients = .5 * limitedValues
-    wL, wR = np.copy(wS-gradients), np.copy(wS+gradients)  # (eq. 4.13)
+        # Pad array with boundary & apply (TVD) slope limiters
+        w = fv.makeBoundary(wS, boundary)
+        limitedValues = limiters.minmodLimiter(w)
 
-    # Pad the reconstructed interfaces
-    wLs, wRs = fv.makeBoundary(wL, boundary)[1:], fv.makeBoundary(wR, boundary)[:-1]
+        # Linear reconstruction [Derigs et al., 2017]
+        gradients = .5 * limitedValues
+        wL, wR = np.copy(wS-gradients), np.copy(wS+gradients)  # (eq. 4.13)
 
-    # Convert the primitive variables
-    # The conversion can be pointwise conversion for face-average values as it is still 2nd-order
-    qLs, qRs = fv.pointConvertPrimitive(wLs, gamma), fv.pointConvertPrimitive(wRs, gamma)
+        # Pad the reconstructed interfaces
+        wLs, wRs = fv.makeBoundary(wL, boundary)[1:], fv.makeBoundary(wR, boundary)[:-1]
 
-    # Compute the fluxes and the Jacobian
-    fLs, fRs = fv.makeFluxTerm(wLs, gamma), fv.makeFluxTerm(wRs, gamma)
-    A = fv.makeJacobian(w, gamma)
-    characteristics = np.linalg.eigvals(A)
+        # Convert the primitive variables
+        # The conversion can be pointwise conversion for face-average values as it is still 2nd-order
+        qLs, qRs = fv.pointConvertPrimitive(wLs, gamma), fv.pointConvertPrimitive(wRs, gamma)
+
+        # Compute the fluxes and the Jacobian
+        fLs, fRs = fv.makeFluxTerm(wLs, gamma), fv.makeFluxTerm(wRs, gamma)
+        A = fv.makeJacobian(w, gamma)
+        characteristics = np.linalg.eigvals(A)
 
     return solvers.calculateRiemannFlux(simVariables, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
