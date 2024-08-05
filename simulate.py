@@ -29,7 +29,7 @@ np.random.seed(seed)
 def runSimulation(grp, _simVariables):
     # Initialise the discrete solution array with conserved variables <q>
     # Even though the solution array is discrete, the variables are averages (FV) instead of points (FD)
-    domain = fv.initialise(_simVariables, convert=True)
+    domain = fv.initialise(_simVariables)
 
     # Initiate live plotting, if enabled
     if _simVariables.livePlot:
@@ -73,7 +73,7 @@ def main():
     # CLI arguments handler; updates the simulation variables (dict)
     if len(sys.argv) > 1:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "N=", "n=", "cells=", "cfl=", "gamma=", "dim=", "subgrid=", "timestep=", "scheme=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "debug", "noprint", "echo"])
+            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "N=", "n=", "cells=", "cfl=", "gamma=", "dim=", "subgrid=", "timestep=", "scheme=", "runType=", "livePlot=", "savePlots=", "snapshots=", "saveVideo=", "saveFile=", "debug", "noprint", "echo", "quote"])
         except getopt.GetoptError as e:
             print(f'{generic.bcolours.WARNING}-- Error: {e}{generic.bcolours.ENDC}')
             sys.exit(2)
@@ -94,7 +94,7 @@ def main():
                     noprint = True
                 elif opt == "debug":
                     debug = True
-                elif opt == "echo":
+                elif opt == "echo" or opt == "quote":
                     print(f"{generic.bcolours.OKGREEN}{generic.quotes[np.random.randint(len(generic.quotes))]}{generic.bcolours.ENDC}")
                     sys.exit(2)
                 else:
