@@ -37,25 +37,39 @@ def initialise(simVariables):
     arr[:] = initialRight
 
     midpoint = (end+start)/2
-    if config == "sedov" or config.startswith('sq'):
-        half_width = int(N/2 * ((shock-midpoint)/(end-midpoint)))
-        left_edge, right_edge = int(N/2-half_width), int(N/2+half_width)
-        arr[left_edge:right_edge] = initialLeft
-    else:
-        split_point = int(N * ((shock-start)/(end-start)))
-        arr[:split_point] = initialLeft
 
-    if "shu" in config or "osher" in config:
-        xi = np.linspace(shock, end, N-split_point)
-        arr[split_point:,0] = sin_func(xi, params)
-    elif config == "sin" or config == "sinc" or config.startswith('gauss'):
-        xi = np.linspace(start, end, N)
-        if config == "sin":
-            arr[...,0] = sin_func(xi, params)
-        elif config == "sinc":
-            arr[...,0] = sinc_func(xi, params)
+    if dim == 2:
+        x = y = np.arange(N)
+        cx = cy = int(N/2)
+
+        if config == "sedov":
+            r = int(N/2 * ((shock-midpoint)/(end-midpoint)))
+
+            mask = (x[np.newaxis,:]-cx)**2 + (y[:,np.newaxis]-cy)**2 < r**2
+            arr[mask] = initialLeft
+        elif config.startswith("gauss"):
+            pass
+
+    else:
+        if config == "sedov" or config.startswith('sq'):
+            half_width = int(N/2 * ((shock-midpoint)/(end-midpoint)))
+            left_edge, right_edge = int(N/2-half_width), int(N/2+half_width)
+            arr[left_edge:right_edge] = initialLeft
         else:
-            arr[...,0] = gauss_func(xi, params)
+            split_point = int(N * ((shock-start)/(end-start)))
+            arr[:split_point] = initialLeft
+
+        if "shu" in config or "osher" in config:
+            xi = np.linspace(shock, end, N-split_point)
+            arr[split_point:,0] = sin_func(xi, params)
+        elif config == "sin" or config == "sinc" or config.startswith('gauss'):
+            xi = np.linspace(start, end, N)
+            if config == "sin":
+                arr[...,0] = sin_func(xi, params)
+            elif config == "sinc":
+                arr[...,0] = sinc_func(xi, params)
+            else:
+                arr[...,0] = gauss_func(xi, params)
 
     return pointConvertPrimitive(arr, gamma)
 
