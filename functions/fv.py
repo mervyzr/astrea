@@ -26,7 +26,7 @@ def sinc_func(x, params):
 
 
 # Initialise the discrete solution array with initial conditions and primitive variables w. Returns the solution array in conserved variables q
-def initialise(simVariables, convert=False):
+def initialise(simVariables):
     config, N, gamma, dim, precision = simVariables.config, simVariables.cells, simVariables.gamma, simVariables.dim, simVariables.precision
     start, end, shock, params = simVariables.startPos, simVariables.endPos, simVariables.shockPos, simVariables.misc
     initialLeft, initialRight = simVariables.initialLeft, simVariables.initialRight
@@ -56,11 +56,8 @@ def initialise(simVariables, convert=False):
             arr[...,0] = sinc_func(xi, params)
         else:
             arr[...,0] = gauss_func(xi, params)
-    
-    if convert:
-        return pointConvertPrimitive(arr, gamma)
-    else:
-        return arr
+
+    return pointConvertPrimitive(arr, gamma)
 
 
 # Make boundary conditions
