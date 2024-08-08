@@ -51,7 +51,7 @@ def pointConvertPrimitive(tube, gamma):
 def pointConvertConservative(tube, gamma):
     arr = np.copy(tube)
     rhos, energies, Bfield = tube[...,0], tube[...,4], tube[...,5:8]
-    vecs = np.divide(tube[...,1:4].T, tube[...,0].T, out=np.zeros_like(tube[...,1:4].T), where=tube[...,0].T!=0).T
+    vecs = divide(tube[...,1:4].T, tube[...,0].T).T
     arr[...,4] = (gamma-1) * (energies - (.5*rhos*norm(vecs)**2) - (.5*norm(Bfield)**2))
     arr[...,1:4] = vecs
     return arr
