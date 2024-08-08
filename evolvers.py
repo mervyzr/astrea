@@ -3,6 +3,8 @@ import numpy as np
 from schemes import pcm, plm, ppm, weno
 
 ##############################################################################
+# Collates and controls space and time evolution
+##############################################################################
 
 # Operator L as a function of the reconstruction values; calculate the flux through the surface [F(i+1/2) - F(i-1/2)]/dx
 def getL(fluxes, simVariables):

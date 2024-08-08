@@ -1,11 +1,12 @@
 import numpy as np
 
-from functions import fv
+from functions import fv, constructors
 from numerics import limiters, solvers
 
 ##############################################################################
+# Piecewise linear reconstruction method (PLM) [van Leer, 1979]
+##############################################################################
 
-# Piecewise linear reconstruction method (PLM)
 # Current convention: |               w(i-1/2)                    w(i+1/2)              |
 #                     | i-1          <-- | -->         i         <-- | -->          i+1 |
 #                     |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
@@ -19,7 +20,7 @@ def run(tube, simVariables):
         wS = fv.pointConvertConservative(tube.transpose(axes), gamma)
 
         # Pad array with boundary & apply (TVD) slope limiters
-        w = fv.makeBoundary(wS, boundary)
+        w = fv.addBoundary(wS, boundary)
         limitedValues = limiters.minmodLimiter(w)
 
         # Linear reconstruction [Derigs et al., 2017]
@@ -27,15 +28,15 @@ def run(tube, simVariables):
         wL, wR = np.copy(wS-gradients), np.copy(wS+gradients)  # (eq. 4.13)
 
         # Pad the reconstructed interfaces
-        wLs, wRs = fv.makeBoundary(wL, boundary)[1:], fv.makeBoundary(wR, boundary)[:-1]
+        wLs, wRs = fv.addBoundary(wL, boundary)[1:], fv.addBoundary(wR, boundary)[:-1]
 
         # Convert the primitive variables
         # The conversion can be pointwise conversion for face-average values as it is still 2nd-order
         qLs, qRs = fv.pointConvertPrimitive(wLs, gamma), fv.pointConvertPrimitive(wRs, gamma)
 
         # Compute the fluxes and the Jacobian
-        fLs, fRs = fv.makeFluxTerm(wLs, gamma), fv.makeFluxTerm(wRs, gamma)
-        A = fv.makeJacobian(w, gamma)
+        fLs, fRs = constructors.makeFluxTerm(wLs, gamma), constructors.makeFluxTerm(wRs, gamma)
+        A = constructors.makeJacobian(w, gamma)
         characteristics = np.linalg.eigvals(A)
 
     return solvers.calculateRiemannFlux(simVariables, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)

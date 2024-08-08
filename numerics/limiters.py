@@ -3,6 +3,8 @@ import numpy as np
 from functions import fv
 
 ##############################################################################
+# Limiter functions for the interface and cell values
+##############################################################################
 
 # Function for limiting the face-values for PPM [Colella et al., 2011, p. 26]
 def interfaceLimiter(w_face, w_minusOne, w_cell, w_plusOne, w_plusTwo, C):
