@@ -18,6 +18,8 @@ from static import tests
 from functions import fv, generic, plotting, constructors
 
 ##############################################################################
+# Main script
+##############################################################################
 
 # Globals
 currentdir = os.getcwd()

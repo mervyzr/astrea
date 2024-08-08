@@ -5,6 +5,8 @@ import numpy as np
 from functions import fv, constructors
 
 ##############################################################################
+# Approximate linearised and non-linearised Riemann solvers
+##############################################################################
 
 # Ideally, the 4th-order averaged fluxes should be computed from the face-averaged variables
 # But because the simulation is only 1D, the "normal"-Laplacian (Taylor expansion) of the face-averaged states and fluxes are zero

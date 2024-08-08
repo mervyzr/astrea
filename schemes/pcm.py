@@ -4,8 +4,9 @@ from functions import fv, constructors
 from numerics import solvers
 
 ##############################################################################
+# Piecewise constant reconstruction method (PCM) [Godunov, 1959]
+##############################################################################
 
-# Piecewise constant reconstruction method (PCM)
 def run(tube, simVariables):
     gamma, boundary, permutations = simVariables.gamma, simVariables.boundary, simVariables.permutations
 

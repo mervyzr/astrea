@@ -5,6 +5,8 @@ from scipy.integrate import quad, simpson
 from functions import fv
 
 ##############################################################################
+# Functions for analytic solutions
+##############################################################################
 
 # Customised rounding function
 def roundOff(value):

@@ -1,6 +1,8 @@
 from datetime import timedelta
 
 ##############################################################################
+# Generic functions not specific to finite volume
+##############################################################################
 
 # Colours for printing to terminal
 class bcolours:

@@ -4,8 +4,9 @@ from functions import fv, constructors
 from numerics import limiters, solvers
 
 ##############################################################################
+# Piecewise linear reconstruction method (PLM) [van Leer, 1979]
+##############################################################################
 
-# Piecewise linear reconstruction method (PLM)
 # Current convention: |               w(i-1/2)                    w(i+1/2)              |
 #                     | i-1          <-- | -->         i         <-- | -->          i+1 |
 #                     |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |

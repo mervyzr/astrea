@@ -4,8 +4,9 @@ from functions import fv, constructors
 from numerics import limiters, solvers
 
 ##############################################################################
+# Piecewise parabolic reconstruction method (PPM) [Colella & Woodward, 1984]
+##############################################################################
 
-# Piecewise parabolic reconstruction method (PPM)
 def run(tube, simVariables, C=5/4):
     gamma, boundary, permutations = simVariables.gamma, simVariables.boundary, simVariables.permutations
 

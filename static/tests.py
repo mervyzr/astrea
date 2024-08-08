@@ -1,6 +1,8 @@
 import numpy as np
 
 ##############################################################################
+# Initial conditions for test configs
+##############################################################################
 
 def generateTestConditions(config):
     if config == "sod":
