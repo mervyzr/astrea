@@ -203,32 +203,32 @@ def makeESRightEigenvectors(tube, gamma):
     beta3 = fv.divide(tube[...,7], np.sqrt(tube[...,6]**2 + tube[...,7]**2))
 
     psi_plus_slow = (
-        .5*alpha_s*rhos*fv.norm(vs)**2
-        - soundSpeed*alpha_f*rhos*b_perpend
-        + (alpha_s*rhos*soundSpeed**2)/(gamma-1)
-        + alpha_s*slowMagnetosonicWave*rhos*vx
-        + alpha_f*fastMagnetosonicWave*rhos*S*(vy*beta2 + vz*beta3)
+        .5 * alpha_s * rhos * fv.norm(vs)**2
+        - soundSpeed * alpha_f * rhos * b_perpend
+        + (alpha_s * rhos * soundSpeed**2)/(gamma - 1)
+        + alpha_s * slowMagnetosonicWave * rhos * vx
+        + alpha_f * fastMagnetosonicWave * rhos * S * (vy*beta2 + vz*beta3)
         )
     psi_minus_slow = (
-        .5*alpha_s*rhos*fv.norm(vs)**2
-        - soundSpeed*alpha_f*rhos*b_perpend
-        + (alpha_s*rhos*soundSpeed**2)/(gamma-1)
-        - alpha_s*slowMagnetosonicWave*rhos*vx
-        - alpha_f*fastMagnetosonicWave*rhos*S*(vy*beta2 + vz*beta3)
+        .5 * alpha_s * rhos * fv.norm(vs)**2
+        - soundSpeed * alpha_f * rhos * b_perpend
+        + (alpha_s * rhos * soundSpeed**2)/(gamma - 1)
+        - alpha_s * slowMagnetosonicWave * rhos * vx
+        - alpha_f * fastMagnetosonicWave * rhos * S * (vy*beta2 + vz*beta3)
         )
     psi_plus_fast = (
-        .5*alpha_f*rhos*fv.norm(vs)**2
-        + soundSpeed*alpha_s*rhos*b_perpend
-        + (alpha_f*rhos*soundSpeed**2)/(gamma-1)
-        + alpha_f*fastMagnetosonicWave*rhos*vx
-        - alpha_s*slowMagnetosonicWave*rhos*S*(vy*beta2 + vz*beta3)
+        .5 * alpha_f * rhos * fv.norm(vs)**2
+        + soundSpeed * alpha_s * rhos * b_perpend
+        + (alpha_f * rhos * soundSpeed**2)/(gamma - 1)
+        + alpha_f * fastMagnetosonicWave * rhos * vx
+        - alpha_s * slowMagnetosonicWave * rhos * S * (vy*beta2 + vz*beta3)
         )
     psi_minus_fast = (
-        .5*alpha_f*rhos*fv.norm(vs)**2
-        + soundSpeed*alpha_s*rhos*b_perpend
-        + (alpha_f*rhos*soundSpeed**2)/(gamma-1)
-        - alpha_f*fastMagnetosonicWave*rhos*vx
-        + alpha_s*slowMagnetosonicWave*rhos*S*(vy*beta2 + vz*beta3)
+        .5 * alpha_f * rhos * fv.norm(vs)**2
+        + soundSpeed * alpha_s * rhos * b_perpend
+        + (alpha_f * rhos * soundSpeed**2)/(gamma - 1)
+        - alpha_f * fastMagnetosonicWave * rhos * vx
+        + alpha_s * slowMagnetosonicWave * rhos * S * (vy*beta2 + vz*beta3)
         )
 
     # Generate the right eigenvectors

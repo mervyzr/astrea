@@ -15,7 +15,7 @@ from functions import fv, constructors
 
 
 # Intercell numerical fluxes between L and R interfaces based on Riemann solver
-def calculateRiemannFlux(simVariables, *args, **kwargs):
+def calculateRiemannFlux(simVariables, **kwargs):
     Data = namedtuple('Data', ['flux', 'eigmax'])
 
     # Determine the eigenvalues for the computation of time stepping
@@ -87,7 +87,6 @@ def calculateHLLCFlux(wLs, wRs, simVariables):
     QL, QR = fv.convertPrimitive(wRs, simVariables), fv.convertPrimitive(wLs, simVariables)
     fL, fR = constructors.makeFluxTerm(wRs, gamma), constructors.makeFluxTerm(wLs, gamma)
 
-    zeta = (gamma-1)/(2*gamma)
     cL, cR = np.sqrt(gamma*fv.divide(pL, rhoL)), np.sqrt(gamma*fv.divide(pR, rhoR))
     u_hat = fv.divide(uL*np.sqrt(rhoL) + uR*np.sqrt(rhoR), np.sqrt(rhoL) + np.sqrt(rhoR))
     c2_hat = fv.divide(np.sqrt(rhoL)*cL**2 + np.sqrt(rhoR)*cR**2, np.sqrt(rhoL) + np.sqrt(rhoR)) + .5*((uR-uL)**2)*fv.divide(np.sqrt(rhoL)*np.sqrt(rhoR), (np.sqrt(rhoL)+np.sqrt(rhoR))**2)
