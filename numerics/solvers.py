@@ -2,7 +2,7 @@ from collections import namedtuple
 
 import numpy as np
 
-from functions import fv
+from functions import fv, constructors
 
 ##############################################################################
 
@@ -83,7 +83,7 @@ def calculateHLLCFlux(wLs, wRs, simVariables):
     rhoL, uL, pL = wRs[...,0], wRs[...,1], wRs[...,4]
     rhoR, uR, pR = wLs[...,0], wLs[...,1], wLs[...,4]
     QL, QR = fv.convertPrimitive(wRs, simVariables), fv.convertPrimitive(wLs, simVariables)
-    fL, fR = fv.makeFluxTerm(wRs, gamma), fv.makeFluxTerm(wLs, gamma)
+    fL, fR = constructors.makeFluxTerm(wRs, gamma), constructors.makeFluxTerm(wLs, gamma)
 
     cL, cR = np.sqrt(gamma*fv.divide(pL, rhoL)), np.sqrt(gamma*fv.divide(pR, rhoR))
     u_hat = fv.divide(uL*np.sqrt(rhoL) + uR*np.sqrt(rhoR), np.sqrt(rhoL) + np.sqrt(rhoR))
@@ -117,7 +117,7 @@ def calculateDOTSFlux(qS, fluxes, gamma, roots, weights):
     psi = arr_R + (roots*(arr_L-arr_R).T).T
 
     # Define the right eigenvectors
-    _rightEigenvectors = fv.makeOSRightEigenvectors(psi, gamma)
+    _rightEigenvectors = constructors.makeOSRightEigenvectors(psi, gamma)
 
     # Generate the diagonal matrix of eigenvalues
     _lambda = np.zeros_like(_rightEigenvectors)
@@ -220,7 +220,7 @@ def calculateESFlux(wS, gamma):
 
     # Entropy-stable flux with dissipation term section [Derigs et al., 2016]
     # Make the right eigenvectors for each cell in each tube using the averaged primitive variables
-    rightEigenvectors = fv.makeESRightEigenvectors(np.array([rho_hat.T, u1_hat.T, v1_hat.T, w1_hat.T, P1_hat.T, B1_hat.T, B2_hat.T, B3_hat.T]).T, gamma)
+    rightEigenvectors = constructors.makeESRightEigenvectors(np.array([rho_hat.T, u1_hat.T, v1_hat.T, w1_hat.T, P1_hat.T, B1_hat.T, B2_hat.T, B3_hat.T]).T, gamma)
 
     # Define speeds
     soundSpeed = np.sqrt(gamma * fv.divide(P1_hat, rho_hat))
@@ -274,7 +274,7 @@ def calculateToroFlux(wLs, wRs, simVariables):
     rhoL, uL, pL = wRs[...,0], wRs[...,1], wRs[...,4]
     rhoR, uR, pR = wLs[...,0], wLs[...,1], wLs[...,4]
     QL, QR = fv.convertPrimitive(wRs, simVariables), fv.convertPrimitive(wLs, simVariables)
-    fL, fR = fv.makeFluxTerm(wRs, gamma), fv.makeFluxTerm(wLs, gamma)
+    fL, fR = constructors.makeFluxTerm(wRs, gamma), constructors.makeFluxTerm(wLs, gamma)
 
     zeta = (gamma-1)/(2*gamma)
     aL, aR = np.sqrt(gamma*fv.divide(pL, rhoL)), np.sqrt(gamma*fv.divide(pR, rhoR))
@@ -306,22 +306,3 @@ def calculateToroFlux(wLs, wRs, simVariables):
     flux[(s_star <= 0) & (0 <= sR)] = _fR[(s_star <= 0) & (0 <= sR)]
     flux[0 >= sR] = fR[0 >= sR]
     return flux"""
-
-
-# Calculate the Roe-averaged primitive variables from the left- & right-interface states for use in Roe solver in order to better capture shocks [Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
-def getRoeAverage(wS, qS, gamma):
-    wL, wR = wS
-    qL, qR = qS
-
-    avg = np.zeros_like(wL)
-    rho_L, rho_R = np.sqrt(wL[...,0]), np.sqrt(wR[...,0])
-
-    avg[...,0] = rho_L * rho_R
-    avg[...,1:4] = fv.divide((rho_L.T * wL[...,1:4].T) + (rho_R.T * wR[...,1:4].T), (rho_L + rho_R).T).T
-    avg[...,6:8] = fv.divide((rho_R.T * wL[...,6:8].T) + (rho_L.T * wR[...,6:8].T), (rho_L + rho_R).T).T
-
-    H_L, H_R = fv.divide(qL[...,4] + wL[...,4] + .5*fv.norm(wL[...,5:8])**2, wL[...,0]), fv.divide(qR[...,4] + wR[...,4] + .5*fv.norm(wR[...,5:8])**2, wR[...,0])
-    H = fv.divide(rho_L*H_L + rho_R*H_R, rho_L + rho_R)
-    avg[...,4] = ((gamma-1)/gamma) * (avg[...,0]*H - .5*(avg[...,0]*fv.norm(avg[...,1:4])**2 + fv.norm(avg[...,5:8])**2))
-
-    return avg

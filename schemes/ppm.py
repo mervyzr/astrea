@@ -1,6 +1,6 @@
 import numpy as np
 
-from functions import fv
+from functions import fv, constructors
 from numerics import limiters, solvers
 
 ##############################################################################
@@ -20,14 +20,14 @@ def run(tube, simVariables, C=5/4):
         #                     |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
 
         # Pad array with boundary; PPM requires additional ghost cells
-        w2 = fv.makeBoundary(wS, boundary, 2)
+        w2 = fv.addBoundary(wS, boundary, 2)
         w = np.copy(w2[1:-1])
 
         # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
         wF = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])
 
         # Face i+1/2 (6th-order) [Colella & Sekora, 2008, eq. 17]
-        """w3 = fv.makeBoundary(wS, boundary, 3)
+        """w3 = fv.addBoundary(wS, boundary, 3)
         wF = 1/60 * (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:]))"""
 
         limitedValues = limiters.interfaceLimiter(wF, w[:-2], wS, w[2:], w2[4:], C)
@@ -38,7 +38,7 @@ def run(tube, simVariables, C=5/4):
         #                     |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
 
         # Limited parabolic interpolant [Colella et al., 2011, p. 26]
-        wF_limit_2 = fv.makeBoundary(limitedValues, boundary, 2)
+        wF_limit_2 = fv.addBoundary(limitedValues, boundary, 2)
         wF_limit_L, wF_limit_R = wF_limit_2[1:-3], limitedValues
 
         # Check for cell extrema in cells (eq. 89)
@@ -88,15 +88,15 @@ def run(tube, simVariables, C=5/4):
         avg_wS = .5 * (wL + wR)
         
         # Pad the reconstructed interfaces
-        wLs, wRs = fv.makeBoundary(wL, boundary)[1:], fv.makeBoundary(wR, boundary)[:-1]
+        wLs, wRs = fv.addBoundary(wL, boundary)[1:], fv.addBoundary(wR, boundary)[:-1]
 
         # Convert the primitive variables
         qLs, qRs = fv.convertPrimitive(wLs, simVariables), fv.convertPrimitive(wRs, simVariables)
 
         # Compute the fluxes and the Jacobian
-        _w = fv.makeBoundary(avg_wS, boundary)
-        fLs, fRs = fv.makeFluxTerm(wLs, gamma), fv.makeFluxTerm(wRs, gamma)
-        A = fv.makeJacobian(_w, gamma)
+        _w = fv.addBoundary(avg_wS, boundary)
+        fLs, fRs = constructors.makeFluxTerm(wLs, gamma), constructors.makeFluxTerm(wRs, gamma)
+        A = constructors.makeJacobian(_w, gamma)
         characteristics = np.linalg.eigvals(A)
 
     return solvers.calculateRiemannFlux(simVariables, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
@@ -117,14 +117,14 @@ def runModified(tube, simVariables, dissipate=False, C=5/4):
         #                     |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
 
         # Pad array with boundary; PPM requires additional ghost cells
-        w2 = fv.makeBoundary(wS, boundary, 2)
+        w2 = fv.addBoundary(wS, boundary, 2)
         w = np.copy(w2[1:-1])
 
         # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
         wF = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])
 
         # Face i+1/2 (6th-order) [Colella & Sekora, 2008, eq. 17]
-        """w3 = fv.makeBoundary(wS, boundary, 3)
+        """w3 = fv.addBoundary(wS, boundary, 3)
         wF = 1/60 * (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:]))"""
 
         # Modified stencil [McCorquodale & Colella, 2011, eq. 21-22]
@@ -141,7 +141,7 @@ def runModified(tube, simVariables, dissipate=False, C=5/4):
 
         # Limited modified parabolic interpolant [McCorquodale & Colella, 2011]
         # Define the left and right parabolic interpolants
-        wF_limit = fv.makeBoundary(wF, boundary)
+        wF_limit = fv.addBoundary(wF, boundary)
         wF_limit_L, wF_limit_R = wF_limit[:-2], wF
 
         # Set differences
@@ -150,14 +150,14 @@ def runModified(tube, simVariables, dissipate=False, C=5/4):
         d2w_C = w[:-2] - 2*wS + w[2:]
 
         # Approximation to the third derivative (eq. 23)
-        d3w = np.diff(fv.makeBoundary(d2w_C, boundary), axis=0)[1:]
+        d3w = np.diff(fv.addBoundary(d2w_C, boundary), axis=0)[1:]
 
         # Check for cell extreme in cells (eq. 24-25)
         cell_extrema = (dw_minus*dw_plus <= 0) | ((wS-w2[:-4])*(w2[4:]-wS) <= 0)
 
         # If there are extrema in the cells
         if cell_extrema.any():
-            d2w_Cw = fv.makeBoundary(d2w_C, boundary)
+            d2w_Cw = fv.addBoundary(d2w_C, boundary)
             d2w_lim = np.zeros_like(wS)
 
             # Get the curvatures that have the same signs
@@ -176,7 +176,7 @@ def runModified(tube, simVariables, dissipate=False, C=5/4):
             rho_limiter[sensitive] = phi[sensitive]
 
             # Apply additional limiters
-            d3w_w2 = fv.makeBoundary(d3w, boundary, 2)
+            d3w_w2 = fv.addBoundary(d3w, boundary, 2)
             d3w_w = d3w_w2[1:-1]
             d3w_min = np.minimum(np.minimum(d3w_w[:-2], d3w), np.minimum(d3w_w2[:-4], d3w_w2[4:]))
             d3w_max = np.maximum(np.maximum(d3w_w[:-2], d3w), np.maximum(d3w_w2[:-4], d3w_w2[4:]))
@@ -204,22 +204,22 @@ def runModified(tube, simVariables, dissipate=False, C=5/4):
         avg_wS = .5 * (wL + wR)
 
         # Pad the reconstructed interfaces
-        wLs, wRs = fv.makeBoundary(wL, boundary)[1:], fv.makeBoundary(wR, boundary)[:-1]
+        wLs, wRs = fv.addBoundary(wL, boundary)[1:], fv.addBoundary(wR, boundary)[:-1]
 
         # Convert the primitive variables
         qLs, qRs = fv.convertPrimitive(wLs, simVariables), fv.convertPrimitive(wRs, simVariables)
 
         # Compute the fluxes and the Jacobian
-        _w = fv.makeBoundary(avg_wS, boundary)
-        fLs, fRs = fv.makeFluxTerm(wLs, gamma), fv.makeFluxTerm(wRs, gamma)
+        _w = fv.addBoundary(avg_wS, boundary)
+        fLs, fRs = constructors.makeFluxTerm(wLs, gamma), constructors.makeFluxTerm(wRs, gamma)
 
         if dissipate:
-            qS = fv.makeBoundary(tube.transpose(axes), boundary)
+            qS = fv.addBoundary(tube.transpose(axes), boundary)
             mu = applyArtificialViscosity(wS, gamma, boundary) * np.diff(qS, axis=0)[1:]
-            _mu = fv.makeBoundary(mu, boundary)
+            _mu = fv.addBoundary(mu, boundary)
             f += _mu
 
-        A = fv.makeJacobian(_w, gamma)
+        A = constructors.makeJacobian(_w, gamma)
         characteristics = np.linalg.eigvals(A)
 
     return solvers.calculateRiemannFlux(simVariables, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)

@@ -1,6 +1,6 @@
 import numpy as np
 
-from functions import fv
+from functions import fv, constructors
 from numerics import solvers
 
 ##############################################################################
@@ -13,9 +13,9 @@ def run(tube, simVariables):
     gamma, boundary, permutations = simVariables.gamma, simVariables.boundary, simVariables.permutations
 
     # Function to generate the WENO interface values
-    def makeFaceValue(_wS, _boundary):
+    def extrapolateFaceValue(_wS, _boundary):
         # Pad array with boundary
-        w2 = fv.makeBoundary(_wS, _boundary, 2)
+        w2 = fv.addBoundary(_wS, _boundary, 2)
 
         # Define frequently used terms
         minusOne, minusTwo = w2[1:-3], w2[:-4]
@@ -52,20 +52,20 @@ def run(tube, simVariables):
         wS = fv.convertConservative(tube.transpose(axes), simVariables)
 
         # Pad array with boundary
-        w = fv.makeBoundary(wS, boundary)
+        w = fv.addBoundary(wS, boundary)
 
         # WENO reconstruction [Shu, 2009]
-        wL, wR = makeFaceValue(w[2:], boundary), makeFaceValue(w[1:-1], boundary)
+        wL, wR = extrapolateFaceValue(w[2:], boundary), extrapolateFaceValue(w[1:-1], boundary)
 
         # Pad the reconstructed interfaces
-        wLs, wRs = fv.makeBoundary(wL, boundary)[1:], fv.makeBoundary(wR, boundary)[:-1]
+        wLs, wRs = fv.addBoundary(wL, boundary)[1:], fv.addBoundary(wR, boundary)[:-1]
 
         # Convert the primitive variables, and compute the state differences
         qLs, qRs = fv.convertPrimitive(wLs, simVariables), fv.convertPrimitive(wRs, simVariables)
 
         # Compute the fluxes and the Jacobian
-        fLs, fRs = fv.makeFluxTerm(wLs, gamma), fv.makeFluxTerm(wRs, gamma)
-        A = fv.makeJacobian(w, gamma)
+        fLs, fRs = constructors.makeFluxTerm(wLs, gamma), constructors.makeFluxTerm(wRs, gamma)
+        A = constructors.makeJacobian(w, gamma)
         characteristics = np.linalg.eigvals(A)
 
     return solvers.calculateRiemannFlux(simVariables, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
