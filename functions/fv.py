@@ -9,6 +9,11 @@ def divide(dividend, divisor):
     return np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
 
 
+# For handling norms; typically would always be using the last axis
+def norm(arr, axis=-1):
+    return np.linalg.norm(arr, axis=axis)
+
+
 # Generic Gaussian function
 def gauss_func(x, params):
     peakPos = (x[0]+x[-1])/2
@@ -86,7 +91,7 @@ def makeBoundary(tube, boundary, stencil=1):
 def pointConvertPrimitive(tube, gamma):
     arr = np.copy(tube)
     rhos, vecs, pressures, Bfield = tube[...,0], tube[...,1:4], tube[...,4], tube[...,5:8]
-    arr[...,4] = (pressures/(gamma-1)) + (.5*rhos*np.linalg.norm(vecs, axis=-1)**2) + (.5*np.linalg.norm(Bfield, axis=-1)**2)
+    arr[...,4] = (pressures/(gamma-1)) + (.5*rhos*norm(vecs)**2) + (.5*norm(Bfield)**2)
     arr[...,1:4] = (vecs.T * rhos.T).T
     return arr
 
@@ -96,7 +101,7 @@ def pointConvertConservative(tube, gamma):
     arr = np.copy(tube)
     rhos, energies, Bfield = tube[...,0], tube[...,4], tube[...,5:8]
     vecs = np.divide(tube[...,1:4].T, tube[...,0].T, out=np.zeros_like(tube[...,1:4].T), where=tube[...,0].T!=0).T
-    arr[...,4] = (gamma-1) * (energies - (.5*rhos*np.linalg.norm(vecs, axis=-1)**2) - (.5*np.linalg.norm(Bfield, axis=-1)**2))
+    arr[...,4] = (gamma-1) * (energies - (.5*rhos*norm(vecs)**2) - (.5*norm(Bfield)**2))
     arr[...,1:4] = vecs
     return arr
 
@@ -135,10 +140,10 @@ def makeFluxTerm(tube, gamma):
     arr = np.zeros_like(tube)
 
     arr[...,0] = rhos*vecs[...,0]
-    arr[...,1] = rhos*(vecs[...,0]**2) + pressures + (.5*np.linalg.norm(Bfield, axis=-1)**2) - Bfield[...,0]**2
+    arr[...,1] = rhos*(vecs[...,0]**2) + pressures + (.5*norm(Bfield)**2) - Bfield[...,0]**2
     arr[...,2] = rhos*vecs[...,0]*vecs[...,1] - Bfield[...,0]*Bfield[...,1]
     arr[...,3] = rhos*vecs[...,0]*vecs[...,2] - Bfield[...,0]*Bfield[...,2]
-    arr[...,4] = (vecs[...,0]*((.5*rhos*np.linalg.norm(vecs, axis=-1)**2) + ((gamma*pressures)/(gamma-1)))) + (vecs[...,0]*np.linalg.norm(Bfield, axis=-1)**2) - (Bfield[...,0]*np.sum(Bfield*vecs, axis=-1))
+    arr[...,4] = (vecs[...,0]*((.5*rhos*norm(vecs)**2) + ((gamma*pressures)/(gamma-1)))) + (vecs[...,0]*norm(Bfield)**2) - (Bfield[...,0]*np.sum(Bfield*vecs, axis=-1))
     arr[...,6] = Bfield[...,1]*vecs[...,0] - Bfield[...,0]*vecs[...,1]
     arr[...,7] = Bfield[...,2]*vecs[...,0] - Bfield[...,0]*vecs[...,2]
     return arr
@@ -180,7 +185,7 @@ def makeOSRightEigenvectors(tubes, gamma):
 
     # Define speed
     soundSpeed = np.sqrt(gamma * divide(pressures, rhos))
-    alfvenSpeed = np.sqrt(divide(np.linalg.norm(Bfields, axis=2)**2, rhos))
+    alfvenSpeed = np.sqrt(divide(norm(Bfields)**2, rhos))
     alfvenSpeedx = divide(Bfields[...,0], np.sqrt(rhos))
 
     fastMagnetosonicWave = .5 * (soundSpeed**2 + alfvenSpeed**2 + np.sqrt(((soundSpeed**2 + alfvenSpeed**2)**2) - (4*(soundSpeed**2)*(alfvenSpeedx**2))))
@@ -253,7 +258,7 @@ def makeOSRightEigenvectors(tubes, gamma):
 
 # Make the right eigenvector for adiabatic magnetohydrodynamics in entropy-stable flux (primitive variables)
 def makeESRightEigenvectors(tube, gamma):
-    rhos, pressures, Bfields = tube[...,0], tube[...,4], tube[...,5:8]
+    rhos, vs, pressures, Bfields = tube[...,0], tube[...,1:4], tube[...,4], tube[...,5:8]
     vx, vy, vz = tube[...,1], tube[...,2], tube[...,3]
 
     def divide(dividend, divisor):
@@ -265,7 +270,7 @@ def makeESRightEigenvectors(tube, gamma):
 
     # Define speeds
     soundSpeed = np.sqrt(gamma * divide(pressures, rhos))
-    alfvenSpeed = np.sqrt(divide(np.linalg.norm(Bfields, axis=1)**2, rhos))
+    alfvenSpeed = np.sqrt(divide(norm(Bfields)**2, rhos))
     alfvenSpeedx = divide(tube[...,5], np.sqrt(rhos))
     fastMagnetosonicWave = .5 * (soundSpeed**2 + alfvenSpeed**2 + np.sqrt(((soundSpeed**2 + alfvenSpeed**2)**2) - (4*(soundSpeed**2)*(alfvenSpeedx**2))))
     slowMagnetosonicWave = .5 * (soundSpeed**2 + alfvenSpeed**2 - np.sqrt(((soundSpeed**2 + alfvenSpeed**2)**2) - (4*(soundSpeed**2)*(alfvenSpeedx**2))))
@@ -280,28 +285,28 @@ def makeESRightEigenvectors(tube, gamma):
     beta3 = divide(tube[...,7], np.sqrt(tube[...,6]**2 + tube[...,7]**2))
 
     psi_plus_slow = (
-        .5*alpha_s*rhos*np.linalg.norm(tube[...,1:4], axis=1)**2
+        .5*alpha_s*rhos*norm(vs)**2
         - soundSpeed*alpha_f*rhos*b_perpend
         + (alpha_s*rhos*soundSpeed**2)/(gamma-1)
         + alpha_s*slowMagnetosonicWave*rhos*vx
         + alpha_f*fastMagnetosonicWave*rhos*S*(vy*beta2 + vz*beta3)
         )
     psi_minus_slow = (
-        .5*alpha_s*rhos*np.linalg.norm(tube[...,1:4], axis=1)**2
+        .5*alpha_s*rhos*norm(vs)**2
         - soundSpeed*alpha_f*rhos*b_perpend
         + (alpha_s*rhos*soundSpeed**2)/(gamma-1)
         - alpha_s*slowMagnetosonicWave*rhos*vx
         - alpha_f*fastMagnetosonicWave*rhos*S*(vy*beta2 + vz*beta3)
         )
     psi_plus_fast = (
-        .5*alpha_f*rhos*np.linalg.norm(tube[...,1:4], axis=1)**2
+        .5*alpha_f*rhos*norm(vs)**2
         + soundSpeed*alpha_s*rhos*b_perpend
         + (alpha_f*rhos*soundSpeed**2)/(gamma-1)
         + alpha_f*fastMagnetosonicWave*rhos*vx
         - alpha_s*slowMagnetosonicWave*rhos*S*(vy*beta2 + vz*beta3)
         )
     psi_minus_fast = (
-        .5*alpha_f*rhos*np.linalg.norm(tube[...,1:4], axis=1)**2
+        .5*alpha_f*rhos*norm(vs)**2
         + soundSpeed*alpha_s*rhos*b_perpend
         + (alpha_f*rhos*soundSpeed**2)/(gamma-1)
         - alpha_f*fastMagnetosonicWave*rhos*vx
@@ -336,7 +341,7 @@ def makeESRightEigenvectors(tube, gamma):
     rightEigenvectors[...,1,3] = vx
     rightEigenvectors[...,2,3] = vy
     rightEigenvectors[...,3,3] = vz
-    rightEigenvectors[...,4,3] = .5 * np.linalg.norm(tube[...,1:4], axis=1)**2
+    rightEigenvectors[...,4,3] = .5 * norm(vs)**2
     # Fifth column (Divergence wave)
     rightEigenvectors[...,4,4] = tube[...,5]
     rightEigenvectors[...,5,4] = 1
