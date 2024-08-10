@@ -56,17 +56,18 @@ def initialise(simVariables):
 
 
 # Make flux as a function of cell-averaged (primitive) variables
-def makeFluxTerm(tube, gamma):
+def makeFluxTerm(tube, gamma, axis=0):
+    axis = axis%3
     rhos, vecs, pressures, Bfield = tube[...,0], tube[...,1:4], tube[...,4], tube[...,5:8]
     arr = np.zeros_like(tube)
 
-    arr[...,0] = rhos*vecs[...,0]
-    arr[...,1] = rhos*(vecs[...,0]**2) + pressures + (.5*fv.norm(Bfield)**2) - Bfield[...,0]**2
-    arr[...,2] = rhos*vecs[...,0]*vecs[...,1] - Bfield[...,0]*Bfield[...,1]
-    arr[...,3] = rhos*vecs[...,0]*vecs[...,2] - Bfield[...,0]*Bfield[...,2]
-    arr[...,4] = (vecs[...,0]*((.5*rhos*fv.norm(vecs)**2) + ((gamma*pressures)/(gamma-1)))) + (vecs[...,0]*fv.norm(Bfield)**2) - (Bfield[...,0]*np.sum(Bfield*vecs, axis=-1))
-    arr[...,6] = Bfield[...,1]*vecs[...,0] - Bfield[...,0]*vecs[...,1]
-    arr[...,7] = Bfield[...,2]*vecs[...,0] - Bfield[...,0]*vecs[...,2]
+    arr[...,0] = rhos*vecs[...,axis]
+    arr[...,axis+1] = rhos*(vecs[...,axis]**2) + pressures + (.5*fv.norm(Bfield)**2) - Bfield[...,axis]**2
+    arr[...,(1+axis)%3+1] = rhos*vecs[...,axis]*vecs[...,(axis+1)%3] - Bfield[...,axis]*Bfield[...,(axis+1)%3]
+    arr[...,(2+axis)%3+1] = rhos*vecs[...,axis]*vecs[...,(axis+2)%3] - Bfield[...,axis]*Bfield[...,(axis+2)%3]
+    arr[...,4] = (vecs[...,axis] * ((.5*rhos*fv.norm(vecs)**2) + ((gamma*pressures)/(gamma-1)) + (fv.norm(Bfield)**2))) - (Bfield[...,axis]*np.sum(Bfield*vecs, axis=-1))
+    arr[...,(1+axis)%3+5] = Bfield[...,(axis+1)%3]*vecs[...,axis] - Bfield[...,axis]*vecs[...,(axis+1)%3]
+    arr[...,(2+axis)%3+5] = Bfield[...,(axis+2)%3]*vecs[...,axis] - Bfield[...,axis]*vecs[...,(axis+2)%3]
     return arr
 
 

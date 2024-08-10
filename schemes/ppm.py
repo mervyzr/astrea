@@ -11,7 +11,7 @@ def run(tube, simVariables, C=5/4):
     gamma, boundary, permutations = simVariables.gamma, simVariables.boundary, simVariables.permutations
 
     # Rotate grid and apply algorithm for each axis
-    for axes in permutations:
+    for axis, axes in enumerate(permutations):
 
         # Convert to primitive variables
         wS = fv.convertConservative(tube.transpose(axes), simVariables)
@@ -108,7 +108,7 @@ def runModified(tube, simVariables, dissipate=False, C=5/4):
     gamma, boundary, permutations = simVariables.gamma, simVariables.boundary, simVariables.permutations
 
     # Rotate grid and apply algorithm for each axis
-    for axes in permutations:
+    for axis, axes in enumerate(permutations):
 
         # Convert to primitive variables
         wS = fv.convertConservative(tube.transpose(axes), simVariables)

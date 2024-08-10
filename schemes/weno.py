@@ -47,7 +47,7 @@ def run(tube, simVariables):
         return weight1*u1 + weight2*u2 + weight3*u3
 
     # Rotate grid and apply algorithm for each axis
-    for axes in permutations:
+    for axis, axes in enumerate(permutations):
 
         # Convert to primitive variables
         wS = fv.convertConservative(tube.transpose(axes), simVariables)
