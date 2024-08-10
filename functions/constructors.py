@@ -57,23 +57,24 @@ def initialise(simVariables):
 
 # Make flux as a function of cell-averaged (primitive) variables
 def makeFluxTerm(tube, gamma, axis=0):
-    axis = axis%3
-    rhos, vecs, pressures, Bfield = tube[...,0], tube[...,1:4], tube[...,4], tube[...,5:8]
+    axis %= 3
+    rhos, vecs, pressures, Bfields = tube[...,0], tube[...,1:4], tube[...,4], tube[...,5:8]
     arr = np.zeros_like(tube)
 
     arr[...,0] = rhos*vecs[...,axis]
-    arr[...,axis+1] = rhos*(vecs[...,axis]**2) + pressures + (.5*fv.norm(Bfield)**2) - Bfield[...,axis]**2
-    arr[...,(1+axis)%3+1] = rhos*vecs[...,axis]*vecs[...,(axis+1)%3] - Bfield[...,axis]*Bfield[...,(axis+1)%3]
-    arr[...,(2+axis)%3+1] = rhos*vecs[...,axis]*vecs[...,(axis+2)%3] - Bfield[...,axis]*Bfield[...,(axis+2)%3]
-    arr[...,4] = (vecs[...,axis] * ((.5*rhos*fv.norm(vecs)**2) + ((gamma*pressures)/(gamma-1)) + (fv.norm(Bfield)**2))) - (Bfield[...,axis]*np.sum(Bfield*vecs, axis=-1))
-    arr[...,(1+axis)%3+5] = Bfield[...,(axis+1)%3]*vecs[...,axis] - Bfield[...,axis]*vecs[...,(axis+1)%3]
-    arr[...,(2+axis)%3+5] = Bfield[...,(axis+2)%3]*vecs[...,axis] - Bfield[...,axis]*vecs[...,(axis+2)%3]
+    arr[...,axis+1] = rhos*(vecs[...,axis]**2) + pressures + (.5*fv.norm(Bfields)**2) - Bfields[...,axis]**2
+    arr[...,(axis+1)%3+1] = rhos*vecs[...,axis]*vecs[...,(axis+1)%3] - Bfields[...,axis]*Bfields[...,(axis+1)%3]
+    arr[...,(axis+2)%3+1] = rhos*vecs[...,axis]*vecs[...,(axis+2)%3] - Bfields[...,axis]*Bfields[...,(axis+2)%3]
+    arr[...,4] = (vecs[...,axis] * ((.5*rhos*fv.norm(vecs)**2) + ((gamma*pressures)/(gamma-1)) + (fv.norm(Bfields)**2))) - (Bfields[...,axis]*np.sum(Bfields*vecs, axis=-1))
+    arr[...,(axis+1)%3+5] = Bfields[...,(axis+1)%3]*vecs[...,axis] - Bfields[...,axis]*vecs[...,(axis+1)%3]
+    arr[...,(axis+2)%3+5] = Bfields[...,(axis+2)%3]*vecs[...,axis] - Bfields[...,axis]*vecs[...,(axis+2)%3]
     return arr
 
 
 # Jacobian matrix based on primitive variables
-def makeJacobian(tube, gamma):
-    rho, vx, pressure, Bfield = tube[...,0], tube[...,1], tube[...,4], tube[...,5:8]/np.sqrt(4*np.pi)
+def makeJacobian(tube, gamma, axis=0):
+    axis %= 3
+    rho, v, pressure, Bfields = tube[...,0], tube[...,axis+1], tube[...,4], tube[...,5:8]/np.sqrt(4*np.pi)
     
     # Create empty square arrays for each cell
     _arr = np.zeros_like(tube)
@@ -81,19 +82,19 @@ def makeJacobian(tube, gamma):
     i, j = np.diag_indices(_arr.shape[-1])
 
     # Replace matrix with values
-    arr[...,i,j] = vx[...,None]  # diagonal elements
-    arr[...,0,1] = rho
-    arr[...,1,4] = 1/rho
-    arr[...,4,1] = gamma*pressure
+    arr[...,i,j] = v[...,None]  # diagonal elements
+    arr[...,0,axis+1] = rho
+    arr[...,axis+1,4] = 1/rho
+    arr[...,4,axis+1] = gamma*pressure
 
-    arr[...,1,6] = fv.divide(Bfield[...,1], rho)
-    arr[...,1,7] = fv.divide(Bfield[...,2], rho)
-    arr[...,2,6] = fv.divide(-Bfield[...,0], rho)
-    arr[...,3,7] = fv.divide(-Bfield[...,0], rho)
-    arr[...,6,1] = Bfield[...,1]
-    arr[...,6,2] = -Bfield[...,0]
-    arr[...,7,1] = Bfield[...,2]
-    arr[...,7,3] = -Bfield[...,0]
+    arr[...,axis+1,(axis+1)%3+5] = fv.divide(Bfields[...,(axis+1)%3], rho)
+    arr[...,axis+1,(axis+2)%3+5] = fv.divide(Bfields[...,(axis+2)%3], rho)
+    arr[...,(axis+1)%3+1,(axis+1)%3+5] = fv.divide(-Bfields[...,axis], rho)
+    arr[...,(axis+2)%3+1,(axis+2)%3+5] = fv.divide(-Bfields[...,axis], rho)
+    arr[...,(axis+1)%3+5,axis+1] = Bfields[...,(axis+1)%3]
+    arr[...,(axis+1)%3+5,(axis+1)%3+1] = -Bfields[...,axis]
+    arr[...,(axis+2)%3+5,axis+1] = Bfields[...,(axis+2)%3]
+    arr[...,(axis+2)%3+5,(axis+2)%3+1] = -Bfields[...,axis]
     return arr
 
 
