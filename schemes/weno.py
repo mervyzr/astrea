@@ -65,8 +65,8 @@ def run(tube, simVariables):
         qLs, qRs = fv.convertPrimitive(wLs, simVariables), fv.convertPrimitive(wRs, simVariables)
 
         # Compute the fluxes and the Jacobian
-        fLs, fRs = constructors.makeFluxTerm(wLs, gamma), constructors.makeFluxTerm(wRs, gamma)
-        A = constructors.makeJacobian(w, gamma)
+        fLs, fRs = constructors.makeFluxTerm(wLs, gamma, axis), constructors.makeFluxTerm(wRs, gamma, axis)
+        A = constructors.makeJacobian(w, gamma, axis)
         characteristics = np.linalg.eigvals(A)
 
     return solvers.calculateRiemannFlux(simVariables, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)

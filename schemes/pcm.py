@@ -19,8 +19,8 @@ def run(tube, simVariables):
 
         # Compute the fluxes and the Jacobian
         w = fv.addBoundary(wS, boundary)
-        f = constructors.makeFluxTerm(w, gamma)
-        A = constructors.makeJacobian(w, gamma)
+        f = constructors.makeFluxTerm(w, gamma, axis)
+        A = constructors.makeJacobian(w, gamma, axis)
         characteristics = np.linalg.eigvals(A)
 
     return solvers.calculateRiemannFlux(simVariables, f=f, wS=wS, w=w, qS=qS, characteristics=characteristics)

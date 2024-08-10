@@ -56,7 +56,7 @@ def initialise(simVariables):
 
 
 # Make flux as a function of cell-averaged (primitive) variables
-def makeFluxTerm(tube, gamma, axis=0):
+def makeFluxTerm(tube, gamma, axis):
     axis %= 3
     rhos, vecs, pressures, Bfields = tube[...,0], tube[...,1:4], tube[...,4], tube[...,5:8]
     arr = np.zeros_like(tube)
@@ -72,7 +72,7 @@ def makeFluxTerm(tube, gamma, axis=0):
 
 
 # Jacobian matrix based on primitive variables
-def makeJacobian(tube, gamma, axis=0):
+def makeJacobian(tube, gamma, axis):
     axis %= 3
     rho, v, pressure, Bfields = tube[...,0], tube[...,axis+1], tube[...,4], tube[...,5:8]/np.sqrt(4*np.pi)
     

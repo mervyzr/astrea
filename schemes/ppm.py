@@ -96,8 +96,8 @@ def run(tube, simVariables, C=5/4):
 
         # Compute the fluxes and the Jacobian
         _w = fv.addBoundary(avg_wS, boundary)
-        fLs, fRs = constructors.makeFluxTerm(wLs, gamma), constructors.makeFluxTerm(wRs, gamma)
-        A = constructors.makeJacobian(_w, gamma)
+        fLs, fRs = constructors.makeFluxTerm(wLs, gamma, axis), constructors.makeFluxTerm(wRs, gamma, axis)
+        A = constructors.makeJacobian(_w, gamma, axis)
         characteristics = np.linalg.eigvals(A)
 
     return solvers.calculateRiemannFlux(simVariables, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
@@ -212,7 +212,7 @@ def runModified(tube, simVariables, dissipate=False, C=5/4):
 
         # Compute the fluxes and the Jacobian
         _w = fv.addBoundary(avg_wS, boundary)
-        fLs, fRs = constructors.makeFluxTerm(wLs, gamma), constructors.makeFluxTerm(wRs, gamma)
+        fLs, fRs = constructors.makeFluxTerm(wLs, gamma, axis), constructors.makeFluxTerm(wRs, gamma, axis)
 
         if dissipate:
             qS = fv.addBoundary(tube.transpose(axes), boundary)
@@ -220,7 +220,7 @@ def runModified(tube, simVariables, dissipate=False, C=5/4):
             _mu = fv.addBoundary(mu, boundary)
             f += _mu
 
-        A = constructors.makeJacobian(_w, gamma)
+        A = constructors.makeJacobian(_w, gamma, axis)
         characteristics = np.linalg.eigvals(A)
 
     return solvers.calculateRiemannFlux(simVariables, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
