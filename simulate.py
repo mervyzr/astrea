@@ -28,7 +28,7 @@ np.random.seed(seed)
 
 
 # Finite volume shock function
-def runSimulation(grp, _simVariables):
+def runSimulation(grp: h5py, _simVariables: namedtuple):
     # Initialise the discrete solution array with conserved variables <q>
     # Even though the solution array is discrete, the variables are averages (FV) instead of points (FD)
     domain = constructors.initialise(_simVariables)
@@ -63,7 +63,7 @@ def runSimulation(grp, _simVariables):
 ##############################################################################
 
 # Main script; includes handlers and core execution of simulation code
-def main():
+def main() -> None:
     # Save the HDF5 file (with seed) to store the temporary data
     filename = f"{currentdir}/.shockTemp_{seed}.hdf5"
     noprint, debug = False, False
