@@ -49,6 +49,25 @@ def printOutput(instanceTime, seed, simVariables, **kwargs):
         pass
 
 
+# Simple name space for recursive dict
+class Namespace:
+
+    @staticmethod
+    def map_entry(entry):
+        if isinstance(entry, dict):
+            return Namespace(**entry)
+        return entry
+
+    def __init__(self, **kwargs):
+        for key, val in kwargs.items():
+            if type(val) == dict:
+                setattr(self, key, Namespace(**val))
+            elif type(val) == list:
+                setattr(self, key, list(map(self.map_entry, val)))
+            else:
+                setattr(self, key, val)
+
+
 # Function for tidying dictionary
 def tidyDict(_dct):
     dct = {}
