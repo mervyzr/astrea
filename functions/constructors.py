@@ -98,6 +98,25 @@ def makeJacobian(tube, gamma, axis):
     return arr
 
 
+# Calculate the Roe-averaged primitive variables from the left- & right-interface states for use in Roe solver in order to better capture shocks [Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
+def makeRoeAverage(wS, qS, gamma):
+    wL, wR = wS
+    qL, qR = qS
+
+    avg = np.zeros_like(wL)
+    rho_L, rho_R = np.sqrt(wL[...,0]), np.sqrt(wR[...,0])
+
+    avg[...,0] = rho_L * rho_R
+    avg[...,1:4] = fv.divide((rho_L.T * wL[...,1:4].T) + (rho_R.T * wR[...,1:4].T), (rho_L + rho_R).T).T
+    avg[...,6:8] = fv.divide((rho_R.T * wL[...,6:8].T) + (rho_L.T * wR[...,6:8].T), (rho_L + rho_R).T).T
+
+    H_L, H_R = fv.divide(qL[...,4] + wL[...,4] + .5*fv.norm(wL[...,5:8])**2, wL[...,0]), fv.divide(qR[...,4] + wR[...,4] + .5*fv.norm(wR[...,5:8])**2, wR[...,0])
+    H = fv.divide(rho_L*H_L + rho_R*H_R, rho_L + rho_R)
+    avg[...,4] = ((gamma-1)/gamma) * (avg[...,0]*H - .5*(avg[...,0]*fv.norm(avg[...,1:4])**2 + fv.norm(avg[...,5:8])**2))
+
+    return avg
+
+
 # Make the right eigenvector for adiabatic magnetohydrodynamics in Osher-Solomon flux
 def makeOSRightEigenvectors(tubes, gamma):
     rhos, pressures, Bfields = tubes[...,0], tubes[...,4], tubes[...,5:8]/np.sqrt(4*np.pi)
@@ -301,22 +320,3 @@ def makeESRightEigenvectors(tube, gamma):
     R_dot = rightEigenvectors @ np.sqrt(diag_scaler)
 
     return R_dot
-
-
-# Calculate the Roe-averaged primitive variables from the left- & right-interface states for use in Roe solver in order to better capture shocks [Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
-def makeRoeAverage(wS, qS, gamma):
-    wL, wR = wS
-    qL, qR = qS
-
-    avg = np.zeros_like(wL)
-    rho_L, rho_R = np.sqrt(wL[...,0]), np.sqrt(wR[...,0])
-
-    avg[...,0] = rho_L * rho_R
-    avg[...,1:4] = fv.divide((rho_L.T * wL[...,1:4].T) + (rho_R.T * wR[...,1:4].T), (rho_L + rho_R).T).T
-    avg[...,6:8] = fv.divide((rho_R.T * wL[...,6:8].T) + (rho_L.T * wR[...,6:8].T), (rho_L + rho_R).T).T
-
-    H_L, H_R = fv.divide(qL[...,4] + wL[...,4] + .5*fv.norm(wL[...,5:8])**2, wL[...,0]), fv.divide(qR[...,4] + wR[...,4] + .5*fv.norm(wR[...,5:8])**2, wR[...,0])
-    H = fv.divide(rho_L*H_L + rho_R*H_R, rho_L + rho_R)
-    avg[...,4] = ((gamma-1)/gamma) * (avg[...,0]*H - .5*(avg[...,0]*fv.norm(avg[...,1:4])**2 + fv.norm(avg[...,5:8])**2))
-
-    return avg
