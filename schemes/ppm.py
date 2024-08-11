@@ -112,7 +112,7 @@ def run(tube, simVariables, C=5/4):
         data[axes]['jacobian'] = A
         data[axes]['eigvals'] = characteristics
 
-    return solvers.calculateRiemannFlux(simVariables, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
+    return solvers.calculateRiemannFlux(simVariables, data, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
 
 
 # Modified piecewise parabolic reconstruction method (m-PPM); does not have interface limiting
@@ -245,7 +245,7 @@ def runModified(tube, simVariables, dissipate=False, C=5/4):
         data[axes]['jacobian'] = A
         data[axes]['eigvals'] = characteristics
 
-    return solvers.calculateRiemannFlux(simVariables, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
+    return solvers.calculateRiemannFlux(simVariables, data, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
 
 
 # Calculate the coefficients of the slope flattener for the parabolic extrapolants using pressure and v_x [Colella, 1990]

@@ -37,12 +37,12 @@ def calculateRiemannFlux(simVariables: namedtuple, arrays: defaultdict, **kwargs
     # Osher-Solomon schemes
     elif simVariables.scheme in ["os", "osher-solomon", "osher", "solomon"]:
         if simVariables.subgrid in ["plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"]:
-            qS = [kwargs["qLs"], kwargs["qRs"]]
+            qLs, qRs = kwargs["qLs"], kwargs["qRs"]
             fluxes = kwargs["fLs"] + kwargs["fRs"]
         else:
-            qS = [kwargs["qS"][:-1], kwargs["qS"][1:]]
+            qLs, qRs = kwargs["qS"][:-1], kwargs["qS"][1:]
             fluxes = kwargs["f"][1:] + kwargs["f"][:-1]
-        return Data(calculateDOTSFlux(qS, fluxes, simVariables.gamma, simVariables.roots, simVariables.weights), eigmax)
+        return Data(calculateDOTSFlux(qLs, qRs, fluxes, simVariables.gamma, simVariables.roots, simVariables.weights), eigmax)
 
     # Roe-type/Lax-type schemes
     else:
@@ -56,7 +56,7 @@ def calculateRiemannFlux(simVariables: namedtuple, arrays: defaultdict, **kwargs
             wLs, wRs = kwargs["w"][:-1], kwargs["w"][1:]
 
         if simVariables.scheme in ["entropy", "stable", "entropy-stable", "es"]:
-            return Data(calculateESFlux([wLs, wRs], simVariables.gamma), eigmax)
+            return Data(calculateESFlux(wLs, wRs, simVariables.gamma), eigmax)
         elif simVariables.scheme in ["lw", "lax-wendroff", "wendroff"]:
             return Data(calculateLaxWendroffFlux(fluxes, qDiff, eigvals, kwargs["characteristics"]), eigmax)
         else:
@@ -112,9 +112,7 @@ def calculateHLLCFlux(wLs, wRs, fLs, fRs, simVariables):
 
 
 # Osher-Solomon(-Dumbser-Toro) Riemann solver [Dumbser & Toro, 2011]
-def calculateDOTSFlux(qS, fluxes, gamma, roots, weights):
-    qLs, qRs = qS
-
+def calculateDOTSFlux(qLs, qRs, fluxes, gamma, roots, weights):
     # Define the path integral for the Osher-Solomon dissipation term
     arr_L, arr_R = np.repeat(qLs[None,:], len(roots), axis=0), np.repeat(qRs[None,:], len(roots), axis=0)
     psi = arr_R + (roots*(arr_L-arr_R).T).T
@@ -161,9 +159,7 @@ def calculateDOTSFlux(qS, fluxes, gamma, roots, weights):
 
 
 # Entropy-stable flux calculation based on left and right interpolated primitive variables [Winters & Gassner, 2015; Derigs et al., 2016]
-def calculateESFlux(wS, gamma):
-    wLs, wRs = wS
-
+def calculateESFlux(wLs, wRs, gamma):
     # To construct the entropy-stable flux, 2 components are needed:
     # the entropy-conserving flux component, and the dissipation term to make the flux entropy-stable
 
