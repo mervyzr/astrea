@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import numpy as np
 
 from functions import fv, constructors
@@ -12,6 +14,8 @@ from numerics import solvers
 #                     |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
 def run(tube, simVariables):
     gamma, boundary, permutations = simVariables.gamma, simVariables.boundary, simVariables.permutations
+    nested_dict = lambda: defaultdict(nested_dict)
+    data = nested_dict()
 
     # Function to generate the WENO interface values
     def extrapolateFaceValue(_wS, _boundary):
@@ -69,4 +73,12 @@ def run(tube, simVariables):
         A = constructors.makeJacobian(w, gamma, axis)
         characteristics = np.linalg.eigvals(A)
 
-    return solvers.calculateRiemannFlux(simVariables, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
+        # Update dict
+        data[axes]['wS'] = wS
+        data[axes]['w'] = [wLs,wRs]
+        data[axes]['q'] = [qLs,qRs]
+        data[axes]['f'] = [fLs,fRs]
+        data[axes]['jacobian'] = A
+        data[axes]['eigvals'] = characteristics
+
+    return solvers.calculateRiemannFlux(simVariables, data, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)

@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import numpy as np
 
 from functions import fv, constructors
@@ -9,6 +11,8 @@ from numerics import limiters, solvers
 
 def run(tube, simVariables, C=5/4):
     gamma, boundary, permutations = simVariables.gamma, simVariables.boundary, simVariables.permutations
+    nested_dict = lambda: defaultdict(nested_dict)
+    data = nested_dict()
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in enumerate(permutations):
@@ -100,12 +104,22 @@ def run(tube, simVariables, C=5/4):
         A = constructors.makeJacobian(_w, gamma, axis)
         characteristics = np.linalg.eigvals(A)
 
+        # Update dict
+        data[axes]['wS'] = wS
+        data[axes]['w'] = [wLs,wRs]
+        data[axes]['q'] = [qLs,qRs]
+        data[axes]['f'] = [fLs,fRs]
+        data[axes]['jacobian'] = A
+        data[axes]['eigvals'] = characteristics
+
     return solvers.calculateRiemannFlux(simVariables, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
 
 
 # Modified piecewise parabolic reconstruction method (m-PPM); does not have interface limiting
 def runModified(tube, simVariables, dissipate=False, C=5/4):
     gamma, boundary, permutations = simVariables.gamma, simVariables.boundary, simVariables.permutations
+    nested_dict = lambda: defaultdict(nested_dict)
+    data = nested_dict()
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in enumerate(permutations):
@@ -222,6 +236,14 @@ def runModified(tube, simVariables, dissipate=False, C=5/4):
 
         A = constructors.makeJacobian(_w, gamma, axis)
         characteristics = np.linalg.eigvals(A)
+
+        # Update dict
+        data[axes]['wS'] = wS
+        data[axes]['w'] = [wLs,wRs]
+        data[axes]['q'] = [qLs,qRs]
+        data[axes]['f'] = [fLs,fRs]
+        data[axes]['jacobian'] = A
+        data[axes]['eigvals'] = characteristics
 
     return solvers.calculateRiemannFlux(simVariables, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
 

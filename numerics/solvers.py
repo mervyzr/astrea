@@ -1,4 +1,4 @@
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 
 import numpy as np
 
@@ -15,7 +15,7 @@ from functions import fv, constructors
 
 
 # Intercell numerical fluxes between L and R interfaces based on Riemann solver
-def calculateRiemannFlux(simVariables, **kwargs):
+def calculateRiemannFlux(simVariables: namedtuple, arrays: defaultdict, **kwargs):
     Data = namedtuple('Data', ['flux', 'eigmax'])
 
     # Determine the eigenvalues for the computation of time stepping
@@ -28,9 +28,11 @@ def calculateRiemannFlux(simVariables, **kwargs):
     if simVariables.scheme in ["hllc", "c"]:
         if simVariables.subgrid in ["plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"]:
             wLs, wRs = kwargs["wLs"], kwargs["wRs"]
+            fLs, fRs = kwargs["fLs"], kwargs["fRs"]
         else:
             wLs, wRs = kwargs["w"][1:], kwargs["w"][:-1]
-        return Data(calculateHLLCFlux(wLs, wRs, simVariables), eigmax)
+            fLs, fRs = kwargs["f"][1:], kwargs["f"][:-1]
+        return Data(calculateHLLCFlux(wLs, wRs, fRs, fLs, simVariables), eigmax)
 
     # Osher-Solomon schemes
     elif simVariables.scheme in ["os", "osher-solomon", "osher", "solomon"]:
@@ -78,14 +80,13 @@ def calculateLaxWendroffFlux(fluxes, qDiff, eigenvalues, characteristics):
 
 
 # HLLC Riemann solver [Fleischmann et al., 2020]
-def calculateHLLCFlux(wLs, wRs, simVariables):
+def calculateHLLCFlux(wLs, wRs, fLs, fRs, simVariables):
     gamma = simVariables.gamma
 
     # The convention here is using the opposite (LR -> RL)
     rhoL, uL, pL = wRs[...,0], wRs[...,1], wRs[...,4]
     rhoR, uR, pR = wLs[...,0], wLs[...,1], wLs[...,4]
     QL, QR = fv.convertPrimitive(wRs, simVariables), fv.convertPrimitive(wLs, simVariables)
-    fL, fR = constructors.makeFluxTerm(wRs, gamma), constructors.makeFluxTerm(wLs, gamma)
 
     cL, cR = np.sqrt(gamma*fv.divide(pL, rhoL)), np.sqrt(gamma*fv.divide(pR, rhoR))
     u_hat = fv.divide(uL*np.sqrt(rhoL) + uR*np.sqrt(rhoR), np.sqrt(rhoL) + np.sqrt(rhoR))
@@ -102,11 +103,11 @@ def calculateHLLCFlux(wLs, wRs, simVariables):
     _QL[...,4] = _QL[...,4] + coeffL*(s_star-uL)*(rhoL*s_star + fv.divide(pL, sL-uL))
     _QR[...,4] = _QR[...,4] + coeffR*(s_star-uR)*(rhoR*s_star + fv.divide(pR, sR-uR))
 
-    flux = np.copy(fL)
-    _fL, _fR = fL + (sL.T * (_QL-QL).T).T, fR + (sR.T * (_QR-QR).T).T
-    flux[(sL < 0) & (s_star >= 0)] = _fL[(sL < 0) & (s_star >= 0)]
-    flux[(sR > 0) & (s_star <= 0)] = _fR[(sR > 0) & (s_star <= 0)]
-    flux[sR <= 0] = fR[sR <= 0]
+    flux = np.copy(fLs)
+    _fLs, _fRs = fLs + (sL.T * (_QL-QL).T).T, fRs + (sR.T * (_QR-QR).T).T
+    flux[(sL < 0) & (s_star >= 0)] = _fLs[(sL < 0) & (s_star >= 0)]
+    flux[(sR > 0) & (s_star <= 0)] = _fRs[(sR > 0) & (s_star <= 0)]
+    flux[sR <= 0] = fRs[sR <= 0]
     return flux
 
 
@@ -270,13 +271,12 @@ def calculateESFlux(wS, gamma):
 
 
 """# HLLC Riemann solver [Toro, 2019]
-def calculateToroFlux(wLs, wRs, simVariables):
+def calculateToroFlux(wLs, wRs, fLs, fRs, simVariables):
     gamma = simVariables.gamma
 
     rhoL, uL, pL = wRs[...,0], wRs[...,1], wRs[...,4]
     rhoR, uR, pR = wLs[...,0], wLs[...,1], wLs[...,4]
     QL, QR = fv.convertPrimitive(wRs, simVariables), fv.convertPrimitive(wLs, simVariables)
-    fL, fR = constructors.makeFluxTerm(wRs, gamma), constructors.makeFluxTerm(wLs, gamma)
 
     zeta = (gamma-1)/(2*gamma)
     aL, aR = np.sqrt(gamma*fv.divide(pL, rhoL)), np.sqrt(gamma*fv.divide(pR, rhoR))
@@ -302,9 +302,9 @@ def calculateToroFlux(wLs, wRs, simVariables):
     _QL[...,5:8] = ((rhoL * coeffL).T * _BL.T).T
     _QR[...,5:8] = ((rhoR * coeffR).T * _BR.T).T
 
-    flux = np.copy(fL)
-    _fL, _fR = np.copy(fL + (sL.T * (_QL-QL).T).T), np.copy(fR + (sR.T * (_QR-QR).T).T)
-    flux[(sL <= 0) & (0 <= s_star)] = _fL[(sL <= 0) & (0 <= s_star)]
-    flux[(s_star <= 0) & (0 <= sR)] = _fR[(s_star <= 0) & (0 <= sR)]
-    flux[0 >= sR] = fR[0 >= sR]
+    flux = np.copy(fLs)
+    _fLs, _fRs = np.copy(fLs + (sL.T * (_QL-QL).T).T), np.copy(fRs + (sR.T * (_QR-QR).T).T)
+    flux[(sL <= 0) & (0 <= s_star)] = _fLs[(sL <= 0) & (0 <= s_star)]
+    flux[(s_star <= 0) & (0 <= sR)] = _fRs[(s_star <= 0) & (0 <= sR)]
+    flux[0 >= sR] = fRs[0 >= sR]
     return flux"""
