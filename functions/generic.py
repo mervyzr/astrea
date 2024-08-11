@@ -17,6 +17,25 @@ class bcolours:
     UNDERLINE = '\033[4m'
 
 
+# Simple name space for recursive dict
+class Namespace:
+
+    @staticmethod
+    def map_entry(entry):
+        if isinstance(entry, dict):
+            return Namespace(**entry)
+        return entry
+
+    def __init__(self, **kwargs):
+        for key, val in kwargs.items():
+            if type(val) == dict:
+                setattr(self, key, Namespace(**val))
+            elif type(val) == list:
+                setattr(self, key, list(map(self.map_entry, val)))
+            else:
+                setattr(self, key, val)
+
+
 # Customised rounding function
 def roundOff(value):
     if value%int(value) >= .5:
@@ -47,25 +66,6 @@ def printOutput(instanceTime, seed, simVariables, **kwargs):
     else:
         print(f"[{instanceTime} | {_seed}] TEST={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SCHEME={_scheme}, TIMESTEP={_timestep} || {bcolours.WARNING}RUNNING SIMULATION..{bcolours.ENDC}", end='\r')
         pass
-
-
-# Simple name space for recursive dict
-class Namespace:
-
-    @staticmethod
-    def map_entry(entry):
-        if isinstance(entry, dict):
-            return Namespace(**entry)
-        return entry
-
-    def __init__(self, **kwargs):
-        for key, val in kwargs.items():
-            if type(val) == dict:
-                setattr(self, key, Namespace(**val))
-            elif type(val) == list:
-                setattr(self, key, list(map(self.map_entry, val)))
-            else:
-                setattr(self, key, val)
 
 
 # Function for tidying dictionary
