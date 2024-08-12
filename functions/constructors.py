@@ -12,14 +12,14 @@ def initialise(simVariables):
     start, end, shock, params = simVariables.startPos, simVariables.endPos, simVariables.shockPos, simVariables.misc
     initialLeft, initialRight = simVariables.initialLeft, simVariables.initialRight
 
-    _i = (N,) * dim
+    _i = (N,) * int(dim)
     _i += (len(initialRight),)
     arr = np.zeros(_i, dtype=precision)
     arr[:] = initialRight
 
     midpoint = (end+start)/2
 
-    if dim == 2:
+    if dim >= 2:
         x = y = np.arange(N)
         cx = cy = int(N/2)
 
@@ -51,6 +51,12 @@ def initialise(simVariables):
                 arr[...,0] = fv.sinc_func(xi, params)
             else:
                 arr[...,0] = fv.gauss_func(xi, params)
+        
+        if dim != 1:
+            layer = 1
+            _arr = np.pad(arr, ((int(N*layer),int(N*layer)),(0,0)), mode="constant")
+            _arr = _arr.reshape(2*layer+1,N,len(initialRight))
+            arr = _arr.transpose(1,0,2)
 
     return fv.pointConvertPrimitive(arr, gamma)
 

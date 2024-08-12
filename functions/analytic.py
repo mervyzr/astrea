@@ -23,6 +23,8 @@ def calculateEntropyDensity(tube, gamma):
 
 # Function for solution error calculation of sin-wave, sinc-wave and Gaussian tests
 def calculateSolutionError(simulation, simVariables, norm):
+    dim = int(simVariables.dim)
+
     timeKeys = [float(t) for t in simulation.keys()]
     w_num = simulation[str(max(timeKeys))]  # Get last array with (typically largest) time key
 
@@ -42,31 +44,31 @@ def calculateSolutionError(simulation, simVariables, norm):
     w_num, w_theo = np.concatenate((w_num, thermal_num[...,None]), axis=-1), np.concatenate((w_theo, thermal_theo[...,None]), axis=-1)
 
     if norm > 10:
-        return np.max(np.abs(w_num-w_theo), axis=tuple(range(simVariables.dim)))
+        return np.max(np.abs(w_num-w_theo), axis=tuple(range(dim)))
     elif norm <= 0:
-        return np.sum(np.abs(w_num-w_theo), axis=tuple(range(simVariables.dim)))/len(w_num)
+        return np.sum(np.abs(w_num-w_theo), axis=tuple(range(dim)))/len(w_num)
     else:
-        return (np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(range(simVariables.dim)))/len(w_num))**(1/norm)
+        return (np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(range(dim)))/len(w_num))**(1/norm)
 
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
 def calculateTV(simulation, simVariables):
-    tv = {}
+    dim, tv = int(simVariables.dim), {}
     for t in list(simulation.keys()):
         domain = simulation[t]
         thermal = fv.divide(domain[...,4], domain[...,0])
-        for i in range(simVariables.dim):
+        for i in range(dim):
             domain = np.diff(domain, axis=i)
             thermal = np.diff(thermal, axis=i)
-        tv[float(t)] = np.sum(np.abs(domain), axis=tuple(range(simVariables.dim)))
+        tv[float(t)] = np.sum(np.abs(domain), axis=tuple(range(dim)))
         tv[float(t)] = np.append(tv[float(t)], np.sum(np.abs(thermal)))
     return tv
 
 
 # Function for checking the conservation equations; works with primitive variables but needs to be converted
 def calculateConservation(simulation, simVariables):
-    N, gamma, dim, startPos, endPos = simVariables.cells, simVariables.gamma, simVariables.dim, simVariables.startPos, simVariables.endPos
-    eq = {}
+    N, gamma, startPos, endPos = simVariables.cells, simVariables.gamma, simVariables.startPos, simVariables.endPos
+    dim, eq = int(simVariables.dim), {}
 
     for t in list(simulation.keys()):
         domain = fv.pointConvertPrimitive(simulation[t], gamma)
@@ -80,8 +82,8 @@ def calculateConservation(simulation, simVariables):
 # The reason is because at the boundaries, some values are lost to the ghost cells and not counted into the conservation plots
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
 def calculateConservationAtInterval(simulation, simVariables, interval=10):
-    N, gamma, dim, startPos, endPos, tEnd = simVariables.cells, simVariables.gamma, simVariables.dim, simVariables.startPos, simVariables.endPos, simVariables.tEnd
-    eq = {}
+    N, gamma, startPos, endPos, tEnd = simVariables.cells, simVariables.gamma, simVariables.startPos, simVariables.endPos, simVariables.tEnd
+    dim, eq = int(simVariables.dim), {}
 
     intervals = np.array([], dtype=float)
     periods = np.linspace(0, tEnd, interval)

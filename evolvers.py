@@ -8,7 +8,7 @@ from schemes import pcm, plm, ppm, weno
 
 # Operator L as a function of the reconstruction values; calculate the flux through the surface [F(i+1/2) - F(i-1/2)]/dx
 def getL(fluxes, simVariables):
-    for i in range(simVariables.dim):
+    for i in range(int(simVariables.dim)):
         fluxes = np.diff(fluxes, axis=i)
     return -fluxes/simVariables.dx
 

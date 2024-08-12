@@ -84,14 +84,16 @@ def main() -> None:
                 opt = opt.replace("--","")
                 if opt in ["cells", "N", "n"]:
                     configVariables[opt] = int(arg) - int(arg)%2
-                elif opt in ["snapshots", "dim"]:
+                elif opt in ["snapshots"]:
                     configVariables[opt] = int(arg)
                 elif opt in ["cfl", "gamma"]:
                     configVariables[opt] = float(arg)
                 elif opt in ["livePlot", "savePlots", "saveVideo", "saveFile"]:
                     configVariables[opt] = arg.lower() == "true"
-                elif opt in ["test", "config"]:
+                elif opt in ["test"]:
                     configVariables["config"] = arg.lower()
+                elif opt in ["dim"]:
+                    configVariables[opt] = arg
                 elif opt == "noprint":
                     noprint = True
                 elif opt == "debug":
@@ -111,7 +113,7 @@ def main() -> None:
 
     # Generate frequently used variables
     simVariables['dx'] = abs(simVariables['endPos']-simVariables['startPos'])/simVariables['cells']
-    simVariables['permutations'] = [axes for axes in list(itertools.permutations(list(range(simVariables['dim']+1)))) if axes[-1] == simVariables['dim']]
+    simVariables['permutations'] = [axes for axes in list(itertools.permutations(list(range(int(simVariables['dim']+1))))) if axes[-1] == int(simVariables['dim'])]
     if simVariables['scheme'] in ['osher-solomon', 'osher', 'solomon', 'os']:
         _roots, _weights = sp.special.roots_legendre(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
         simVariables['roots'] = .5*_roots + .5  # Gauss-Legendre quadrature with interval [0,1]

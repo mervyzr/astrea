@@ -55,7 +55,7 @@ def initiateLivePlot(simVariables):
     graphs = []
     for _i, _j in plotIndexes:
         ax[_i,_j].set_ylabel(plotLabels[_i][_j])
-        if dim == 2:
+        if dim >= 2:
             if _j == 1:
                 ax[_i,_j].yaxis.set_label_position("right")
                 ax[_i,_j].yaxis.labelpad = 55
@@ -78,7 +78,7 @@ def initiateLivePlot(simVariables):
 def updatePlot(arr, t, fig, ax, graphs, dim):
     graphTL, graphTR, graphBL, graphBR = graphs
 
-    if dim == 2:
+    if dim >= 2:
         graphTL.set_data(arr[...,0])  # density
         graphTR.set_data(arr[...,4])  # pressure
         graphBL.set_data(arr[...,1])  # vx
@@ -112,7 +112,7 @@ def plotQuantities(f, simVariables, savepath):
     nList = [int(n) for n in f.keys()]
     nList.sort()
 
-    if dim == 2:
+    if dim >= 2:
         figsize = [15, 10]
     else:
         figsize = [21, 10]
@@ -131,7 +131,7 @@ def plotQuantities(f, simVariables, savepath):
         # Set up figure
         for _i, _j in plotIndexes:
             ax[_i,_j].set_ylabel(plotLabels[_i][_j], fontsize=18)
-            if dim == 1:
+            if dim < 2:
                 ax[_i,_j].set_xlim([startPos, endPos])
                 ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
@@ -148,13 +148,13 @@ def plotQuantities(f, simVariables, savepath):
             # density, pressure, vx, thermal energy
             for _i, _j in plotIndexes:
                 if len(f) != 1:
-                    if dim == 2:
+                    if dim >= 2:
                         print(f"{generic.bcolours.WARNING}Stacking 2D plots over one another will not yield any discernible results..{generic.bcolours.ENDC}")
                     else:
                         ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, label=f"N = {N}")
                         plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$", fontsize=24)
                 else:
-                    if dim == 2:
+                    if dim >= 2:
                         graph = ax[_i,_j].imshow(y_data[_i][_j], interpolation="bilinear", cmap=twoDColours[_i][_j])
                         divider = make_axes_locatable(ax[_i,_j])
                         cax = divider.append_axes('right', size='5%', pad=0.05)
@@ -168,7 +168,7 @@ def plotQuantities(f, simVariables, savepath):
                         plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(indexes[-1][i],3)}$ ($N = {N}$)", fontsize=24)
 
         # Add analytical solutions only for 1D
-        if dim == 2:
+        if dim >= 2:
             plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ at $t \approx {round(indexes[-1][i],3)}$ ($N = {N}$)", fontsize=24)
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
             fig.text(0.04, 0.4, r"Cell position $y$", fontsize=18, ha='center')
@@ -404,7 +404,7 @@ def makeVideo(f, simVariables, savepath, vidpath):
     nList = [int(n) for n in f.keys()]
     nList.sort()
 
-    if dim == 2:
+    if dim >= 2:
         figsize = [15, 10]
     else:
         figsize = [21, 10]
@@ -418,7 +418,7 @@ def makeVideo(f, simVariables, savepath, vidpath):
 
             for _i, _j in plotIndexes:
                 ax[_i,_j].set_ylabel(plotLabels[_i][_j], fontsize=18)
-                if dim == 1:
+                if dim < 2:
                     ax[_i,_j].set_xlim([startPos, endPos])
                     ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
@@ -430,7 +430,7 @@ def makeVideo(f, simVariables, savepath, vidpath):
             y_data = [[y1, y2], [y3, y4]]
 
             for _i, _j in plotIndexes:
-                if dim == 2:
+                if dim >= 2:
                     graph = ax[_i,_j].imshow(y_data[_i][_j], interpolation="bilinear", cmap=twoDColours[_i][_j])
                     divider = make_axes_locatable(ax[_i,_j])
                     cax = divider.append_axes('right', size='5%', pad=0.05)
@@ -469,15 +469,13 @@ def plotInstance(domain, showPlot=True, text="", startPos=0, endPos=1, **kwargs)
     try:
         dim = kwargs['dim']
     except Exception as e:
-        pass
-    else:
         dim = 1
 
     fig, ax = plt.subplots(nrows=2, ncols=2)
 
     for index, (_i,_j) in enumerate(plotIndexes):
         ax[_i,_j].set_ylabel(plotLabels[index], fontsize=18)
-        if dim == 1:
+        if dim < 2:
             ax[_i,_j].set_xlim([startPos, endPos])
             ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
@@ -489,7 +487,7 @@ def plotInstance(domain, showPlot=True, text="", startPos=0, endPos=1, **kwargs)
     y_data = [[y1, y2], [y3, y4]]
 
     for _i, _j in plotIndexes:
-        if dim == 2:
+        if dim >= 2:
             graph = ax[_i,_j].imshow(y_data[_i][_j], interpolation="bilinear", cmap=twoDColours[_i][_j])
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes('right', size='5%', pad=0.05)
