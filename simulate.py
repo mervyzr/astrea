@@ -57,7 +57,16 @@ def runSimulation(grp: h5py, _simVariables: namedtuple):
 
         # Update the solution with the numerical fluxes using iterative methods
         domain = evolvers.evolveTime(domain, fluxes, dt, _simVariables)
-        t += dt
+
+        # Handle the time update for machine precision
+        if t+dt > _simVariables.tEnd:
+            if t == _simVariables.tEnd:
+                break
+            else:
+                t = _simVariables.tEnd
+                continue
+        else:
+            t += dt
     return None
 
 ##############################################################################
