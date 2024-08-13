@@ -73,11 +73,13 @@ def run(tube, sim_variables):
         A = constructors.make_Jacobian(w, gamma, axis)
 
         # Update dict
-        data[axes]['cntr_primitive'] = wS
-        data[axes]['face_primitive'] = [wLs,wRs]
-        data[axes]['face_conserved'] = [qLs,qRs]
-        data[axes]['fluxes'] = [fLs,fRs]
+        data[axes]['wS'] = wS
+        data[axes]['wLs'] = wLs
+        data[axes]['wRs'] = wRs
+        data[axes]['qLs'] = qLs
+        data[axes]['qRs'] = qRs
+        data[axes]['fLs'] = fLs
+        data[axes]['fRs'] = fRs
         data[axes]['jacobian'] = A
-        characteristics = np.linalg.eigvals(A)
 
-    return solvers.calculate_Riemann_flux(sim_variables, data, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
+    return solvers.calculate_Riemann_flux(sim_variables, data)
