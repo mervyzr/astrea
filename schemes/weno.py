@@ -12,32 +12,32 @@ from numerics import solvers
 # Current convention: |               w(i-1/2)                    w(i+1/2)              |
 #                     | i-1          <-- | -->         i         <-- | -->          i+1 |
 #                     |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
-def run(tube, simVariables):
-    gamma, boundary, permutations = simVariables.gamma, simVariables.boundary, simVariables.permutations
+def run(tube, sim_variables):
+    gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
     # Function to generate the WENO interface values
-    def extrapolateFaceValue(_wS, _boundary):
+    def extrapolate_face_value(_wS, _boundary):
         # Pad array with boundary
-        w2 = fv.addBoundary(_wS, _boundary, 2)
+        w2 = fv.add_boundary(_wS, _boundary, 2)
 
         # Define frequently used terms
-        minusOne, minusTwo = w2[1:-3], w2[:-4]
-        plusOne, plusTwo = w2[3:-1], w2[4:]
+        minus_one, minus_two = w2[1:-3], w2[:-4]
+        plus_one, plus_two = w2[3:-1], w2[4:]
 
         # Define the stencils
-        u1 = (minusTwo/3) - (minusOne*7/6) + (_wS*11/6)
-        u2 = -(minusOne/6) + (_wS*5/6) + (plusOne/3)
-        u3 = (_wS/3) + (plusOne*5/6) - (plusTwo/6)
+        u1 = (minus_two/3) - (minus_one*7/6) + (_wS*11/6)
+        u2 = -(minus_one/6) + (_wS*5/6) + (plus_one/3)
+        u3 = (_wS/3) + (plus_one*5/6) - (plus_two/6)
 
         # Define the linear weights
         x1, x2, x3 = 1/10, 3/5, 3/10
 
         # Determine the smoothness indicators
-        b1 = (13/12 * (minusTwo - 2*minusOne + _wS)**2) + (.25 * (minusTwo - 4*minusOne + 3*_wS)**2)
-        b2 = (13/12 * (minusOne - 2*_wS + plusOne)**2) + (.25 * (minusOne - plusOne)**2)
-        b3 = (13/12 * (_wS - 2*plusOne + plusTwo)**2) + (.25 * (3*_wS - 4*plusOne + plusTwo)**2)
+        b1 = (13/12 * (minus_two - 2*minus_one + _wS)**2) + (.25 * (minus_two - 4*minus_one + 3*_wS)**2)
+        b2 = (13/12 * (minus_one - 2*_wS + plus_one)**2) + (.25 * (minus_one - plus_one)**2)
+        b3 = (13/12 * (_wS - 2*plus_one + plus_two)**2) + (.25 * (3*_wS - 4*plus_one + plus_two)**2)
 
         # Determine the non-linear weights
         alpha1 = x1/((1e-6 + b1)**2)
@@ -54,31 +54,30 @@ def run(tube, simVariables):
     for axis, axes in enumerate(permutations):
 
         # Convert to primitive variables
-        wS = fv.convertConservative(tube.transpose(axes), simVariables)
+        wS = fv.convert_conservative(tube.transpose(axes), sim_variables)
 
         # Pad array with boundary
-        w = fv.addBoundary(wS, boundary)
+        w = fv.add_boundary(wS, boundary)
 
         # WENO reconstruction [Shu, 2009]
-        wL, wR = extrapolateFaceValue(w[2:], boundary), extrapolateFaceValue(w[1:-1], boundary)
+        wL, wR = extrapolate_face_value(w[2:], boundary), extrapolate_face_value(w[1:-1], boundary)
 
         # Pad the reconstructed interfaces
-        wLs, wRs = fv.addBoundary(wL, boundary)[1:], fv.addBoundary(wR, boundary)[:-1]
+        wLs, wRs = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
 
         # Convert the primitive variables, and compute the state differences
-        qLs, qRs = fv.convertPrimitive(wLs, simVariables), fv.convertPrimitive(wRs, simVariables)
+        qLs, qRs = fv.convert_primitive(wLs, sim_variables), fv.convert_primitive(wRs, sim_variables)
 
         # Compute the fluxes and the Jacobian
-        fLs, fRs = constructors.makeFluxTerm(wLs, gamma, axis), constructors.makeFluxTerm(wRs, gamma, axis)
-        A = constructors.makeJacobian(w, gamma, axis)
-        characteristics = np.linalg.eigvals(A)
+        fLs, fRs = constructors.make_flux_term(wLs, gamma, axis), constructors.make_flux_term(wRs, gamma, axis)
+        A = constructors.make_jacobian(w, gamma, axis)
 
         # Update dict
-        data[axes]['wS'] = wS
-        data[axes]['w'] = [wLs,wRs]
-        data[axes]['q'] = [qLs,qRs]
-        data[axes]['f'] = [fLs,fRs]
+        data[axes]['cntr_primitive'] = wS
+        data[axes]['face_primitive'] = [wLs,wRs]
+        data[axes]['face_conserved'] = [qLs,qRs]
+        data[axes]['fluxes'] = [fLs,fRs]
         data[axes]['jacobian'] = A
-        data[axes]['eigvals'] = characteristics
+        characteristics = np.linalg.eigvals(A)
 
-    return solvers.calculateRiemannFlux(simVariables, data, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
+    return solvers.calculate_Riemann_flux(sim_variables, data, fLs=fLs, fRs=fRs, wLs=wLs, wRs=wRs, qLs=qLs, qRs=qRs, characteristics=characteristics)
