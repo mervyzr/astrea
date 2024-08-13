@@ -34,4 +34,4 @@ def run(tube, sim_variables):
         data[axes]['fluxes'] = f
         data[axes]['jacobian'] = A
 
-    return solvers.calculate_Riemann_flux(sim_variables, data, wS=wS, w=w, q=q, f=f, characteristics=characteristics)
+    return solvers.calculate_Riemann_flux(sim_variables, data, wS=wS, w=w, qS=q, f=f, characteristics=characteristics)
