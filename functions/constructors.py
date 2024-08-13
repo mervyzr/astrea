@@ -78,7 +78,7 @@ def make_flux_term(tube, gamma, axis):
 
 
 # Jacobian matrix based on primitive variables
-def make_jacobian(tube, gamma, axis):
+def make_Jacobian(tube, gamma, axis):
     axis %= 3
     rho, v, pressure, B_fields = tube[...,0], tube[...,axis+1], tube[...,4], tube[...,5:8]/np.sqrt(4*np.pi)
     

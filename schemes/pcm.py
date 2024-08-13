@@ -24,7 +24,7 @@ def run(tube, sim_variables):
         # Compute the fluxes and the Jacobian
         w = fv.add_boundary(wS, boundary)
         f = constructors.make_flux_term(w, gamma, axis)
-        A = constructors.make_jacobian(w, gamma, axis)
+        A = constructors.make_Jacobian(w, gamma, axis)
         characteristics = np.linalg.eigvals(A)
 
         # Update dict

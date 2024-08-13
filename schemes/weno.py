@@ -70,7 +70,7 @@ def run(tube, sim_variables):
 
         # Compute the fluxes and the Jacobian
         fLs, fRs = constructors.make_flux_term(wLs, gamma, axis), constructors.make_flux_term(wRs, gamma, axis)
-        A = constructors.make_jacobian(w, gamma, axis)
+        A = constructors.make_Jacobian(w, gamma, axis)
 
         # Update dict
         data[axes]['cntr_primitive'] = wS

@@ -101,7 +101,7 @@ def run(tube, sim_variables, C=5/4):
         # Compute the fluxes and the Jacobian
         _w = fv.add_boundary(avg_wS, boundary)
         fLs, fRs = constructors.make_flux_term(wLs, gamma, axis), constructors.make_flux_term(wRs, gamma, axis)
-        A = constructors.make_jacobian(_w, gamma, axis)
+        A = constructors.make_Jacobian(_w, gamma, axis)
 
         # Update dict
         data[axes]['cntr_primitive'] = wS
@@ -233,7 +233,7 @@ def run_modified(tube, sim_variables, dissipate=False, C=5/4):
             _mu = fv.add_boundary(mu, boundary)
             f += _mu
 
-        A = constructors.make_jacobian(_w, gamma, axis)
+        A = constructors.make_Jacobian(_w, gamma, axis)
 
         # Update dict
         data[axes]['cntr_primitive'] = wS
