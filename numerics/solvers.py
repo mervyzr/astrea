@@ -15,14 +15,14 @@ from functions import fv, constructors
 
 
 # Intercell numerical fluxes between L and R interfaces based on Riemann solver
-def calculate_Riemann_flux(sim_variables: namedtuple, arrays: defaultdict):
-    Data = namedtuple('Data', ['flux', 'eigmax'])
+def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
+    Riemann_flux = namedtuple('Riemann flux', ['flux', 'eigmax'])
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in enumerate(sim_variables.permutations):
 
         # Determine the eigenvalues for the computation of time stepping
-        characteristics = np.linalg.eigvals(arrays[axes]['jacobian'])
+        characteristics = np.linalg.eigvals(data[axes]['jacobian'])
         local_max_eigvals = np.max(np.abs(characteristics), axis=-1)  # Local max eigenvalue for each cell (1- or 3-Riemann invariant; shock wave or rarefaction wave)
         max_eigvals = np.max([local_max_eigvals[:-1], local_max_eigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
 
@@ -31,40 +31,40 @@ def calculate_Riemann_flux(sim_variables: namedtuple, arrays: defaultdict):
         # HLL-type schemes
         if sim_variables.scheme in ["hllc", "c"]:
             if sim_variables.subgrid in ["plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"]:
-                wLs, wRs = arrays[axes]["wLs"], arrays[axes]["wRs"]
-                fLs, fRs = arrays[axes]["fLs"], arrays[axes]["fRs"]
+                wLs, wRs = data[axes]["wLs"], data[axes]["wRs"]
+                fLs, fRs = data[axes]["fLs"], data[axes]["fRs"]
             else:
-                wLs, wRs = arrays[axes]["w"][1:], arrays[axes]["w"][:-1]
-                fLs, fRs = arrays[axes]["f"][1:], arrays[axes]["f"][:-1]
-            return Data(calculate_HLLC_flux(wLs, wRs, fRs, fLs, sim_variables), eigmax)
+                wLs, wRs = data[axes]["w"][1:], data[axes]["w"][:-1]
+                fLs, fRs = data[axes]["f"][1:], data[axes]["f"][:-1]
+            return Riemann_flux(calculate_HLLC_flux(wLs, wRs, fRs, fLs, sim_variables), eigmax)
 
         # Osher-Solomon schemes
         elif sim_variables.scheme in ["os", "osher-solomon", "osher", "solomon"]:
             if sim_variables.subgrid in ["plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"]:
-                qLs, qRs = arrays[axes]["qLs"], arrays[axes]["qRs"]
-                fluxes = arrays[axes]["fLs"] + arrays[axes]["fRs"]
+                qLs, qRs = data[axes]["qLs"], data[axes]["qRs"]
+                fluxes = data[axes]["fLs"] + data[axes]["fRs"]
             else:
-                qLs, qRs = arrays[axes]["q"][:-1], arrays[axes]["q"][1:]
-                fluxes = arrays[axes]["f"][1:] + arrays[axes]["f"][:-1]
-            return Data(calculate_DOTS_flux(qLs, qRs, fluxes, sim_variables.gamma, sim_variables.roots, sim_variables.weights), eigmax)
+                qLs, qRs = data[axes]["q"][:-1], data[axes]["q"][1:]
+                fluxes = data[axes]["f"][1:] + data[axes]["f"][:-1]
+            return Riemann_flux(calculate_DOTS_flux(qLs, qRs, fluxes, sim_variables.gamma, sim_variables.roots, sim_variables.weights), eigmax)
 
         # Roe-type/Lax-type schemes
         else:
             if sim_variables.subgrid in ["plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"]:
-                qDiff = (arrays[axes]["qLs"] - arrays[axes]["qRs"]).T
-                fluxes = arrays[axes]["fLs"] + arrays[axes]["fRs"]
-                wLs, wRs = arrays[axes]["wLs"], arrays[axes]["wRs"]
+                qDiff = (data[axes]["qLs"] - data[axes]["qRs"]).T
+                fluxes = data[axes]["fLs"] + data[axes]["fRs"]
+                wLs, wRs = data[axes]["wLs"], data[axes]["wRs"]
             else:
-                qDiff = (arrays[axes]["q"][1:] - arrays[axes]["q"][:-1]).T
-                fluxes = arrays[axes]["f"][1:] + arrays[axes]["f"][:-1]
-                wLs, wRs = arrays[axes]["w"][:-1], arrays[axes]["w"][1:]
+                qDiff = (data[axes]["q"][1:] - data[axes]["q"][:-1]).T
+                fluxes = data[axes]["f"][1:] + data[axes]["f"][:-1]
+                wLs, wRs = data[axes]["w"][:-1], data[axes]["w"][1:]
 
             if sim_variables.scheme in ["entropy", "stable", "entropy-stable", "es"]:
-                return Data(calculate_ES_flux(wLs, wRs, sim_variables.gamma), eigmax)
+                return Riemann_flux(calculate_ES_flux(wLs, wRs, sim_variables.gamma), eigmax)
             elif sim_variables.scheme in ["lw", "lax-wendroff", "wendroff"]:
-                return Data(calculate_LaxWendroff_flux(fluxes, qDiff, local_max_eigvals, characteristics), eigmax)
+                return Riemann_flux(calculate_LaxWendroff_flux(fluxes, qDiff, local_max_eigvals, characteristics), eigmax)
             else:
-                return Data(calculate_LaxFriedrich_flux(fluxes, qDiff, max_eigvals), eigmax)
+                return Riemann_flux(calculate_LaxFriedrich_flux(fluxes, qDiff, max_eigvals), eigmax)
 
 
 # (Local) Lax-Friedrich scheme (1st-order; highly diffusive)
