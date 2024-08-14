@@ -9,7 +9,7 @@ from functions import fv
 ##############################################################################
 
 # Customised rounding function
-def roundOff(value):
+def round_off(value):
     if value%int(value) >= .5:
         return int(value) + 1
     else:
@@ -17,61 +17,63 @@ def roundOff(value):
 
 
 # Calculate scaled entropy density for an array [Derigs et al., 2015]
-def calculateEntropyDensity(tube, gamma):
+def calculate_entropy_density(tube, gamma):
     return (tube[...,0] * np.log(tube[...,4]*tube[...,0]**-gamma))/(gamma-1)
 
 
 # Function for solution error calculation of sin-wave, sinc-wave and Gaussian tests
-def calculateSolutionError(simulation, simVariables, norm):
-    timeKeys = [float(t) for t in simulation.keys()]
-    w_num = simulation[str(max(timeKeys))]  # Get last array with (typically largest) time key
+def calculate_solution_error(simulation, sim_variables, norm):
+    dimension = int(sim_variables.dimension)
 
-    xi = np.linspace(simVariables.startPos, simVariables.endPos, len(w_num))
+    time_keys = [float(t) for t in simulation.keys()]
+    w_num = simulation[str(max(time_keys))]  # Get last array with (typically largest) time key
+
+    xi = np.linspace(sim_variables.start_pos, sim_variables.end_pos, len(w_num))
     w_theo = np.copy(w_num)
-    w_theo[:] = simVariables.initialLeft
+    w_theo[:] = sim_variables.initial_left
 
-    if simVariables.config.startswith("gauss"):
-        w_theo[...,0] = fv.gauss_func(xi, simVariables.misc)
+    if sim_variables.config.startswith("gauss"):
+        w_theo[...,0] = fv.gauss_func(xi, sim_variables.misc)
     else:
-        if simVariables.config == "sinc":
-            w_theo[...,0] = fv.sinc_func(xi, simVariables.misc)
+        if sim_variables.config == "sinc":
+            w_theo[...,0] = fv.sinc_func(xi, sim_variables.misc)
         else:
-            w_theo[...,0] = fv.sin_func(xi, simVariables.misc)
+            w_theo[...,0] = fv.sin_func(xi, sim_variables.misc)
 
     thermal_num, thermal_theo = fv.divide(w_num[...,4], w_num[...,0]), fv.divide(w_theo[...,4], w_theo[...,0])
     w_num, w_theo = np.concatenate((w_num, thermal_num[...,None]), axis=-1), np.concatenate((w_theo, thermal_theo[...,None]), axis=-1)
 
     if norm > 10:
-        return np.max(np.abs(w_num-w_theo), axis=tuple(range(simVariables.dim)))
+        return np.max(np.abs(w_num-w_theo), axis=tuple(range(dimension)))
     elif norm <= 0:
-        return np.sum(np.abs(w_num-w_theo), axis=tuple(range(simVariables.dim)))/len(w_num)
+        return np.sum(np.abs(w_num-w_theo), axis=tuple(range(dimension)))/len(w_num)
     else:
-        return (np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(range(simVariables.dim)))/len(w_num))**(1/norm)
+        return (np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(range(dimension)))/len(w_num))**(1/norm)
 
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
-def calculateTV(simulation, simVariables):
-    tv = {}
+def calculate_tv(simulation, sim_variables):
+    dimension, tv = int(sim_variables.dimension), {}
     for t in list(simulation.keys()):
         domain = simulation[t]
         thermal = fv.divide(domain[...,4], domain[...,0])
-        for i in range(simVariables.dim):
+        for i in range(dimension):
             domain = np.diff(domain, axis=i)
             thermal = np.diff(thermal, axis=i)
-        tv[float(t)] = np.sum(np.abs(domain), axis=tuple(range(simVariables.dim)))
+        tv[float(t)] = np.sum(np.abs(domain), axis=tuple(range(dimension)))
         tv[float(t)] = np.append(tv[float(t)], np.sum(np.abs(thermal)))
     return tv
 
 
 # Function for checking the conservation equations; works with primitive variables but needs to be converted
-def calculateConservation(simulation, simVariables):
-    N, gamma, dim, startPos, endPos = simVariables.cells, simVariables.gamma, simVariables.dim, simVariables.startPos, simVariables.endPos
-    eq = {}
+def calculate_conservation(simulation, sim_variables):
+    N, gamma, start_pos, end_pos = sim_variables.cells, sim_variables.gamma, sim_variables.start_pos, sim_variables.end_pos
+    dimension, eq = int(sim_variables.dimension), {}
 
     for t in list(simulation.keys()):
-        domain = fv.pointConvertPrimitive(simulation[t], gamma)
-        for i in reversed(range(dim)):
-            domain = simpson(domain, dx=(endPos-startPos)/N, axis=i) * (endPos-startPos)
+        domain = fv.point_convert_primitive(simulation[t], gamma)
+        for i in range(dimension)[::-1]:
+            domain = simpson(domain, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
         eq[float(t)] = domain
     return eq
 
@@ -79,27 +81,27 @@ def calculateConservation(simulation, simVariables):
 # Function for checking the conservation equations at specific intervals; works with primitive variables but needs to be converted
 # The reason is because at the boundaries, some values are lost to the ghost cells and not counted into the conservation plots
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
-def calculateConservationAtInterval(simulation, simVariables, interval=10):
-    N, gamma, dim, startPos, endPos, tEnd = simVariables.cells, simVariables.gamma, simVariables.dim, simVariables.startPos, simVariables.endPos, simVariables.tEnd
-    eq = {}
+def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
+    N, gamma, start_pos, end_pos, t_end = sim_variables.cells, sim_variables.gamma, sim_variables.start_pos, sim_variables.end_pos, sim_variables.t_end
+    dimension, eq = int(sim_variables.dimension), {}
 
     intervals = np.array([], dtype=float)
-    periods = np.linspace(0, tEnd, interval)
+    periods = np.linspace(0, t_end, interval)
     timings = np.asarray(list(simulation.keys()), dtype=float)
     for period in periods:
         intervals = np.append(intervals, timings[np.argmin(abs(timings-period))])
 
     for t in intervals:
-        domain = fv.pointConvertPrimitive(simulation[str(t)], gamma)
-        for i in reversed(range(dim)):
-            domain = simpson(domain, dx=(endPos-startPos)/N, axis=i) * (endPos-startPos)
+        domain = fv.point_convert_primitive(simulation[str(t)], gamma)
+        for i in range(dimension)[::-1]:
+            domain = simpson(domain, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
         eq[t] = domain
     return eq
 
 
 # Determine the analytical solution for a Sod shock test, in 1D
-def calculateSodAnalytical(tube, t, simVariables):
-    gamma, startPos, endPos, shockPos = simVariables.gamma, simVariables.startPos, simVariables.endPos, simVariables.shockPos
+def calculate_Sod_analytical(tube, t, sim_variables):
+    gamma, start_pos, end_pos, shock_pos = sim_variables.gamma, sim_variables.start_pos, sim_variables.end_pos, sim_variables.shock_pos
 
     # Define array to be updated and returned
     arr = np.zeros_like(tube)
@@ -125,32 +127,32 @@ def calculateSodAnalytical(tube, t, simVariables):
     v_s = vx2/(1-(rho1/rho2))
 
     # Define boundary regions and number of cells within each region
-    boundary54 = roundOff(((shockPos-(cs5*t)-startPos)/(endPos-startPos)) * len(tube))
-    boundary43 = roundOff(((shockPos-(v_t*t)-startPos)/(endPos-startPos)) * len(tube))
-    boundary32 = roundOff(((shockPos+(vx2*t)-startPos)/(endPos-startPos)) * len(tube))
-    boundary21 = roundOff(((shockPos+(v_s*t)-startPos)/(endPos-startPos)) * len(tube))
+    boundary_54 = round_off(((shock_pos-(cs5*t)-start_pos)/(end_pos-start_pos)) * len(tube))
+    boundary_43 = round_off(((shock_pos-(v_t*t)-start_pos)/(end_pos-start_pos)) * len(tube))
+    boundary_32 = round_off(((shock_pos+(vx2*t)-start_pos)/(end_pos-start_pos)) * len(tube))
+    boundary_21 = round_off(((shock_pos+(v_s*t)-start_pos)/(end_pos-start_pos)) * len(tube))
 
     # Define number of cells in the rarefaction wave
-    rarefaction_cells = roundOff(((cs5*t-v_t*t)/(endPos-startPos)) * len(tube))
-    if rarefaction_cells - (boundary43-boundary54) < 0:
+    rarefaction_cells = round_off(((cs5*t-v_t*t)/(end_pos-start_pos)) * len(tube))
+    if rarefaction_cells - (boundary_43-boundary_54) < 0:
         rarefaction_cells += 1
-    elif rarefaction_cells - (boundary43-boundary54) > 0:
+    elif rarefaction_cells - (boundary_43-boundary_54) > 0:
         rarefaction_cells -= 1
-    rarefaction = np.linspace(shockPos-(cs5*t), shockPos-(v_t*t), rarefaction_cells) - shockPos
+    rarefaction = np.linspace(shock_pos-(cs5*t), shock_pos-(v_t*t), rarefaction_cells) - shock_pos
 
     # Update array for regions 1 and 5 (initial conditions)
-    arr[:boundary54] = tube[0]
-    arr[boundary21:] = tube[-1]
+    arr[:boundary_54] = tube[0]
+    arr[boundary_21:] = tube[-1]
 
     # Update array for regions 2 and 3 (post-shock and discontinuities)
-    arr[boundary43:boundary21, 1] = vx2
-    arr[boundary43:boundary21, 4] = P2
-    arr[boundary43:boundary32, 0] = rho3
-    arr[boundary32:boundary21, 0] = rho2
+    arr[boundary_43:boundary_21, 1] = vx2
+    arr[boundary_43:boundary_21, 4] = P2
+    arr[boundary_43:boundary_32, 0] = rho3
+    arr[boundary_32:boundary_21, 0] = rho2
 
     # Update array for region 4 (rarefaction wave)
-    arr[boundary54:boundary43, 0] = rho5 * ((1 - mu) - mu*rarefaction/(cs5*t))**beta
-    arr[boundary54:boundary43, 4] = P5 * ((1 - mu) - mu*rarefaction/(cs5*t))**(gamma*beta)
-    arr[boundary54:boundary43, 1] = (1-mu) * (cs5+(rarefaction/t))
+    arr[boundary_54:boundary_43, 0] = rho5 * ((1 - mu) - mu*rarefaction/(cs5*t))**beta
+    arr[boundary_54:boundary_43, 4] = P5 * ((1 - mu) - mu*rarefaction/(cs5*t))**(gamma*beta)
+    arr[boundary_54:boundary_43, 1] = (1-mu) * (cs5+(rarefaction/t))
 
     return arr

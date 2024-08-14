@@ -12,7 +12,7 @@ cfl = .5
 gamma = 1.4
 
 # Numerical methods
-dim = 1
+dimension = 1
 precision = np.float64
 # : PCM, PLM, PPM, WENO
 subgrid = "ppm"
@@ -23,14 +23,14 @@ scheme = "lf"
 
 # Runtime parameters
 # : Single, Multiple
-runType = "single"
-livePlot = False
+run_type = "single"
+live_plot = False
 
 # Media options
 # : Save plots, with number of snapshots
-savePlots = False
+save_plots = False
 snapshots = 1
 # : Save a video of the simulation
-saveVideo = False
+save_video = False
 # : Save the HDF5 file of the simulation
-saveFile = False
+save_file = False
