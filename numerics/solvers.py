@@ -16,10 +16,23 @@ from functions import fv, constructors
 
 # Intercell numerical fluxes between L and R interfaces based on Riemann solver
 def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
-    Riemann_flux = namedtuple('Riemann flux', ['flux', 'eigmax'])
+    Riemann_flux = namedtuple('Riemann_flux', ['flux', 'eigmax'])
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in enumerate(sim_variables.permutations):
+
+        # Define frequently used variables
+        if sim_variables.subgrid in ["pcm", "constant", "c"]:
+            if sim_variables.scheme in ["hllc", "c"]:
+                wLs, wRs = data[axes]["w"][1:], data[axes]["w"][:-1]
+            else:
+                wLs, wRs = data[axes]["w"][:-1], data[axes]["w"][1:]
+            qLs, qRs = data[axes]["q"][1:], data[axes]["q"][:-1]
+            fLs, fRs = data[axes]["f"][1:], data[axes]["f"][:-1]
+        else:
+            wLs, wRs = data[axes]["wLs"], data[axes]["wRs"]
+            qLs, qRs = data[axes]["qLs"], data[axes]["qRs"]
+            fLs, fRs = data[axes]["fLs"], data[axes]["fRs"]
 
         # Determine the eigenvalues for the computation of time stepping
         characteristics = np.linalg.eigvals(data[axes]['jacobian'])
@@ -30,56 +43,35 @@ def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
 
         # HLL-type schemes
         if sim_variables.scheme in ["hllc", "c"]:
-            if sim_variables.subgrid in ["plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"]:
-                wLs, wRs = data[axes]["wLs"], data[axes]["wRs"]
-                fLs, fRs = data[axes]["fLs"], data[axes]["fRs"]
-            else:
-                wLs, wRs = data[axes]["w"][1:], data[axes]["w"][:-1]
-                fLs, fRs = data[axes]["f"][1:], data[axes]["f"][:-1]
             return Riemann_flux(calculate_HLLC_flux(wLs, wRs, fRs, fLs, sim_variables), eigmax)
 
         # Osher-Solomon schemes
         elif sim_variables.scheme in ["os", "osher-solomon", "osher", "solomon"]:
-            if sim_variables.subgrid in ["plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"]:
-                qLs, qRs = data[axes]["qLs"], data[axes]["qRs"]
-                fluxes = data[axes]["fLs"] + data[axes]["fRs"]
-            else:
-                qLs, qRs = data[axes]["q"][:-1], data[axes]["q"][1:]
-                fluxes = data[axes]["f"][1:] + data[axes]["f"][:-1]
-            return Riemann_flux(calculate_DOTS_flux(qLs, qRs, fluxes, sim_variables.gamma, sim_variables.roots, sim_variables.weights), eigmax)
+            return Riemann_flux(calculate_DOTS_flux(qLs, qRs, fLs, fRs, sim_variables.gamma, sim_variables.roots, sim_variables.weights), eigmax)
 
         # Roe-type/Lax-type schemes
         else:
-            if sim_variables.subgrid in ["plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"]:
-                qDiff = (data[axes]["qLs"] - data[axes]["qRs"]).T
-                fluxes = data[axes]["fLs"] + data[axes]["fRs"]
-                wLs, wRs = data[axes]["wLs"], data[axes]["wRs"]
-            else:
-                qDiff = (data[axes]["q"][1:] - data[axes]["q"][:-1]).T
-                fluxes = data[axes]["f"][1:] + data[axes]["f"][:-1]
-                wLs, wRs = data[axes]["w"][:-1], data[axes]["w"][1:]
-
             if sim_variables.scheme in ["entropy", "stable", "entropy-stable", "es"]:
                 return Riemann_flux(calculate_ES_flux(wLs, wRs, sim_variables.gamma), eigmax)
             elif sim_variables.scheme in ["lw", "lax-wendroff", "wendroff"]:
-                return Riemann_flux(calculate_LaxWendroff_flux(fluxes, qDiff, local_max_eigvals, characteristics), eigmax)
+                return Riemann_flux(calculate_LaxWendroff_flux(qLs, qRs, fLs, fRs, characteristics), eigmax)
             else:
-                return Riemann_flux(calculate_LaxFriedrich_flux(fluxes, qDiff, max_eigvals), eigmax)
+                return Riemann_flux(calculate_LaxFriedrich_flux(qLs, qRs, fLs, fRs, max_eigvals), eigmax)
 
 
 # (Local) Lax-Friedrich scheme (1st-order; highly diffusive)
-def calculate_LaxFriedrich_flux(fluxes, qDiff, eigenvalues):
-    return .5 * (fluxes - ((eigenvalues * qDiff).T))
+def calculate_LaxFriedrich_flux(qLs, qRs, fLs, fRs, max_eigvals):
+    return .5*(fRs+fLs) - .5*(max_eigvals.T*(qLs-qRs).T).T
 
 
 # Lax-Wendroff scheme (2nd-order, Jacobian method; contains overshoots)
-def calculate_LaxWendroff_flux(fluxes, qDiff, eigenvalues, characteristics):
+def calculate_LaxWendroff_flux(qLs, qRs, fLs, fRs, characteristics):
     # Sound speed for each cell (2-Riemann invariant; entropy wave or contact discontinuity); indexing 1 only works for hydrodynamics
-    sound_speed = np.unique(characteristics, axis=1)[...,1]
-    normalised_eigvals = fv.divide(sound_speed**2, eigenvalues)
+    sound_speed = np.unique(characteristics, axis=-1)[...,1]
+    normalised_eigvals = fv.divide(sound_speed**2, np.max(np.abs(characteristics), axis=-1))
     max_normalised_eigvals = np.max([normalised_eigvals[:-1], normalised_eigvals[1:]], axis=0)
 
-    return .5 * (fluxes - ((max_normalised_eigvals * qDiff).T))
+    return .5*(fRs+fLs) - .5*(max_normalised_eigvals.T*(qLs-qRs).T).T
     #return .5 * ((qLs+qRs) - fv.divide(fS[1:]-fS[:-1], max_eigvals[:, np.newaxis]))
 
 
@@ -116,7 +108,7 @@ def calculate_HLLC_flux(wLs, wRs, fLs, fRs, sim_variables):
 
 
 # Osher-Solomon(-Dumbser-Toro) Riemann solver [Dumbser & Toro, 2011]
-def calculate_DOTS_flux(qLs, qRs, fluxes, gamma, roots, weights):
+def calculate_DOTS_flux(qLs, qRs, fLs, fRs, gamma, roots, weights):
     # Define the path integral for the Osher-Solomon dissipation term
     arr_L, arr_R = np.repeat(qLs[None,:], len(roots), axis=0), np.repeat(qRs[None,:], len(roots), axis=0)
     psi = arr_R + (roots*(arr_L-arr_R).T).T
@@ -159,7 +151,7 @@ def calculate_DOTS_flux(qLs, qRs, fluxes, gamma, roots, weights):
     _qLs = _qLs.reshape(len(_qLs), len(_qLs[0]))
     _qRs = _qRs.reshape(len(_qRs), len(_qRs[0]))
 
-    return .5*(fluxes - (_qLs-_qRs))
+    return .5*(fLs+fRs) - .5*(_qLs-_qRs)
 
 
 # Entropy-stable flux calculation based on left and right interpolated primitive variables [Winters & Gassner, 2015; Derigs et al., 2016]
