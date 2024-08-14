@@ -72,7 +72,7 @@ def calculate_conservation(simulation, sim_variables):
 
     for t in list(simulation.keys()):
         domain = fv.point_convert_primitive(simulation[t], gamma)
-        for i in reversed(range(dimension)):
+        for i in range(dimension)[::-1]:
             domain = simpson(domain, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
         eq[float(t)] = domain
     return eq
@@ -93,7 +93,7 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
 
     for t in intervals:
         domain = fv.point_convert_primitive(simulation[str(t)], gamma)
-        for i in reversed(range(dimension)):
+        for i in range(dimension)[::-1]:
             domain = simpson(domain, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
         eq[t] = domain
     return eq

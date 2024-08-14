@@ -17,9 +17,10 @@ from functions import fv, constructors
 # Intercell numerical fluxes between L and R interfaces based on Riemann solver
 def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
     Riemann_flux = namedtuple('Riemann_flux', ['flux', 'eigmax'])
+    fluxes = {}
 
     # Rotate grid and apply algorithm for each axis
-    for axis, axes in enumerate(sim_variables.permutations):
+    for axes in sim_variables.permutations:
 
         # Define frequently used variables
         if sim_variables.subgrid in ["pcm", "constant", "c"]:
@@ -43,20 +44,22 @@ def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
 
         # HLL-type schemes
         if sim_variables.scheme in ["hllc", "c"]:
-            return Riemann_flux(calculate_HLLC_flux(wLs, wRs, fRs, fLs, sim_variables), eigmax)
+            fluxes[axes] = Riemann_flux(calculate_HLLC_flux(wLs, wRs, fRs, fLs, sim_variables), eigmax)
 
         # Osher-Solomon schemes
         elif sim_variables.scheme in ["os", "osher-solomon", "osher", "solomon"]:
-            return Riemann_flux(calculate_DOTS_flux(qLs, qRs, fLs, fRs, sim_variables.gamma, sim_variables.roots, sim_variables.weights), eigmax)
+            fluxes[axes] = Riemann_flux(calculate_DOTS_flux(qLs, qRs, fLs, fRs, sim_variables.gamma, sim_variables.roots, sim_variables.weights), eigmax)
 
         # Roe-type/Lax-type schemes
         else:
             if sim_variables.scheme in ["entropy", "stable", "entropy-stable", "es"]:
-                return Riemann_flux(calculate_ES_flux(wLs, wRs, sim_variables.gamma), eigmax)
+                fluxes[axes] = Riemann_flux(calculate_ES_flux(wLs, wRs, sim_variables.gamma), eigmax)
             elif sim_variables.scheme in ["lw", "lax-wendroff", "wendroff"]:
-                return Riemann_flux(calculate_LaxWendroff_flux(qLs, qRs, fLs, fRs, characteristics), eigmax)
+                fluxes[axes] = Riemann_flux(calculate_LaxWendroff_flux(qLs, qRs, fLs, fRs, characteristics), eigmax)
             else:
-                return Riemann_flux(calculate_LaxFriedrich_flux(qLs, qRs, fLs, fRs, max_eigvals), eigmax)
+                fluxes[axes] = Riemann_flux(calculate_LaxFriedrich_flux(qLs, qRs, fLs, fRs, max_eigvals), eigmax)
+
+        return fluxes
 
 
 # (Local) Lax-Friedrich scheme (1st-order; highly diffusive)

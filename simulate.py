@@ -50,13 +50,14 @@ def run_simulation(grp: h5py, _sim_variables: namedtuple):
             plotting.update_plot(tube_snapshot, t, fig, ax, graphs, _sim_variables.dimension)
 
         # Compute the numerical fluxes at each interface
-        fluxes, eigmax = evolvers.evolve_space(domain, _sim_variables)
+        interface_fluxes = evolvers.evolve_space(domain, _sim_variables)
 
         # Compute the full time step dt
-        dt = _sim_variables.cfl * _sim_variables.dx/eigmax
+        eigmaxes = [_sim_variables.dx/Riemann_flux.eigmax for Riemann_flux in list(interface_fluxes.values())]
+        dt = _sim_variables.cfl * min(eigmaxes)
 
         # Update the solution with the numerical fluxes using iterative methods
-        domain = evolvers.evolve_time(domain, fluxes, dt, _sim_variables)
+        domain = evolvers.evolve_time(domain, interface_fluxes, dt, _sim_variables)
 
         # Handle the time update for machine precision
         if t+dt > _sim_variables.t_end:
