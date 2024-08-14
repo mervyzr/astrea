@@ -20,9 +20,10 @@ def run(tube, sim_variables, C=5/4):
         # Convert to primitive variables
         wS = fv.convert_conservative(tube.transpose(axes), sim_variables)
 
-        # Extrapolate the cell averages to face averages
-        # Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
-        #                     |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
+        """Extrapolate the cell averages to face averages
+        Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
+                            |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
+        """
 
         # Pad array with boundary; PPM requires additional ghost cells
         w2 = fv.add_boundary(wS, boundary, 2)
@@ -32,15 +33,16 @@ def run(tube, sim_variables, C=5/4):
         wF = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])
 
         # Face i+1/2 (6th-order) [Colella & Sekora, 2008, eq. 17]
-        """w3 = fv.add_boundary(wS, boundary, 3)
-        wF = 1/60 * (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:]))"""
+        #w3 = fv.add_boundary(wS, boundary, 3)
+        #wF = 1/60 * (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:]))
 
         limited_values = limiters.interface_limiter(wF, w[:-2], wS, w[2:], w2[4:], C)
 
-        # Reconstruct the interpolants using the limited values
-        # Current convention: |               w(i-1/2)                    w(i+1/2)              |
-        #                     | i-1          <-- | -->         i         <-- | -->          i+1 |
-        #                     |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
+        """Reconstruct the interpolants using the limited values
+        Current convention: |               w(i-1/2)                    w(i+1/2)              |
+                            | i-1          <-- | -->         i         <-- | -->          i+1 |
+                            |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
+        """
 
         # Limited parabolic interpolant [Colella et al., 2011, p. 26]
         wF_limit_2 = fv.add_boundary(limited_values, boundary, 2)
@@ -128,9 +130,10 @@ def run_modified(tube, sim_variables, dissipate=False, C=5/4):
         # Convert to primitive variables
         wS = fv.convert_conservative(tube.transpose(axes), sim_variables)
 
-        # Extrapolate the cell averages to face averages
-        # Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
-        #                     |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
+        """Extrapolate the cell averages to face averages
+        Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
+                            |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
+        """
 
         # Pad array with boundary; PPM requires additional ghost cells
         w2 = fv.add_boundary(wS, boundary, 2)
@@ -140,8 +143,8 @@ def run_modified(tube, sim_variables, dissipate=False, C=5/4):
         wF = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])
 
         # Face i+1/2 (6th-order) [Colella & Sekora, 2008, eq. 17]
-        """w3 = fv.add_boundary(wS, boundary, 3)
-        wF = 1/60 * (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:]))"""
+        #w3 = fv.add_boundary(wS, boundary, 3)
+        #wF = 1/60 * (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:]))
 
         # Modified stencil [McCorquodale & Colella, 2011, eq. 21-22]
         wF[0] = 1/12 * (25*wS[1] - 23*wS[2] + 13*wS[3] - 3*wS[4])
@@ -150,10 +153,11 @@ def run_modified(tube, sim_variables, dissipate=False, C=5/4):
         wF[1] = 1/12 * (3*wS[1] + 13*wS[2] - 5*wS[3] + wS[4])
         wF[-2] = 1/12 * (3*wS[-1] + 13*wS[-2] - 5*wS[-3] + wS[-4])
 
-        # Reconstruct the interpolants using the limited values
-        # Current convention: |               w(i-1/2)                    w(i+1/2)              |
-        #                     | i-1          <-- | -->         i         <-- | -->          i+1 |
-        #                     |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
+        """Reconstruct the interpolants using the limited values
+        Current convention: |               w(i-1/2)                    w(i+1/2)              |
+                            | i-1          <-- | -->         i         <-- | -->          i+1 |
+                            |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
+        """
 
         # Limited modified parabolic interpolant [McCorquodale & Colella, 2011]
         # Define the left and right parabolic interpolants
