@@ -5,6 +5,9 @@ from functions import fv
 ##############################################################################
 # Functions for constructing objects such as the grid, eigenvectors, Jacobian and flux terms
 ##############################################################################
+def gauss_func(x, params):
+    peak_pos = (x[0]+x[-1])/2
+    return params['y_offset'] + params['ampl']*np.exp(-((x-peak_pos)**2)/params['fwhm'])
 
 # Initialise the discrete solution array with initial conditions and primitive variables w. Returns the solution array in conserved variables q
 def initialise(sim_variables):
@@ -29,8 +32,12 @@ def initialise(sim_variables):
             mask = (x[np.newaxis,:]-cx)**2 + (y[:,np.newaxis]-cy)**2 < r**2
             arr[mask] = initial_left
         elif config.startswith("gauss"):
-            pass
+            x, y = np.meshgrid(np.linspace(start_pos, end_pos, N), np.linspace(start_pos, end_pos, N))
+            dst = np.sqrt(x**2 + y**2)
 
+            peak_pos = (start_pos+end_pos)/2
+            mask = params['y_offset'] + params['ampl']*np.exp(-((dst-peak_pos)**2)/params['fwhm'])
+            arr[mask] = initial_left
     else:
         if config == "sedov" or config.startswith('sq'):
             half_width = int(N/2 * ((shock_pos-midpoint)/(end_pos-midpoint)))
