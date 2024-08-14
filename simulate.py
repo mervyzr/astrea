@@ -84,7 +84,7 @@ def main() -> None:
     # CLI arguments handler; updates the simulation variables (dict)
     if len(sys.argv) > 1:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "N=", "n=", "cells=", "cfl=", "gamma=", "dimension=", "subgrid=", "timestep=", "scheme=", "run_type=", "live_plot=", "save_plots=", "snapshots=", "save_video=", "save_file=", "debug", "noprint", "echo", "quote"])
+            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "N=", "n=", "cells=", "cfl=", "gamma=", "dimension=", "subgrid=", "timestep=", "scheme=", "run_type=", "live_plot=", "save_plots=", "snapshots=", "save_video=", "save_file=", "debug", "DEBUG", "noprint", "echo", "quote"])
         except getopt.GetoptError as e:
             print(f'{generic.BColours.WARNING}-- Error: {e}{generic.BColours.ENDC}')
             sys.exit(2)
@@ -105,7 +105,7 @@ def main() -> None:
                     config_variables[opt] = arg
                 elif opt == "noprint":
                     noprint = True
-                elif opt == "debug":
+                elif opt == "debug" or opt == "DEBUG":
                     debug = True
                 elif opt == "echo" or opt == "quote":
                     print(f"{generic.BColours.OKGREEN}{generic.quotes[np.random.randint(len(generic.quotes))]}{generic.BColours.ENDC}")
@@ -203,7 +203,7 @@ def main() -> None:
             print(f"\n{generic.BColours.FAIL}-------    Error    -------{generic.BColours.ENDC}")
             print(traceback.format_exc())
         else:
-            print(f"{generic.BColours.FAIL}-- Error: {e}{generic.BColours.ENDC}")
+            print(f"{generic.BColours.FAIL}-- Error: {e}{generic.BColours.ENDC} (use --DEBUG option for more details)")
         os.remove(file_name)
 
     # If no errors;
