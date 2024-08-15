@@ -35,7 +35,7 @@ def run_simulation(grp: h5py, _sim_variables: namedtuple):
 
     # Initiate live plotting, if enabled
     if _sim_variables.live_plot:
-        fig, ax, graphs = plotting.initiate_live_plot(_sim_variables)
+        plotting_params = plotting.initiate_live_plot(_sim_variables)
 
     # Start simulation run
     t = 0.0
@@ -47,7 +47,7 @@ def run_simulation(grp: h5py, _sim_variables: namedtuple):
 
         # Update the live plot, if enabled
         if _sim_variables.live_plot:
-            plotting.update_plot(tube_snapshot, t, fig, ax, graphs, _sim_variables.dimension)
+            plotting.update_plot(tube_snapshot, t, _sim_variables.dimension, *plotting_params)
 
         # Compute the numerical fluxes at each interface
         interface_fluxes = evolvers.evolve_space(domain, _sim_variables)

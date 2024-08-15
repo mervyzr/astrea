@@ -49,12 +49,14 @@ def initiate_live_plot(sim_variables):
     plt.ion()
 
     fig, ax = plt.subplots(nrows=2, ncols=2)
+    fig.text(0.5, 0.04, r"Cell position $x$", ha='center')
     plt.subplots_adjust(wspace=.2)
 
     graphs = []
     for _i, _j in PLOT_INDEXES:
         ax[_i,_j].set_ylabel(PLOT_LABELS[_i][_j])
         if dimension >= 2:
+            fig.text(0.04, 0.4, r"Cell position $y$", ha='center', rotation='vertical')
             if _j == 1:
                 ax[_i,_j].yaxis.set_label_position("right")
                 ax[_i,_j].yaxis.labelpad = 55
@@ -74,29 +76,27 @@ def initiate_live_plot(sim_variables):
 
 
 # Update live plot
-def update_plot(arr, t, fig, ax, graphs, dimension):
-    graphTL, graphTR, graphBL, graphBR = graphs
+def update_plot(arr, t, dimension, fig, ax, graphs):
+    # top-left: density, top-right: pressure, bottom-left: velocity_x, bottom-right: specific thermal energy
+    plot_data = [arr[...,0], arr[...,4], arr[...,1], fv.divide(arr[...,4], arr[...,0])]
 
     if dimension >= 2:
-        graphTL.set_data(arr[...,0])  # density
-        graphTR.set_data(arr[...,4])  # pressure
-        graphBL.set_data(arr[...,1])  # vx
-        graphBR.set_data(arr[...,4]/arr[...,0])  # specific thermal energy
-        fig.text(0.04, 0.4, r"Cell position $y$", ha='center', rotation='vertical')
+        for index, graph in enumerate(graphs):
+            graph.set_data(plot_data[index])
+            graph.set_clim([np.min(plot_data[index]), np.max(plot_data[index])])
+
         plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ at $t = {round(t,4)}$")
     else:
-        graphTL.set_ydata(arr[:,0])  # density
-        graphTR.set_ydata(arr[:,4])  # pressure
-        graphBL.set_ydata(arr[:,1])  # vx
-        graphBR.set_ydata(arr[:,4]/arr[:,0])  # specific thermal energy
-        #graphBR.set_ydata(analytic.calculateEntropyDensity(arr, 1.4))  # scaled entropy density
+        for index, graph in enumerate(graphs):
+            graph.set_ydata(plot_data[index])
+            #graphBR.set_ydata(analytic.calculateEntropyDensity(arr, 1.4))  # scaled entropy density
+
+        for _i, _j in PLOT_INDEXES:
+            ax[_i,_j].relim()
+            ax[_i,_j].autoscale_view()
+
         plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(t,4)}$")
 
-    for _i, _j in PLOT_INDEXES:
-        ax[_i,_j].relim()
-        ax[_i,_j].autoscale_view()
-    
-    fig.text(0.5, 0.04, r"Cell position $x$", ha='center')
     fig.canvas.draw()
     fig.canvas.flush_events()
     pass
@@ -171,7 +171,7 @@ def plot_quantities(f, sim_variables, save_path):
         if dimension >= 2:
             plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ at $t \approx {round(timings[max(n_list)][time_index],3)}$ ($N = {N}$)", fontsize=24)
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
-            fig.text(0.04, 0.4, r"Cell position $y$", fontsize=18, ha='center')
+            fig.text(0.04, 0.4, r"Cell position $y$", fontsize=18, ha='center', rotation="vertical")
         # Add analytical solutions only for 1D
         else:
             # Adjust ylim and plot analytical solutions for Gaussian, sin-wave and sinc-wave tests
