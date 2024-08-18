@@ -86,7 +86,7 @@ def main() -> None:
     # CLI arguments handler; updates the simulation variables (dict)
     if len(sys.argv) > 1:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "N=", "n=", "cells=", "cfl=", "gamma=", "dim", "dimension=", "subgrid=", "timestep=", "scheme=", "run_type=", "live_plot=", "save_plots=", "snapshots=", "save_video=", "save_file=", "debug", "DEBUG", "noprint", "echo", "quote"])
+            opts, args = getopt.getopt(sys.argv[1:], "", ["config=", "N=", "n=", "cells=", "cfl=", "gamma=", "dim", "dimension=", "subgrid=", "timestep=", "scheme=", "run_type=", "live_plot=", "save_plots=", "snapshots=", "save_video=", "save_file=", "test", "TEST", "debug", "DEBUG", "noprint", "echo", "quote"])
         except getopt.GetoptError as e:
             print(f'{generic.BColours.WARNING}-- Error: {e}{generic.BColours.ENDC}')
             sys.exit(2)
@@ -101,15 +101,15 @@ def main() -> None:
                     config_variables[opt] = float(arg)
                 elif opt in ["live_plot", "save_plots", "save_video", "save_file"]:
                     config_variables[opt] = arg.lower() == "true"
-                elif opt in ["test"]:
-                    config_variables["config"] = arg.lower()
                 elif opt in ["dim", "dimension"]:
                     config_variables[opt] = arg
+                elif opt in ["DEBUG", "debug"]:
+                    debug = True
+                elif opt in ["TEST", "test"]:
+                    continue
                 elif opt == "noprint":
                     noprint = True
-                elif opt == "debug" or opt == "DEBUG":
-                    debug = True
-                elif opt == "echo" or opt == "quote":
+                elif opt in ["echo", "quote"]:
                     print(f"{generic.BColours.OKGREEN}{generic.quotes[np.random.randint(len(generic.quotes))]}{generic.BColours.ENDC}")
                     sys.exit(2)
                 else:
