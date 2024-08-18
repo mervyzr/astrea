@@ -89,7 +89,7 @@ def handle_errors(dct):
         }
     default_values = {
         "config": ["sod", "Test unknown; reverting to Sod shock tube test.."],
-        "dimension": [1, "Invalid value for dimensions; reverting to 1D.."],
+        "dimension": [1, "Invalid value for dimension; reverting to 1D.."],
         "subgrid": ["pcm", "Subgrid option unknown; reverting to piecewise constant method.."],
         "timestep": ["euler", "Timestep unknown; reverting to Forward Euler timestep.."],
         "scheme": ["lf", "Scheme unknown; reverting to Lax-Friedrich scheme.."],

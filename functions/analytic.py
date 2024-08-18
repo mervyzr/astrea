@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import scipy as sp
 from scipy.integrate import quad, simpson
@@ -23,7 +25,7 @@ def calculate_entropy_density(tube, gamma):
 
 # Function for solution error calculation of sin-wave, sinc-wave and Gaussian tests
 def calculate_solution_error(simulation, sim_variables, norm):
-    dimension = int(sim_variables.dimension)
+    dimension = math.ceil(sim_variables.dimension)
 
     time_keys = [float(t) for t in simulation.keys()]
     w_num = simulation[str(max(time_keys))]  # Get last array with (typically largest) time key
@@ -53,7 +55,7 @@ def calculate_solution_error(simulation, sim_variables, norm):
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
 def calculate_tv(simulation, sim_variables):
-    dimension, tv = int(sim_variables.dimension), {}
+    dimension, tv = math.ceil(sim_variables.dimension), {}
     for t in list(simulation.keys()):
         domain = simulation[t]
         thermal = fv.divide(domain[...,4], domain[...,0])
@@ -68,7 +70,7 @@ def calculate_tv(simulation, sim_variables):
 # Function for checking the conservation equations; works with primitive variables but needs to be converted
 def calculate_conservation(simulation, sim_variables):
     N, gamma, start_pos, end_pos = sim_variables.cells, sim_variables.gamma, sim_variables.start_pos, sim_variables.end_pos
-    dimension, eq = int(sim_variables.dimension), {}
+    dimension, eq = math.ceil(sim_variables.dimension), {}
 
     for t in list(simulation.keys()):
         domain = fv.point_convert_primitive(simulation[t], gamma)
@@ -83,7 +85,7 @@ def calculate_conservation(simulation, sim_variables):
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
 def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
     N, gamma, start_pos, end_pos, t_end = sim_variables.cells, sim_variables.gamma, sim_variables.start_pos, sim_variables.end_pos, sim_variables.t_end
-    dimension, eq = int(sim_variables.dimension), {}
+    dimension, eq = math.ceil(sim_variables.dimension), {}
 
     intervals = np.array([], dtype=float)
     periods = np.linspace(0, t_end, interval)

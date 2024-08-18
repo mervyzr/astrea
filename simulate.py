@@ -1,5 +1,6 @@
 import os
 import sys
+import math
 import shutil
 import getopt
 import traceback
@@ -85,7 +86,7 @@ def main() -> None:
     # CLI arguments handler; updates the simulation variables (dict)
     if len(sys.argv) > 1:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "N=", "n=", "cells=", "cfl=", "gamma=", "dimension=", "subgrid=", "timestep=", "scheme=", "run_type=", "live_plot=", "save_plots=", "snapshots=", "save_video=", "save_file=", "debug", "DEBUG", "noprint", "echo", "quote"])
+            opts, args = getopt.getopt(sys.argv[1:], "", ["test=", "config=", "N=", "n=", "cells=", "cfl=", "gamma=", "dim", "dimension=", "subgrid=", "timestep=", "scheme=", "run_type=", "live_plot=", "save_plots=", "snapshots=", "save_video=", "save_file=", "debug", "DEBUG", "noprint", "echo", "quote"])
         except getopt.GetoptError as e:
             print(f'{generic.BColours.WARNING}-- Error: {e}{generic.BColours.ENDC}')
             sys.exit(2)
@@ -102,7 +103,7 @@ def main() -> None:
                     config_variables[opt] = arg.lower() == "true"
                 elif opt in ["test"]:
                     config_variables["config"] = arg.lower()
-                elif opt in ["dimension"]:
+                elif opt in ["dim", "dimension"]:
                     config_variables[opt] = arg
                 elif opt == "noprint":
                     noprint = True
@@ -123,7 +124,7 @@ def main() -> None:
 
     # Generate frequently used variables
     sim_variables['dx'] = abs(sim_variables['end_pos']-sim_variables['start_pos'])/sim_variables['cells']
-    sim_variables['permutations'] = [axes for axes in list(itertools.permutations(list(range(int(sim_variables['dimension']+1))))) if axes[-1] == int(sim_variables['dimension'])]
+    sim_variables['permutations'] = [axes for axes in list(itertools.permutations(list(range(math.ceil(sim_variables['dimension']+1))))) if axes[-1] == math.ceil(sim_variables['dimension'])]
     if sim_variables['scheme'] in ['osher-solomon', 'osher', 'solomon', 'os']:
         _roots, _weights = sp.special.roots_legendre(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
         sim_variables['roots'] = .5*_roots + .5  # Gauss-Legendre quadrature with interval [0,1]
