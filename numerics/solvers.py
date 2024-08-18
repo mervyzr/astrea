@@ -59,7 +59,7 @@ def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
             else:
                 fluxes[axes] = Riemann_flux(calculate_LaxFriedrich_flux(qLs, qRs, fLs, fRs, max_eigvals), eigmax)
 
-        return fluxes
+    return fluxes
 
 
 # (Local) Lax-Friedrich scheme (1st-order; highly diffusive)
