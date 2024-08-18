@@ -23,10 +23,9 @@ def initialise(sim_variables):
     midpoint = (end_pos+start_pos)/2
 
     if dimension >= 2:
-        x = y = np.arange(N)
-        cx = cy = int(N/2)
-
         if config == "sedov":
+            x = y = np.arange(N)
+            cx = cy = int(N/2)
             r = int(N/2 * ((shock_pos-midpoint)/(end_pos-midpoint)))
 
             mask = (x[np.newaxis,:]-cx)**2 + (y[:,np.newaxis]-cy)**2 < r**2
@@ -37,7 +36,7 @@ def initialise(sim_variables):
 
             peak_pos = (start_pos+end_pos)/2
             mask = params['y_offset'] + params['ampl']*np.exp(-((dst-peak_pos)**2)/params['fwhm'])
-            arr[mask] = initial_left
+            arr[...,0] = mask
     else:
         if config == "sedov" or config.startswith('sq'):
             half_width = int(N/2 * ((shock_pos-midpoint)/(end_pos-midpoint)))
@@ -60,10 +59,8 @@ def initialise(sim_variables):
                 arr[...,0] = fv.gauss_func(xi, params)
         
         if dimension != 1:
-            layer = 1
-            _arr = np.pad(arr, ((int(N*layer),int(N*layer)),(0,0)), mode="constant")
-            _arr = _arr.reshape(2*layer+1,N,len(initial_right))
-            arr = _arr.transpose(1,0,2)
+            layer = 2
+            arr = np.repeat(arr[np.newaxis,...], 2*layer+1, axis=0)
 
     return fv.point_convert_primitive(arr, gamma)
 

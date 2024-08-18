@@ -56,14 +56,14 @@ def generate_test_conditions(config):
         misc = {'freq':5, 'ampl':.2, 'y_offset':1}
 
     elif config.startswith('gauss'):
-        start_pos = 0
+        start_pos = -1
         end_pos = 1
         shock_pos = 1
-        t_end = 1
+        t_end = 2
         boundary = "wrap"  # periodic
         initial_left = np.array([0,1,1,1,1e-6,0,0,0])
         initial_right = np.array([0,1,1,1,1e-6,0,0,0])
-        misc = {'ampl':.9999, 'fwhm':.01, 'y_offset':1}
+        misc = {'ampl':.9999, 'fwhm':.02, 'y_offset':1}
 
     elif config.startswith('sq'):
         start_pos = -1
