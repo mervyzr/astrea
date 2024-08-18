@@ -75,7 +75,7 @@ def make_flux_term(tube, gamma, axis):
     arr = np.zeros_like(tube)
 
     arr[...,0] = rhos*vecs[...,axis]
-    arr[...,axis+1] = rhos*(vecs[...,axis]**2) + pressures + (.5*fv.norm(B_fields)**2) - B_fields[...,axis]**2
+    arr[...,(axis+0)%3+1] = rhos*(vecs[...,axis]**2) + pressures + (.5*fv.norm(B_fields)**2) - B_fields[...,axis]**2
     arr[...,(axis+1)%3+1] = rhos*vecs[...,axis]*vecs[...,(axis+1)%3] - B_fields[...,axis]*B_fields[...,(axis+1)%3]
     arr[...,(axis+2)%3+1] = rhos*vecs[...,axis]*vecs[...,(axis+2)%3] - B_fields[...,axis]*B_fields[...,(axis+2)%3]
     arr[...,4] = (vecs[...,axis] * ((.5*rhos*fv.norm(vecs)**2) + ((gamma*pressures)/(gamma-1)) + (fv.norm(B_fields)**2))) - (B_fields[...,axis]*np.sum(B_fields*vecs, axis=-1))
@@ -87,7 +87,7 @@ def make_flux_term(tube, gamma, axis):
 # Jacobian matrix based on primitive variables
 def make_Jacobian(tube, gamma, axis):
     axis %= 3
-    rho, v, pressure, B_fields = tube[...,0], tube[...,axis+1], tube[...,4], tube[...,5:8]/np.sqrt(4*np.pi)
+    rhos, vecs, pressures, B_fields = tube[...,0], tube[...,axis+1], tube[...,4], tube[...,5:8]/np.sqrt(4*np.pi)
     
     # Create empty square arrays for each cell
     _arr = np.zeros_like(tube)
@@ -95,18 +95,19 @@ def make_Jacobian(tube, gamma, axis):
     i, j = np.diag_indices(_arr.shape[-1])
 
     # Replace matrix with values
-    arr[...,i,j] = v[...,None]  # diagonal elements
-    arr[...,0,axis+1] = rho
-    arr[...,axis+1,4] = 1/rho
-    arr[...,4,axis+1] = gamma*pressure
+    arr[...,i,j] = vecs[...,None]  # diagonal elements
+    arr[...,0,axis+1] = rhos
+    arr[...,axis+1,4] = 1/rhos
+    arr[...,4,axis+1] = gamma * pressures
 
-    arr[...,axis+1,(axis+1)%3+5] = fv.divide(B_fields[...,(axis+1)%3], rho)
-    arr[...,axis+1,(axis+2)%3+5] = fv.divide(B_fields[...,(axis+2)%3], rho)
-    arr[...,(axis+1)%3+1,(axis+1)%3+5] = fv.divide(-B_fields[...,axis], rho)
-    arr[...,(axis+2)%3+1,(axis+2)%3+5] = fv.divide(-B_fields[...,axis], rho)
+    arr[...,axis+5,axis+5] = 0
+    arr[...,axis+1,(axis+1)%3+5] = fv.divide(B_fields[...,(axis+1)%3], rhos)
+    arr[...,axis+1,(axis+2)%3+5] = fv.divide(B_fields[...,(axis+2)%3], rhos)
+    arr[...,(axis+1)%3+1,(axis+1)%3+5] = -fv.divide(B_fields[...,axis], rhos)
+    arr[...,(axis+2)%3+1,(axis+2)%3+5] = -fv.divide(B_fields[...,axis], rhos)
     arr[...,(axis+1)%3+5,axis+1] = B_fields[...,(axis+1)%3]
-    arr[...,(axis+1)%3+5,(axis+1)%3+1] = -B_fields[...,axis]
     arr[...,(axis+2)%3+5,axis+1] = B_fields[...,(axis+2)%3]
+    arr[...,(axis+1)%3+5,(axis+1)%3+1] = -B_fields[...,axis]
     arr[...,(axis+2)%3+5,(axis+2)%3+1] = -B_fields[...,axis]
     return arr
 
