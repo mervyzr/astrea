@@ -121,6 +121,16 @@ def generate_test_conditions(config):
         initial_right = np.array([1,0,0,0,1,.5641895835477562,1.1283791670955125,.5641895835477562])
         misc = None
 
+    elif "brio" in config or "wu" in config or "bw" in config:
+        start_pos = -.5
+        end_pos = .5
+        shock_pos = 0
+        t_end = .1
+        boundary = "edge"  # outflow
+        initial_left = np.array([1,0,0,0,1,.75,1,0])
+        initial_right = np.array([.125,0,0,0,.1,.75,-1,0])
+        misc = None
+
     else:
         start_pos = 0
         end_pos = 1
