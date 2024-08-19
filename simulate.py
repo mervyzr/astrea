@@ -139,15 +139,15 @@ def main() -> None:
         n_list = [sim_variables['cells']]
 
     ###################################### SCRIPT INITIATE ######################################
+    # Save simulation variables into namedtuple
+    variable_constructor = namedtuple('simulation_variables', sim_variables)
+    _sim_variables = variable_constructor(**sim_variables)
+
     # Start the script; run in a try-except-else to handle crashes and prevent exiting code entirely
+    script_start = datetime.now().strftime('%Y%m%d%H%M')
+    save_path = f"{CURRENT_DIR}/savedData/{script_start}_{SEED}"
+
     try:
-        script_start = datetime.now().strftime('%Y%m%d%H%M')
-        save_path = f"{CURRENT_DIR}/savedData/{script_start}_{SEED}"
-
-        # Save simulation variables into namedtuple
-        variable_constructor = namedtuple('simulation_variables', sim_variables)
-        _sim_variables = variable_constructor(**sim_variables)
-
         # Initiate the HDF5 database to store data temporarily
         with h5py.File(file_name, "w") as f:
             for N in n_list:
