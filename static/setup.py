@@ -17,10 +17,13 @@ if not os.path.exists(f"{currentdir}/settings.py") or not os.path.isdir(f"{curre
 
     if not os.path.isdir(f"{currentdir}/.venv"):
         print("Creating Python venv for simulation..")
+        python310_path = subprocess.run(["which", "python3.10"], capture_output=True).stdout.decode("utf-8").rstrip()
         venv_dir = os.path.join(currentdir, ".venv")
-        venv.create(venv_dir, with_pip=True)
-        subprocess.run(["bin/pip", "install", "-q", "-r", os.path.abspath("static/requirements.txt")], cwd=venv_dir)
+        subprocess.run([python310_path, "-m", "venv", venv_dir])
+        subprocess.run(["source", f"{currentdir}/.venv/bin/activate"])
+        subprocess.run(["pip3", "install", "-q", "-r", os.path.abspath("static/requirements.txt")], cwd=venv_dir)
+        subprocess.run(["deactivate"])
 
     print("Setup complete!")
 else:
-    print("Nothing to set up")
+    print("Nothing to set up.")
