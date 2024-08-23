@@ -1,7 +1,5 @@
 from collections import defaultdict
 
-import numpy as np
-
 from functions import fv, constructors
 from numerics import solvers
 

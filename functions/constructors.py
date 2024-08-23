@@ -84,7 +84,7 @@ def make_flux_term(tube, gamma, axis):
 # Jacobian matrix based on primitive variables
 def make_Jacobian(tube, gamma, axis):
     axis %= 3
-    rhos, vecs, pressures, B_fields = tube[...,0], tube[...,axis+1], tube[...,4], tube[...,5:8]/np.sqrt(4*np.pi)
+    rhos, v, pressures, B_fields = tube[...,0], tube[...,axis+1], tube[...,4], tube[...,5:8]/np.sqrt(4*np.pi)
     
     # Create empty square arrays for each cell
     _arr = np.zeros_like(tube)
@@ -92,7 +92,7 @@ def make_Jacobian(tube, gamma, axis):
     i, j = np.diag_indices(_arr.shape[-1])
 
     # Replace matrix with values
-    arr[...,i,j] = vecs[...,None]  # diagonal elements
+    arr[...,i,j] = v[...,None]  # diagonal elements
     arr[...,0,axis+1] = rhos
     arr[...,axis+1,4] = 1/rhos
     arr[...,4,axis+1] = gamma * pressures
