@@ -40,7 +40,7 @@ def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
         local_max_eigvals = np.max(np.abs(characteristics), axis=-1)  # Local max eigenvalue for each cell (1- or 3-Riemann invariant; shock wave or rarefaction wave)
         max_eigvals = np.max([local_max_eigvals[:-1], local_max_eigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
 
-        eigmax = np.max([np.max(max_eigvals), np.finfo(sim_variables.precision).eps])  # Maximum wave speed (max eigenvalue) for time evolution
+        eigmax = np.max(max_eigvals)  # Maximum wave speed (max eigenvalue) for time evolution
 
         # HLL-type schemes
         if sim_variables.scheme in ["hllc", "c"]:

@@ -110,20 +110,14 @@ def make_Jacobian(tube, gamma, axis):
 
 
 # Calculate the Roe-averaged primitive variables from the left- & right-interface states for use in Roe solver in order to better capture shocks [Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
-def make_Roe_average(wS, qS, gamma):
-    wL, wR = wS
-    qL, qR = qS
-
-    avg = np.zeros_like(wL)
-    rhoL, rhoR = np.sqrt(wL[...,0]), np.sqrt(wR[...,0])
+def make_Roe_average(left_interface, right_interface):
+    avg = np.zeros_like(left_interface)
+    rhoL, rhoR = np.sqrt(left_interface[...,0]), np.sqrt(right_interface[...,0])
 
     avg[...,0] = rhoL * rhoR
-    avg[...,1:4] = fv.divide((rhoL.T * wL[...,1:4].T) + (rhoR.T * wR[...,1:4].T), (rhoL + rhoR).T).T
-    avg[...,6:8] = fv.divide((rhoR.T * wL[...,6:8].T) + (rhoL.T * wR[...,6:8].T), (rhoL + rhoR).T).T
-
-    HL, HR = fv.divide(qL[...,4] + wL[...,4] + .5*fv.norm(wL[...,5:8])**2, wL[...,0]), fv.divide(qR[...,4] + wR[...,4] + .5*fv.norm(wR[...,5:8])**2, wR[...,0])
-    H = fv.divide(rhoL*HL + rhoR*HR, rhoL + rhoR)
-    avg[...,4] = ((gamma-1)/gamma) * (avg[...,0]*H - .5*(avg[...,0]*fv.norm(avg[...,1:4])**2 + fv.norm(avg[...,5:8])**2))
+    avg[...,1:4] = fv.divide((rhoL.T * left_interface[...,1:4].T) + (rhoR.T * right_interface[...,1:4].T), (rhoL + rhoR).T).T
+    avg[...,4] = fv.divide((rhoL * left_interface[...,4]) + (rhoR * right_interface[...,4]), rhoL + rhoR)
+    avg[...,5:8] = fv.divide((rhoR.T * left_interface[...,5:8].T) + (rhoL.T * right_interface[...,5:8].T), (rhoL + rhoR).T).T
 
     return avg
 
