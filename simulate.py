@@ -23,6 +23,7 @@ from functions import fv, generic, plotting, constructors
 ##############################################################################
 
 # Globals
+np.set_printoptions(linewidth=400, suppress=True)
 CURRENT_DIR = os.getcwd()
 SEED = np.random.randint(0, 1e8)
 np.random.seed(SEED)
