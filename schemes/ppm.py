@@ -16,19 +16,19 @@ def run(tube, sim_variables, C=5/4):
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in enumerate(permutations):
+        grid = tube.transpose(axes)
 
         # Convert to primitive variables
-        wS = fv.convert_conservative(tube.transpose(axes), sim_variables)
-
-        """Extrapolate the cell averages to face averages
-        Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
-                            |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
-        """
+        wS = fv.convert_conservative(grid, sim_variables)
 
         # Pad array with boundary; PPM requires additional ghost cells
         w2 = fv.add_boundary(wS, boundary, 2)
         w = np.copy(w2[1:-1])
 
+        """Extrapolate the cell averages to face averages
+        Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
+                            |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
+        """
         # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
         wF = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])
 
@@ -43,7 +43,6 @@ def run(tube, sim_variables, C=5/4):
                             | i-1          <-- | -->         i         <-- | -->          i+1 |
                             |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
         """
-
         # Limited parabolic interpolant [Colella et al., 2011, p. 26]
         wF_limit_2 = fv.add_boundary(limited_values, boundary, 2)
         wF_limit_L, wF_limit_R = wF_limit_2[1:-3], limited_values
@@ -126,19 +125,19 @@ def run_modified(tube, sim_variables, dissipate=False, C=5/4):
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in enumerate(permutations):
+        grid = tube.transpose(axes)
 
         # Convert to primitive variables
-        wS = fv.convert_conservative(tube.transpose(axes), sim_variables)
-
-        """Extrapolate the cell averages to face averages
-        Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
-                            |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
-        """
+        wS = fv.convert_conservative(grid, sim_variables)
 
         # Pad array with boundary; PPM requires additional ghost cells
         w2 = fv.add_boundary(wS, boundary, 2)
         w = np.copy(w2[1:-1])
 
+        """Extrapolate the cell averages to face averages
+        Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
+                            |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
+        """
         # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
         wF = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])
 
@@ -158,7 +157,6 @@ def run_modified(tube, sim_variables, dissipate=False, C=5/4):
                             | i-1          <-- | -->         i         <-- | -->          i+1 |
                             |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
         """
-
         # Limited modified parabolic interpolant [McCorquodale & Colella, 2011]
         # Define the left and right parabolic interpolants
         wF_limit = fv.add_boundary(wF, boundary)
@@ -234,7 +232,7 @@ def run_modified(tube, sim_variables, dissipate=False, C=5/4):
         fLs, fRs = constructors.make_flux_term(wLs, gamma, axis), constructors.make_flux_term(wRs, gamma, axis)
 
         if dissipate:
-            qS = fv.add_boundary(tube.transpose(axes), boundary)
+            qS = fv.add_boundary(grid, boundary)
             mu = apply_artificial_viscosity(wS, gamma, boundary) * np.diff(qS, axis=0)[1:]
             _mu = fv.add_boundary(mu, boundary)
             f += _mu
