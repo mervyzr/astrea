@@ -14,10 +14,11 @@ def run(tube, sim_variables):
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in enumerate(permutations):
+        grid = tube.transpose(axes)
 
         # Convert to primitive variables
-        wS = fv.point_convert_conservative(tube.transpose(axes), gamma)
-        q = fv.add_boundary(tube.transpose(axes), boundary)
+        wS = fv.point_convert_conservative(grid, gamma)
+        q = fv.add_boundary(grid, boundary)
 
         # Compute the fluxes and the Jacobian
         w = fv.add_boundary(wS, boundary)

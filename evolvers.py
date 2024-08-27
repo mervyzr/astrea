@@ -8,9 +8,12 @@ from schemes import pcm, plm, ppm, weno
 
 # Operator H as a function of the reconstruction values; calculate the flux through the surface [F(i+1/2) - F(i-1/2)]/dx
 def compute_H(interface_fluxes, sim_variables):
-    fluxes = np.array([Riemann_flux.flux for Riemann_flux in list(interface_fluxes.values())])
-    flux_diff = -np.sum(np.diff(fluxes, axis=1)/sim_variables.dx, axis=0)
-    return flux_diff
+    total_flux = 0
+    for axes in sim_variables.permutations:
+        Riemann_flux = interface_fluxes[axes].flux
+        flux_diff = np.diff(Riemann_flux, axis=0)/sim_variables.dx
+        total_flux += flux_diff.transpose(axes)
+    return -total_flux
 
 
 # Evolve the system in space by a standardised workflow

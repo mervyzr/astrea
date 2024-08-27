@@ -16,9 +16,10 @@ def run(tube, sim_variables):
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in enumerate(permutations):
+        grid = tube.transpose(axes)
 
         # Convert to primitive variables; able to use pointwise conversion as it is still 2nd-order
-        wS = fv.point_convert_conservative(tube.transpose(axes), gamma)
+        wS = fv.point_convert_conservative(grid, gamma)
 
         # Pad array with boundary & apply (TVD) slope limiters
         w = fv.add_boundary(wS, boundary)

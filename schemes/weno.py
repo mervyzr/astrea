@@ -49,9 +49,10 @@ def run(tube, sim_variables):
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in enumerate(permutations):
+        grid = tube.transpose(axes)
 
         # Convert to primitive variables
-        wS = fv.convert_conservative(tube.transpose(axes), sim_variables)
+        wS = fv.convert_conservative(grid, sim_variables)
 
         # Pad array with boundary
         w = fv.add_boundary(wS, boundary)
