@@ -17,38 +17,38 @@ def compute_H(interface_fluxes, sim_variables):
 
 
 # Evolve the system in space by a standardised workflow
-def evolve_space(tube, sim_variables):
+def evolve_space(grid, sim_variables):
     if sim_variables.subgrid in ["weno", "w"]:
-        return weno.run(tube, sim_variables)
+        return weno.run(grid, sim_variables)
     elif sim_variables.subgrid in ["ppm", "parabolic", "p"]:
-        #return ppm.run_modified(tube, sim_variables, dissipate=False)
-        return ppm.run(tube, sim_variables)
+        #return ppm.run_modified(grid, sim_variables, dissipate=False)
+        return ppm.run(grid, sim_variables)
     elif sim_variables.subgrid in ["plm", "linear", "l"]:
-        return plm.run(tube, sim_variables)
+        return plm.run(grid, sim_variables)
     else:
-        return pcm.run(tube, sim_variables)
+        return pcm.run(grid, sim_variables)
 
 
 # Evolve the system in time by a standardised workflow
-def evolve_time(domain, interface_fluxes, dt, sim_variables):
+def evolve_time(grid, interface_fluxes, dt, sim_variables):
     h_zero = compute_H(interface_fluxes, sim_variables)
 
     if sim_variables.timestep == "ssprk(5,4)":
         # Evolve system by SSP-RK (5,4) method (4th-order); effective SSP coeff = 0.302
         # Computation of 1st register
-        k1 = domain + .39175222657189*dt*h_zero
+        k1 = grid + .39175222657189*dt*h_zero
 
         # Computation of 2nd register
         interface_fluxes1 = evolve_space(k1, sim_variables)
-        k2 = .444370493651235*domain + .555629506348765*k1 + .368410593050371*dt*compute_H(interface_fluxes1, sim_variables)
+        k2 = .444370493651235*grid + .555629506348765*k1 + .368410593050371*dt*compute_H(interface_fluxes1, sim_variables)
 
         # Computation of 3rd register
         interface_fluxes2 = evolve_space(k2, sim_variables)
-        k3 = .620101851488403*domain + .379898148511597*k2 + .251891774271694*dt*compute_H(interface_fluxes2, sim_variables)
+        k3 = .620101851488403*grid + .379898148511597*k2 + .251891774271694*dt*compute_H(interface_fluxes2, sim_variables)
 
         # Computation of 4th register
         interface_fluxes3 = evolve_space(k3, sim_variables)
-        k4 = .178079954393132*domain + .821920045606868*k3 + .544974750228521*dt*compute_H(interface_fluxes3, sim_variables)
+        k4 = .178079954393132*grid + .821920045606868*k3 + .544974750228521*dt*compute_H(interface_fluxes3, sim_variables)
 
         # Computation of the final update
         interface_fluxes4 = evolve_space(k4, sim_variables)
@@ -57,7 +57,7 @@ def evolve_time(domain, interface_fluxes, dt, sim_variables):
     elif sim_variables.timestep == "ssprk(5,3)":
         # Evolve system by SSP-RK (5,3) method (3rd-order); effective SSP coeff = 0.53
         # Computation of 1st register
-        k1 = domain + .3772689151171*dt*h_zero
+        k1 = grid + .3772689151171*dt*h_zero
 
         # Computation of 2nd register
         interface_fluxes1 = evolve_space(k1, sim_variables)
@@ -65,20 +65,20 @@ def evolve_time(domain, interface_fluxes, dt, sim_variables):
 
         # Computation of 3rd register
         interface_fluxes2 = evolve_space(k2, sim_variables)
-        k3 = .56656131914033*domain + .43343868085967*k2 + .16352294089771*dt*compute_H(interface_fluxes2, sim_variables)
+        k3 = .56656131914033*grid + .43343868085967*k2 + .16352294089771*dt*compute_H(interface_fluxes2, sim_variables)
 
         # Computation of 4th register
         interface_fluxes3 = evolve_space(k3, sim_variables)
-        k4 = .09299483444413*domain + .0000209036962*k1 + .90698426185967*k3 + .00071997378654*dt*h_zero + .34217696850008*dt*compute_H(interface_fluxes3, sim_variables)
+        k4 = .09299483444413*grid + .0000209036962*k1 + .90698426185967*k3 + .00071997378654*dt*h_zero + .34217696850008*dt*compute_H(interface_fluxes3, sim_variables)
 
         # Computation of the final update
         interface_fluxes4 = evolve_space(k4, sim_variables)
-        return .0073613226092*domain + .20127980325145*k1 + .00182955389682*k2 + .78952932024253*k4 + (dt * (.0027771981946*h_zero + .00001567934613*compute_H(interface_fluxes1, sim_variables) + .29786487010104*compute_H(interface_fluxes4, sim_variables)))
+        return .0073613226092*grid + .20127980325145*k1 + .00182955389682*k2 + .78952932024253*k4 + (dt * (.0027771981946*h_zero + .00001567934613*compute_H(interface_fluxes1, sim_variables) + .29786487010104*compute_H(interface_fluxes4, sim_variables)))
 
     elif sim_variables.timestep == "ssprk(4,3)":
         # Evolve system by SSP-RK (4,3) method (3rd-order); effective SSP coeff = 0.5
         # Computation of 1st register
-        k1 = domain + .5*dt*h_zero
+        k1 = grid + .5*dt*h_zero
 
         # Computation of 2nd register
         interface_fluxes1 = evolve_space(k1, sim_variables)
@@ -86,7 +86,7 @@ def evolve_time(domain, interface_fluxes, dt, sim_variables):
 
         # Computation of 3rd register
         interface_fluxes2 = evolve_space(k2, sim_variables)
-        k3 = 1/6 * (4*domain + 2*k2 + dt*compute_H(interface_fluxes2, sim_variables))
+        k3 = 1/6 * (4*grid + 2*k2 + dt*compute_H(interface_fluxes2, sim_variables))
 
         # Computation of the final update
         interface_fluxes3 = evolve_space(k3, sim_variables)
@@ -95,42 +95,42 @@ def evolve_time(domain, interface_fluxes, dt, sim_variables):
     elif sim_variables.timestep == "ssprk(3,3)":
         # Evolve system by SSP-RK (3,3) method (3rd-order); effective SSP coeff = 0.333
         # Computation of 1st register
-        k1 = domain + dt*h_zero
+        k1 = grid + dt*h_zero
 
         # Computation of 2nd register
         interface_fluxes1 = evolve_space(k1, sim_variables)
-        k2 = .25 * (3*domain + k1 + dt*compute_H(interface_fluxes1, sim_variables))
+        k2 = .25 * (3*grid + k1 + dt*compute_H(interface_fluxes1, sim_variables))
 
         # Computation of the final update
         interface_fluxes2 = evolve_space(k2, sim_variables)
-        return 1/3 * (domain + 2*k2 + 2*dt*compute_H(interface_fluxes2, sim_variables))
+        return 1/3 * (grid + 2*k2 + 2*dt*compute_H(interface_fluxes2, sim_variables))
 
     elif sim_variables.timestep == "ssprk(2,2)":
         # Evolve system by SSP-RK (2,2) method (2nd-order); effective SSP coeff = 0.5
         # Computation of 1st register
-        k1 = domain + .5*dt*h_zero
+        k1 = grid + .5*dt*h_zero
 
         # Computation of 2nd register
         interface_fluxes1 = evolve_space(k1, sim_variables)
-        return .5*(domain + k1 + dt*compute_H(interface_fluxes1, sim_variables))
+        return .5*(grid + k1 + dt*compute_H(interface_fluxes1, sim_variables))
 
     elif sim_variables.timestep == "rk4":
         # Evolve the system by RK4 method (4th-order); effective SSP coeff = 0.25
         # Computation of 1st register
-        k1 = domain + .5*dt*h_zero
+        k1 = grid + .5*dt*h_zero
 
         # Computation of 2nd register
         interface_fluxes1 = evolve_space(k1, sim_variables)
-        k2 = domain + .5*dt*compute_H(interface_fluxes1, sim_variables)
+        k2 = grid + .5*dt*compute_H(interface_fluxes1, sim_variables)
 
         # Computation of 3rd register
         interface_fluxes2 = evolve_space(k2, sim_variables)
-        k3 = domain + dt*compute_H(interface_fluxes2, sim_variables)
+        k3 = grid + dt*compute_H(interface_fluxes2, sim_variables)
 
         # Computation of the final update
         interface_fluxes3 = evolve_space(k3, sim_variables)
-        return domain + (dt * (h_zero + 2*compute_H(interface_fluxes1, sim_variables) + 2*compute_H(interface_fluxes2, sim_variables) + compute_H(interface_fluxes3, sim_variables)))/6
+        return grid + (dt * (h_zero + 2*compute_H(interface_fluxes1, sim_variables) + 2*compute_H(interface_fluxes2, sim_variables) + compute_H(interface_fluxes3, sim_variables)))/6
 
     else:
         # Evolve system by a full timestep (1st-order)
-        return domain + dt*h_zero
+        return grid + dt*h_zero

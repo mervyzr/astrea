@@ -32,7 +32,7 @@ np.set_printoptions(linewidth=400, suppress=True)
 def run_simulation(grp: h5py, _sim_variables: namedtuple):
     # Initialise the discrete solution array with conserved variables <q>
     # Even though the solution array is discrete, the variables are averages (FV) instead of points (FD)
-    domain = constructors.initialise(_sim_variables)
+    grid = constructors.initialise(_sim_variables)
 
     # Initiate live plotting, if enabled
     if _sim_variables.live_plot:
@@ -42,7 +42,7 @@ def run_simulation(grp: h5py, _sim_variables: namedtuple):
     t = 0.0
     while t <= _sim_variables.t_end:
         # Saves each instance of the system at time t
-        tube_snapshot = fv.point_convert_conservative(domain, _sim_variables.gamma)
+        tube_snapshot = fv.point_convert_conservative(grid, _sim_variables.gamma)
         dataset = grp.create_dataset(str(t), data=tube_snapshot)
         dataset.attrs['t'] = t
 
@@ -51,14 +51,14 @@ def run_simulation(grp: h5py, _sim_variables: namedtuple):
             plotting.update_plot(tube_snapshot, t, _sim_variables.dimension, *plotting_params)
 
         # Compute the numerical fluxes at each interface
-        interface_fluxes = evolvers.evolve_space(domain, _sim_variables)
+        interface_fluxes = evolvers.evolve_space(grid, _sim_variables)
 
         # Compute the full time step dt
         eigmaxes = [_sim_variables.dx/Riemann_flux.eigmax for Riemann_flux in list(interface_fluxes.values())]
         dt = _sim_variables.cfl * min(eigmaxes)
 
         # Update the solution with the numerical fluxes using iterative methods
-        domain = evolvers.evolve_time(domain, interface_fluxes, dt, _sim_variables)
+        grid = evolvers.evolve_time(grid, interface_fluxes, dt, _sim_variables)
 
         # Handle the time update for machine precision
         if t+dt > _sim_variables.t_end:

@@ -66,10 +66,10 @@ def initialise(sim_variables):
 
 
 # Make flux as a function of cell-averaged (primitive) variables
-def make_flux_term(tube, gamma, axis):
+def make_flux_term(grid, gamma, axis):
     axis %= 3
-    rhos, vecs, pressures, B_fields = tube[...,0], tube[...,1:4], tube[...,4], tube[...,5:8]
-    arr = np.zeros_like(tube)
+    rhos, vecs, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
+    arr = np.zeros_like(grid)
 
     arr[...,0] = rhos*vecs[...,axis]
     arr[...,(axis+0)%3+1] = rhos*(vecs[...,axis]**2) + pressures + (.5*fv.norm(B_fields)**2) - B_fields[...,axis]**2
@@ -82,12 +82,12 @@ def make_flux_term(tube, gamma, axis):
 
 
 # Jacobian matrix based on primitive variables
-def make_Jacobian(tube, gamma, axis):
+def make_Jacobian(grid, gamma, axis):
     axis %= 3
-    rhos, v, pressures, B_fields = tube[...,0], tube[...,axis+1], tube[...,4], tube[...,5:8]/np.sqrt(4*np.pi)
+    rhos, v, pressures, B_fields = grid[...,0], grid[...,axis+1], grid[...,4], grid[...,5:8]/np.sqrt(4*np.pi)
     
     # Create empty square arrays for each cell
-    _arr = np.zeros_like(tube)
+    _arr = np.zeros_like(grid)
     arr = np.repeat(_arr[..., np.newaxis], _arr.shape[-1], axis=-1)
     i, j = np.diag_indices(_arr.shape[-1])
 
@@ -126,7 +126,7 @@ def make_Roe_average(left_interface, right_interface):
 def make_OS_right_eigenvectors(tubes, gamma):
     rhos, pressures, B_fields = tubes[...,0], tubes[...,4], tubes[...,5:8]/np.sqrt(4*np.pi)
 
-    # Define the right eigenvectors for each cell in each tube
+    # Define the right eigenvectors for each cell in each grid
     _right_eigenvectors = np.zeros_like(tubes)
     right_eigenvectors = np.repeat(_right_eigenvectors[..., np.newaxis], _right_eigenvectors.shape[-1], axis=-1)
 
@@ -204,29 +204,29 @@ def make_OS_right_eigenvectors(tubes, gamma):
 
 
 # Make the right eigenvector for adiabatic magnetohydrodynamics in entropy-stable flux (primitive variables)
-def make_ES_right_eigenvectors(tube, gamma):
-    rhos, vs, pressures, B_fields = tube[...,0], tube[...,1:4], tube[...,4], tube[...,5:8]
-    vx, vy, vz = tube[...,1], tube[...,2], tube[...,3]
+def make_ES_right_eigenvectors(grid, gamma):
+    rhos, vs, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
+    vx, vy, vz = grid[...,1], grid[...,2], grid[...,3]
 
-    # Define the right eigenvectors for each cell in each tube
-    _right_eigenvectors = np.zeros_like(tube)
+    # Define the right eigenvectors for each cell in each grid
+    _right_eigenvectors = np.zeros_like(grid)
     right_eigenvectors = np.repeat(_right_eigenvectors[..., np.newaxis], _right_eigenvectors.shape[-1], axis=-1)
 
     # Define speeds
     sound_speed = np.sqrt(gamma * fv.divide(pressures, rhos))
     alfven_speed = np.sqrt(fv.divide(fv.norm(B_fields)**2, rhos))
-    alfven_speed_x = fv.divide(tube[...,5], np.sqrt(rhos))
+    alfven_speed_x = fv.divide(grid[...,5], np.sqrt(rhos))
     fast_magnetosonic_wave = .5 * (sound_speed**2 + alfven_speed**2 + np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2))))
     slow_magnetosonic_wave = .5 * (sound_speed**2 + alfven_speed**2 - np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2))))
 
     # Define frequently used components
-    S = np.sign(tube[...,5])
+    S = np.sign(grid[...,5])
     S[S == 0] = 1
     alpha_f = np.sqrt(fv.divide(sound_speed**2 - slow_magnetosonic_wave**2, fast_magnetosonic_wave**2 - slow_magnetosonic_wave**2))
     alpha_s = np.sqrt(fv.divide(fast_magnetosonic_wave**2 - sound_speed**2, fast_magnetosonic_wave**2 - slow_magnetosonic_wave**2))
-    b_perpend = np.sqrt(fv.divide(tube[...,6]**2 + tube[...,7]**2, rhos))
-    beta2 = fv.divide(tube[...,6], np.sqrt(tube[...,6]**2 + tube[...,7]**2))
-    beta3 = fv.divide(tube[...,7], np.sqrt(tube[...,6]**2 + tube[...,7]**2))
+    b_perpend = np.sqrt(fv.divide(grid[...,6]**2 + grid[...,7]**2, rhos))
+    beta2 = fv.divide(grid[...,6], np.sqrt(grid[...,6]**2 + grid[...,7]**2))
+    beta3 = fv.divide(grid[...,7], np.sqrt(grid[...,6]**2 + grid[...,7]**2))
 
     psi_plus_slow = (
         .5 * alpha_s * rhos * fv.norm(vs)**2
@@ -287,7 +287,7 @@ def make_ES_right_eigenvectors(tube, gamma):
     right_eigenvectors[...,3,3] = vz
     right_eigenvectors[...,4,3] = .5 * fv.norm(vs)**2
     # Fifth column (Divergence wave)
-    right_eigenvectors[...,4,4] = tube[...,5]
+    right_eigenvectors[...,4,4] = grid[...,5]
     right_eigenvectors[...,5,4] = 1
     # Sixth column (Slow- magnetoacoustic wave)
     right_eigenvectors[...,0,5] = rhos * alpha_s

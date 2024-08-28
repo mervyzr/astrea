@@ -19,8 +19,8 @@ def round_off(value):
 
 
 # Calculate scaled entropy density for an array [Derigs et al., 2015]
-def calculate_entropy_density(tube, gamma):
-    return (tube[...,0] * np.log(tube[...,4]*tube[...,0]**-gamma))/(gamma-1)
+def calculate_entropy_density(grid, gamma):
+    return (grid[...,0] * np.log(grid[...,4]*grid[...,0]**-gamma))/(gamma-1)
 
 
 # Function for solution error calculation of sin-wave, sinc-wave and Gaussian tests
@@ -57,12 +57,12 @@ def calculate_solution_error(simulation, sim_variables, norm):
 def calculate_tv(simulation, sim_variables):
     dimension, tv = math.ceil(sim_variables.dimension), {}
     for t in list(simulation.keys()):
-        domain = simulation[t]
-        thermal = fv.divide(domain[...,4], domain[...,0])
+        grid = simulation[t]
+        thermal = fv.divide(grid[...,4], grid[...,0])
         for i in range(dimension):
-            domain = np.diff(domain, axis=i)
+            grid = np.diff(grid, axis=i)
             thermal = np.diff(thermal, axis=i)
-        tv[float(t)] = np.sum(np.abs(domain), axis=tuple(range(dimension)))
+        tv[float(t)] = np.sum(np.abs(grid), axis=tuple(range(dimension)))
         tv[float(t)] = np.append(tv[float(t)], np.sum(np.abs(thermal)))
     return tv
 
@@ -73,10 +73,10 @@ def calculate_conservation(simulation, sim_variables):
     dimension, eq = math.ceil(sim_variables.dimension), {}
 
     for t in list(simulation.keys()):
-        domain = fv.point_convert_primitive(simulation[t], gamma)
+        grid = fv.point_convert_primitive(simulation[t], gamma)
         for i in range(dimension)[::-1]:
-            domain = simpson(domain, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
-        eq[float(t)] = domain
+            grid = simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
+        eq[float(t)] = grid
     return eq
 
 
@@ -94,23 +94,23 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
         intervals = np.append(intervals, timings[np.argmin(abs(timings-period))])
 
     for t in intervals:
-        domain = fv.point_convert_primitive(simulation[str(t)], gamma)
+        grid = fv.point_convert_primitive(simulation[str(t)], gamma)
         for i in range(dimension)[::-1]:
-            domain = simpson(domain, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
-        eq[t] = domain
+            grid = simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
+        eq[t] = grid
     return eq
 
 
 # Determine the analytical solution for a Sod shock test, in 1D
-def calculate_Sod_analytical(tube, t, sim_variables):
+def calculate_Sod_analytical(grid, t, sim_variables):
     gamma, start_pos, end_pos, shock_pos = sim_variables.gamma, sim_variables.start_pos, sim_variables.end_pos, sim_variables.shock_pos
 
     # Define array to be updated and returned
-    arr = np.zeros_like(tube)
+    arr = np.zeros_like(grid)
 
     # Get variables of the leftmost and rightmost states, which should be initial conditions
-    rho5, vx5, vy5, vz5, P5, Bx5, By5, Bz5 = tube[0]
-    rho1, vx1, vy1, vz1, P1, Bx1, By1, Bz1 = tube[-1]
+    rho5, vx5, vy5, vz5, P5, Bx5, By5, Bz5 = grid[0]
+    rho1, vx1, vy1, vz1, P1, Bx1, By1, Bz1 = grid[-1]
 
     # Define parameters needed for computation
     cs5, cs1 = np.sqrt(gamma * P5/rho5), np.sqrt(gamma * P1/rho1)
@@ -129,13 +129,13 @@ def calculate_Sod_analytical(tube, t, sim_variables):
     v_s = vx2/(1-(rho1/rho2))
 
     # Define boundary regions and number of cells within each region
-    boundary_54 = round_off(((shock_pos-(cs5*t)-start_pos)/(end_pos-start_pos)) * len(tube))
-    boundary_43 = round_off(((shock_pos-(v_t*t)-start_pos)/(end_pos-start_pos)) * len(tube))
-    boundary_32 = round_off(((shock_pos+(vx2*t)-start_pos)/(end_pos-start_pos)) * len(tube))
-    boundary_21 = round_off(((shock_pos+(v_s*t)-start_pos)/(end_pos-start_pos)) * len(tube))
+    boundary_54 = round_off(((shock_pos-(cs5*t)-start_pos)/(end_pos-start_pos)) * len(grid))
+    boundary_43 = round_off(((shock_pos-(v_t*t)-start_pos)/(end_pos-start_pos)) * len(grid))
+    boundary_32 = round_off(((shock_pos+(vx2*t)-start_pos)/(end_pos-start_pos)) * len(grid))
+    boundary_21 = round_off(((shock_pos+(v_s*t)-start_pos)/(end_pos-start_pos)) * len(grid))
 
     # Define number of cells in the rarefaction wave
-    rarefaction_cells = round_off(((cs5*t-v_t*t)/(end_pos-start_pos)) * len(tube))
+    rarefaction_cells = round_off(((cs5*t-v_t*t)/(end_pos-start_pos)) * len(grid))
     if rarefaction_cells - (boundary_43-boundary_54) < 0:
         rarefaction_cells += 1
     elif rarefaction_cells - (boundary_43-boundary_54) > 0:
@@ -143,8 +143,8 @@ def calculate_Sod_analytical(tube, t, sim_variables):
     rarefaction = np.linspace(shock_pos-(cs5*t), shock_pos-(v_t*t), rarefaction_cells) - shock_pos
 
     # Update array for regions 1 and 5 (initial conditions)
-    arr[:boundary_54] = tube[0]
-    arr[boundary_21:] = tube[-1]
+    arr[:boundary_54] = grid[0]
+    arr[boundary_21:] = grid[-1]
 
     # Update array for regions 2 and 3 (post-shock and discontinuities)
     arr[boundary_43:boundary_21, 1] = vx2

@@ -7,18 +7,18 @@ from numerics import solvers
 # Piecewise constant reconstruction method (PCM) [Godunov, 1959]
 ##############################################################################
 
-def run(tube, sim_variables):
+def run(grid, sim_variables):
     gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in enumerate(permutations):
-        grid = tube.transpose(axes)
+        _grid = grid.transpose(axes)
 
         # Convert to primitive variables
-        wS = fv.point_convert_conservative(grid, gamma)
-        q = fv.add_boundary(grid, boundary)
+        wS = fv.point_convert_conservative(_grid, gamma)
+        q = fv.add_boundary(_grid, boundary)
 
         # Compute the fluxes and the Jacobian
         w = fv.add_boundary(wS, boundary)

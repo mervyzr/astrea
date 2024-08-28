@@ -9,7 +9,7 @@ from numerics import solvers
 # WENO reconstruction method [Shu, 2009]
 ##############################################################################
 
-def run(tube, sim_variables):
+def run(grid, sim_variables):
     gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
@@ -49,10 +49,10 @@ def run(tube, sim_variables):
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in enumerate(permutations):
-        grid = tube.transpose(axes)
+        _grid = grid.transpose(axes)
 
         # Convert to primitive variables
-        wS = fv.convert_conservative(grid, sim_variables)
+        wS = fv.convert_conservative(_grid, sim_variables)
 
         # Pad array with boundary
         w = fv.add_boundary(wS, boundary)

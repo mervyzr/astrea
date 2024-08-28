@@ -31,39 +31,39 @@ def sinc_func(x, params):
 
 
 # Add boundary conditions
-def add_boundary(tube, boundary, stencil=1):
-    arr = np.copy(tube)
-    padding = [(0,0)] * tube.ndim
+def add_boundary(grid, boundary, stencil=1):
+    arr = np.copy(grid)
+    padding = [(0,0)] * grid.ndim
     padding[0] = (stencil,stencil)
     return np.pad(arr, padding, mode=boundary)
 
 
 # Pointwise (exact) conversion of primitive variables w to conservative variables q (up to 2nd-order accurate)
-def point_convert_primitive(tube, gamma):
-    arr = np.copy(tube)
-    rhos, vecs, pressures, B_fields = tube[...,0], tube[...,1:4], tube[...,4], tube[...,5:8]
+def point_convert_primitive(grid, gamma):
+    arr = np.copy(grid)
+    rhos, vecs, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
     arr[...,4] = (pressures/(gamma-1)) + (.5*rhos*norm(vecs)**2) + (.5*norm(B_fields)**2)
     arr[...,1:4] = (vecs.T * rhos.T).T
     return arr
 
 
 # Pointwise (exact) conversion of conservative variables q to primitive variables w (up to 2nd-order accurate)
-def point_convert_conservative(tube, gamma):
-    arr = np.copy(tube)
-    rhos, energies, B_fields = tube[...,0], tube[...,4], tube[...,5:8]
-    vecs = divide(tube[...,1:4].T, tube[...,0].T).T
+def point_convert_conservative(grid, gamma):
+    arr = np.copy(grid)
+    rhos, energies, B_fields = grid[...,0], grid[...,4], grid[...,5:8]
+    vecs = divide(grid[...,1:4].T, grid[...,0].T).T
     arr[...,4] = (gamma-1) * (energies - (.5*rhos*norm(vecs)**2) - (.5*norm(B_fields)**2))
     arr[...,1:4] = vecs
     return arr
 
 
 # Converting (cell-/face-averaged) primitive variables w to conservative variables q through a higher-order approx.
-def convert_primitive(tube, sim_variables):
+def convert_primitive(grid, sim_variables):
     gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
-    w, q = np.copy(tube), np.zeros_like(tube)
+    w, q = np.copy(grid), np.zeros_like(grid)
 
     for axes in permutations:
-        _w = add_boundary(tube.transpose(axes), boundary)
+        _w = add_boundary(grid.transpose(axes), boundary)
         w -= (np.diff(_w[1:], axis=0) - np.diff(_w[:-1], axis=0))/24
 
         _q = point_convert_primitive(_w, gamma)
@@ -72,12 +72,12 @@ def convert_primitive(tube, sim_variables):
 
 
 # Converting (cell-/face-averaged) conservative variables q to primitive variables w through a higher-order approx.
-def convert_conservative(tube, sim_variables):
+def convert_conservative(grid, sim_variables):
     gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
-    w, q = np.zeros_like(tube), np.copy(tube)
+    w, q = np.zeros_like(grid), np.copy(grid)
 
     for axes in permutations:
-        _q = add_boundary(tube.transpose(axes), boundary)
+        _q = add_boundary(grid.transpose(axes), boundary)
         q -= (np.diff(_q[1:], axis=0) - np.diff(_q[:-1], axis=0))/24
 
         _w = point_convert_conservative(_q, gamma)

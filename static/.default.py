@@ -6,7 +6,7 @@ import numpy as np
 # : Sod, Sedov, Shu-Osher, Ryu-Jones, Brio-Wu, Gaussian, sin-wave, sinc-wave, square wave, Toro1/2/3/4/5
 config = "sod"
 
-# Shock tube parameters
+# Simulation grid parameters
 cells = 128
 cfl = .5
 gamma = 1.4

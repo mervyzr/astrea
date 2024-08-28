@@ -217,7 +217,7 @@ def calculate_ES_flux(wLs, wRs, gamma):
 
 
     # Entropy-stable flux with dissipation term section [Derigs et al., 2016]
-    # Make the right eigenvectors for each cell in each tube using the averaged primitive variables
+    # Make the right eigenvectors for each cell in each grid using the averaged primitive variables
     right_eigenvectors = constructors.make_ES_right_eigenvectors(np.array([rho_hat.T, u1_hat.T, v1_hat.T, w1_hat.T, P1_hat.T, B1_hat.T, B2_hat.T, B3_hat.T]).T, gamma)
 
     # Define speeds

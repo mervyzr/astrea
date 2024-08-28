@@ -412,7 +412,7 @@ def make_video(f, sim_variables, save_path, vidpath):
         simulation = f[str(N)]
         counter = 0
 
-        for t, domain in simulation.items():
+        for t, grid in simulation.items():
             fig, ax = plt.subplots(nrows=2, ncols=2, figsize=figsize)
 
             for _i, _j in PLOT_INDEXES:
@@ -421,9 +421,9 @@ def make_video(f, sim_variables, save_path, vidpath):
                     ax[_i,_j].set_xlim([start_pos, end_pos])
                     ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
-            y1 = domain[...,0]  # density
-            y2 = domain[...,4]  # pressure
-            y3 = domain[...,1]  # vx
+            y1 = grid[...,0]  # density
+            y2 = grid[...,4]  # pressure
+            y3 = grid[...,1]  # vx
             y4 = y2/y1  # specific thermal energy
             x = np.linspace(start_pos, end_pos, N)
             y_data = [[y1, y2], [y3, y4]]
@@ -463,8 +463,8 @@ def make_video(f, sim_variables, save_path, vidpath):
     return None
 
 
-# Useful function for plotting each instance of the domain (livePlot must be switched OFF)
-def plot_instance(domain, show_plot=True, text="", start_pos=0, end_pos=1, **kwargs):
+# Useful function for plotting each instance of the grid (livePlot must be switched OFF)
+def plot_instance(grid, show_plot=True, text="", start_pos=0, end_pos=1, **kwargs):
     try:
         dimension = kwargs['dimension']
     except Exception as e:
@@ -478,9 +478,9 @@ def plot_instance(domain, show_plot=True, text="", start_pos=0, end_pos=1, **kwa
             ax[_i,_j].set_xlim([start_pos, end_pos])
             ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
-    y1 = domain[...,0]   # density
-    y2 = domain[...,4]   # pressure
-    y3 = domain[...,1]   # vx
+    y1 = grid[...,0]   # density
+    y2 = grid[...,4]   # pressure
+    y3 = grid[...,1]   # vx
     y4 = y2/y1  # specific thermal energy
     x = np.linspace(start_pos, end_pos, len(y1))
     y_data = [[y1, y2], [y3, y4]]

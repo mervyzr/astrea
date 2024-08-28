@@ -9,17 +9,17 @@ from numerics import limiters, solvers
 # Piecewise parabolic reconstruction method (PPM) [Colella & Woodward, 1984]
 ##############################################################################
 
-def run(tube, sim_variables, C=5/4):
+def run(grid, sim_variables, C=5/4):
     gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in enumerate(permutations):
-        grid = tube.transpose(axes)
+        _grid = grid.transpose(axes)
 
         # Convert to primitive variables
-        wS = fv.convert_conservative(grid, sim_variables)
+        wS = fv.convert_conservative(_grid, sim_variables)
 
         # Pad array with boundary; PPM requires additional ghost cells
         w2 = fv.add_boundary(wS, boundary, 2)
@@ -118,17 +118,17 @@ def run(tube, sim_variables, C=5/4):
 
 
 # Modified piecewise parabolic reconstruction method (m-PPM); does not have interface limiting
-def run_modified(tube, sim_variables, dissipate=False, C=5/4):
+def run_modified(grid, sim_variables, dissipate=False, C=5/4):
     gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in enumerate(permutations):
-        grid = tube.transpose(axes)
+        _grid = grid.transpose(axes)
 
         # Convert to primitive variables
-        wS = fv.convert_conservative(grid, sim_variables)
+        wS = fv.convert_conservative(_grid, sim_variables)
 
         # Pad array with boundary; PPM requires additional ghost cells
         w2 = fv.add_boundary(wS, boundary, 2)
@@ -232,7 +232,7 @@ def run_modified(tube, sim_variables, dissipate=False, C=5/4):
         fLs, fRs = constructors.make_flux_term(wLs, gamma, axis), constructors.make_flux_term(wRs, gamma, axis)
 
         if dissipate:
-            qS = fv.add_boundary(grid, boundary)
+            qS = fv.add_boundary(_grid, boundary)
             mu = apply_artificial_viscosity(wS, gamma, boundary) * np.diff(qS, axis=0)[1:]
             _mu = fv.add_boundary(mu, boundary)
             f += _mu

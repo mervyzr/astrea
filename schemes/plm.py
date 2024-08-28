@@ -9,17 +9,17 @@ from numerics import limiters, solvers
 # Piecewise linear reconstruction method (PLM) [van Leer, 1979]
 ##############################################################################
 
-def run(tube, sim_variables):
+def run(grid, sim_variables):
     gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in enumerate(permutations):
-        grid = tube.transpose(axes)
+        _grid = grid.transpose(axes)
 
         # Convert to primitive variables; able to use pointwise conversion as it is still 2nd-order
-        wS = fv.point_convert_conservative(grid, gamma)
+        wS = fv.point_convert_conservative(_grid, gamma)
 
         # Pad array with boundary & apply (TVD) slope limiters
         w = fv.add_boundary(wS, boundary)
