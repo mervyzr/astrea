@@ -2,7 +2,6 @@ import os
 import sys
 import math
 import shutil
-import getopt
 import traceback
 import itertools
 from datetime import datetime
