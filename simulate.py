@@ -84,37 +84,15 @@ def main() -> None:
     config_list = [var for var in dir(settings) if '__' not in var and var != 'np']
     config_variables = generic.tidy_dict({k:v for k,v in vars(settings).items() if k in config_list})
 
-    # CLI arguments handler; updates the simulation variables (dict)
+    # Check CLI arguments
     if len(sys.argv) > 1:
-        try:
-            opts, args = getopt.getopt(sys.argv[1:], "", ["config=", "N=", "n=", "cells=", "cfl=", "gamma=", "dim", "dimension=", "subgrid=", "timestep=", "scheme=", "run_type=", "live_plot=", "save_plots=", "snapshots=", "save_video=", "save_file=", "test", "TEST", "debug", "DEBUG", "noprint", "echo", "quote"])
-        except getopt.GetoptError as e:
-            print(f'{generic.BColours.WARNING}-- Error: {e}{generic.BColours.ENDC}')
+        cli_return = generic.handle_CLI(sys.argv[1:], config_variables)
+        if cli_return == None:
             sys.exit(2)
         else:
-            for opt, arg in opts:
-                opt = opt.replace("--","")
-                if opt in ["cells", "N", "n"]:
-                    config_variables[opt] = int(arg) - int(arg)%2
-                elif opt in ["snapshots"]:
-                    config_variables[opt] = int(arg)
-                elif opt in ["cfl", "gamma"]:
-                    config_variables[opt] = float(arg)
-                elif opt in ["live_plot", "save_plots", "save_video", "save_file"]:
-                    config_variables[opt] = arg.lower() == "true"
-                elif opt in ["dim", "dimension"]:
-                    config_variables[opt] = arg
-                elif opt in ["DEBUG", "debug"]:
-                    debug = True
-                elif opt in ["TEST", "test"]:
-                    continue
-                elif opt == "noprint":
-                    noprint = True
-                elif opt in ["echo", "quote"]:
-                    print(f"{generic.BColours.OKGREEN}{generic.quotes[np.random.randint(len(generic.quotes))]}{generic.BColours.ENDC}")
-                    sys.exit(2)
-                else:
-                    config_variables[opt] = arg.lower()
+            config_variables, noprint, debug = cli_return
+    else:
+        noprint, debug = False, False
 
     # Generate test configuration
     test_variables = tests.generate_test_conditions(config_variables['config'])

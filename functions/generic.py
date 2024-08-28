@@ -1,3 +1,5 @@
+import random
+import getopt
 from datetime import timedelta
 
 ##############################################################################
@@ -75,6 +77,48 @@ def tidy_dict(_dct):
         else:
             dct[k] = v
     return dct
+
+
+# CLI arguments handler; updates the simulation variables (which is a dict)
+def handle_CLI(sys_args, config_variables):
+    noprint, debug = False, False
+    try:
+        opts, args = getopt.getopt(sys_args, "", ["config=", "N=", "n=", "cells=", "cfl=", "gamma=", "dim", "dimension=", "subgrid=", "timestep=", "scheme=", "run_type=", "live_plot=", "save_plots=", "snapshots=", "save_video=", "save_file=", "test", "TEST", "debug", "DEBUG", "noprint", "quiet", "echo", "quote"])
+    except getopt.GetoptError as e:
+        print(f"{BColours.FAIL}-- Error: {e}{BColours.ENDC}")
+        return None
+    else:
+        opts = dict(opts)
+
+        if "--DEBUG" in opts or "--debug" in opts:
+            debug = True
+        if "--noprint" in opts or "--quiet" in opts:
+            noprint = True
+
+        if "--echo" in opts or "--quote" in opts:
+            print(f"{BColours.OKGREEN}{quotes[random.randint(0,len(quotes))]}{BColours.ENDC}")
+            return None
+        elif "--help" in opts or "-h" in opts:
+            return None
+        else:
+            for opt, arg in opts.items():
+                opt = opt.replace("--","")
+                if opt in ["cells", "N", "n"]:
+                    config_variables[opt] = int(arg) - int(arg)%2
+                elif opt in ["snapshots"]:
+                    config_variables[opt] = int(arg)
+                elif opt in ["cfl", "gamma"]:
+                    config_variables[opt] = float(arg)
+                elif opt in ["live_plot", "save_plots", "save_video", "save_file"]:
+                    config_variables[opt] = arg.lower() == "true"
+                elif opt in ["dim", "dimension"]:
+                    config_variables[opt] = arg
+                elif opt in ["TEST", "test"]:
+                    continue
+                else:
+                    config_variables[opt] = arg.lower()
+            
+            return config_variables, noprint, debug
 
 
 # Error condition(s) handler; revert to default values for the simulation variables (dict) if unknown
