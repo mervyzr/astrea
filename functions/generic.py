@@ -1,10 +1,19 @@
 import random
-import getopt
+import argparse
 from datetime import timedelta
 
 ##############################################################################
 # Generic functions not specific to finite volume
 ##############################################################################
+
+accepted_values = {
+    "config": ["sod", "sin", "sin-wave", "sinc", "sinc-wave", "sedov", "shu-osher", "shu", "osher", "gaussian", "gauss", "sq", "square", "square-wave", "toro1", "toro2", "toro3", "toro4", "toro5", "ryu-jones", "ryu", "jones", "rj", "brio-wu", "brio", "wu", "bw"],
+    "dimension": [1, 1.5, 2],
+    "subgrid": ["pcm", "constant", "c", "plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"],
+    "timestep": ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)", "(2,2)", "(3,3)", "(4,3)", "(5,3)", "(5,4)"],
+    "scheme": ["lf", "llf", "lax","friedrich", "lax-friedrich", "lw", "lax-wendroff", "wendroff", "hllc", "c", "osher-solomon", "osher", "solomon", "os", "entropy", "stable", "entropy-stable", "es"],
+    "run_type": ["s", "single", "m", "multiple", "multi", "many"]
+    }
 
 # Colours for printing to terminal
 class BColours:
@@ -20,18 +29,18 @@ class BColours:
 
 
 # Simple name space for recursive dict
-class Namespace:
+class RecursiveNamespace:
 
     @staticmethod
     def map_entry(entry):
         if isinstance(entry, dict):
-            return Namespace(**entry)
+            return RecursiveNamespace(**entry)
         return entry
 
     def __init__(self, **kwargs):
         for key, val in kwargs.items():
             if type(val) == dict:
-                setattr(self, key, Namespace(**val))
+                setattr(self, key, RecursiveNamespace(**val))
             elif type(val) == list:
                 setattr(self, key, list(map(self.map_entry, val)))
             else:
@@ -47,7 +56,12 @@ def print_output(instance_time, seed, sim_variables, **kwargs):
     _timestep = f"{BColours.OKCYAN}{sim_variables.timestep.upper()}{BColours.ENDC}"
     _scheme = f"{BColours.OKCYAN}{sim_variables.scheme.upper()}{BColours.ENDC}"
     _cfl = f"{BColours.OKCYAN}{sim_variables.cfl}{BColours.ENDC}"
-    _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({sim_variables.dimension}D){BColours.ENDC}"
+
+    if sim_variables.dimension%1 != 0:
+        _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({sim_variables.dimension}D){BColours.ENDC}"
+    else:
+        _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({int(sim_variables.dimension)}D){BColours.ENDC}"
+
     if kwargs:
         if kwargs['elapsed'] >= 3600:
             _elapsed = f"{BColours.FAIL}{str(timedelta(seconds=kwargs['elapsed']))}s{BColours.ENDC}"
@@ -64,73 +78,57 @@ def print_output(instance_time, seed, sim_variables, **kwargs):
 
 
 # Function for tidying dictionary
-def tidy_dict(_dct):
-    dct = {}
-    for k, v in _dct.items():
-        if isinstance(v, int):
-            if k == "cells":
-                dct[k] = int(v) - int(v)%2
-            else:
-                dct[k] = int(v)
+def tidy_dict(dct):
+    for k, v in dct.items():
+        if k == "cells":
+            dct[k] = int(v) - int(v)%2
         elif isinstance(v, str):
             dct[k] = v.lower()
+        elif isinstance(v, bool):
+            dct[k] = bool(v)
         else:
             dct[k] = v
     return dct
 
 
-# CLI arguments handler; updates the simulation variables (which is a dict)
-def handle_CLI(sys_args, config_variables):
-    noprint, debug = False, False
-    try:
-        opts, args = getopt.getopt(sys_args, "", ["config=", "N=", "n=", "cells=", "cfl=", "gamma=", "dim", "dimension=", "subgrid=", "timestep=", "scheme=", "run_type=", "live_plot=", "save_plots=", "snapshots=", "save_video=", "save_file=", "test", "TEST", "debug", "DEBUG", "noprint", "quiet", "echo", "quote"])
-    except getopt.GetoptError as e:
-        print(f"{BColours.FAIL}-- Error: {e}{BColours.ENDC}")
-        return None
-    else:
-        opts = dict(opts)
+# CLI arguments handler; updates the simulation variables (which is a dict) and checks for any invalid values
+def handle_CLI(config_variables):
+    parser = argparse.ArgumentParser(description='Run the mHydyS simulation.\n\nmHydyS is a 1D or 2D (magneto-)hydrodynamics finite volume simulation written in Python3. Refer to the README for more information.', 
+                                     epilog=quotes[random.randint(0,len(quotes)-1)], 
+                                     formatter_class=argparse.RawTextHelpFormatter)
 
-        if "--DEBUG" in opts or "--debug" in opts:
-            debug = True
-        if "--noprint" in opts or "--quiet" in opts:
-            noprint = True
+    parser.add_argument('--config', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Configuration to run in the simulation', choices=accepted_values['config'])
+    parser.add_argument('--cells', '--N', '--n', dest='cells', metavar='', type=int, default=argparse.SUPPRESS, help='Number of cells in the grid', choices=range(2,16385,2))
+    parser.add_argument('--cfl', metavar='', type=float, default=argparse.SUPPRESS, help='Courant number in the Courant-Friedrichs-Lewy stability condition')
+    parser.add_argument('--gamma', metavar='', type=float, default=argparse.SUPPRESS, help='Adiabatic index')
+    parser.add_argument('--dimension', '--dim', dest='dimension', type=float, metavar='', default=argparse.SUPPRESS, help='Dimension of the simulation', choices=accepted_values['dimension'])
+    parser.add_argument('--subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Subgrid model used in the reconstruction of the grid', choices=accepted_values['subgrid'])
+    parser.add_argument('--timestep', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Time-stepping algorithm used in the update step of the simulation', choices=accepted_values['timestep'])
+    parser.add_argument('--scheme', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Scheme of solver for the Riemann problem', choices=accepted_values['scheme'])
+    parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Number of runs in a complete simulation', choices=accepted_values['run_type'])
+    parser.add_argument('--live_plot', metavar='', type=bool, default=argparse.SUPPRESS, help='Toggle the live plot', choices=[True, False])
+    parser.add_argument('--save_plots', metavar='', type=bool, default=argparse.SUPPRESS, help='Save plots to file', choices=[True, False])
+    parser.add_argument('--snapshots', metavar='', type=int, default=argparse.SUPPRESS, help='Number of snapshots of the simulation to save to file')
+    parser.add_argument('--save_video', metavar='', type=bool, default=argparse.SUPPRESS, help='Save a video of the entire simulation', choices=[True, False])
+    parser.add_argument('--save_file', metavar='', type=bool, default=argparse.SUPPRESS, help='Save the simulation data file (.hdf5)', choices=[True, False])
+    parser.add_argument('--debug', '--DEBUG', dest='debug', help='Toggle for more detailed description of errors/bugs', action='store_true')
+    parser.add_argument('-q', '--quiet', '--noprint', dest='noprint', help='Toggle printing to screen', action='store_true')
+    parser.add_argument('--test', '--TEST', dest='test', default=argparse.SUPPRESS, help=argparse.SUPPRESS, action='store_true')
 
-        if "--echo" in opts or "--quote" in opts:
-            print(f"{BColours.OKGREEN}{quotes[random.randint(0,len(quotes))]}{BColours.ENDC}")
-            return None
-        elif "--help" in opts or "-h" in opts:
-            return None
-        else:
-            for opt, arg in opts.items():
-                opt = opt.replace("--","")
-                if opt in ["cells", "N", "n"]:
-                    config_variables[opt] = int(arg) - int(arg)%2
-                elif opt in ["snapshots"]:
-                    config_variables[opt] = int(arg)
-                elif opt in ["cfl", "gamma"]:
-                    config_variables[opt] = float(arg)
-                elif opt in ["live_plot", "save_plots", "save_video", "save_file"]:
-                    config_variables[opt] = arg.lower() == "true"
-                elif opt in ["dim", "dimension"]:
-                    config_variables[opt] = arg
-                elif opt in ["TEST", "test"]:
-                    continue
-                else:
-                    config_variables[opt] = arg.lower()
-            
-            return config_variables, noprint, debug
+    args = parser.parse_args()
+
+    noprint = args.noprint
+    debug = args.debug
+
+    for k,v in vars(args).items():
+        if k in config_variables:
+            config_variables[k] = v
+
+    return config_variables, noprint, debug
 
 
-# Error condition(s) handler; revert to default values for the simulation variables (dict) if unknown
-def handle_errors(dct):
-    accepted_values = {
-        "config": ["sod", "sin", "sin-wave", "sinc", "sinc-wave", "sedov", "shu-osher", "shu", "osher", "gaussian", "gauss", "sq", "square", "square-wave", "toro1", "toro2", "toro3", "toro4", "toro5", "ryu-jones", "ryu", "jones", "rj", "brio-wu", "brio", "wu", "bw"],
-        "dimension": [1, 1.5, 2],
-        "subgrid": ["pcm", "constant", "c", "plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"],
-        "timestep": ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)", "(2,2)", "(3,3)", "(4,3)", "(5,3)", "(5,4)"],
-        "scheme": ["lf", "llf", "lax","friedrich", "lax-friedrich", "lw", "lax-wendroff", "wendroff", "hllc", "c", "osher-solomon", "osher", "solomon", "os", "entropy", "stable", "entropy-stable", "es"],
-        "run_type": ["s", "single", "m", "multiple", "multi", "many", 1, "1"]
-        }
+# Variables handler; handles all variables from CLI & settings file and revert to default values for the simulation variables (dict) if unknown
+def handle_variables(dct):
     default_values = {
         "config": ["sod", "Test unknown; reverting to Sod shock tube test.."],
         "dimension": [1, "Invalid value for dimension; reverting to 1D.."],
