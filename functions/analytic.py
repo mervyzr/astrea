@@ -73,7 +73,7 @@ def calculate_conservation(simulation, sim_variables):
     dimension, eq = math.ceil(sim_variables.dimension), {}
 
     for t in list(simulation.keys()):
-        grid = fv.point_convert_primitive(simulation[t], gamma)
+        grid = fv.point_convert_primitive(simulation[t], sim_variables)
         for i in range(dimension)[::-1]:
             grid = simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
         eq[float(t)] = grid
@@ -94,7 +94,7 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
         intervals = np.append(intervals, timings[np.argmin(abs(timings-period))])
 
     for t in intervals:
-        grid = fv.point_convert_primitive(simulation[str(t)], gamma)
+        grid = fv.point_convert_primitive(simulation[str(t)], sim_variables)
         for i in range(dimension)[::-1]:
             grid = simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
         eq[t] = grid

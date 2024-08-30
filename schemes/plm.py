@@ -19,7 +19,7 @@ def run(grid, sim_variables):
         _grid = grid.transpose(axes)
 
         # Convert to primitive variables; able to use pointwise conversion as it is still 2nd-order
-        wS = fv.point_convert_conservative(_grid, gamma)
+        wS = fv.point_convert_conservative(_grid, sim_variables)
 
         # Pad array with boundary & apply (TVD) slope limiters
         w = fv.add_boundary(wS, boundary)
@@ -38,7 +38,7 @@ def run(grid, sim_variables):
 
         # Convert the primitive variables
         # The conversion can be pointwise conversion for face-average values as it is still 2nd-order
-        qLs, qRs = fv.point_convert_primitive(wLs, gamma), fv.point_convert_primitive(wRs, gamma)
+        qLs, qRs = fv.point_convert_primitive(wLs, sim_variables), fv.point_convert_primitive(wRs, sim_variables)
 
         # Compute the fluxes and the Jacobian
         fLs, fRs = constructors.make_flux_term(wLs, gamma, axis), constructors.make_flux_term(wRs, gamma, axis)

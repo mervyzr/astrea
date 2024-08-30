@@ -17,7 +17,7 @@ def run(grid, sim_variables):
         _grid = grid.transpose(axes)
 
         # Convert to primitive variables
-        wS = fv.point_convert_conservative(_grid, gamma)
+        wS = fv.point_convert_conservative(_grid, sim_variables)
         q = fv.add_boundary(_grid, boundary)
 
         # Compute the fluxes and the Jacobian

@@ -5,13 +5,10 @@ from functions import fv
 ##############################################################################
 # Functions for constructing objects such as the grid, eigenvectors, Jacobian and flux terms
 ##############################################################################
-def gauss_func(x, params):
-    peak_pos = (x[0]+x[-1])/2
-    return params['y_offset'] + params['ampl']*np.exp(-((x-peak_pos)**2)/params['fwhm'])
 
 # Initialise the discrete solution array with initial conditions and primitive variables w. Returns the solution array in conserved variables q
 def initialise(sim_variables):
-    config, N, gamma, dimension, precision = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimension, sim_variables.precision
+    config, N, dimension, precision = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.precision
     start_pos, end_pos, shock_pos, params = sim_variables.start_pos, sim_variables.end_pos, sim_variables.shock_pos, sim_variables.misc
     initial_left, initial_right = sim_variables.initial_left, sim_variables.initial_right
 
@@ -20,49 +17,41 @@ def initialise(sim_variables):
     arr = np.zeros(_i, dtype=precision)
     arr[:] = initial_right
 
-    midpoint = (end_pos+start_pos)/2
-
     if dimension >= 2:
-        if config == "sedov":
-            x = y = np.arange(N)
-            cx = cy = int(N/2)
-            r = int(N/2 * ((shock_pos-midpoint)/(end_pos-midpoint)))
+        x, y = np.meshgrid(np.linspace(start_pos, end_pos, N), np.linspace(start_pos, end_pos, N))
+        centre = (end_pos+start_pos)/2
 
-            mask = (x[np.newaxis,:]-cx)**2 + (y[:,np.newaxis]-cy)**2 < r**2
+        if config == "sedov":
+            mask = np.where(((x-centre)**2 + (y-centre)**2) <= shock_pos**2)
             arr[mask] = initial_left
         elif config.startswith("gauss"):
-            x, y = np.meshgrid(np.linspace(start_pos, end_pos, N), np.linspace(start_pos, end_pos, N))
             dst = np.sqrt(x**2 + y**2)
-
-            peak_pos = (start_pos+end_pos)/2
-            mask = params['y_offset'] + params['ampl']*np.exp(-((dst-peak_pos)**2)/params['fwhm'])
+            mask = params['y_offset'] + params['ampl']*np.exp(-((dst-centre)**2)/params['fwhm'])
             arr[...,0] = mask
     else:
+        x = np.linspace(start_pos, end_pos, N)
+
         if config == "sedov" or config.startswith('sq'):
-            half_width = int(N/2 * ((shock_pos-midpoint)/(end_pos-midpoint)))
-            left_edge, right_edge = int(N/2-half_width), int(N/2+half_width)
-            arr[left_edge:right_edge] = initial_left
+            mask = np.where(np.abs(x) <= shock_pos)
         else:
-            split_point = int(N * ((shock_pos-start_pos)/(end_pos-start_pos)))
-            arr[:split_point] = initial_left
+            mask = np.where(x <= shock_pos)
+
+        arr[mask] = initial_left
 
         if "shu" in config or "osher" in config:
-            xi = np.linspace(shock_pos, end_pos, N-split_point)
-            arr[split_point:,0] = fv.sin_func(xi, params)
-        elif config == "sin" or config == "sinc" or config.startswith('gauss'):
-            xi = np.linspace(start_pos, end_pos, N)
-            if config == "sin":
-                arr[...,0] = fv.sin_func(xi, params)
-            elif config == "sinc":
-                arr[...,0] = fv.sinc_func(xi, params)
-            else:
-                arr[...,0] = fv.gauss_func(xi, params)
-        
+            arr[np.where(x>shock_pos),0] = fv.sin_func(x[x>shock_pos], params)
+        elif config == "sin":
+            arr[...,0] = fv.sin_func(x, params)
+        elif config == "sinc":
+            arr[...,0] = fv.sinc_func(x, params)
+        elif config.startswith('gauss'):
+            arr[...,0] = fv.gauss_func(x, params)
+
         if dimension > 1:
             layer = 2
             arr = np.repeat(arr[np.newaxis,...], 2*layer+1, axis=0)
 
-    return fv.point_convert_primitive(arr, gamma)
+    return arr
 
 
 # Make flux as a function of cell-averaged (primitive) variables
