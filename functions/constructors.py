@@ -58,7 +58,7 @@ def initialise(sim_variables):
             else:
                 arr[...,0] = fv.gauss_func(xi, params)
         
-        if dimension != 1:
+        if dimension > 1:
             layer = 2
             arr = np.repeat(arr[np.newaxis,...], 2*layer+1, axis=0)
 

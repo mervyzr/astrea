@@ -85,11 +85,7 @@ def main() -> None:
 
     # Check CLI arguments
     if len(sys.argv) > 1:
-        cli_return = generic.handle_CLI(sys.argv[1:], config_variables)
-        if cli_return == None:
-            sys.exit(2)
-        else:
-            config_variables, noprint, debug = cli_return
+        config_variables, noprint, debug = generic.handle_CLI(config_variables)
     else:
         noprint, debug = False, False
 
@@ -97,8 +93,8 @@ def main() -> None:
     test_variables = tests.generate_test_conditions(config_variables['config'])
     sim_variables = config_variables | test_variables
 
-    # Error condition(s) handler; filter erroneous entries
-    sim_variables = generic.handle_errors(sim_variables)
+    # Variables handler; filter erroneous entries and default values
+    sim_variables = generic.handle_variables(sim_variables)
 
     # Generate frequently used variables
     sim_variables['dx'] = abs(sim_variables['end_pos']-sim_variables['start_pos'])/sim_variables['cells']
@@ -111,17 +107,19 @@ def main() -> None:
     # Simulation condition handler
     if sim_variables['run_type'].startswith('m'):
         # Auto-generate the resolutions/grid-sizes for multiple simulations
-        coeff = 5
-        n_list = coeff*2**np.arange(2,12)
+        #coeff = 5
+        #n_list = coeff*2**np.arange(2,12)
+        coeff = 1
+        n_list = coeff*2**np.arange(2,5)
     else:
         n_list = [sim_variables['cells']]
 
-    ###################################### SCRIPT INITIATE ######################################
     # Save simulation variables into namedtuple
     variable_constructor = namedtuple('simulation_variables', sim_variables)
     _sim_variables = variable_constructor(**sim_variables)
 
-    # Start the script; run in a try-except-else to handle crashes and prevent exiting code entirely
+    ###################################### SCRIPT INITIATE ######################################
+    # Run in a try-except-else to handle crashes and prevent exiting code entirely
     script_start = datetime.now().strftime('%Y%m%d%H%M')
     save_path = f"{CURRENT_DIR}/savedData/{script_start}_{SEED}"
 

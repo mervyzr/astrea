@@ -88,8 +88,12 @@ def update_plot(arr, t, dimension, fig, ax, graphs):
         plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ at $t = {round(t,4)}$")
     else:
         for index, graph in enumerate(graphs):
-            graph.set_ydata(plot_data[index])
-            #graphBR.set_ydata(analytic.calculateEntropyDensity(arr, 1.4))  # scaled entropy density
+            if dimension > 1:
+                middle_layer = int(len(plot_data[index])/2)
+                graph.set_ydata(plot_data[index][middle_layer])
+            else:
+                graph.set_ydata(plot_data[index])
+                #graphBR.set_ydata(analytic.calculateEntropyDensity(arr, 1.4))  # scaled entropy density
 
         for _i, _j in PLOT_INDEXES:
             ax[_i,_j].relim()
@@ -147,11 +151,18 @@ def plot_quantities(f, sim_variables, save_path):
 
             # density, pressure, vx, thermal energy
             for _i, _j in PLOT_INDEXES:
+                if 1 < dimension < 2:
+                    middle_layer = int(len(y_data[_i][_j])/2)
+
                 if len(f) != 1:
                     if dimension >= 2:
                         print(f"{generic.BColours.WARNING}Stacking 2D plots over one another will not yield any discernible results..{generic.BColours.ENDC}")
                     else:
-                        ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, label=f"N = {N}")
+                        if dimension > 1:
+                            y = y_data[_i][_j][middle_layer]
+                        else:
+                            y = y_data[_i][_j]
+                        ax[_i,_j].plot(x, y, linewidth=2, label=f"N = {N}")
                         plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(timings[max(n_list)][time_index],3)}$", fontsize=24)
                 else:
                     if dimension >= 2:
@@ -160,11 +171,16 @@ def plot_quantities(f, sim_variables, save_path):
                         cax = divider.append_axes('right', size='5%', pad=0.05)
                         fig.colorbar(graph, cax=cax, orientation='vertical')
                     else:
-                        if BEAUTIFY:
-                            gradient_plot([x, y_data[_i][_j]], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
+                        if dimension > 1:
+                            y = y_data[_i][_j][middle_layer]
                         else:
-                            #ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=COLOURS[_i][_j], color=COLOURS[_i][_j])
-                            ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=COLOURS[_i][_j])
+                            y = y_data[_i][_j]
+
+                        if BEAUTIFY:
+                            gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
+                        else:
+                            #ax[_i,_j].plot(x, y, linewidth=2, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=COLOURS[_i][_j], color=COLOURS[_i][_j])
+                            ax[_i,_j].plot(x, y, linewidth=2, color=COLOURS[_i][_j])
                         plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(timings[max(n_list)][time_index],3)}$ ($N = {N}$)", fontsize=24)
 
         # Add analytical solutions only for 1D
@@ -172,7 +188,6 @@ def plot_quantities(f, sim_variables, save_path):
             plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ at $t \approx {round(timings[max(n_list)][time_index],3)}$ ($N = {N}$)", fontsize=24)
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
             fig.text(0.04, 0.4, r"Cell position $y$", fontsize=18, ha='center', rotation="vertical")
-        # Add analytical solutions only for 1D
         else:
             # Adjust ylim and plot analytical solutions for Gaussian, sin-wave and sinc-wave tests
             if config.startswith("sin") or config.startswith("gaussian"):
@@ -198,16 +213,20 @@ def plot_quantities(f, sim_variables, save_path):
                 ax[0,1].set_ylim([initial_left[4]-P_tol, initial_left[4]+P_tol])
                 ax[1,0].set_ylim([initial_left[1]-.005, initial_left[1]+.005])
 
-                y_theo = [[analytical[:, 0], analytical[:, 4]], [analytical[:, 1], analytical[:, 4]/analytical[:, 0]]]
+                y_theo = [[analytical[:,0], analytical[:,4]], [analytical[:,1], analytical[:,4]/analytical[:,0]]]
                 for _i, _j in PLOT_INDEXES:
                     ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label=rf"{config.title()}$_{{theo}}$")
 
             # Add Sod analytical solution, using the highest resolution and timing
             elif config == "sod":
                 tube, _t = f[str(max(n_list))][str(timings[max(n_list)][time_index])], timings[max(n_list)][time_index]
-                Sod = analytic.calculate_Sod_analytical(tube, _t, sim_variables)
+                if dimension > 1:
+                    middle_layer = int(len(tube)/2)
+                    Sod = analytic.calculate_Sod_analytical(tube[middle_layer], _t, sim_variables)
+                else:
+                    Sod = analytic.calculate_Sod_analytical(tube, _t, sim_variables)
 
-                y_theo = [[Sod[:, 0], Sod[:, 4]], [Sod[:, 1], Sod[:, 4]/Sod[:, 0]]]
+                y_theo = [[Sod[:,0], Sod[:,4]], [Sod[:,1], Sod[:,4]/Sod[:,0]]]
                 for _i, _j in PLOT_INDEXES:
                     ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label=r"Sod$_{theo}$")
 
@@ -220,7 +239,7 @@ def plot_quantities(f, sim_variables, save_path):
                 handles, labels = plt.gca().get_legend_handles_labels()
                 fig.legend(handles, labels, prop={'size': 16}, loc='upper right', ncol=_ncol)
 
-        plt.savefig(f"{save_path}/varPlot_{config}_{subgrid}_{timestep}_{scheme}_{round(timings[max(n_list)][time_index],3)}.png", dpi=330)
+        plt.savefig(f"{save_path}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{scheme}_{round(timings[max(n_list)][time_index],3)}.png", dpi=330)
 
         plt.cla()
         plt.clf()
@@ -229,7 +248,7 @@ def plot_quantities(f, sim_variables, save_path):
 
 
 def plot_solution_errors(f, sim_variables, save_path, coeff, norm=1):
-    config, subgrid, timestep, scheme = sim_variables.config, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
+    config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
 
     # hdf5 keys are string; need to convert back to int and sort again
     n_list = [int(n) for n in f.keys()]
@@ -242,7 +261,11 @@ def plot_solution_errors(f, sim_variables, save_path, coeff, norm=1):
     x, y1, y2, y3, y4 = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
     for N in n_list:
         x = np.append(x, f[str(N)].attrs['cells'])
-        solution_errors = analytic.calculate_solution_error(f[str(N)], sim_variables, norm)
+        if 1 < dimension < 2:
+            middle_layer = int(len(f[str(N)])/2)
+            solution_errors = analytic.calculate_solution_error(f[str(N)][middle_layer], sim_variables, norm)
+        else:
+            solution_errors = analytic.calculate_solution_error(f[str(N)], sim_variables, norm)
         y1 = np.append(y1, solution_errors[0])  # density
         y2 = np.append(y2, solution_errors[4])  # pressure
         y3 = np.append(y3, solution_errors[1])  # vx
@@ -437,10 +460,16 @@ def make_video(f, sim_variables, save_path, vidpath):
                     plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=24)
                     fig.text(0.04, 0.4, r"Cell position $y$", fontsize=18, ha='center')
                 else:
-                    if BEAUTIFY:
-                        gradient_plot([x, y_data[_i][_j]], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
+                    if dimension > 1:
+                        middle_layer = int(len(y_data[_i][_j])/2)
+                        y = y_data[_i][_j][middle_layer]
                     else:
-                        ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=COLOURS[_i][_j])
+                        y = y_data[_i][_j]
+
+                    if BEAUTIFY:
+                        gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
+                    else:
+                        ax[_i,_j].plot(x, y, linewidth=2, color=COLOURS[_i][_j])
                     plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=24)
 
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
@@ -494,10 +523,16 @@ def plot_instance(grid, show_plot=True, text="", start_pos=0, end_pos=1, **kwarg
             plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ {text}", fontsize=24)
             fig.text(0.04, 0.4, r"Cell position $y$", fontsize=18, ha='center')
         else:
-            if BEAUTIFY:
-                gradient_plot([x, y_data[_i][_j]], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
+            if dimension > 1:
+                middle_layer = int(len(y_data[_i][_j])/2)
+                y = y_data[_i][_j][middle_layer]
             else:
-                ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=COLOURS[_i][_j])
+                y = y_data[_i][_j]
+
+            if BEAUTIFY:
+                gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
+            else:
+                ax[_i,_j].plot(x, y, linewidth=2, color=COLOURS[_i][_j])
             plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}", fontsize=24)
 
     fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
