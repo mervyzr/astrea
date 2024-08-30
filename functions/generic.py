@@ -93,6 +93,20 @@ def tidy_dict(dct):
 
 # CLI arguments handler; updates the simulation variables (which is a dict) and checks for any invalid values
 def handle_CLI(config_variables):
+    quotes = ["It's not a bug; it's an undocumented feature",\
+            "Experience is the name everyone gives to their mistakes",\
+            "Confusion is part of programming",\
+            "Light attracts bugs",\
+            "Programmer: A machine that turns coffee into code",\
+            "When I wrote this code, only God and I understood what I did. Now only God knows",\
+            "If, at first you do not succeed, call it version 1.0",\
+            "Keep It Simple, Stupid",\
+            "If you torture the data long enough, it will confess",\
+            "To steal ideas from one person is plagiarism; to steal from many is research",\
+            "Never forget the greatest researcher of our time: et al.",\
+            "The difference between screwing around and science is writing it down",\
+            "Computer science is no more about computers than astronomy is about telescopes"]
+
     parser = argparse.ArgumentParser(description='Run the mHydyS simulation.\n\nmHydyS is a 1D or 2D (magneto-)hydrodynamics finite volume simulation written in Python3. Refer to the README for more information.', 
                                      epilog=quotes[random.randint(0,len(quotes)-1)], 
                                      formatter_class=argparse.RawTextHelpFormatter)
@@ -162,18 +176,3 @@ def handle_variables(dct):
         dct['save_video'] = False
 
     return dct
-
-
-quotes = ["It's not a bug; it's an undocumented feature",\
-        "Experience is the name everyone gives to their mistakes",\
-        "Confusion is part of programming",\
-        "Light attracts bugs",\
-        "Programmer: A machine that turns coffee into code",\
-        "When I wrote this code, only God and I understood what I did. Now only God knows",\
-        "If, at first you do not succeed, call it version 1.0",\
-        "Keep It Simple, Stupid",\
-        "If you torture the data long enough, it will confess",\
-        "To steal ideas from one person is plagiarism; to steal from many is research",\
-        "Never forget the greatest researcher of our time: et al.",\
-        "The difference between screwing around and science is writing it down",\
-        "Computer science is no more about computers than astronomy is about telescopes"]
