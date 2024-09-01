@@ -4,7 +4,7 @@ import numpy as np
 import scipy as sp
 from scipy.integrate import quad, simpson
 
-from functions import fv
+from functions import fv, constructors
 
 ##############################################################################
 # Functions for analytic solutions
@@ -28,7 +28,9 @@ def calculate_solution_error(simulation, sim_variables, norm):
     dimension = math.ceil(sim_variables.dimension)
 
     time_keys = [float(t) for t in simulation.keys()]
-    w_num = simulation[str(max(time_keys))]  # Get last array with (typically largest) time key
+    w_num = simulation[str(max(time_keys))]  # Get last instance of the grid with largest time key
+
+    #w_theo = constructors.initialise(sim_variables, convert=False, N=len(w_num))
 
     xi = np.linspace(sim_variables.start_pos, sim_variables.end_pos, len(w_num))
     w_theo = np.copy(w_num)

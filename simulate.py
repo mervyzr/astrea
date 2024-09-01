@@ -32,8 +32,7 @@ np.set_printoptions(linewidth=400, suppress=True)
 def run_simulation(grp: h5py, _sim_variables: namedtuple):
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables
     # Even though the solution array is discrete, the variables are averages (FV) instead of points (FD)
-    _grid = constructors.initialise(_sim_variables)
-    grid = fv.point_convert_primitive(_grid, _sim_variables)
+    grid = constructors.initialise(_sim_variables, convert=True)
 
     # Initiate live plotting, if enabled
     if _sim_variables.live_plot:
@@ -50,8 +49,8 @@ def run_simulation(grp: h5py, _sim_variables: namedtuple):
     while t <= _sim_variables.t_end:
         # Saves each instance of the system at time t
         tube_snapshot = convert(grid, _sim_variables)
-        dataset = grp.create_dataset(str(t), data=tube_snapshot)
-        dataset.attrs['t'] = t
+        dataset = grp.create_dataset(str(float(t)), data=tube_snapshot)
+        dataset.attrs['t'] = float(t)
 
         # Update the live plot, if enabled
         if _sim_variables.live_plot:
@@ -76,7 +75,7 @@ def run_simulation(grp: h5py, _sim_variables: namedtuple):
                 continue
         else:
             t += dt
-    return None
+    return grp
 
 ##############################################################################
 
@@ -117,7 +116,7 @@ def main() -> None:
         #coeff = 5
         #n_list = coeff*2**np.arange(2,12)
         coeff = 1
-        n_list = coeff*2**np.arange(2,5)
+        n_list = coeff*2**np.arange(2,9)
     else:
         n_list = [sim_variables['cells']]
 

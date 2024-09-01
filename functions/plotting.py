@@ -16,7 +16,7 @@ import matplotlib.colors as mcolors
 from matplotlib.patches import Polygon
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from functions import analytic, fv, generic
+from functions import analytic, fv, generic, constructors
 
 ##############################################################################
 # Plotting functions and media handling
@@ -190,21 +190,14 @@ def plot_quantities(f, sim_variables, save_path):
             fig.text(0.04, 0.4, r"Cell position $y$", fontsize=18, ha='center', rotation="vertical")
         else:
             # Adjust ylim and plot analytical solutions for Gaussian, sin-wave and sinc-wave tests
-            if config.startswith("sin") or config.startswith("gaussian"):
+            if config.startswith("sin") or config.startswith("gauss"):
                 #last_sim = f[list(f.keys())[-1]]
                 #first_config = last_sim[list(last_sim.keys())[0]][0]
-
-                analytical = np.zeros((N, len(initial_left)), dtype=precision)
-                analytical[:] = initial_left
-                if config.startswith("gaussian"):
-                    analytical[:,0] = fv.gauss_func(x, params)
+                analytical = constructors.initialise(sim_variables)
+                if config.startswith("gauss"):
                     P_tol = 5e-7
                 else:
                     P_tol = .005
-                    if config == "sinc":
-                        analytical[:,0] = fv.sinc_func(x, params)
-                    else:
-                        analytical[:,0] = fv.sin_func(x, params)
 
                 P_range = np.linspace(initial_left[4]-P_tol, initial_left[4]+P_tol, 9)
                 v_range = np.linspace(initial_left[1]-.005, initial_left[1]+.005, 9)

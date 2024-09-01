@@ -7,7 +7,7 @@ from functions import fv
 ##############################################################################
 
 # Initialise the discrete solution array with initial conditions and primitive variables w. Returns the solution array in conserved variables q
-def initialise(sim_variables):
+def initialise(sim_variables, convert=False):
     config, N, dimension, precision = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.precision
     start_pos, end_pos, shock_pos, params = sim_variables.start_pos, sim_variables.end_pos, sim_variables.shock_pos, sim_variables.misc
     initial_left, initial_right = sim_variables.initial_left, sim_variables.initial_right
@@ -51,7 +51,10 @@ def initialise(sim_variables):
             layer = 2
             arr = np.repeat(arr[np.newaxis,...], 2*layer+1, axis=0)
 
-    return arr
+    if convert:
+        return fv.point_convert_primitive(arr, sim_variables)
+    else:
+        return arr
 
 
 # Make flux as a function of cell-averaged (primitive) variables
