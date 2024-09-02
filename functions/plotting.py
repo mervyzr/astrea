@@ -142,6 +142,10 @@ def plot_quantities(f, sim_variables, save_path):
         # Plot each simulation at the specific timing
         for N in n_list:
             time_key = str(timings[N][time_index])
+
+            if 1 < dimension < 2:
+                middle_layer = int(len(f[str(N)][time_key])/2)
+
             y1 = f[str(N)][time_key][...,0]   # density
             y2 = f[str(N)][time_key][...,4]   # pressure
             y3 = f[str(N)][time_key][...,1]   # vx
@@ -151,14 +155,11 @@ def plot_quantities(f, sim_variables, save_path):
 
             # density, pressure, vx, thermal energy
             for _i, _j in PLOT_INDEXES:
-                if 1 < dimension < 2:
-                    middle_layer = int(len(y_data[_i][_j])/2)
-
                 if len(f) != 1:
                     if dimension >= 2:
-                        print(f"{generic.BColours.WARNING}Stacking 2D plots over one another will not yield any discernible results..{generic.BColours.ENDC}")
+                        pass
                     else:
-                        if dimension > 1:
+                        if 1 < dimension:
                             y = y_data[_i][_j][middle_layer]
                         else:
                             y = y_data[_i][_j]
@@ -193,7 +194,11 @@ def plot_quantities(f, sim_variables, save_path):
             if config.startswith("sin") or config.startswith("gauss"):
                 #last_sim = f[list(f.keys())[-1]]
                 #first_config = last_sim[list(last_sim.keys())[0]][0]
-                analytical = constructors.initialise(sim_variables)
+                if 1 < dimension < 2:
+                    analytical = constructors.initialise(sim_variables)[middle_layer]
+                else:
+                    analytical = constructors.initialise(sim_variables)
+
                 if config.startswith("gauss"):
                     P_tol = 5e-7
                 else:
@@ -206,20 +211,19 @@ def plot_quantities(f, sim_variables, save_path):
                 ax[0,1].set_ylim([initial_left[4]-P_tol, initial_left[4]+P_tol])
                 ax[1,0].set_ylim([initial_left[1]-.005, initial_left[1]+.005])
 
-                y_theo = [[analytical[:,0], analytical[:,4]], [analytical[:,1], analytical[:,4]/analytical[:,0]]]
+                y_theo = [[analytical[...,0], analytical[...,4]], [analytical[...,1], analytical[...,4]/analytical[...,0]]]
                 for _i, _j in PLOT_INDEXES:
                     ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label=rf"{config.title()}$_{{theo}}$")
 
             # Add Sod analytical solution, using the highest resolution and timing
             elif config == "sod":
                 tube, _t = f[str(max(n_list))][str(timings[max(n_list)][time_index])], timings[max(n_list)][time_index]
-                if dimension > 1:
-                    middle_layer = int(len(tube)/2)
+                if 1 < dimension < 2:
                     Sod = analytic.calculate_Sod_analytical(tube[middle_layer], _t, sim_variables)
                 else:
                     Sod = analytic.calculate_Sod_analytical(tube, _t, sim_variables)
 
-                y_theo = [[Sod[:,0], Sod[:,4]], [Sod[:,1], Sod[:,4]/Sod[:,0]]]
+                y_theo = [[Sod[...,0], Sod[...,4]], [Sod[...,1], Sod[...,4]/Sod[...,0]]]
                 for _i, _j in PLOT_INDEXES:
                     ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label=r"Sod$_{theo}$")
 
@@ -241,7 +245,7 @@ def plot_quantities(f, sim_variables, save_path):
 
 
 def plot_solution_errors(f, sim_variables, save_path, coeff, norm=1):
-    config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
+    config, subgrid, timestep, scheme = sim_variables.config, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
 
     # hdf5 keys are string; need to convert back to int and sort again
     n_list = [int(n) for n in f.keys()]
@@ -254,11 +258,7 @@ def plot_solution_errors(f, sim_variables, save_path, coeff, norm=1):
     x, y1, y2, y3, y4 = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
     for N in n_list:
         x = np.append(x, f[str(N)].attrs['cells'])
-        if 1 < dimension < 2:
-            middle_layer = int(len(f[str(N)])/2)
-            solution_errors = analytic.calculate_solution_error(f[str(N)][middle_layer], sim_variables, norm)
-        else:
-            solution_errors = analytic.calculate_solution_error(f[str(N)], sim_variables, norm)
+        solution_errors = analytic.calculate_solution_error(f[str(N)], sim_variables, norm)
         y1 = np.append(y1, solution_errors[0])  # density
         y2 = np.append(y2, solution_errors[4])  # pressure
         y3 = np.append(y3, solution_errors[1])  # vx

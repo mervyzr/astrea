@@ -25,34 +25,30 @@ def calculate_entropy_density(grid, gamma):
 
 # Function for solution error calculation of sin-wave, sinc-wave and Gaussian tests
 def calculate_solution_error(simulation, sim_variables, norm):
-    dimension = math.ceil(sim_variables.dimension)
+    dimension = sim_variables.dimension
 
     time_keys = [float(t) for t in simulation.keys()]
     w_num = simulation[str(max(time_keys))]  # Get last instance of the grid with largest time key
 
-    #w_theo = constructors.initialise(sim_variables, convert=False, N=len(w_num))
-
-    xi = np.linspace(sim_variables.start_pos, sim_variables.end_pos, len(w_num))
-    w_theo = np.copy(w_num)
-    w_theo[:] = sim_variables.initial_left
-
-    if sim_variables.config.startswith("gauss"):
-        w_theo[...,0] = fv.gauss_func(xi, sim_variables.misc)
+    # Create theoretical array
+    if 1 < dimension < 2:
+        N = len(w_num[0])
+        divisor = len(w_num) * len(w_num[0])
     else:
-        if sim_variables.config == "sinc":
-            w_theo[...,0] = fv.sinc_func(xi, sim_variables.misc)
-        else:
-            w_theo[...,0] = fv.sin_func(xi, sim_variables.misc)
+        N = len(w_num)
+        divisor = len(w_num) ** dimension
+    sim_variables = sim_variables._replace(cells=N)
+    w_theo = constructors.initialise(sim_variables, convert=False)
 
     thermal_num, thermal_theo = fv.divide(w_num[...,4], w_num[...,0]), fv.divide(w_theo[...,4], w_theo[...,0])
     w_num, w_theo = np.concatenate((w_num, thermal_num[...,None]), axis=-1), np.concatenate((w_theo, thermal_theo[...,None]), axis=-1)
 
     if norm > 10:
-        return np.max(np.abs(w_num-w_theo), axis=tuple(range(dimension)))
+        return np.max(np.abs(w_num-w_theo), axis=tuple(range(math.ceil(dimension))))
     elif norm <= 0:
-        return np.sum(np.abs(w_num-w_theo), axis=tuple(range(dimension)))/len(w_num)
+        return np.sum(np.abs(w_num-w_theo), axis=tuple(range(math.ceil(dimension))))/divisor
     else:
-        return (np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(range(dimension)))/len(w_num))**(1/norm)
+        return (np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(range(math.ceil(dimension))))/divisor)**(1/norm)
 
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
