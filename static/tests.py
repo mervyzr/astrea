@@ -38,7 +38,7 @@ def generate_test_conditions(config):
     elif config == "sedov":
         start_pos = -10
         end_pos = 10
-        shock_pos = 1  # blast boundary
+        shock_pos = .5  # blast boundary
         t_end = .6
         boundary = "edge"  # outflow
         initial_left = np.array([1,0,0,0,100,0,0,0])

@@ -8,62 +8,126 @@ from functions import fv, constructors
 # Approximate linearised and non-linearised Riemann solvers
 ##############################################################################
 
-# Ideally, the 4th-order averaged fluxes should be computed from the face-averaged variables
-# But because the simulation is only 1D, the "normal"-Laplacian (Taylor expansion) of the face-averaged states and fluxes are zero
-# Thus, the face-averaged and face-centred values are the same (<w>_i+1/2 = w_i+1/2)
-# Same for the averaged and centred fluxes (<F>_i+1/2 = F_i+1/2)
-
-
 # Intercell numerical fluxes between L and R interfaces based on Riemann solver
 def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
+    gamma, dimension, subgrid, scheme = sim_variables.gamma, sim_variables.dimension, sim_variables.subgrid, sim_variables.scheme
+    roots, weights = sim_variables.roots, sim_variables.weights
+
     Riemann_flux = namedtuple('Riemann_flux', ['flux', 'eigmax'])
     fluxes = {}
 
-    # Rotate grid and apply algorithm for each axis
-    for axes in sim_variables.permutations:
+    # Rotate grid and apply algorithm for each axis/dimension
+    for axes, arrays in data.items():
 
-        # Define frequently used variables
-        if sim_variables.subgrid in ["pcm", "constant", "c"]:
-            if sim_variables.scheme in ["hllc", "c"]:
-                wLs, wRs = data[axes]["w"][1:], data[axes]["w"][:-1]
+        # Determine the eigenvalues for the computation of time stepping in each direction
+        characteristics, eigmax = fv.compute_eigen(arrays['jacobian'])
+
+        # Get the frequently used variables based on the subgrid model
+        if subgrid in ["pcm", "constant", "c"]:
+            if scheme in ["hllc", "c"]:
+                wLs, wRs = arrays["w"][1:], arrays["w"][:-1]
             else:
-                wLs, wRs = data[axes]["w"][:-1], data[axes]["w"][1:]
-            qLs, qRs = data[axes]["q"][1:], data[axes]["q"][:-1]
-            fLs, fRs = data[axes]["f"][1:], data[axes]["f"][:-1]
+                wLs, wRs = arrays["w"][:-1], arrays["w"][1:]
+            qLs, qRs = arrays["q"][1:], arrays["q"][:-1]
+            fLs, fRs = arrays["f"][1:], arrays["f"][:-1]
         else:
-            wLs, wRs = data[axes]["wLs"], data[axes]["wRs"]
-            qLs, qRs = data[axes]["qLs"], data[axes]["qRs"]
-            fLs, fRs = data[axes]["fLs"], data[axes]["fRs"]
-
-        # Determine the eigenvalues for the computation of time stepping
-        characteristics = np.linalg.eigvals(data[axes]['jacobian'])
-        local_max_eigvals = np.max(np.abs(characteristics), axis=-1)  # Local max eigenvalue for each cell (1- or 3-Riemann invariant; shock wave or rarefaction wave)
-        max_eigvals = np.max([local_max_eigvals[:-1], local_max_eigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
-
-        eigmax = np.max(max_eigvals)  # Maximum wave speed (max eigenvalue) for time evolution
-
+            wLs, wRs = arrays["wLs"], arrays["wRs"]
+            qLs, qRs = arrays["qLs"], arrays["qRs"]
+            fLs, fRs = arrays["fLs"], arrays["fRs"]
+        
         # HLL-type schemes
-        if sim_variables.scheme in ["hllc", "c"]:
-            fluxes[axes] = Riemann_flux(calculate_HLLC_flux(wLs, wRs, fRs, fLs, sim_variables), eigmax)
+        if scheme in ["hllc", "c"]:
+            intf_avg_fluxes = calculate_HLLC_flux(wLs, wRs, fRs, fLs, sim_variables)
 
         # Osher-Solomon schemes
-        elif sim_variables.scheme in ["os", "osher-solomon", "osher", "solomon"]:
-            fluxes[axes] = Riemann_flux(calculate_DOTS_flux(qLs, qRs, fLs, fRs, sim_variables.gamma, sim_variables.roots, sim_variables.weights), eigmax)
+        elif scheme in ["os", "osher-solomon", "osher", "solomon"]:
+            intf_avg_fluxes = calculate_DOTS_flux(qLs, qRs, fLs, fRs, gamma, roots, weights)
 
         # Roe-type/Lax-type schemes
         else:
-            if sim_variables.scheme in ["entropy", "stable", "entropy-stable", "es"]:
-                fluxes[axes] = Riemann_flux(calculate_ES_flux(wLs, wRs, sim_variables.gamma), eigmax)
-            elif sim_variables.scheme in ["lw", "lax-wendroff", "wendroff"]:
-                fluxes[axes] = Riemann_flux(calculate_LaxWendroff_flux(qLs, qRs, fLs, fRs, characteristics), eigmax)
+            if scheme in ["entropy", "stable", "entropy-stable", "es"]:
+                intf_avg_fluxes = calculate_ES_flux(wLs, wRs, gamma)
+            elif scheme in ["lw", "lax-wendroff", "wendroff"]:
+                intf_avg_fluxes = calculate_LaxWendroff_flux(qLs, qRs, fLs, fRs, characteristics)
             else:
-                fluxes[axes] = Riemann_flux(calculate_LaxFriedrich_flux(qLs, qRs, fLs, fRs, max_eigvals), eigmax)
+                intf_avg_fluxes = calculate_LaxFriedrich_flux(qLs, qRs, fLs, fRs, characteristics)
+
+        if dimension > 1:
+
+            pass
+        else:
+            _fluxes = intf_avg_fluxes
+
+        fluxes[axes] = Riemann_flux(_fluxes, eigmax)
 
     return fluxes
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""# Intercell numerical fluxes between L and R interfaces based on Riemann solver
+def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
+    gamma, subgrid, scheme = sim_variables.gamma, sim_variables.subgrid, sim_variables.scheme
+    roots, weights = sim_variables.roots, sim_variables.weights
+
+    Riemann_flux = namedtuple('Riemann_flux', ['flux', 'eigmax'])
+    fluxes = {}
+
+    # Rotate grid and apply algorithm for each axis/dimension
+    for axes, arrays in data.items():
+
+        # Define frequently used variables
+        if subgrid in ["pcm", "constant", "c"]:
+            if scheme in ["hllc", "c"]:
+                wLs, wRs = arrays["w"][1:], arrays["w"][:-1]
+            else:
+                wLs, wRs = arrays["w"][:-1], arrays["w"][1:]
+            qLs, qRs = arrays["q"][1:], arrays["q"][:-1]
+            fLs, fRs = arrays["f"][1:], arrays["f"][:-1]
+        else:
+            wLs, wRs = arrays["wLs"], arrays["wRs"]
+            qLs, qRs = arrays["qLs"], arrays["qRs"]
+            fLs, fRs = arrays["fLs"], arrays["fRs"]
+
+        # Determine the eigenvalues for the computation of time stepping
+        characteristics, eigmax = fv.compute_eigen(arrays['jacobian'])
+
+        # HLL-type schemes
+        if scheme in ["hllc", "c"]:
+            fluxes[axes] = Riemann_flux(calculate_HLLC_flux(wLs, wRs, fRs, fLs, sim_variables), eigmax)
+
+        # Osher-Solomon schemes
+        elif scheme in ["os", "osher-solomon", "osher", "solomon"]:
+            fluxes[axes] = Riemann_flux(calculate_DOTS_flux(qLs, qRs, fLs, fRs, gamma, roots, weights), eigmax)
+
+        # Roe-type/Lax-type schemes
+        else:
+            if scheme in ["entropy", "stable", "entropy-stable", "es"]:
+                fluxes[axes] = Riemann_flux(calculate_ES_flux(wLs, wRs, gamma), eigmax)
+            elif scheme in ["lw", "lax-wendroff", "wendroff"]:
+                fluxes[axes] = Riemann_flux(calculate_LaxWendroff_flux(qLs, qRs, fLs, fRs, characteristics), eigmax)
+            else:
+                fluxes[axes] = Riemann_flux(calculate_LaxFriedrich_flux(qLs, qRs, fLs, fRs, characteristics), eigmax)
+
+    return fluxes"""
+
+
 # (Local) Lax-Friedrich scheme (1st-order; highly diffusive)
-def calculate_LaxFriedrich_flux(qLs, qRs, fLs, fRs, max_eigvals):
+def calculate_LaxFriedrich_flux(qLs, qRs, fLs, fRs, characteristics):
+    local_max_eigvals = np.max(np.abs(characteristics), axis=-1)
+    max_eigvals = np.max([local_max_eigvals[:-1], local_max_eigvals[1:]], axis=0)
     return .5*(fRs+fLs) - .5*(max_eigvals.T*(qLs-qRs).T).T
 
 

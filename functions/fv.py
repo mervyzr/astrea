@@ -57,7 +57,7 @@ def point_convert_conservative(grid, sim_variables):
     return arr
 
 
-# Converting (cell-/face-averaged) primitive variables w to conservative variables q through a higher-order approx.
+# Converting (cell-averaged) primitive variables w to (cell-averaged) conservative variables q through a higher-order approx.
 def convert_primitive(grid, sim_variables):
     boundary, permutations = sim_variables.boundary, sim_variables.permutations
     w, q = np.copy(grid), np.zeros_like(grid)
@@ -71,7 +71,7 @@ def convert_primitive(grid, sim_variables):
     return point_convert_primitive(w, sim_variables) + q
 
 
-# Converting (cell-/face-averaged) conservative variables q to primitive variables w through a higher-order approx.
+# Converting (cell-averaged) conservative variables q to (cell-averaged) primitive variables w through a higher-order approx.
 def convert_conservative(grid, sim_variables):
     boundary, permutations = sim_variables.boundary, sim_variables.permutations
     w, q = np.zeros_like(grid), np.copy(grid)
@@ -83,3 +83,19 @@ def convert_conservative(grid, sim_variables):
         _w = point_convert_conservative(_q, sim_variables)
         w += (np.diff(_w[1:], axis=0) - np.diff(_w[:-1], axis=0))/24
     return point_convert_conservative(q, sim_variables) + w
+
+
+# Get the characteristics and max eigenvalues for calculating the time evolution
+def compute_eigen(jacobian):
+    characteristics = np.linalg.eigvals(jacobian)
+
+    # Local max eigenvalue for each cell (1- or 3-Riemann invariant; shock wave or rarefaction wave)
+    local_max_eigvals = np.max(np.abs(characteristics), axis=-1)
+
+    # Local max eigenvalue between consecutive pairs of cell
+    max_eigvals = np.max([local_max_eigvals[:-1], local_max_eigvals[1:]], axis=0)
+
+    # Maximum wave speed (max eigenvalue) for time evolution
+    eigmax = np.max(max_eigvals)
+
+    return characteristics, eigmax
