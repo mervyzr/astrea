@@ -110,7 +110,7 @@ def update_plot(arr, t, dimension, fig, ax, graphs):
 def plot_quantities(f, sim_variables, save_path):
     config, dimension, subgrid, timestep = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep
     scheme, precision, snapshots = sim_variables.scheme, sim_variables.precision, int(sim_variables.snapshots)
-    start_pos, end_pos, params, initial_left = sim_variables.start_pos, sim_variables.end_pos, sim_variables.misc, sim_variables.initial_left
+    start_pos, end_pos, initial_left = sim_variables.start_pos, sim_variables.end_pos, sim_variables.initial_left
 
     # hdf5 keys are string; need to convert back to int and sort again
     n_list = [int(n) for n in f.keys()]
@@ -190,20 +190,18 @@ def plot_quantities(f, sim_variables, save_path):
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
             fig.text(0.04, 0.4, r"Cell position $y$", fontsize=18, ha='center', rotation="vertical")
         else:
-            # Adjust ylim and plot analytical solutions for Gaussian, sin-wave and sinc-wave tests
+            # Add analytical solution for smooth functions, using the highest resolution and timing
             if config.startswith("sin") or config.startswith("gauss"):
-                #last_sim = f[list(f.keys())[-1]]
-                #first_config = last_sim[list(last_sim.keys())[0]][0]
                 if 1 < dimension < 2:
                     analytical = constructors.initialise(sim_variables)[middle_layer]
                 else:
                     analytical = constructors.initialise(sim_variables)
 
+                # Adjust ylim and tolerances for Gaussian, sin-wave and sinc-wave tests
                 if config.startswith("gauss"):
                     P_tol = 5e-7
                 else:
                     P_tol = .005
-
                 P_range = np.linspace(initial_left[4]-P_tol, initial_left[4]+P_tol, 9)
                 v_range = np.linspace(initial_left[1]-.005, initial_left[1]+.005, 9)
                 ax[0,1].set_yticks(P_range)

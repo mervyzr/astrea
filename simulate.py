@@ -69,13 +69,11 @@ def run_simulation(grp: h5py, _sim_variables: namedtuple):
         # Handle the time update for machine precision
         if t+dt > _sim_variables.t_end:
             if t == _sim_variables.t_end:
-                break
+                return grp
             else:
                 t = _sim_variables.t_end
-                continue
         else:
             t += dt
-    return grp
 
 ##############################################################################
 
@@ -113,10 +111,8 @@ def main() -> None:
     # Simulation condition handler
     if sim_variables['run_type'].startswith('m'):
         # Auto-generate the resolutions/grid-sizes for multiple simulations
-        #coeff = 5
-        #n_list = coeff*2**np.arange(2,12)
-        coeff = 1
-        n_list = coeff*2**np.arange(2,9)
+        coeff = 5
+        n_list = coeff*2**np.arange(2,12)
     else:
         n_list = [sim_variables['cells']]
 
