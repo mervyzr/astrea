@@ -12,7 +12,7 @@ def compute_H(interface_fluxes, sim_variables):
     for axes in sim_variables.permutations:
         Riemann_flux = interface_fluxes[axes].flux
         flux_diff = np.diff(Riemann_flux, axis=0)/sim_variables.dx
-        total_flux += flux_diff.transpose(axes)
+        total_flux += flux_diff.transpose(np.argsort(axes))
     return -total_flux
 
 

@@ -63,11 +63,12 @@ def convert_primitive(grid, sim_variables):
     w, q = np.copy(grid), np.zeros_like(grid)
 
     for axes in permutations:
+        reversed_axes = np.argsort(axes)
         _w = add_boundary(grid.transpose(axes), boundary)
-        w -= (np.diff(_w[1:], axis=0) - np.diff(_w[:-1], axis=0)).transpose(axes)/24
+        w -= (np.diff(_w[1:], axis=0) - np.diff(_w[:-1], axis=0)).transpose(reversed_axes)/24
 
         _q = point_convert_primitive(_w, sim_variables)
-        q += (np.diff(_q[1:], axis=0) - np.diff(_q[:-1], axis=0)).transpose(axes)/24
+        q += (np.diff(_q[1:], axis=0) - np.diff(_q[:-1], axis=0)).transpose(reversed_axes)/24
     return point_convert_primitive(w, sim_variables) + q
 
 
@@ -77,11 +78,12 @@ def convert_conservative(grid, sim_variables):
     w, q = np.zeros_like(grid), np.copy(grid)
 
     for axes in permutations:
+        reversed_axes = np.argsort(axes)
         _q = add_boundary(grid.transpose(axes), boundary)
-        q -= (np.diff(_q[1:], axis=0) - np.diff(_q[:-1], axis=0)).transpose(axes)/24
+        q -= (np.diff(_q[1:], axis=0) - np.diff(_q[:-1], axis=0)).transpose(reversed_axes)/24
 
         _w = point_convert_conservative(_q, sim_variables)
-        w += (np.diff(_w[1:], axis=0) - np.diff(_w[:-1], axis=0)).transpose(axes)/24
+        w += (np.diff(_w[1:], axis=0) - np.diff(_w[:-1], axis=0)).transpose(reversed_axes)/24
     return point_convert_conservative(q, sim_variables) + w
 
 
