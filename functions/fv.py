@@ -64,10 +64,10 @@ def convert_primitive(grid, sim_variables):
 
     for axes in permutations:
         _w = add_boundary(grid.transpose(axes), boundary)
-        w -= (np.diff(_w[1:], axis=0) - np.diff(_w[:-1], axis=0))/24
+        w -= (np.diff(_w[1:], axis=0) - np.diff(_w[:-1], axis=0)).transpose(axes)/24
 
         _q = point_convert_primitive(_w, sim_variables)
-        q += (np.diff(_q[1:], axis=0) - np.diff(_q[:-1], axis=0))/24
+        q += (np.diff(_q[1:], axis=0) - np.diff(_q[:-1], axis=0)).transpose(axes)/24
     return point_convert_primitive(w, sim_variables) + q
 
 
@@ -78,11 +78,33 @@ def convert_conservative(grid, sim_variables):
 
     for axes in permutations:
         _q = add_boundary(grid.transpose(axes), boundary)
-        q -= (np.diff(_q[1:], axis=0) - np.diff(_q[:-1], axis=0))/24
+        q -= (np.diff(_q[1:], axis=0) - np.diff(_q[:-1], axis=0)).transpose(axes)/24
 
         _w = point_convert_conservative(_q, sim_variables)
-        w += (np.diff(_w[1:], axis=0) - np.diff(_w[:-1], axis=0))/24
+        w += (np.diff(_w[1:], axis=0) - np.diff(_w[:-1], axis=0)).transpose(axes)/24
     return point_convert_conservative(q, sim_variables) + w
+
+
+# Convert interface-averaged states/fluxes to interface-centred states/fluxes via higher order approximation
+def convert_interface(expand_arr, boundary, main_arr=None):
+    _arr = np.copy(expand_arr)
+
+    try:
+        _ = main_arr.shape
+    except (AttributeError, NameError):
+        arr = np.copy(expand_arr)
+    else:
+        arr = np.copy(main_arr)
+
+    for _axis in range(1, arr.ndim-1):
+        padding = [(0,0)] * arr.ndim
+        padding[_axis] = (1,1)
+
+        _padded_arr = np.pad(_arr, padding, mode=boundary)
+        length = _padded_arr.shape[_axis]
+        arr -= (np.diff(_padded_arr.take(range(1,length), axis=_axis), axis=_axis) - np.diff(_padded_arr.take(range(0,length-1), axis=_axis), axis=_axis))/24
+
+    return arr
 
 
 # Get the characteristics and max eigenvalues for calculating the time evolution

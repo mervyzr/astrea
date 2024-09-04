@@ -92,7 +92,7 @@ def run(grid, sim_variables, C=5/4):
 
         # Get the average solution
         avg_wS = .5 * (wL + wR)
-        
+
         # Pad the reconstructed interfaces
         wLs, wRs = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
 

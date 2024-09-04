@@ -21,8 +21,8 @@ def evolve_space(grid, sim_variables):
     if sim_variables.subgrid in ["weno", "w"]:
         return weno.run(grid, sim_variables)
     elif sim_variables.subgrid in ["ppm", "parabolic", "p"]:
-        #return ppm.run_modified(grid, sim_variables, dissipate=False)
-        return ppm.run(grid, sim_variables)
+        return ppm.run_modified(grid, sim_variables, dissipate=False)
+        #return ppm.run(grid, sim_variables)
     elif sim_variables.subgrid in ["plm", "linear", "l"]:
         return plm.run(grid, sim_variables)
     else:

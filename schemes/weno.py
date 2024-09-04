@@ -67,7 +67,7 @@ def run(grid, sim_variables):
         # Pad the reconstructed interfaces
         wLs, wRs = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
 
-        # Convert the primitive variables, and compute the state differences
+        # Convert the primitive variables
         qLs, qRs = fv.convert_primitive(wLs, sim_variables), fv.convert_primitive(wRs, sim_variables)
 
         # Compute the fluxes and the Jacobian
