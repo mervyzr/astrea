@@ -1,4 +1,3 @@
-import itertools
 from collections import namedtuple, defaultdict
 
 import numpy as np
