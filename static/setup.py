@@ -6,7 +6,7 @@ import subprocess
 
 
 currentdir = os.getcwd()
-version = "3.10"
+version = "3.12"
 
 
 if not os.path.exists(f"{currentdir}/settings.py") or not os.path.isdir(f"{currentdir}/.venv"):
