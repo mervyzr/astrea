@@ -6,7 +6,8 @@ import subprocess
 
 
 currentdir = os.getcwd()
-version = "3.12"
+version = "3.10"
+
 
 if not os.path.exists(f"{currentdir}/settings.py") or not os.path.isdir(f"{currentdir}/.venv"):
     print("Initialising setup..")
@@ -16,16 +17,9 @@ if not os.path.exists(f"{currentdir}/settings.py") or not os.path.isdir(f"{curre
 
     if not os.path.isdir(f"{currentdir}/.venv"):
         print("Creating Python venv for simulation..", end='\r')
-        python_path = subprocess.run(["which", f"python{version}"], capture_output=True).stdout.decode("utf-8").rstrip()
-        if python_path == '':
-            print(f"\033[91mUnable to locate Python{version} version or $PATH...\033[0m")
-        else:
-            venv_dir = os.path.join(currentdir, ".venv")
-            subprocess.run([python_path, "-m", "venv", venv_dir])
-            subprocess.run(f"source .venv/bin/activate", shell=True)
-            subprocess.run([f"{venv_dir}/bin/pip{version}", "install", "-q", "-r", f"{currentdir}/static/requirements.txt"])
-            subprocess.run(f"deactivate", shell=True)
-            subprocess.run(f"chmod +x {currentdir}/simulate.py", shell=True)
-            print("\033[92mSetup complete!\033[0m")
+        venv_dir = os.path.join(currentdir, ".venv")
+        subprocess.run(f"python{version} -m venv {venv_dir} && {venv_dir}/bin/pip3 install -q -r {currentdir}/static/requirements.txt", shell=True)
+        subprocess.run(f"chmod +x {currentdir}/simulate.py", shell=True)
+        print("\033[92mSetup complete!\033[0m")
 else:
     print("Nothing to set up.")

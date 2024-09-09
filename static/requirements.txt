@@ -128,5 +128,6 @@ wcwidth==0.2.13
 webcolors==24.8.0
 webencodings==0.5.1
 websocket-client==1.8.0
+wheel==0.44.0
 widgetsnbextension==4.0.13
 yt==4.3.1
