@@ -8,7 +8,7 @@ from functions import fv
 
 # Initialise the discrete solution array with initial conditions and primitive variables w. Returns the solution array in conserved variables q
 def initialise(sim_variables, convert=False):
-    config, N, dimension, precision = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.precision
+    config, N, gamma, dimension, precision = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimension, sim_variables.precision
     start_pos, end_pos, shock_pos, params = sim_variables.start_pos, sim_variables.end_pos, sim_variables.shock_pos, sim_variables.misc
     initial_left, initial_right = sim_variables.initial_left, sim_variables.initial_right
 
@@ -28,6 +28,11 @@ def initialise(sim_variables, convert=False):
             dst = np.sqrt(x**2 + y**2)
             mask = params['y_offset'] + params['ampl']*np.exp(-((dst-centre)**2)/params['fwhm'])
             arr[...,0] = mask
+        elif config in ["ivc", "vortex"]:
+            arr[...,0] = ()**(1/(gamma-1))
+            pass
+        else:
+            pass
     else:
         x = np.linspace(start_pos, end_pos, N)
 

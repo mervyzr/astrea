@@ -3,7 +3,7 @@ import numpy as np
 ##############################################################################
 
 # Test configurations
-# : Sod, Sedov, Shu-Osher, Ryu-Jones, Brio-Wu, Gaussian, sin-wave, sinc-wave, square wave, Toro1/2/3/4/5
+# : Sod, Sedov, Shu-Osher, Ryu-Jones, Brio-Wu, Gaussian, sin-wave, sinc-wave, square wave, Toro1/2/3/4/5, isentropic vortex (IVC)
 config = "sod"
 
 # Simulation grid parameters
