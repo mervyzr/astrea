@@ -139,7 +139,7 @@ def generate_test_conditions(config):
         boundary = "wrap"  # periodic
         initial_left = np.array([0,0,0,0,0,0,0,0])
         initial_right = np.array([0,0,0,0,0,0,0,0])
-        misc = {'freq':2, 'vortex_strength':.5}
+        misc = {'freq':2, 'b':.5}
 
     else:
         start_pos = 0
