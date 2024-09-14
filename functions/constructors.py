@@ -40,6 +40,10 @@ def initialise(sim_variables, convert=False):
             arr[...,2] = vy + ((vortex_strength/(freq*np.pi))*(x-centre)*np.exp(.5*(1-r**2)))
             arr[...,3] = vz
             arr[...,4] = (1 - np.exp(1-r**2)*(((gamma-1)*vortex_strength**2)/(2*gamma*(freq*np.pi)**2)))**(gamma/(gamma-1))
+        elif config == "khi" or config == "kelvin-helmholtz" or ("kelvin" in config or "helmholtz" in config):
+            arr[...,0] = .5 + .75*(np.tanh(15*y+7.5) - np.tanh(15*y-7.5))
+            arr[...,1] = .5 * (np.tanh(15*y + 7.5) - np.tanh(15*y - 7.5) - 1)
+            arr[...,2] = np.sin(2*np.pi*x)/10
         else:
             arr[np.where(x < shock_pos)] = initial_left
     else:

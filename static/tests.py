@@ -131,7 +131,7 @@ def generate_test_conditions(config):
         initial_right = np.array([.125,0,0,0,.1,.75,-1,0])
         misc = None
 
-    elif config in ["ivc", "vortex"]:
+    elif config == "ivc" or config == "vortex":
         start_pos = 0
         end_pos = 10
         shock_pos = 5
@@ -140,6 +140,16 @@ def generate_test_conditions(config):
         initial_left = np.array([0,0,0,0,0,0,0,0])
         initial_right = np.array([0,0,0,0,0,0,0,0])
         misc = {'freq':2, 'b':.5}
+
+    elif config == "khi" or config == "kelvin-helmholtz" or ("kelvin" in config or "helmholtz" in config):
+        start_pos = -1
+        end_pos = 1
+        shock_pos = 1
+        t_end = 2
+        boundary = "edge"  # outflow
+        initial_left = np.array([0,0,0,0,1,0,0,0])
+        initial_right = np.array([0,0,0,0,1,0,0,0])
+        misc = None
 
     else:
         start_pos = 0
