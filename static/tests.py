@@ -40,7 +40,7 @@ def generate_test_conditions(config):
         end_pos = 10
         shock_pos = .5  # blast boundary
         t_end = .6
-        boundary = "edge"  # outflow
+        boundary = "wrap"  # periodic
         initial_left = np.array([1,0,0,0,100,0,0,0])
         initial_right = np.array([1,0,0,0,1,0,0,0])
         misc = None
@@ -132,9 +132,9 @@ def generate_test_conditions(config):
         misc = None
 
     elif config == "ivc" or config == "vortex":
-        start_pos = 0
-        end_pos = 10
-        shock_pos = 5
+        start_pos = -5
+        end_pos = 5
+        shock_pos = 0
         t_end = 2
         boundary = "wrap"  # periodic
         initial_left = np.array([0,0,0,0,0,0,0,0])
@@ -146,7 +146,7 @@ def generate_test_conditions(config):
         end_pos = 1
         shock_pos = 1
         t_end = 2
-        boundary = "edge"  # outflow
+        boundary = "wrap"  # periodic
         initial_left = np.array([0,0,0,0,1,0,0,0])
         initial_right = np.array([0,0,0,0,1,0,0,0])
         misc = None
