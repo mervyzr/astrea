@@ -28,6 +28,7 @@ CURRENT_DIR = os.getcwd()
 SEED = np.random.randint(0, 1e8)
 np.random.seed(SEED)
 np.set_printoptions(linewidth=400, suppress=True)
+np.seterr(divide='ignore')
 
 
 # Finite volume shock function
@@ -113,8 +114,8 @@ def main() -> None:
     # Simulation condition handler
     if sim_variables['run_type'].startswith('m'):
         # Auto-generate the resolutions/grid-sizes for multiple simulations
-        coeff = 5
-        n_list = coeff*2**np.arange(2,12)
+        coeff = 1
+        n_list = coeff*2**np.arange(3,11)
     else:
         n_list = [sim_variables['cells']]
 

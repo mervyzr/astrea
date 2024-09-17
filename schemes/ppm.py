@@ -91,7 +91,7 @@ def run(grid, sim_variables, C=5/4):
             wL, wR = wF_limit_L, wF_limit_R
 
         # Get the average solution
-        avg_wS = .5 * (wL + wR)
+        avg_wS = constructors.make_Roe_average(wL, wR)
 
         # Pad the reconstructed interfaces
         wLs, wRs = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
@@ -219,7 +219,7 @@ def run_modified(grid, sim_variables, dissipate=False, C=5/4):
             wL, wR = wF_limit_L, wF_limit_R
 
         # Get the average solution
-        avg_wS = .5 * (wL + wR)
+        avg_wS = constructors.make_Roe_average(wL, wR)
 
         # Pad the reconstructed interfaces
         wLs, wRs = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
