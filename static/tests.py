@@ -145,7 +145,7 @@ def generate_test_conditions(config):
         start_pos = -1
         end_pos = 1
         shock_pos = 1
-        t_end = 2
+        t_end = 1
         boundary = "wrap"  # periodic
         initial_left = np.array([0,0,0,0,1,0,0,0])
         initial_right = np.array([0,0,0,0,1,0,0,0])

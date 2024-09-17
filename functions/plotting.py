@@ -60,7 +60,7 @@ def initiate_live_plot(sim_variables):
             if _j == 1:
                 ax[_i,_j].yaxis.set_label_position("right")
                 ax[_i,_j].yaxis.labelpad = 55
-            graph = ax[_i,_j].imshow(np.zeros((N,N)), interpolation="bilinear", cmap=TWOD_COLOURS[_i][_j])
+            graph = ax[_i,_j].imshow(np.zeros((N,N)), interpolation="hermite", cmap=TWOD_COLOURS[_i][_j])
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes('right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
@@ -167,7 +167,7 @@ def plot_quantities(f, sim_variables, save_path):
                         plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(timings[max(n_list)][time_index],3)}$", fontsize=24)
                 else:
                     if dimension >= 2:
-                        graph = ax[_i,_j].imshow(y_data[_i][_j], interpolation="bilinear", cmap=TWOD_COLOURS[_i][_j])
+                        graph = ax[_i,_j].imshow(y_data[_i][_j], interpolation="hermite", cmap=TWOD_COLOURS[_i][_j])
                         divider = make_axes_locatable(ax[_i,_j])
                         cax = divider.append_axes('right', size='5%', pad=0.05)
                         fig.colorbar(graph, cax=cax, orientation='vertical')
@@ -444,7 +444,7 @@ def make_video(f, sim_variables, save_path, vidpath):
 
             for _i, _j in PLOT_INDEXES:
                 if dimension >= 2:
-                    graph = ax[_i,_j].imshow(y_data[_i][_j], interpolation="bilinear", cmap=TWOD_COLOURS[_i][_j])
+                    graph = ax[_i,_j].imshow(y_data[_i][_j], interpolation="hermite", cmap=TWOD_COLOURS[_i][_j])
                     divider = make_axes_locatable(ax[_i,_j])
                     cax = divider.append_axes('right', size='5%', pad=0.05)
                     fig.colorbar(graph, cax=cax, orientation='vertical')
@@ -507,7 +507,7 @@ def plot_instance(grid, show_plot=True, text="", start_pos=0, end_pos=1, **kwarg
 
     for _i, _j in PLOT_INDEXES:
         if dimension >= 2:
-            graph = ax[_i,_j].imshow(y_data[_i][_j], interpolation="bilinear", cmap=TWOD_COLOURS[_i][_j])
+            graph = ax[_i,_j].imshow(y_data[_i][_j], interpolation="hermite", cmap=TWOD_COLOURS[_i][_j])
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes('right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
