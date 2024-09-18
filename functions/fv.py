@@ -8,6 +8,12 @@ import numpy as np
 def divide(dividend, divisor):
     return np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
 
+# There are situations where oscillations may produce negative densities/pressures
+# This function is for handling those scenarios; ideally there should be no negative values
+# !! MONITOR THE PHYSICS WHEN USING THIS; NEGATIVE VALUES MIGHT MEAN YOUR CODE IS INCORRECT INSTEAD !!
+def sqrt(arr):
+    return np.sqrt(arr, out=np.zeros_like(arr), where=arr>=0)
+
 
 # For handling norms; typically would always be using the last axis
 def norm(arr, axis=-1):

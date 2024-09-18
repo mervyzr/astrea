@@ -28,7 +28,6 @@ CURRENT_DIR = os.getcwd()
 SEED = np.random.randint(0, 1e8)
 np.random.seed(SEED)
 np.set_printoptions(linewidth=400, suppress=True)
-np.seterr(divide='ignore')
 
 
 # Finite volume shock function
@@ -95,6 +94,9 @@ def main() -> None:
         config_variables, noprint, debug = generic.handle_CLI(config_variables)
     else:
         noprint, debug = False, False
+    
+    if not debug:
+        np.seterr(all='ignore')
 
     # Generate test configuration
     test_variables = tests.generate_test_conditions(config_variables['config'])
