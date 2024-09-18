@@ -5,8 +5,16 @@ import numpy as np
 ##############################################################################
 
 # For handling division-by-zero warnings during array divisions
+# !! MONITOR THE PHYSICS WHEN USING THIS; ZEROS IN DIVISOR MIGHT MEAN YOUR CODE IS INCORRECT INSTEAD !!
 def divide(dividend, divisor):
     return np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
+
+
+# For handling log zero and log negative values
+# !! MONITOR THE PHYSICS WHEN USING THIS; NEGATIVE OR ZERO VALUES MIGHT MEAN YOUR CODE IS INCORRECT INSTEAD !!
+def log(arr):
+    return np.log(arr, out=np.zeros_like(arr), where=arr>0)
+
 
 # There are situations where oscillations may produce negative densities/pressures
 # This function is for handling those scenarios; ideally there should be no negative values
