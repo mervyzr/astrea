@@ -42,6 +42,7 @@ def run(grid, sim_variables, C=5/4):
         Current convention: |               w(i-1/2)                    w(i+1/2)              |
                             | i-1          <-- | -->         i         <-- | -->          i+1 |
                             |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
+                    OR      |       w-(i-1/2)  |   w+(i-1/2)    w-(i+1/2)  |  w+(i+1/2)       |
         """
         # Limited parabolic interpolant [Colella et al., 2011, p. 26]
         wF_limit_2 = fv.add_boundary(limited_values, boundary, 2)
