@@ -121,16 +121,6 @@ def generate_test_conditions(config):
         initial_right = np.array([.125,0,0,0,.1,.75,-1,0])
         misc = None
 
-    elif config == "ivc" or config == "vortex":
-        start_pos = -5
-        end_pos = 5
-        shock_pos = 0
-        t_end = 2
-        boundary = "wrap"  # periodic
-        initial_left = np.array([0,0,0,0,0,0,0,0])
-        initial_right = np.array([0,0,0,0,0,0,0,0])
-        misc = {'freq':2, 'b':.5}
-
     elif config == "khi" or config == "kelvin-helmholtz" or ("kelvin" in config or "helmholtz" in config):
         start_pos = -1
         end_pos = 1

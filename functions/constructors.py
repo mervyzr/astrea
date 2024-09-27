@@ -28,21 +28,11 @@ def initialise(sim_variables, convert=False):
             dst = np.sqrt(x**2 + y**2)
             mask = params['y_offset'] + params['ampl']*np.exp(-((dst-centre)**2)/params['fwhm'])
             arr[...,0] = mask
-        elif config in ["ivc", "vortex"]:
-            vortex_strength, freq = params['b'], params['freq']
-            vx, vy, vz = 1, 0, 0
-            if centre == shock_pos:
-                r = np.sqrt((x-shock_pos)**2 + (y-shock_pos)**2)
-            else:
-                r = np.sqrt((x-centre)**2 + (y-centre)**2)
-            arr[...,0] = (1 - np.exp(1-r**2)*(((gamma-1)*vortex_strength**2)/(2*gamma*(freq*np.pi)**2)))**(1/(gamma-1))
-            arr[...,1] = vx - ((vortex_strength/(freq*np.pi))*(y-centre)*np.exp(.5*(1-r**2)))
-            arr[...,2] = vy + ((vortex_strength/(freq*np.pi))*(x-centre)*np.exp(.5*(1-r**2)))
-            arr[...,3] = vz
-            arr[...,4] = (1 - np.exp(1-r**2)*(((gamma-1)*vortex_strength**2)/(2*gamma*(freq*np.pi)**2)))**(gamma/(gamma-1))
         elif config == "khi" or config == "kelvin-helmholtz" or ("kelvin" in config or "helmholtz" in config):
             arr[np.where(abs(y) <= shock_pos)] = initial_left
             arr[...,2] = params['perturb_ampl'] * np.sin(params['freq']*np.pi*x/(end_pos-start_pos))
+        elif "ll" in config or "lax-liu" in config:
+            pass
         else:
             arr[np.where(x < shock_pos)] = initial_left
     else:
