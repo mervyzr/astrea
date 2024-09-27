@@ -21,8 +21,8 @@ def generate_test_conditions(config):
         shock_pos = 1
         t_end = 1
         boundary = "wrap"  # periodic
-        initial_left = np.array([0,1,1,1,1,0,0,0])
-        initial_right = np.array([0,1,1,1,1,0,0,0])
+        initial_left = np.array([0,1,1,0,1,0,0,0])
+        initial_right = np.array([0,1,1,0,1,0,0,0])
         misc = {'freq':2, 'ampl':.1, 'y_offset':1}
 
     elif config == "sinc":
@@ -31,8 +31,8 @@ def generate_test_conditions(config):
         shock_pos = 0
         t_end = 20
         boundary = "edge"  # periodic
-        initial_left = np.array([0,1e-6,1e-6,1e-6,1e-3,0,0,0])
-        initial_right = np.array([0,1e-6,1e-6,1e-6,1e-3,0,0,0])
+        initial_left = np.array([0,1e-6,1e-6,0,1e-3,0,0,0])
+        initial_right = np.array([0,1e-6,1e-6,0,1e-3,0,0,0])
         misc = {'freq':10, 'ampl':1, 'y_offset':1}
 
     elif config == "sedov":
@@ -61,8 +61,8 @@ def generate_test_conditions(config):
         shock_pos = 1
         t_end = 2
         boundary = "wrap"  # periodic
-        initial_left = np.array([0,1,1,1,1e-6,0,0,0])
-        initial_right = np.array([0,1,1,1,1e-6,0,0,0])
+        initial_left = np.array([0,1,1,0,1e-6,0,0,0])
+        initial_right = np.array([0,1,1,0,1e-6,0,0,0])
         misc = {'ampl':.9999, 'fwhm':.02, 'y_offset':1}
 
     elif config.startswith('sq'):
