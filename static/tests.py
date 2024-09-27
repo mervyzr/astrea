@@ -134,12 +134,12 @@ def generate_test_conditions(config):
     elif config == "khi" or config == "kelvin-helmholtz" or ("kelvin" in config or "helmholtz" in config):
         start_pos = -1
         end_pos = 1
-        shock_pos = 1
+        shock_pos = .5
         t_end = 1
         boundary = "wrap"  # periodic
-        initial_left = np.array([0,0,0,0,1,0,0,0])
-        initial_right = np.array([0,0,0,0,1,0,0,0])
-        misc = None
+        initial_left = np.array([2,-.5,0,0,2.5,0,0,0])
+        initial_right = np.array([1,.5,0,0,2.5,0,0,0])
+        misc = {'perturb_ampl':.01, 'freq':2}
 
     else:
         start_pos = 0
