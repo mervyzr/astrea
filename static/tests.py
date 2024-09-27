@@ -5,6 +5,7 @@ import numpy as np
 ##############################################################################
 
 def generate_test_conditions(config):
+    # [Sod, 1978]
     if config == "sod":
         start_pos = 0
         end_pos = 1
@@ -25,6 +26,7 @@ def generate_test_conditions(config):
         initial_right = np.array([0,1,1,0,1,0,0,0])
         misc = {'freq':2, 'ampl':.1, 'y_offset':1}
 
+    # [Sedov, 1959]
     elif config == "sedov":
         start_pos = -10
         end_pos = 10
@@ -35,6 +37,7 @@ def generate_test_conditions(config):
         initial_right = np.array([1,0,0,0,1,0,0,0])
         misc = None
 
+    # [Shu & Osher, 1989]
     elif "shu" in config or "osher" in config:
         start_pos = -1
         end_pos = 1
@@ -65,6 +68,7 @@ def generate_test_conditions(config):
         initial_right = np.array([.01,1,0,0,1,0,0,0])
         misc = None
 
+    # [Ryu & Jones, 1995]
     elif "ryu" in config or "jones" in config or "rj" in config:
         start_pos = -.5
         end_pos = .5
@@ -75,6 +79,7 @@ def generate_test_conditions(config):
         initial_right = np.array([1,0,0,0,1,.5641895835477562,1.1283791670955125,.5641895835477562])
         misc = None
 
+    # [Brio & Wu, 1988]
     elif "brio" in config or "wu" in config or "bw" in config:
         start_pos = -.5
         end_pos = .5
@@ -95,6 +100,7 @@ def generate_test_conditions(config):
         initial_right = np.array([1,.5,0,0,2.5,0,0,0])
         misc = {'perturb_ampl':.01, 'freq':2}
 
+    # [Toro, 2009]
     elif "toro" in config:
         start_pos = 0
         end_pos = 1
@@ -131,6 +137,7 @@ def generate_test_conditions(config):
             initial_left = np.array([1,.75,0,0,1,0,0,0])
             initial_right = np.array([.125,0,0,0,.1,0,0,0])
 
+    # [Lax & Liu, 1998]
     elif "ll" in config or "lax-liu" in config:
         start_pos = 0
         end_pos = 1
