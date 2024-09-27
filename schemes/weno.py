@@ -147,37 +147,6 @@ def run(grid, sim_variables):
 
         return wL, wR
 
-        """w = fv.add_boundary(_wS, _boundary, 2)
-
-        # Define frequently used terms
-        minus_one, minus_two = w[1:-3], w[:-4]
-        plus_one, plus_two = w[3:-1], w[4:]
-        zeroth = w[2:-2]
-
-        # Define the stencils
-        u1 = 1/6 * (2*minus_two - 7*minus_one + 11*zeroth)
-        u2 = 1/6 * (-minus_one + 5*zeroth + 2*plus_one)
-        u3 = 1/6 * (2*zeroth + 5*plus_one - plus_two)
-
-        # Define the linear weights
-        g1, g2, g3 = .1, .6, .3
-
-        # Determine the smoothness indicators
-        b1 = 1/12 * (13*(minus_two - 2*minus_one + zeroth)**2 + 3*(minus_two - 4*minus_one + 3*zeroth)**2)
-        b2 = 1/12 * (13*(minus_one - 2*zeroth + plus_one)**2 + 3*(minus_one - plus_one)**2)
-        b3 = 1/12 * (13*(zeroth - 2*plus_one + plus_two)**2 + 3*(3*zeroth - 4*plus_one + plus_two)**2)
-
-        # Define the non-linear weights
-        a1 = g1/((eps + b1)**2)
-        a2 = g2/((eps + b2)**2)
-        a3 = g3/((eps + b3)**2)
-
-        w1 = a1/(a1+a2+a3)
-        w2 = a2/(a1+a2+a3)
-        w3 = a3/(a1+a2+a3)
-
-        return w1*u1 + w2*u2 + w3*u3"""
-
     # Rotate grid and apply algorithm for each axis
     for axis, axes in enumerate(permutations):
         _grid = grid.transpose(axes)
@@ -194,16 +163,19 @@ def run(grid, sim_variables):
         else:
             wL, wR = reconstruct(wS, boundary)
 
-        # Pad arrays with boundary
-        w = fv.add_boundary(wS, boundary)
+        # Get the average solution
+        avg_wS = constructors.make_Roe_average(wL, wR)
+
+        # Pad the reconstructed interfaces
         wLs, wRs = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
 
         # Convert the primitive variables
         qLs, qRs = fv.convert_primitive(wLs, sim_variables), fv.convert_primitive(wRs, sim_variables)
 
         # Compute the fluxes and the Jacobian
+        _w = fv.add_boundary(avg_wS, boundary)
         fLs, fRs = constructors.make_flux_term(wLs, gamma, axis), constructors.make_flux_term(wRs, gamma, axis)
-        A = constructors.make_Jacobian(w, gamma, axis)
+        A = constructors.make_Jacobian(_w, gamma, axis)
 
         # Update dict
         data[axes]['wS'] = wS
