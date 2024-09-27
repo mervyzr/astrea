@@ -32,7 +32,9 @@ def initialise(sim_variables, convert=False):
             arr[np.where(abs(y) <= shock_pos)] = initial_left
             arr[...,2] = params['perturb_ampl'] * np.sin(params['freq']*np.pi*x/(end_pos-start_pos))
         elif "ll" in config or "lax-liu" in config:
-            pass
+            arr[np.where(x <= shock_pos)] = initial_left
+            arr[np.where((x <= shock_pos) & (y >= shock_pos))] = params['bottom_left']
+            arr[np.where((x > shock_pos) & (y >= shock_pos))] = params['bottom_right']
         else:
             arr[np.where(x < shock_pos)] = initial_left
     else:
