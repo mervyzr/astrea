@@ -25,16 +25,6 @@ def generate_test_conditions(config):
         initial_right = np.array([0,1,1,0,1,0,0,0])
         misc = {'freq':2, 'ampl':.1, 'y_offset':1}
 
-    elif config == "sinc":
-        start_pos = -4
-        end_pos = 4
-        shock_pos = 0
-        t_end = 20
-        boundary = "edge"  # periodic
-        initial_left = np.array([0,1e-6,1e-6,0,1e-3,0,0,0])
-        initial_right = np.array([0,1e-6,1e-6,0,1e-3,0,0,0])
-        misc = {'freq':10, 'ampl':1, 'y_offset':1}
-
     elif config == "sedov":
         start_pos = -10
         end_pos = 10

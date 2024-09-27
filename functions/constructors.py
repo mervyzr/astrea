@@ -60,8 +60,6 @@ def initialise(sim_variables, convert=False):
             arr[np.where(x>shock_pos),0] = fv.sin_func(x[x>shock_pos], params)
         elif config == "sin":
             arr[...,0] = fv.sin_func(x, params)
-        elif config == "sinc":
-            arr[...,0] = fv.sinc_func(x, params)
         elif config.startswith('gauss'):
             arr[...,0] = fv.gauss_func(x, params)
 

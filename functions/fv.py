@@ -39,11 +39,6 @@ def sin_func(x, params):
     return params['y_offset'] + params['ampl']*np.sin(params['freq']*np.pi*x)
 
 
-# Generic sinc function
-def sinc_func(x, params):
-    return params['y_offset'] + params['ampl']*np.sinc(x*params['freq']/np.pi)
-
-
 # Add boundary conditions
 def add_boundary(grid, boundary, stencil=1):
     arr = np.copy(grid)
