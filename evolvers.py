@@ -18,7 +18,7 @@ def compute_H(interface_fluxes, sim_variables):
 
 # Evolve the system in space by a standardised workflow
 def evolve_space(grid, sim_variables):
-    if sim_variables.subgrid in ["weno", "w"]:
+    if "weno" in sim_variables.subgrid or sim_variables.subgrid == "w":
         return weno.run(grid, sim_variables)
     elif sim_variables.subgrid in ["ppm", "parabolic", "p"]:
         return ppm.run_modified(grid, sim_variables, dissipate=False)
