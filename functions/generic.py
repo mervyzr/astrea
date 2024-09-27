@@ -7,9 +7,9 @@ from datetime import timedelta
 ##############################################################################
 
 accepted_values = {
-    "config": ["sod", "sin", "sin-wave", "sinc", "sinc-wave", "sedov", "shu-osher", "shu", "osher", "gaussian", "gauss", "sq", "square", "square-wave", "toro1", "toro2", "toro3", "toro4", "toro5", "ryu-jones", "ryu", "jones", "rj", "brio-wu", "brio", "wu", "bw", "ivc", "vortex", "khi", "kelvin", "helmholtz", "kelvin-helmholtz"],
+    "config": ["sod", "sin", "sin-wave", "sedov", "shu-osher", "shu", "osher", "gaussian", "gauss", "sq", "square", "square-wave", "toro1", "toro2", "toro3", "toro4", "toro5", "ryu-jones", "ryu", "jones", "rj", "brio-wu", "brio", "wu", "bw", "ivc", "vortex", "khi", "kelvin", "helmholtz", "kelvin-helmholtz"],
     "dimension": [1, 1.5, 2],
-    "subgrid": ["pcm", "constant", "c", "plm", "linear", "l", "ppm", "parabolic", "p", "weno", "w"],
+    "subgrid": ["pcm", "constant", "c", "plm", "linear", "l", "ppm", "parabolic", "p", "weno", "weno3", "weno-3", "weno5", "weno-5", "weno7", "weno-7", "w"],
     "timestep": ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)", "(2,2)", "(3,3)", "(4,3)", "(5,3)", "(5,4)"],
     "scheme": ["lf", "llf", "lax","friedrich", "lax-friedrich", "lw", "lax-wendroff", "wendroff", "hllc", "c", "osher-solomon", "osher", "solomon", "os", "entropy", "stable", "entropy-stable", "es"],
     "run_type": ["s", "single", "m", "multiple", "multi", "many"]

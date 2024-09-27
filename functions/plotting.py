@@ -197,7 +197,7 @@ def plot_quantities(f, sim_variables, save_path):
                 else:
                     analytical = constructors.initialise(sim_variables)
 
-                # Adjust ylim and tolerances for Gaussian, sin-wave and sinc-wave tests
+                # Adjust ylim and tolerances for Gaussian and sin-wave tests
                 if config.startswith("gauss"):
                     P_tol = 5e-7
                 else:
