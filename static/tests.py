@@ -100,6 +100,17 @@ def generate_test_conditions(config):
         initial_right = np.array([1,.5,0,0,2.5,0,0,0])
         misc = {'perturb_ampl':.01, 'freq':2}
 
+    # [Yee et. al., 1999]
+    elif config == "ivc" or "vortex" in config or "isentropic" in config:
+        start_pos = 0
+        end_pos = 10
+        shock_pos = 5
+        t_end = 1
+        boundary = "wrap"  # periodic
+        initial_left = np.array([1,0,0,0,1,0,0,0])
+        initial_right = np.array([1,0,0,0,1,0,0,0])
+        misc = {'vortex_strength':5}
+
     # [Toro, 2009]
     elif "toro" in config:
         start_pos = 0
