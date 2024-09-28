@@ -90,7 +90,7 @@ def generate_test_conditions(config):
         initial_right = np.array([.125,0,0,0,.1,.75,-1,0])
         misc = None
 
-    elif config == "khi" or config == "kelvin-helmholtz" or ("kelvin" in config or "helmholtz" in config):
+    elif config in ["khi", "kelvin-helmholtz"] or ("kelvin" in config or "helmholtz" in config):
         start_pos = -1
         end_pos = 1
         shock_pos = .5
@@ -101,7 +101,7 @@ def generate_test_conditions(config):
         misc = {'perturb_ampl':.01, 'freq':2}
 
     # [Yee et. al., 1999]
-    elif config == "ivc" or "vortex" in config or "isentropic" in config:
+    elif config in ["ivc", "vortex", "isentropic vortex"]:
         start_pos = 0
         end_pos = 10
         shock_pos = 5
@@ -109,7 +109,7 @@ def generate_test_conditions(config):
         boundary = "wrap"  # periodic
         initial_left = np.array([1,0,0,0,1,0,0,0])
         initial_right = np.array([1,0,0,0,1,0,0,0])
-        misc = {'vortex_strength':5}
+        misc = {'vortex_str':5, 'freq':2}
 
     # [Toro, 2009]
     elif "toro" in config:
