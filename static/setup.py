@@ -9,11 +9,11 @@ currentdir = os.getcwd()
 version = "3.12"
 
 
-if not os.path.exists(f"{currentdir}/settings.py") or not os.path.isdir(f"{currentdir}/.venv"):
+if not os.path.exists(f"{currentdir}/settings.yml") or not os.path.isdir(f"{currentdir}/.venv"):
     print("Initialising setup..")
 
-    if not os.path.exists(f"{currentdir}/settings.py"):
-        shutil.copy2(f"{currentdir}/static/.default.py", f"{currentdir}/settings.py")
+    if not os.path.exists(f"{currentdir}/settings.yml"):
+        shutil.copy2(f"{currentdir}/static/.default.yml", f"{currentdir}/settings.yml")
 
     if not os.path.isdir(f"{currentdir}/.venv"):
         print("Creating Python venv for simulation..", end='\r')

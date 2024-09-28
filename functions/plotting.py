@@ -4,13 +4,8 @@ import subprocess
 
 import numpy as np
 if platform.system() == "Darwin":
-    if platform.machine() == "arm64" and platform.mac_ver()[0] > '10.15.7':
-        import matplotlib
-        from settings import save_plots, save_video
-        if save_plots or save_video:
-            matplotlib.use('Agg')
-        else:
-            matplotlib.use('TkAgg')
+    import matplotlib
+    matplotlib.use('MacOSX')
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.patches import Polygon
