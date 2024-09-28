@@ -24,17 +24,30 @@ def initialise(sim_variables, convert=False):
         if config == "sedov":
             mask = np.where(((x-centre)**2 + (y-centre)**2) <= shock_pos**2)
             arr[mask] = initial_left
+
         elif config.startswith("gauss"):
-            dst = np.sqrt(x**2 + y**2)
-            mask = params['y_offset'] + params['ampl']*np.exp(-((dst-centre)**2)/params['fwhm'])
+            r = np.sqrt((x-centre)**2 + (y-centre)**2)
+            mask = params['y_offset'] + params['ampl']*np.exp(-((r-centre)**2)/params['fwhm'])
             arr[...,0] = mask
-        elif config == "khi" or config == "kelvin-helmholtz" or ("kelvin" in config or "helmholtz" in config):
+
+        elif config in ["khi", "kelvin-helmholtz"] or ("kelvin" in config or "helmholtz" in config):
             arr[np.where(abs(y) <= shock_pos)] = initial_left
             arr[...,2] = params['perturb_ampl'] * np.sin(params['freq']*np.pi*x/(end_pos-start_pos))
+
+        elif config in ["ivc", "vortex", "isentropic vortex"]:
+            r = np.sqrt((x-centre)**2 + (y-centre)**2)
+            T = 1 - (((gamma-1)*params['vortex_str']**2)/(2*gamma*(params['freq']*np.pi)**2))*np.exp(1-r**2)
+
+            arr[...,0] = T**(1/(gamma-1))
+            arr[...,1] = (params['vortex_str']/(params['freq']*np.pi)) * np.exp((1-r**2)/2)
+            arr[...,2] = (params['vortex_str']/(params['freq']*np.pi)) * np.exp((1-r**2)/2)
+            arr[...,4] = T**(gamma/(gamma-1))
+
         elif "ll" in config or "lax-liu" in config:
             arr[np.where(x <= shock_pos)] = initial_left
             arr[np.where((x <= shock_pos) & (y >= shock_pos))] = params['bottom_left']
             arr[np.where((x > shock_pos) & (y >= shock_pos))] = params['bottom_right']
+
         else:
             arr[np.where(x < shock_pos)] = initial_left
     else:
