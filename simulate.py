@@ -102,7 +102,6 @@ def main() -> None:
     # Generate test configuration
     test_variables = tests.generate_test_conditions(config_variables['config'])
     sim_variables = config_variables | test_variables
-    print(sim_variables)
 
     # Variables handler; filter erroneous entries and default values
     sim_variables = generic.handle_variables(sim_variables)

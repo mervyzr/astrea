@@ -99,7 +99,7 @@ def handle_config(_dct):
                         v = "float64"
                     else:
                         if "bit" in v:
-                            bit = int(v.replace("-","").split("bit")[0])
+                            bit = int(v.replace("-","").replace(" ","").split("bit")[0])
                         elif "float" in v:
                             bit = int(v.split("float")[1])
                         v = precision_list[bit//16]
