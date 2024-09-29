@@ -15,12 +15,12 @@ numerical_parameters:
   subgrid     : PPM
   # Iteration methods : Euler, RK4, SSPRK(2,2), SSPRK(3,3), SSPRK(4,3), SSPRK(5,3), SSPRK(5,4)
   timestep    : SSPRK(5,4)
-  # Update schemes : Lax-Friedrich (LF), Lax-Wendroff (LW), HLLC (C), Entropy-stable (ES), Osher-Solomon (OS)
+  # Update schemes : Lax-Friedrich (LF), Lax-Wendroff (LW), HLLC (C), entropy-stable (ES), Osher-Solomon (OS)
   scheme      : LF
 
 runtime_parameters:
-  # Run types : Single, Multiple
-  run_type    : Single
+  # Run types : single, multiple
+  run_type    : single
 
 media_options:
   live_plot   : false
