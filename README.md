@@ -56,6 +56,7 @@ Several (magneto-)hydrodynamical tests are in place:
   - "Toro tests" (Toro, 1999, p.225)
   - "Lax-Liu tests" (Lax & Liu, 1998)
   - Slow-moving shock (Zingale, 2023, p.148)
+  - Double rarefaction wave (Zingale, 2023, p.141)
   - Kelvin-Helmholtz instability
   - Simple advection wave tests
     - Gaussian
