@@ -25,6 +25,7 @@ decorator==5.1.1
 defusedxml==0.7.1
 distlib==0.3.8
 ewah_bool_utils==1.2.2
+exceptiongroup==1.2.2
 executing==2.1.0
 fastjsonschema==2.20.0
 filelock==3.15.4
@@ -35,6 +36,7 @@ h5py==3.11.0
 httpcore==1.0.5
 httpx==0.27.2
 idna==3.8
+iniconfig==2.0.0
 ipykernel==6.29.5
 ipython==8.27.0
 ipywidgets==8.1.5
@@ -81,7 +83,8 @@ parso==0.8.4
 pexpect==4.9.0
 pillow==10.4.0
 platformdirs==4.2.2
-posix_ipc==1.1.1
+pluggy==1.5.0
+posix-ipc==1.1.1
 prometheus_client==0.20.0
 prompt_toolkit==3.0.47
 psutil==6.0.0
@@ -91,6 +94,7 @@ pycparser==2.22
 pyerfa==2.0.1.4
 Pygments==2.18.0
 pyparsing==3.1.4
+pytest==8.3.3
 python-dateutil==2.9.0.post0
 python-json-logger==2.0.7
 pytz==2024.1
@@ -104,7 +108,6 @@ rpds-py==0.20.0
 scikit-learn==1.5.1
 scipy==1.14.1
 Send2Trash==1.8.3
-setuptools==74.1.2
 SharedMemory==1.4.2
 six==1.16.0
 sniffio==1.3.1
@@ -114,11 +117,13 @@ sympy==1.13.2
 terminado==0.18.1
 threadpoolctl==3.5.0
 tinycss2==1.3.0
+tomli==2.0.1
 tomli_w==1.0.0
 tornado==6.4.1
 tqdm==4.66.5
 traitlets==5.14.3
 types-python-dateutil==2.9.0.20240821
+typing_extensions==4.12.2
 tzdata==2024.1
 unyt==3.0.3
 uri-template==1.3.0
@@ -128,6 +133,5 @@ wcwidth==0.2.13
 webcolors==24.8.0
 webencodings==0.5.1
 websocket-client==1.8.0
-wheel==0.44.0
 widgetsnbextension==4.0.13
 yt==4.3.1
