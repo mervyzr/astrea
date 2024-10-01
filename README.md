@@ -30,7 +30,7 @@ A method-of-lines approach is used for the temporal evolution of the simulation,
 
 Higher-order temporal discretisation methods can be employed to match the higher-order spatial components used. These higher-order methods also need to fulfil the TVD condition, which leads to the use of strong-stability preserving (SSP) variants of the Runge-Kutta (RK) methods, denoted here as SSPRK.
 
-In the following, the (explicit) SSPRK methods are denoted as SSPRK (_i_,_j_), where _i_ and _j_ refers to _i_-stage and the _j_-th order iterative method respectively. Several SSPRK variants are included for this simulation, with the SSPRK (2,2), SSPRK (3,3) (Shu & Osher, 1988), SSPRK(4,3), SSPRK (5,3) (Spiteri & Ruuth, 2002), and SSPRK (5,4) (Gottlieb et al., 2009) methods. The ''classic'' RK4 or the Forward Euler method can also be used.
+In the following, the (explicit) SSPRK methods are denoted as SSPRK (_i_,_j_), where _i_ and _j_ refers to _i_-stage and the _j_-th order iterative method respectively. Several SSPRK variants are included for this simulation, with the SSPRK (2,2) (Gottlieb et al., 2008), SSPRK (3,3) (Shu & Osher, 1988; Gottlieb et al., 2008), SSPRK(4,3), SSPRK (5,3) (Spiteri & Ruuth, 2002; Gottlieb et al., 2008), and SSPRK (5,4) (Gottlieb et al., 2008) methods. The ''classic'' RK4 or the Forward Euler method can also be used.
 
 ### Riemann solver and flux update
 
@@ -55,6 +55,7 @@ Several (magneto-)hydrodynamical tests are in place:
   - Shu-Osher shock test (Shu & Osher, 1989)
   - "Toro tests" (Toro, 1999, p.225)
   - "Lax-Liu tests" (Lax & Liu, 1998)
+  - Slow-moving shock (Zingale, 2023, p.148)
   - Kelvin-Helmholtz instability
   - Simple advection wave tests
     - Gaussian

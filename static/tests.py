@@ -58,6 +58,17 @@ def generate_test_conditions(config):
         initial_right = np.array([0,1,1,0,1e-6,0,0,0])
         misc = {'ampl':.9999, 'fwhm':.02, 'y_offset':1}
 
+    elif "slow" in config:
+        start_pos = 0
+        end_pos = 1
+        shock_pos = .5
+        t_end = .08
+        boundary = "edge"  # outflow
+        initial_left = np.array([5.6698,-1.5336,0,0,100,0,0,0])
+        initial_right = np.array([1,-10.5636,0,0,1,0,0,0])
+        misc = None
+
+
     elif config.startswith('sq'):
         start_pos = -1
         end_pos = 1
