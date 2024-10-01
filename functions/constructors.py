@@ -124,7 +124,7 @@ def make_Jacobian(grid, gamma, axis):
     return arr
 
 
-# Calculate the Roe-averaged primitive variables from the left- & right-interface states for use in Roe solver in order to better capture shocks [Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
+# Calculate the Roe-averaged primitive variables from the left- & right-interface states for use in Roe solver in order to better capture shocks [Roe & Pike, 1984; Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
 def make_Roe_average(left_interface, right_interface):
     avg = np.zeros_like(left_interface)
     rhoL, rhoR = np.sqrt(left_interface[...,0]), np.sqrt(right_interface[...,0])
