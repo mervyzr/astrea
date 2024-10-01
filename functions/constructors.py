@@ -35,7 +35,10 @@ def initialise(sim_variables, convert=False):
             arr[...,2] = params['perturb_ampl'] * np.sin(params['freq']*np.pi*x/(end_pos-start_pos))
 
         elif config in ["ivc", "vortex", "isentropic vortex"]:
-            r = np.sqrt((x-centre)**2 + (y-centre)**2)
+            x, y = np.meshgrid(np.linspace(start_pos, end_pos, N), np.linspace(start_pos-centre, end_pos-centre, N))
+            x_centre, y_centre = (np.min(x)+np.max(x))/2, (np.min(y)+np.max(y))/2
+
+            r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
             T = 1 - (((gamma-1)*params['vortex_str']**2)/(2*gamma*(params['freq']*np.pi)**2))*np.exp(1-r**2)
 
             arr[...,0] = T**(1/(gamma-1))
