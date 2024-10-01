@@ -1,6 +1,10 @@
+import math
 import random
 import argparse
+import itertools
 from datetime import timedelta
+
+import scipy
 
 ##############################################################################
 # Generic functions not specific to finite volume
@@ -104,6 +108,12 @@ def handle_config(_dct):
                         v = precision_list[bit//16]
                 else:
                     v = precision_list[v//16]
+            if k == "scheme" and v in ["osher-solomon", "osher", "solomon", "os"]:
+                _roots, _weights = scipy.special.roots_legendre(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
+                dct['roots'] = .5*_roots + .5  # Gauss-Legendre quadrature with interval [0,1]
+                dct['weights'] = _weights/2  # Gauss-Legendre quadrature with interval [0,1]
+            if k == "dimension":
+                dct['permutations'] = [axes for axes in list(itertools.permutations(list(range(math.ceil(v+1))))) if axes[-1] == math.ceil(v)]
             if isinstance(v, str):
                 v = v.lower()
 
@@ -163,6 +173,8 @@ def handle_CLI(config_variables):
 
 # Variables handler; handles all variables from CLI & settings file and revert to default values for the simulation variables (dict) if unknown
 def handle_variables(dct):
+    dct['dx'] = abs(dct['end_pos']-dct['start_pos'])/dct['cells']
+
     default_values = {
         "config": ["sod", "Test unknown; reverting to Sod shock tube test.."],
         "dimension": [1, "Invalid value for dimension; reverting to 1D.."],
