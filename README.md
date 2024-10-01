@@ -77,66 +77,34 @@ Edit your parameters in _`settings.yml`_ and run _`python3 simulate.py`_. Altern
 
 ## Organisation
 
-### Import structure
-
-- `simulate.py`       : Runs the simulation, and contains the update loop
-  - `constructors.py` : Functions used to generate specific objects, such as eigenvectors and Jacobian matrices
-  - `fv.py`           : Frequently used functions specific to the finite volume method
-  - `generic.py`      : Generic functions not specific to finite volume
-  - `plotting.py`     : Functions for (live-)plotting
-    - `analytic.py`   : Analytical solutions to hydrodynamics tests
-  - `settings.yml`    : Parameters for the simulation
-  - `tests.py`        : Hydrodynamics test configurations
-  - `evolvers.py`     : Collates the schemes for space and time evolution
-    - `pcm.py`        : Piecewise constant method [Godunov, 1959]
-      - `solvers.py`  : Contains the Riemann solvers
-      - `fv.py`
-      - `constructors.py`
-    - `plm.py`        : Piecewise linear method [Derigs et al., 2018]
-      - `solvers.py`
-      - `limiters.py` : Implements flux/slope limiters to prevent spurious oscillations in the reconstructed states
-      - `fv.py`
-      - `constructors.py`
-    - `ppm.py`        : Piecewise parabolic method [Felker & Stone, 2015]
-      - `solvers.py`
-      - `limiters.py`
-      - `fv.py`
-      - `constructors.py`
-    - `weno.py`       : WENO method [Shu, 2009; San & Kara, 2015]
-      - `solvers.py`
-      - `fv.py`
-      - `constructors.py`
-
-### Folder structure
-
 ```
 ├── LICENSE
 ├── README.md
 ├── __init__.py
-├── evolvers.py
+├── evolvers.py          : Collates the schemes for space and time evolution
 ├── functions
 │   ├── __init__.py
-│   ├── analytic.py
-│   ├── constructors.py
-│   ├── fv.py
-│   ├── generic.py
-│   └── plotting.py
+│   ├── analytic.py      : Analytical solutions to hydrodynamics tests
+│   ├── constructors.py  : Functions used to generate objects, such as eigenvectors and Jacobian matrices
+│   ├── fv.py            : Frequently used functions specific to the finite volume method
+│   ├── generic.py       : Generic functions not specific to finite volume
+│   └── plotting.py      : Functions for (live-)plotting
 ├── numerics
 │   ├── __init__.py
-│   ├── limiters.py
-│   ├── solvers.py
+│   ├── limiters.py      : Implements flux/slope limiters to prevent spurious oscillations in the reconstructed states
+│   ├── solvers.py       : Contains the Riemann solvers
 ├── schemes
 │   ├── __init__.py
-│   ├── pcm.py
-│   ├── plm.py
-│   ├── ppm.py
-│   ├── weno.py
-├── settings.yml
-├── simulate.py
+│   ├── pcm.py           : Piecewise constant method [Godunov, 1959]
+│   ├── plm.py           : Piecewise linear method [Derigs et al., 2018]
+│   ├── ppm.py           : Piecewise parabolic method [Felker & Stone, 2015]
+│   ├── weno.py          : WENO method [Shu, 2009; San & Kara, 2015]
+├── settings.yml         : Parameters for the simulation
+├── simulate.py          : Runs the simulation, and contains the update loop
 ├── static
 │   ├── __init__.py
-│   ├── .default.yml
+│   ├── .default.yml     : Default settings file
 │   ├── requirements.txt
-│   ├── setup.py
-│   ├── tests.py
+│   ├── setup.py         : Installation script
+│   ├── tests.py         : Hydrodynamics test configurations
 ```
