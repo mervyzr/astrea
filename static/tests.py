@@ -1,132 +1,204 @@
 import numpy as np
 
 ##############################################################################
+# Initial conditions for test configs
+##############################################################################
 
-def generateTestConditions(config):
+def generate_test_conditions(config):
+    # [Sod, 1978]
     if config == "sod":
-        startPos = 0
-        endPos = 1
-        shockPos = .5
-        tEnd = .2
+        start_pos = 0
+        end_pos = 1
+        shock_pos = .5
+        t_end = .2
         boundary = "edge"  # outflow
-        initialLeft = np.array([1,0,0,0,1,0,0,0])  # primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
-        initialRight = np.array([.125,0,0,0,.1,0,0,0])  # primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
+        initial_left = np.array([1,0,0,0,1,0,0,0])  # primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
+        initial_right = np.array([.125,0,0,0,.1,0,0,0])  # primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
         misc = None
 
     elif config == "sin":
-        startPos = 0
-        endPos = 1
-        shockPos = 1
-        tEnd = 1
+        start_pos = 0
+        end_pos = 1
+        shock_pos = 1
+        t_end = 1
         boundary = "wrap"  # periodic
-        initialLeft = np.array([0,1,1,1,1,0,0,0])
-        initialRight = np.array([0,1,1,1,1,0,0,0])
+        initial_left = np.array([0,1,1,0,1,0,0,0])
+        initial_right = np.array([0,1,1,0,1,0,0,0])
         misc = {'freq':2, 'ampl':.1, 'y_offset':1}
 
-    elif config == "sinc":
-        startPos = -4
-        endPos = 4
-        shockPos = 0
-        tEnd = 20
-        boundary = "edge"  # periodic
-        initialLeft = np.array([0,1e-6,1e-6,1e-6,1e-3,0,0,0])
-        initialRight = np.array([0,1e-6,1e-6,1e-6,1e-3,0,0,0])
-        misc = {'freq':10, 'ampl':1, 'y_offset':1}
-
+    # [Sedov, 1959]
     elif config == "sedov":
-        startPos = -10
-        endPos = 10
-        shockPos = .5  # blast boundary
-        tEnd = .6
-        boundary = "edge"  # outflow
-        initialLeft = np.array([1,0,0,0,100,0,0,0])
-        initialRight = np.array([1,0,0,0,1,0,0,0])
+        start_pos = -10
+        end_pos = 10
+        shock_pos = .5  # blast boundary
+        t_end = .6
+        boundary = "wrap"  # periodic
+        initial_left = np.array([1,0,0,0,100,0,0,0])
+        initial_right = np.array([1,0,0,0,1,0,0,0])
         misc = None
 
+    # [Shu & Osher, 1989]
     elif "shu" in config or "osher" in config:
-        startPos = -1
-        endPos = 1
-        shockPos = -.8
-        tEnd = .47
+        start_pos = -1
+        end_pos = 1
+        shock_pos = -.8
+        t_end = .47
         boundary = "edge"  # outflow
-        initialLeft = np.array([3.857143,2.629369,0,0,10.3333,0,0,0])
-        initialRight = np.array([0,0,0,0,1,0,0,0])
+        initial_left = np.array([3.857143,2.629369,0,0,10.3333,0,0,0])
+        initial_right = np.array([0,0,0,0,1,0,0,0])
         misc = {'freq':5, 'ampl':.2, 'y_offset':1}
 
     elif config.startswith('gauss'):
-        startPos = 0
-        endPos = 1
-        shockPos = 1
-        tEnd = 1
+        start_pos = -1
+        end_pos = 1
+        shock_pos = 1
+        t_end = 2
         boundary = "wrap"  # periodic
-        initialLeft = np.array([0,1,1,1,1e-6,0,0,0])
-        initialRight = np.array([0,0,0,0,0,0,0,0])
-        misc = {'ampl':.9999, 'fwhm':.01, 'y_offset':1}
+        initial_left = np.array([0,1,1,0,1e-6,0,0,0])
+        initial_right = np.array([0,1,1,0,1e-6,0,0,0])
+        misc = {'ampl':.9999, 'fwhm':.02, 'y_offset':1}
 
     elif config.startswith('sq'):
-        startPos = -1
-        endPos = 1
-        shockPos = 1/3
-        tEnd = .05
+        start_pos = -1
+        end_pos = 1
+        shock_pos = 1/3
+        t_end = .05
         boundary = "wrap"  # periodic
-        initialLeft = np.array([1,1,0,0,1,0,0,0])
-        initialRight = np.array([.01,1,0,0,1,0,0,0])
+        initial_left = np.array([1,1,0,0,1,0,0,0])
+        initial_right = np.array([.01,1,0,0,1,0,0,0])
         misc = None
 
+    # [Ryu & Jones, 1995]
+    elif "ryu" in config or "jones" in config or "rj" in config:
+        start_pos = -.5
+        end_pos = .5
+        shock_pos = 0
+        t_end = .15
+        boundary = "edge"  # outflow
+        initial_left = np.array([1.08,1.2,.01,.5,.95,.5641895835477562,1.0155412503859613,.5641895835477562])
+        initial_right = np.array([1,0,0,0,1,.5641895835477562,1.1283791670955125,.5641895835477562])
+        misc = None
+
+    # [Brio & Wu, 1988]
+    elif "brio" in config or "wu" in config or "bw" in config:
+        start_pos = -.5
+        end_pos = .5
+        shock_pos = 0
+        t_end = .1
+        boundary = "edge"  # outflow
+        initial_left = np.array([1,0,0,0,1,.75,1,0])
+        initial_right = np.array([.125,0,0,0,.1,.75,-1,0])
+        misc = None
+
+    elif config in ["khi", "kelvin-helmholtz"] or ("kelvin" in config or "helmholtz" in config):
+        start_pos = -1
+        end_pos = 1
+        shock_pos = .5
+        t_end = 1
+        boundary = "wrap"  # periodic
+        initial_left = np.array([2,-.5,0,0,2.5,0,0,0])
+        initial_right = np.array([1,.5,0,0,2.5,0,0,0])
+        misc = {'perturb_ampl':.01, 'freq':2}
+
+    # [Yee et. al., 1999]
+    elif config in ["ivc", "vortex", "isentropic vortex"]:
+        start_pos = 0
+        end_pos = 10
+        shock_pos = 5
+        t_end = 1
+        boundary = "wrap"  # periodic
+        initial_left = np.array([1,0,0,0,1,0,0,0])
+        initial_right = np.array([1,0,0,0,1,0,0,0])
+        misc = {'vortex_str':5, 'freq':2}
+
+    # [Toro, 2009]
     elif "toro" in config:
-        startPos = 0
-        endPos = 1
+        start_pos = 0
+        end_pos = 1
         boundary = "edge"  # outflow
         misc = None
 
         if "2" in config:
-            shockPos = .5
-            tEnd = .14
-            initialLeft = np.array([1,-2,0,0,.4,0,0,0])
-            initialRight = np.array([1,2,0,0,.4,0,0,0])
+            shock_pos = .5
+            t_end = .14
+            initial_left = np.array([1,-2,0,0,.4,0,0,0])
+            initial_right = np.array([1,2,0,0,.4,0,0,0])
 
         elif "3" in config:
-            shockPos = .5
-            tEnd = .012
-            initialLeft = np.array([1,0,0,0,1000,0,0,0])
-            initialRight = np.array([1,0,0,0,.01,0,0,0])
+            shock_pos = .5
+            t_end = .012
+            initial_left = np.array([1,0,0,0,1000,0,0,0])
+            initial_right = np.array([1,0,0,0,.01,0,0,0])
 
         elif "4" in config:
-            shockPos = .3
-            tEnd = .05
-            initialLeft = np.array([5.99924,19.5975,0,0,460.894,0,0,0])
-            initialRight = np.array([5.99242,-6.19633,0,0,46.095,0,0,0])
+            shock_pos = .3
+            t_end = .05
+            initial_left = np.array([5.99924,19.5975,0,0,460.894,0,0,0])
+            initial_right = np.array([5.99242,-6.19633,0,0,46.095,0,0,0])
 
         elif "5" in config:
-            shockPos = .8
-            tEnd = .012
-            initialLeft = np.array([1,-19.59745,0,0,1000,0,0,0])
-            initialRight = np.array([1,-19.59745,0,0,.01,0,0,0])
+            shock_pos = .8
+            t_end = .012
+            initial_left = np.array([1,-19.59745,0,0,1000,0,0,0])
+            initial_right = np.array([1,-19.59745,0,0,.01,0,0,0])
 
         else:
-            shockPos = .3
-            tEnd = .2
-            initialLeft = np.array([1,.75,0,0,1,0,0,0])
-            initialRight = np.array([.125,0,0,0,.1,0,0,0])
+            shock_pos = .3
+            t_end = .2
+            initial_left = np.array([1,.75,0,0,1,0,0,0])
+            initial_right = np.array([.125,0,0,0,.1,0,0,0])
 
-    elif "ryu" in config or "jones" in config or "rj" in config:
-        startPos = -.5
-        endPos = .5
-        shockPos = 0
-        tEnd = .15
-        boundary = "edge"  # outflow
-        initialLeft = np.array([1.08,1.2,.01,.5,.95,.5641895835477562,1.0155412503859613,.5641895835477562])
-        initialRight = np.array([1,0,0,0,1,.5641895835477562,1.1283791670955125,.5641895835477562])
-        misc = None
+    # [Lax & Liu, 1998]
+    elif "ll" in config or "lax-liu" in config:
+        start_pos = 0
+        end_pos = 1
+        shock_pos = .5
+        boundary = "wrap"  # periodic
+
+        if "3" in config:
+            t_end = .3
+            initial_left = np.array([.5323,1.206,0,0,.3,0,0,0])
+            initial_right = np.array([1.5,0,0,0,1.5,0,0,0])
+            misc = {'bottom_left':np.array([.138,1.206,1.206,0,.029,0,0,0]), 'bottom_right':np.array([.5323,0,1.206,0,.3,0,0,0])}
+
+        elif "4" in config:
+            t_end = .25
+            initial_left = np.array([.5065,.8939,0,0,.35,0,0,0])
+            initial_right = np.array([1.1,0,0,0,1.1,0,0,0])
+            misc = {'bottom_left':np.array([1.1,.8939,.8939,0,1.1,0,0,0]), 'bottom_right':np.array([.5065,0,.8939,0,.35,0,0,0])}
+
+        elif "6" in config:
+            t_end = .3
+            initial_left = np.array([2,.75,.5,0,1,0,0,0])
+            initial_right = np.array([1,.75,-.5,0,1,0,0,0])
+            misc = {'bottom_left':np.array([1,-.75,.5,0,1,0,0,0]), 'bottom_right':np.array([3,-.75,-.5,0,1,0,0,0])}
+
+        elif "11" in config:
+            t_end = .3
+            initial_left = np.array([.5313,.8276,0,0,.4,0,0,0])
+            initial_right = np.array([1,.1,0,0,1,0,0,0])
+            misc = {'bottom_left':np.array([.8,.1,0,0,.4,0,0,0]), 'bottom_right':np.array([.5313,.1,.7276,0,.4,0,0,0])}
+
+        elif "15" in config:
+            t_end = .2
+            initial_left = np.array([.5197,-.6259,-.3,0,.4,0,0,0])
+            initial_right = np.array([1,.1,-.3,0,1,0,0,0])
+            misc = {'bottom_left':np.array([.8,.1,-.3,0,.4,0,0,0]), 'bottom_right':np.array([.5313,.1,.4276,0,.4,0,0,0])}
+
+        else:
+            t_end = .25
+            initial_left = np.array([1,.7276,0,0,1,0,0,0])
+            initial_right = np.array([.5313,0,0,0,.4,0,0,0])
+            misc = {'bottom_left':np.array([.8,0,0,0,1,0,0,0]), 'bottom_right':np.array([1,0,.7276,0,1,0,0,0])}
 
     else:
-        startPos = 0
-        endPos = 1
-        shockPos = .5
-        tEnd = .2
+        start_pos = 0
+        end_pos = 1
+        shock_pos = .5
+        t_end = .2
         boundary = "edge"  # outflow
-        initialLeft = np.array([1,0,0,0,1,0,0,0])
-        initialRight = np.array([.125,0,0,0,.1,0,0,0])
+        initial_left = np.array([1,0,0,0,1,0,0,0])
+        initial_right = np.array([.125,0,0,0,.1,0,0,0])
         misc = None
 
-    return {'startPos':startPos, 'endPos':endPos, 'shockPos':shockPos, 'tEnd':tEnd, 'boundary':boundary.lower(), 'misc':misc, 'initialLeft':initialLeft, 'initialRight':initialRight}
+    return {'start_pos':start_pos, 'end_pos':end_pos, 'shock_pos':shock_pos, 't_end':t_end, 'boundary':boundary.lower(), 'misc':misc, 'initial_left':initial_left, 'initial_right':initial_right}

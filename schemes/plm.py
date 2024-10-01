@@ -1,56 +1,58 @@
-from collections import namedtuple
+from collections import defaultdict
 
 import numpy as np
 
-from functions import fv
+from functions import fv, constructors
 from numerics import limiters, solvers
 
 ##############################################################################
+# Piecewise linear reconstruction method (PLM) [van Leer, 1979]
+##############################################################################
 
-# Piecewise linear reconstruction method (PLM)
-# Current convention: |               w(i-1/2)                    w(i+1/2)              |
-#                     | i-1          <-- | -->         i         <-- | -->          i+1 |
-#                     |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
-def run(tube, simVariables):
-    gamma, precision, scheme, boundary = simVariables.gamma, simVariables.precision, simVariables.scheme, simVariables.boundary
-    Data = namedtuple('Data', ['flux', 'eigmax'])
+def run(grid, sim_variables):
+    gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
+    nested_dict = lambda: defaultdict(nested_dict)
+    data = nested_dict()
 
-    # Convert to primitive variables; able to use pointwise conversion as it is still 2nd-order
-    wS = fv.pointConvertConservative(tube, gamma)
+    # Rotate grid and apply algorithm for each axis
+    for axis, axes in enumerate(permutations):
+        _grid = grid.transpose(axes)
 
-    # Pad array with boundary & apply (TVD) slope limiters
-    w = fv.makeBoundary(wS, boundary)
-    limitedValues = limiters.minmodLimiter(w)
+        # Convert to primitive variables; able to use pointwise conversion as it is still 2nd-order
+        wS = fv.point_convert_conservative(_grid, sim_variables)
 
-    # Linear reconstruction [Derigs et al., 2017]
-    gradients = .5 * limitedValues
-    wL, wR = np.copy(wS-gradients), np.copy(wS+gradients)  # (eq. 4.13)
+        # Pad array with boundary & apply (TVD) slope limiters
+        w = fv.add_boundary(wS, boundary)
+        limited_values = limiters.minmod_limiter(w)
 
-    # Pad the reconstructed interfaces
-    wLs, wRs = fv.makeBoundary(wL, boundary)[1:], fv.makeBoundary(wR, boundary)[:-1]
+        """Linear reconstruction [Derigs et al., 2017]
+        Current convention: |               w(i-1/2)                    w(i+1/2)              |
+                            | i-1          <-- | -->         i         <-- | -->          i+1 |
+                            |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
+                    OR      |       w-(i-1/2)  |   w+(i-1/2)    w-(i+1/2)  |  w+(i+1/2)       |
+        """
+        gradients = .5 * limited_values
+        wL, wR = np.copy(wS-gradients), np.copy(wS+gradients)  # (eq. 4.13)
 
-    # Convert the primitive variables, and compute the state differences
-    # The conversion can be pointwise conversion for face-average values as it is still 2nd-order
-    qLs, qRs = fv.pointConvertPrimitive(wLs, gamma), fv.pointConvertPrimitive(wRs, gamma)
-    qDiff = (qLs-qRs).T
+        # Pad the reconstructed interfaces
+        wLs, wRs = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
 
-    # Compute the fluxes and the Jacobian
-    f = fv.makeFlux(w, gamma)
-    A = fv.makeJacobian(w, gamma)
-    characteristics = np.linalg.eigvals(A)
+        # Convert the primitive variables
+        # The conversion can be pointwise conversion for face-average values as it is still 2nd-order
+        qLs, qRs = fv.point_convert_primitive(wLs, sim_variables), fv.point_convert_primitive(wRs, sim_variables)
 
-    # Determine the eigenvalues for the computation of time stepping
-    eigvals = np.max(np.abs(characteristics), axis=1)  # Local max eigenvalue for each cell (1- or 3-Riemann invariant; shock wave or rarefaction wave)
-    maxEigvals = np.max([eigvals[:-1], eigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
+        # Compute the fluxes and the Jacobian
+        fLs, fRs = constructors.make_flux_term(wLs, gamma, axis), constructors.make_flux_term(wRs, gamma, axis)
+        A = constructors.make_Jacobian(w, gamma, axis)
 
-    eigmax = np.max([np.max(maxEigvals), np.finfo(precision).eps])  # Maximum wave speed (max eigenvalue) for time evolution
+        # Update dict
+        data[axes]['wS'] = wS
+        data[axes]['wLs'] = wLs
+        data[axes]['wRs'] = wRs
+        data[axes]['qLs'] = qLs
+        data[axes]['qRs'] = qRs
+        data[axes]['fLs'] = fLs
+        data[axes]['fRs'] = fRs
+        data[axes]['jacobian'] = A
 
-    if scheme in ["hllc", "c"]:
-        data = Data(solvers.calculateHLLCFlux(wLs, wRs, gamma, boundary), eigmax)
-    elif scheme in ["os", "osher-solomon", "osher", "solomon"]:
-        data = Data(solvers.calculateOSFlux([wLs, wRs], [qLs, qRs], gamma, boundary, simVariables.roots, simVariables.weights), eigmax)
-    elif scheme in ["lw", "lax-wendroff", "wendroff"]:
-        data = Data(solvers.calculateLaxWendroffFlux(f, qDiff, eigvals, characteristics), eigmax)
-    else:
-        data = Data(solvers.calculateLaxFriedrichFlux(f, qDiff, maxEigvals), eigmax)
-    return data
+    return solvers.calculate_Riemann_flux(sim_variables, data)

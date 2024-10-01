@@ -1,13 +1,17 @@
+import math
+
 import numpy as np
 import scipy as sp
-from scipy.integrate import odeint, quad, solve_ivp, simpson
+from scipy.integrate import quad, simpson
 
-from functions import fv
+from functions import fv, constructors
 
+##############################################################################
+# Functions for analytic solutions
 ##############################################################################
 
 # Customised rounding function
-def roundOff(value):
+def round_off(value):
     if value%int(value) >= .5:
         return int(value) + 1
     else:
@@ -15,90 +19,96 @@ def roundOff(value):
 
 
 # Calculate scaled entropy density for an array [Derigs et al., 2015]
-def calculateEntropyDensity(tube, gamma):
-    return (tube[:,0] * np.log(tube[:,4]*tube[:,0]**-gamma))/(gamma-1)
+def calculate_entropy_density(grid, gamma):
+    return (grid[...,0] * np.log(grid[...,4]*grid[...,0]**-gamma))/(gamma-1)
 
 
-# Function for solution error calculation of sin-wave, sinc-wave and Gaussian tests
-def calculateSolutionError(simulation, simVariables, norm):
-    config, startPos, endPos, params = simVariables.config, simVariables.startPos, simVariables.endPos, simVariables.misc
+# Function for solution error calculation of sin-wave and Gaussian tests
+def calculate_solution_error(simulation, sim_variables, norm):
+    dimension = sim_variables.dimension
 
-    timeKeys = [float(t) for t in simulation.keys()]
-    q_num = simulation[str(max(timeKeys))]  # Get last array with (typically largest) time key
+    time_keys = [float(t) for t in simulation.keys()]
+    w_num = simulation[str(max(time_keys))]  # Get last instance of the grid with largest time key
 
-    xi = np.linspace(startPos, endPos, len(q_num))
-    q_theo = np.copy(q_num)
-    q_theo[:] = simVariables.initialLeft
-
-    if config.startswith("gauss"):
-        q_theo[:,0] = fv.gauss_func(xi, params)
+    # Create theoretical array
+    if 1 < dimension < 2:
+        N = len(w_num[0])
+        divisor = len(w_num) * len(w_num[0])
     else:
-        if config == "sinc":
-            q_theo[:,0] = fv.sinc_func(xi, params)
-        else:
-            q_theo[:,0] = fv.sin_func(xi, params)
+        N = len(w_num)
+        divisor = len(w_num) ** dimension
+    sim_variables = sim_variables._replace(cells=N)
+    w_theo = constructors.initialise(sim_variables, convert=False)
 
-    thermal_num, thermal_theo = q_num[:,4]/q_num[:,0], q_theo[:,4]/q_theo[:,0]
-    q_num, q_theo = np.c_[q_num, thermal_num], np.c_[q_theo, thermal_theo]
+    thermal_num, thermal_theo = fv.divide(w_num[...,4], w_num[...,0]), fv.divide(w_theo[...,4], w_theo[...,0])
+    w_num, w_theo = np.concatenate((w_num, thermal_num[...,None]), axis=-1), np.concatenate((w_theo, thermal_theo[...,None]), axis=-1)
 
     if norm > 10:
-        return np.max(np.abs(q_num-q_theo), axis=0)
+        return np.max(np.abs(w_num-w_theo), axis=tuple(range(math.ceil(dimension))))
     elif norm <= 0:
-        return np.sum(np.abs(q_num-q_theo), axis=0)/len(q_num)
+        return np.sum(np.abs(w_num-w_theo), axis=tuple(range(math.ceil(dimension))))/divisor
     else:
-        return (np.sum(np.abs(q_num-q_theo)**norm, axis=0)/len(q_num))**(1/norm)
+        return (np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(range(math.ceil(dimension))))/divisor)**(1/norm)
 
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
-def calculateTV(simulation):
-    tv = {}
+def calculate_tv(simulation, sim_variables):
+    dimension, tv = math.ceil(sim_variables.dimension), {}
     for t in list(simulation.keys()):
-        domain = simulation[t]
-        tv[float(t)] = np.sum(np.abs(np.diff(domain, axis=0)), axis=0)
-        tv[float(t)] = np.append(tv[float(t)], np.sum(np.abs(np.diff(domain[:, 4]/domain[:, 0]))))
+        grid = simulation[t]
+        thermal = fv.divide(grid[...,4], grid[...,0])
+        for i in range(dimension):
+            grid = np.diff(grid, axis=i)
+            thermal = np.diff(thermal, axis=i)
+        tv[float(t)] = np.sum(np.abs(grid), axis=tuple(range(dimension)))
+        tv[float(t)] = np.append(tv[float(t)], np.sum(np.abs(thermal)))
     return tv
 
 
-# Function for checking the conservation equations; works with primitive variables
-def calculateConservation(simulation, simVariables):
-    gamma, startPos, endPos = simVariables.gamma, simVariables.startPos, simVariables.endPos
-    eq = {}
+# Function for checking the conservation equations; works with primitive variables but needs to be converted
+def calculate_conservation(simulation, sim_variables):
+    N, gamma, start_pos, end_pos = sim_variables.cells, sim_variables.gamma, sim_variables.start_pos, sim_variables.end_pos
+    dimension, eq = math.ceil(sim_variables.dimension), {}
 
     for t in list(simulation.keys()):
-        domain = fv.pointConvertPrimitive(simulation[t], gamma)
-        eq[float(t)] = simpson(domain, dx=(endPos-startPos)/len(domain), axis=0) * (endPos-startPos)
+        grid = fv.point_convert_primitive(simulation[t], sim_variables)
+        for i in range(dimension)[::-1]:
+            grid = simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
+        eq[float(t)] = grid
     return eq
 
 
-# Function for checking the conservation equations at specific intervals; works with primitive variables
+# Function for checking the conservation equations at specific intervals; works with primitive variables but needs to be converted
 # The reason is because at the boundaries, some values are lost to the ghost cells and not counted into the conservation plots
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
-def calculateConservationAtInterval(simulation, simVariables):
-    gamma, startPos, endPos = simVariables.gamma, simVariables.startPos, simVariables.endPos
-    eq = {}
+def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
+    N, gamma, start_pos, end_pos, t_end = sim_variables.cells, sim_variables.gamma, sim_variables.start_pos, sim_variables.end_pos, sim_variables.t_end
+    dimension, eq = math.ceil(sim_variables.dimension), {}
 
     intervals = np.array([], dtype=float)
-    periods = np.arange(11)
+    periods = np.linspace(0, t_end, interval)
     timings = np.asarray(list(simulation.keys()), dtype=float)
     for period in periods:
         intervals = np.append(intervals, timings[np.argmin(abs(timings-period))])
 
     for t in intervals:
-        domain = fv.pointConvertPrimitive(simulation[str(t)], gamma)
-        eq[t] = simpson(domain, dx=(endPos-startPos)/len(domain), axis=0) * (endPos-startPos)
+        grid = fv.point_convert_primitive(simulation[str(t)], sim_variables)
+        for i in range(dimension)[::-1]:
+            grid = simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
+        eq[t] = grid
     return eq
 
 
-# Determine the analytical solution for a Sod shock test
-def calculateSodAnalytical(tube, t, simVariables):
-    gamma, startPos, endPos, shockPos = simVariables.gamma, simVariables.startPos, simVariables.endPos, simVariables.shockPos
+# Determine the analytical solution for a Sod shock test, in 1D
+def calculate_Sod_analytical(grid, t, sim_variables):
+    gamma, start_pos, end_pos, shock_pos = sim_variables.gamma, sim_variables.start_pos, sim_variables.end_pos, sim_variables.shock_pos
 
     # Define array to be updated and returned
-    arr = np.zeros_like(tube)
+    arr = np.zeros_like(grid)
 
     # Get variables of the leftmost and rightmost states, which should be initial conditions
-    rho5, vx5, vy5, vz5, P5, Bx5, By5, Bz5 = tube[0]
-    rho1, vx1, vy1, vz1, P1, Bx1, By1, Bz1 = tube[-1]
+    rho5, vx5, vy5, vz5, P5, Bx5, By5, Bz5 = grid[0]
+    rho1, vx1, vy1, vz1, P1, Bx1, By1, Bz1 = grid[-1]
 
     # Define parameters needed for computation
     cs5, cs1 = np.sqrt(gamma * P5/rho5), np.sqrt(gamma * P1/rho1)
@@ -117,32 +127,32 @@ def calculateSodAnalytical(tube, t, simVariables):
     v_s = vx2/(1-(rho1/rho2))
 
     # Define boundary regions and number of cells within each region
-    boundary54 = roundOff(((shockPos-(cs5*t)-startPos)/(endPos-startPos)) * len(tube))
-    boundary43 = roundOff(((shockPos-(v_t*t)-startPos)/(endPos-startPos)) * len(tube))
-    boundary32 = roundOff(((shockPos+(vx2*t)-startPos)/(endPos-startPos)) * len(tube))
-    boundary21 = roundOff(((shockPos+(v_s*t)-startPos)/(endPos-startPos)) * len(tube))
+    boundary_54 = round_off(((shock_pos-(cs5*t)-start_pos)/(end_pos-start_pos)) * len(grid))
+    boundary_43 = round_off(((shock_pos-(v_t*t)-start_pos)/(end_pos-start_pos)) * len(grid))
+    boundary_32 = round_off(((shock_pos+(vx2*t)-start_pos)/(end_pos-start_pos)) * len(grid))
+    boundary_21 = round_off(((shock_pos+(v_s*t)-start_pos)/(end_pos-start_pos)) * len(grid))
 
     # Define number of cells in the rarefaction wave
-    rarefaction_cells = roundOff(((cs5*t-v_t*t)/(endPos-startPos)) * len(tube))
-    if rarefaction_cells - (boundary43-boundary54) < 0:
+    rarefaction_cells = round_off(((cs5*t-v_t*t)/(end_pos-start_pos)) * len(grid))
+    if rarefaction_cells - (boundary_43-boundary_54) < 0:
         rarefaction_cells += 1
-    elif rarefaction_cells - (boundary43-boundary54) > 0:
+    elif rarefaction_cells - (boundary_43-boundary_54) > 0:
         rarefaction_cells -= 1
-    rarefaction = np.linspace(shockPos-(cs5*t), shockPos-(v_t*t), rarefaction_cells) - shockPos
+    rarefaction = np.linspace(shock_pos-(cs5*t), shock_pos-(v_t*t), rarefaction_cells) - shock_pos
 
     # Update array for regions 1 and 5 (initial conditions)
-    arr[:boundary54] = tube[0]
-    arr[boundary21:] = tube[-1]
+    arr[:boundary_54] = grid[0]
+    arr[boundary_21:] = grid[-1]
 
     # Update array for regions 2 and 3 (post-shock and discontinuities)
-    arr[boundary43:boundary21, 1] = vx2
-    arr[boundary43:boundary21, 4] = P2
-    arr[boundary43:boundary32, 0] = rho3
-    arr[boundary32:boundary21, 0] = rho2
+    arr[boundary_43:boundary_21, 1] = vx2
+    arr[boundary_43:boundary_21, 4] = P2
+    arr[boundary_43:boundary_32, 0] = rho3
+    arr[boundary_32:boundary_21, 0] = rho2
 
     # Update array for region 4 (rarefaction wave)
-    arr[boundary54:boundary43, 0] = rho5 * ((1 - mu) - mu*rarefaction/(cs5*t))**beta
-    arr[boundary54:boundary43, 4] = P5 * ((1 - mu) - mu*rarefaction/(cs5*t))**(gamma*beta)
-    arr[boundary54:boundary43, 1] = (1-mu) * (cs5+(rarefaction/t))
+    arr[boundary_54:boundary_43, 0] = rho5 * ((1 - mu) - mu*rarefaction/(cs5*t))**beta
+    arr[boundary_54:boundary_43, 4] = P5 * ((1 - mu) - mu*rarefaction/(cs5*t))**(gamma*beta)
+    arr[boundary_54:boundary_43, 1] = (1-mu) * (cs5+(rarefaction/t))
 
     return arr

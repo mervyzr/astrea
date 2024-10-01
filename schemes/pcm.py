@@ -1,57 +1,35 @@
-from collections import namedtuple
+from collections import defaultdict
 
-import numpy as np
-
-from functions import fv
+from functions import fv, constructors
 from numerics import solvers
 
 ##############################################################################
+# Piecewise constant reconstruction method (PCM) [Godunov, 1959]
+##############################################################################
 
-# Piecewise constant reconstruction method (PCM)
-def run(tube, simVariables):
-    gamma, precision, scheme, boundary = simVariables.gamma, simVariables.precision, simVariables.scheme, simVariables.boundary
-    Data = namedtuple('Data', ['flux', 'eigmax'])
+def run(grid, sim_variables):
+    gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
+    nested_dict = lambda: defaultdict(nested_dict)
+    data = nested_dict()
 
-    # Convert to primitive variables
-    wS = fv.pointConvertConservative(tube, gamma)
+    # Rotate grid and apply algorithm for each axis
+    for axis, axes in enumerate(permutations):
+        _grid = grid.transpose(axes)
 
-    # Compute state differences
-    qS = fv.makeBoundary(tube, boundary)
-    qDiff = (qS[1:]-qS[:-1]).T
+        # Convert to primitive variables
+        wS = fv.point_convert_conservative(_grid, sim_variables)
+        q = fv.add_boundary(_grid, boundary)
 
-    # Compute the fluxes and the Jacobian
-    w = fv.makeBoundary(wS, boundary)
-    f = fv.makeFlux(w, gamma)
-    A = fv.makeJacobian(w, gamma)
-    characteristics = np.linalg.eigvals(A)
+        # Compute the fluxes and the Jacobian
+        w = fv.add_boundary(wS, boundary)
+        f = constructors.make_flux_term(w, gamma, axis)
+        A = constructors.make_Jacobian(w, gamma, axis)
 
-    """# Entropy-stable flux component
-    wS = fv.makeBoundary(avg_wS, boundary)
-    wLs, wRs = fv.makeBoundary(leftSolution, boundary), fv.makeBoundary(rightSolution, boundary)
-    fS = fv.makeFlux([wLs, wRs], gamma)
+        # Update dict
+        data[axes]['wS'] = wS
+        data[axes]['w'] = w
+        data[axes]['q'] = q
+        data[axes]['f'] = f
+        data[axes]['jacobian'] = A
 
-    A = fv.makeJacobian(wS, gamma)
-    characteristics = np.linalg.eigvals(A)
-    D = np.zeros((characteristics.shape[0], characteristics.shape[1], characteristics.shape[1]))
-    _diag = np.arange(characteristics.shape[1])
-    D[:, _diag, _diag] = characteristics
-
-    sL, sR = fv.getEntropyVector(wLs, gamma), fv.getEntropyVector(wRs, gamma)
-    dfS = .5 * np.einsum('ijk,ij->ik', A*(D*A.transpose([0,2,1])), sR-sL)
-    fS -= dfS"""
-
-    # Determine the eigenvalues for the computation of time stepping
-    eigvals = np.max(np.abs(characteristics), axis=1)  # Local max eigenvalue for each cell (1- or 3-Riemann invariant; shock wave or rarefaction wave)
-    maxEigvals = np.max([eigvals[:-1], eigvals[1:]], axis=0)  # Local max eigenvalue between consecutive pairs of cell
-
-    eigmax = np.max([np.max(maxEigvals), np.finfo(precision).eps])  # Maximum wave speed (max eigenvalue) for time evolution
-
-    if scheme in ["hllc", "c"]:
-        data = Data(solvers.calculateHLLCFlux(w[:-1], w[1:], gamma, boundary), eigmax)
-    elif scheme in ["os", "osher-solomon", "osher", "solomon"]:
-        data = Data(solvers.calculateOSFlux([wS, wS], [qS, qS], gamma, boundary, simVariables.roots, simVariables.weights), eigmax)
-    elif scheme in ["lw", "lax-wendroff", "wendroff"]:
-        data = Data(solvers.calculateLaxWendroffFlux(f, qDiff, eigvals, characteristics), eigmax)
-    else:
-        data = Data(solvers.calculateLaxFriedrichFlux(f, qDiff, maxEigvals), eigmax)
-    return data
+    return solvers.calculate_Riemann_flux(sim_variables, data)
