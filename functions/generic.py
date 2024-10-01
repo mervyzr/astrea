@@ -6,7 +6,7 @@ from datetime import timedelta
 # Generic functions not specific to finite volume
 ##############################################################################
 
-accepted_values = {
+ACCEPTED_VALUES = {
     "config": ["sod", "sin", "sin-wave", "sedov", "shu-osher", "shu", "osher", "gaussian", "gauss", "sq", "square", "square-wave", "ryu-jones", "ryu", "jones", "rj", "brio-wu", "brio", "wu", "bw", "khi", "kelvin", "helmholtz", "kelvin-helmholtz", "ivc", "vortex", "isentropic vortex", "toro1", "toro2", "toro3", "toro4", "toro5", "ll3", "ll4", "ll6", "ll11", "ll12", "ll15", "lax-liu3", "lax-liu4", "lax-liu6", "lax-liu11", "lax-liu12", "lax-liu15"],
     "dimension": [1, 1.5, 2],
     "subgrid": ["pcm", "constant", "c", "plm", "linear", "l", "ppm", "parabolic", "p", "weno", "weno3", "weno-3", "weno5", "weno-5", "weno7", "weno-7", "w"],
@@ -77,16 +77,36 @@ def print_output(instance_time, seed, sim_variables, **kwargs):
         pass
 
 
-# Function for tidying dictionary
-def tidy_dict(dct):
-    for k, v in dct.items():
-        if k == "cells":
-            dct[k] = int(v) - int(v)%2
-        elif isinstance(v, str):
-            dct[k] = v.lower()
-        elif isinstance(v, bool):
-            dct[k] = bool(v)
-        else:
+# Function for tidying simulation variables
+def handle_config(_dct):
+    dct = {}
+    for parameters in _dct.values():
+        for k,v in parameters.items():
+            if k == "cells":
+                try:
+                    v -= v%2
+                except Exception as e:
+                    v = 128
+            if k == "precision":
+                precision_list = {1:"float16", 2:"float32", 4:"float64", 8:"float128"}
+                try:
+                    int(v)
+                except Exception as e:
+                    try:
+                        v.lower()
+                    except Exception as e:
+                        v = "float64"
+                    else:
+                        if "bit" in v:
+                            bit = int(v.replace("-","").replace(" ","").split("bit")[0])
+                        elif "float" in v:
+                            bit = int(v.split("float")[1])
+                        v = precision_list[bit//16]
+                else:
+                    v = precision_list[v//16]
+            if isinstance(v, str):
+                v = v.lower()
+
             dct[k] = v
     return dct
 
@@ -108,18 +128,18 @@ def handle_CLI(config_variables):
             "Computer science is no more about computers than astronomy is about telescopes"]
 
     parser = argparse.ArgumentParser(description='Run the mHydyS simulation.\n\nmHydyS is a 1D or 2D (magneto-)hydrodynamics finite volume simulation written in Python3. Refer to the README for more information.', 
-                                     epilog=quotes[random.randint(0,len(quotes)-1)], 
+                                     epilog=f"Fun quote: {quotes[random.randint(0,len(quotes)-1)]}", 
                                      formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument('--config', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Configuration to run in the simulation', choices=accepted_values['config'])
+    parser.add_argument('--config', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Configuration to run in the simulation', choices=ACCEPTED_VALUES['config'])
     parser.add_argument('--cells', '--N', '--n', dest='cells', metavar='', type=int, default=argparse.SUPPRESS, help='Number of cells in the grid', choices=range(2,16385,2))
     parser.add_argument('--cfl', metavar='', type=float, default=argparse.SUPPRESS, help='Courant number in the Courant-Friedrichs-Lewy stability condition')
     parser.add_argument('--gamma', metavar='', type=float, default=argparse.SUPPRESS, help='Adiabatic index')
-    parser.add_argument('--dimension', '--dim', dest='dimension', type=float, metavar='', default=argparse.SUPPRESS, help='Dimension of the simulation', choices=accepted_values['dimension'])
-    parser.add_argument('--subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Subgrid model used in the reconstruction of the grid', choices=accepted_values['subgrid'])
-    parser.add_argument('--timestep', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Time-stepping algorithm used in the update step of the simulation', choices=accepted_values['timestep'])
-    parser.add_argument('--scheme', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Scheme of solver for the Riemann problem', choices=accepted_values['scheme'])
-    parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Number of runs in a complete simulation', choices=accepted_values['run_type'])
+    parser.add_argument('--dimension', '--dim', dest='dimension', type=float, metavar='', default=argparse.SUPPRESS, help='Dimension of the simulation', choices=ACCEPTED_VALUES['dimension'])
+    parser.add_argument('--subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Subgrid model used in the reconstruction of the grid', choices=ACCEPTED_VALUES['subgrid'])
+    parser.add_argument('--timestep', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Time-stepping algorithm used in the update step of the simulation', choices=ACCEPTED_VALUES['timestep'])
+    parser.add_argument('--scheme', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Scheme of solver for the Riemann problem', choices=ACCEPTED_VALUES['scheme'])
+    parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Number of runs in a complete simulation', choices=ACCEPTED_VALUES['run_type'])
     parser.add_argument('--live_plot', metavar='', type=bool, default=argparse.SUPPRESS, help='Toggle the live plot', choices=[True, False])
     parser.add_argument('--save_plots', metavar='', type=bool, default=argparse.SUPPRESS, help='Save plots to file', choices=[True, False])
     parser.add_argument('--snapshots', metavar='', type=int, default=argparse.SUPPRESS, help='Number of snapshots of the simulation to save to file')
@@ -152,7 +172,7 @@ def handle_variables(dct):
         "run_type": ["single", "Run type unknown; reverting to run_type='single' simulation.."]
         }
 
-    for k, lst in accepted_values.items():
+    for k, lst in ACCEPTED_VALUES.items():
         if dct[k] not in lst:
             print(f"{BColours.WARNING}{default_values[k][1]}{BColours.ENDC}")
             dct[k] = default_values[k][0]

@@ -1,0 +1,31 @@
+---
+simulation_parameters:
+  # List of available configurations to run
+  # : Sod, Sedov, Shu-Osher, Ryu-Jones, Brio-Wu, Gaussian, sin-wave, square wave, isentropic vortex, Kelvin-Helmholtz instability, Toro1/2/3/4/5, , Lax-Liu3/4/6/11/12/15
+  config      : Sod
+  cells       : 128
+  cfl         : .5
+  gamma       : 1.4
+  dimension   : 1
+
+numerical_parameters:
+  # Floating-point precision : 16-bit, 32-bit, 64-bit, 128-bit
+  precision   : 64
+  # Subgrid models : PCM, PLM, PPM, WENO-3/5/7
+  subgrid     : PPM
+  # Iteration methods : Euler, RK4, SSPRK(2,2), SSPRK(3,3), SSPRK(4,3), SSPRK(5,3), SSPRK(5,4)
+  timestep    : SSPRK(5,4)
+  # Update schemes : Lax-Friedrich (LF), Lax-Wendroff (LW), HLLC (C), entropy-stable (ES), Osher-Solomon (OS)
+  scheme      : LF
+
+runtime_parameters:
+  # Run types : single, multiple
+  run_type    : single
+
+media_options:
+  live_plot   : false
+  save_plots  : false
+  snapshots   : 1
+  save_video  : false
+  save_file   : false
+...

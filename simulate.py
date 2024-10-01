@@ -11,10 +11,10 @@ from time import perf_counter
 from collections import namedtuple
 
 import h5py
+import yaml
 import numpy as np
 import scipy as sp
 
-import settings
 import evolvers
 from static import tests
 from functions import fv, generic, plotting, constructors
@@ -85,9 +85,10 @@ def main() -> None:
     file_name = f"{CURRENT_DIR}/.tempShockData_{SEED}.hdf5"
     noprint, debug = False, False
 
-    # Generate the simulation variables (dict)
-    config_list = [var for var in dir(settings) if '__' not in var and var != 'np']
-    config_variables = generic.tidy_dict({k:v for k,v in vars(settings).items() if k in config_list})
+    # Generate the simulation variables from settings (dict)
+    with open(f"{CURRENT_DIR}/settings.yml", "r") as settings_file:
+        config_dict = yaml.safe_load(settings_file)
+        config_variables = generic.handle_config(config_dict)
 
     # Check CLI arguments
     if len(sys.argv) > 1:
