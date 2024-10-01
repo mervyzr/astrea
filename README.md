@@ -28,7 +28,7 @@ The parabolic reconstruction method by McCorquodale & Colella (2011) also includ
 
 A method-of-lines approach is used for the temporal evolution of the simulation, thus the temporal component of the advection equation can be discretised and treated separately from the spatial component.
 
-Higher-order temporal discretisation methods can be employed to match the higher-order spatial components used. These higher-order methods also need to fulfil the TVD condition, which leads to the use of strong-stability preserving (SSP) variants of the Runge-Kutta (RK) methods, denoted here as SSPRK. The implementation of the SSPRK variants might be low storage (Williamson, 1980).
+Higher-order temporal discretisation methods can be employed to match the higher-order spatial components used. These higher-order methods also need to fulfil the TVD condition, which leads to the use of strong-stability preserving (SSP) variants of the Runge-Kutta (RK) methods, denoted here as SSPRK. The implementation of the SSPRK variants might also be low storage (Williamson, 1980) and use the "Shu-Osher" representation (Shu & Osher, 1988).
 
 In the following, the (explicit) SSPRK methods are denoted as SSPRK (_i_,_j_), where _i_ and _j_ refers to _i_-stage and the _j_-th order iterative method respectively. Several SSPRK variants are included for this simulation, with the SSPRK (2,2) (Gottlieb et al., 2008), SSPRK (3,3) (Shu & Osher, 1988; Gottlieb et al., 2008), SSPRK(4,3), SSPRK (5,3) (Spiteri & Ruuth, 2002; Gottlieb et al., 2008), and SSPRK (5,4) (Gottlieb et al., 2008) methods. The ''classic'' RK4 or the Forward Euler method can also be used.
 
