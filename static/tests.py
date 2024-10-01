@@ -111,7 +111,7 @@ def generate_test_conditions(config):
         initial_right = np.array([1,0,0,0,1,0,0,0])
         misc = {'vortex_str':5, 'freq':2}
 
-    # [Toro, 2009]
+    # [Toro, 1999, p.225]
     elif "toro" in config:
         start_pos = 0
         end_pos = 1
