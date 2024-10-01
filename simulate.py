@@ -2,10 +2,8 @@
 
 import os
 import sys
-import math
 import shutil
 import traceback
-import itertools
 from datetime import datetime
 from time import perf_counter
 from collections import namedtuple
@@ -13,7 +11,6 @@ from collections import namedtuple
 import h5py
 import yaml
 import numpy as np
-import scipy as sp
 
 import evolvers
 from static import tests
@@ -105,14 +102,6 @@ def main() -> None:
 
     # Variables handler; filter erroneous entries and default values
     sim_variables = generic.handle_variables(sim_variables)
-
-    # Generate frequently used variables
-    sim_variables['dx'] = abs(sim_variables['end_pos']-sim_variables['start_pos'])/sim_variables['cells']
-    sim_variables['permutations'] = [axes for axes in list(itertools.permutations(list(range(math.ceil(sim_variables['dimension']+1))))) if axes[-1] == math.ceil(sim_variables['dimension'])]
-    if sim_variables['scheme'] in ['osher-solomon', 'osher', 'solomon', 'os']:
-        _roots, _weights = sp.special.roots_legendre(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
-        sim_variables['roots'] = .5*_roots + .5  # Gauss-Legendre quadrature with interval [0,1]
-        sim_variables['weights'] = _weights/2  # Gauss-Legendre quadrature with interval [0,1]
 
     # Simulation condition handler
     if sim_variables['run_type'].startswith('m'):
