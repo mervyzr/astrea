@@ -14,7 +14,7 @@ ACCEPTED_VALUES = {
     "config": ["sod", "sin", "sin-wave", "sedov", "shu-osher", "shu", "osher", "slow", "slow-moving shock", "slow shock", "double rarefaction", "rarefaction", "double", "gaussian", "gauss", "sq", "square", "square-wave", "ryu-jones", "ryu", "jones", "rj", "brio-wu", "brio", "wu", "bw", "khi", "kelvin", "helmholtz", "kelvin-helmholtz", "ivc", "vortex", "isentropic vortex", "toro1", "toro2", "toro3", "toro4", "toro5", "ll3", "ll4", "ll6", "ll11", "ll12", "ll15", "lax-liu3", "lax-liu4", "lax-liu6", "lax-liu11", "lax-liu12", "lax-liu15"],
     "dimension": [1, 1.5, 2],
     "subgrid": ["pcm", "constant", "c", "plm", "linear", "l", "ppm", "parabolic", "p", "weno", "weno3", "weno-3", "weno5", "weno-5", "weno7", "weno-7", "w"],
-    "timestep": ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)", "(2,2)", "(3,3)", "(4,3)", "(5,3)", "(5,4)"],
+    "timestep": ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)", "ssprk(10,4)", "(2,2)", "(3,3)", "(4,3)", "(5,3)", "(5,4)", "(10,4)"],
     "scheme": ["lf", "llf", "lax","friedrich", "lax-friedrich", "lw", "lax-wendroff", "wendroff", "hllc", "c", "osher-solomon", "osher", "solomon", "os", "entropy", "stable", "entropy-stable", "es"],
     "run_type": ["s", "single", "m", "multiple", "multi", "many"]
     }
