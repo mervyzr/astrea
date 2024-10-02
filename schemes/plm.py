@@ -39,7 +39,7 @@ def run(grid, sim_variables):
 
         # Convert the primitive variables
         # The conversion can be pointwise conversion for face-average values as it is still 2nd-order
-        qLs, qRs = fv.point_convert_primitive(wLs, sim_variables), fv.point_convert_primitive(wRs, sim_variables)
+        qLs, qRs = fv.convert_primitive(wLs, sim_variables, "face"), fv.convert_primitive(wRs, sim_variables, "face")
 
         # Compute the fluxes and the Jacobian
         fLs, fRs = constructors.make_flux_term(wLs, gamma, axis), constructors.make_flux_term(wRs, gamma, axis)
