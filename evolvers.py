@@ -1,6 +1,7 @@
 import numpy as np
 
 from schemes import pcm, plm, ppm, weno
+from numerics import solvers
 
 ##############################################################################
 # Collates and controls space and time evolution
@@ -19,14 +20,17 @@ def compute_H(interface_fluxes, sim_variables):
 # Evolve the system in space by a standardised workflow
 def evolve_space(grid, sim_variables):
     if "weno" in sim_variables.subgrid or sim_variables.subgrid == "w":
-        return weno.run(grid, sim_variables)
+        data = weno.run(grid, sim_variables)
     elif sim_variables.subgrid in ["ppm", "parabolic", "p"]:
-        return ppm.run_modified(grid, sim_variables, dissipate=False)
-        #return ppm.run(grid, sim_variables)
+        data = ppm.run_modified(grid, sim_variables, dissipate=False)
+        #data = ppm.run(grid, sim_variables)
     elif sim_variables.subgrid in ["plm", "linear", "l"]:
-        return plm.run(grid, sim_variables)
+        data = plm.run(grid, sim_variables)
     else:
-        return pcm.run(grid, sim_variables)
+        data = pcm.run(grid, sim_variables)
+
+    fluxes = solvers.calculate_Riemann_flux(sim_variables, data)
+    return fluxes
 
 
 # Evolve the system in time by a standardised workflow

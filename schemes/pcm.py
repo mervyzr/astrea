@@ -1,7 +1,6 @@
 from collections import defaultdict
 
 from functions import fv, constructors
-from numerics import solvers
 
 ##############################################################################
 # Piecewise constant reconstruction method (PCM) [Godunov, 1959]
@@ -32,4 +31,4 @@ def run(grid, sim_variables):
         data[axes]['f'] = f
         data[axes]['jacobian'] = A
 
-    return solvers.calculate_Riemann_flux(sim_variables, data)
+    return data

@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 
 from functions import fv, constructors
-from numerics import limiters, solvers
+from numerics import limiters
 
 ##############################################################################
 # Piecewise linear reconstruction method (PLM) [van Leer, 1979]
@@ -55,4 +55,4 @@ def run(grid, sim_variables):
         data[axes]['fRs'] = fRs
         data[axes]['jacobian'] = A
 
-    return solvers.calculate_Riemann_flux(sim_variables, data)
+    return data
