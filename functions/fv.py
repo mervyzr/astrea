@@ -1,3 +1,4 @@
+import math
 import numpy as np
 
 ##############################################################################
@@ -55,7 +56,7 @@ def convert_mode(grid, sim_variables, _type="cell"):
     if _type == "face" or _type == "interface":
         for axes in permutations:
             reversed_axes = np.argsort(axes)  # Only necessary for 3D
-            for ax in range(1, dimension):
+            for ax in range(1, math.ceil(dimension)):
                 padding = [(0,0)] * grid.ndim
                 padding[ax] = (1,1)
 
@@ -97,7 +98,7 @@ def convert_primitive(grid, sim_variables, _type="cell"):
     if _type == "face" or _type == "interface":
         for axes in permutations:
             reversed_axes = np.argsort(axes)
-            for ax in range(1, dimension):
+            for ax in range(1, math.ceil(dimension)):
                 padding = [(0,0)] * grid.ndim
                 padding[ax] = (1,1)
 
@@ -141,7 +142,7 @@ def convert_conservative(grid, sim_variables, _type="cell"):
     if _type == "face" or _type == "interface":
         for axes in permutations:
             reversed_axes = np.argsort(axes)
-            for ax in range(1, dimension):
+            for ax in range(1, math.ceil(dimension)):
                 padding = [(0,0)] * grid.ndim
                 padding[ax] = (1,1)
 
