@@ -38,7 +38,8 @@ def calculate_solution_error(simulation, sim_variables, norm):
         N = len(w_num)
         divisor = len(w_num) ** dimension
     sim_variables = sim_variables._replace(cells=N)
-    w_theo = constructors.initialise(sim_variables, convert=False)
+    _w_theo = constructors.initialise(sim_variables, convert=False)
+    w_theo = fv.convert_mode(_w_theo, sim_variables)
 
     thermal_num, thermal_theo = fv.divide(w_num[...,4], w_num[...,0]), fv.divide(w_theo[...,4], w_theo[...,0])
     w_num, w_theo = np.concatenate((w_num, thermal_num[...,None]), axis=-1), np.concatenate((w_theo, thermal_theo[...,None]), axis=-1)
@@ -67,11 +68,16 @@ def calculate_tv(simulation, sim_variables):
 
 # Function for checking the conservation equations; works with primitive variables but needs to be converted
 def calculate_conservation(simulation, sim_variables):
-    N, gamma, start_pos, end_pos = sim_variables.cells, sim_variables.gamma, sim_variables.start_pos, sim_variables.end_pos
+    N, subgrid, start_pos, end_pos = sim_variables.cells, sim_variables.subgrid, sim_variables.start_pos, sim_variables.end_pos
     dimension, eq = math.ceil(sim_variables.dimension), {}
 
+    if subgrid.startswith("w") or subgrid in ["ppm", "parabolic", "p"]:
+        convert = fv.convert_primitive
+    else:
+        convert = fv.point_convert_primitive
+
     for t in list(simulation.keys()):
-        grid = fv.point_convert_primitive(simulation[t], sim_variables)
+        grid = convert(simulation[t], sim_variables)
         for i in range(dimension)[::-1]:
             grid = simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
         eq[float(t)] = grid
@@ -82,8 +88,13 @@ def calculate_conservation(simulation, sim_variables):
 # The reason is because at the boundaries, some values are lost to the ghost cells and not counted into the conservation plots
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
 def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
-    N, gamma, start_pos, end_pos, t_end = sim_variables.cells, sim_variables.gamma, sim_variables.start_pos, sim_variables.end_pos, sim_variables.t_end
+    N, subgrid, start_pos, end_pos, t_end = sim_variables.cells, sim_variables.subgrid, sim_variables.start_pos, sim_variables.end_pos, sim_variables.t_end
     dimension, eq = math.ceil(sim_variables.dimension), {}
+
+    if subgrid.startswith("w") or subgrid in ["ppm", "parabolic", "p"]:
+        convert = fv.convert_primitive
+    else:
+        convert = fv.point_convert_primitive
 
     intervals = np.array([], dtype=float)
     periods = np.linspace(0, t_end, interval)
@@ -92,7 +103,7 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
         intervals = np.append(intervals, timings[np.argmin(abs(timings-period))])
 
     for t in intervals:
-        grid = fv.point_convert_primitive(simulation[str(t)], sim_variables)
+        grid = convert(simulation[str(t)], sim_variables)
         for i in range(dimension)[::-1]:
             grid = simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
         eq[t] = grid

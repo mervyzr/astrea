@@ -98,7 +98,7 @@ def run(grid, sim_variables, C=5/4):
         wLs, wRs = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
 
         # Convert the primitive variables
-        qLs, qRs = fv.convert_primitive(wLs, sim_variables), fv.convert_primitive(wRs, sim_variables)
+        qLs, qRs = fv.convert_primitive(wLs, sim_variables, "face"), fv.convert_primitive(wRs, sim_variables, "face")
 
         # Compute the fluxes and the Jacobian
         _w = fv.add_boundary(avg_wS, boundary)
@@ -226,7 +226,7 @@ def run_modified(grid, sim_variables, dissipate=False, C=5/4):
         wLs, wRs = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
 
         # Convert the primitive variables
-        qLs, qRs = fv.convert_primitive(wLs, sim_variables), fv.convert_primitive(wRs, sim_variables)
+        qLs, qRs = fv.convert_primitive(wLs, sim_variables, "face"), fv.convert_primitive(wRs, sim_variables, "face")
 
         # Compute the fluxes and the Jacobian
         _w = fv.add_boundary(avg_wS, boundary)

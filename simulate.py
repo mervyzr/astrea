@@ -30,15 +30,16 @@ np.set_printoptions(linewidth=400, suppress=True)
 # Finite volume shock function
 def run_simulation(grp: h5py, _sim_variables: namedtuple):
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables
-    # Even though the solution array is discrete, the variables are averages (FV) instead of points (FD)
-    grid = constructors.initialise(_sim_variables, convert=True)
+    # The discrete solution array must be converted to averages for FVM instead of points in FDM
+    pointwise_grid = constructors.initialise(_sim_variables, convert=True)
+    grid = fv.convert_mode(pointwise_grid, _sim_variables)
 
     # Initiate live plotting, if enabled
     if _sim_variables.live_plot:
         plotting_params = plotting.initiate_live_plot(_sim_variables)
     
     # Define the conversion based on subgrid model
-    if _sim_variables.subgrid in ["weno", "w", "ppm", "parabolic", "p"]:
+    if _sim_variables.subgrid.startswith("w") or _sim_variables.subgrid in ["ppm", "parabolic", "p"]:
         convert = fv.convert_conservative
     else:
         convert = fv.point_convert_conservative

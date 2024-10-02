@@ -188,9 +188,10 @@ def plot_quantities(f, sim_variables, save_path):
             # Add analytical solution for smooth functions, using the highest resolution and timing
             if config.startswith("sin") or config.startswith("gauss"):
                 if 1 < dimension < 2:
-                    analytical = constructors.initialise(sim_variables)[middle_layer]
+                    _analytical = constructors.initialise(sim_variables)[middle_layer]
                 else:
-                    analytical = constructors.initialise(sim_variables)
+                    _analytical = constructors.initialise(sim_variables)
+                analytical = fv.convert_mode(_analytical, sim_variables)
 
                 # Adjust ylim and tolerances for Gaussian and sin-wave tests
                 if config.startswith("gauss"):

@@ -6,7 +6,7 @@ from functions import fv
 # Functions for constructing objects such as the grid, eigenvectors, Jacobian and flux terms
 ##############################################################################
 
-# Initialise the discrete solution array with initial conditions and primitive variables w. Returns the solution array in conserved variables q
+# Initialise the discrete POINTWISE solution array with initial conditions and primitive variables w
 def initialise(sim_variables, convert=False):
 
     def make_physical_grid(_start_pos, _end_pos, _N):
