@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 
 from functions import fv, constructors
-from numerics import limiters, solvers
+from numerics import limiters
 
 ##############################################################################
 # Piecewise parabolic reconstruction method (PPM) [Colella & Woodward, 1984]
@@ -115,7 +115,7 @@ def run(grid, sim_variables, C=5/4):
         data[axes]['fRs'] = fRs
         data[axes]['jacobian'] = A
 
-    return solvers.calculate_Riemann_flux(sim_variables, data)
+    return data
 
 
 # Modified piecewise parabolic reconstruction method (m-PPM); does not have interface limiting
@@ -251,7 +251,7 @@ def run_modified(grid, sim_variables, dissipate=False, C=5/4):
         data[axes]['fRs'] = fRs
         data[axes]['jacobian'] = A
 
-    return solvers.calculate_Riemann_flux(sim_variables, data)
+    return data
 
 
 # Calculate the coefficients of the slope flattener for the parabolic extrapolants using pressure and v_x [Colella, 1990]

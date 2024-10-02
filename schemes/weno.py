@@ -1,7 +1,6 @@
 from collections import defaultdict
 
 from functions import fv, constructors
-from numerics import solvers
 
 ##############################################################################
 # WENO reconstruction method [Shu, 2009]
@@ -187,4 +186,4 @@ def run(grid, sim_variables):
         data[axes]['fRs'] = fRs
         data[axes]['jacobian'] = A
 
-    return solvers.calculate_Riemann_flux(sim_variables, data)
+    return data
