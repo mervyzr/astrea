@@ -34,8 +34,30 @@ def evolve_time(grid, interface_fluxes, dt, sim_variables):
     h_zero = compute_H(interface_fluxes, sim_variables)
 
     # Methods for linear and non-linear systems [Shu & Osher, 1988]
-    # [Gottlieb et al., 2008]
-    if sim_variables.timestep in ["ssprk(5,4)", "(5,4)"]:
+    # [Ketcheson, 2008]
+    if sim_variables.timestep in ["ssprk(10,4)", "(10,4)"]:
+        # Evolve system by SSP-RK (10,4) method (4th-order); effective SSP coeff = 0.6
+        # Computation of i-th registers (i = 1,2,3,4)
+        k = np.copy(grid)
+        for i in range(4):
+            k += 1/6*dt*compute_H(interface_fluxes, sim_variables)
+            interface_fluxes = evolve_space(k, sim_variables)
+
+        # Computation of 5th register
+        k5 = 3/5*grid + 6/15*k + 1/15*dt*compute_H(interface_fluxes, sim_variables)
+        interface_fluxes = evolve_space(k5, sim_variables)
+
+        # Computation of i-th registers (i = 6,7,8,9)
+        _k = np.copy(k5)
+        for i in range(4):
+            _k += 1/6*dt*compute_H(interface_fluxes, sim_variables)
+            interface_fluxes = evolve_space(_k, sim_variables)
+
+        # Computation of 10th register
+        return -11/35*grid + 5/7*k5 + 3/5*_k + 1/10*dt*compute_H(interface_fluxes, sim_variables)
+
+    # [Kraaijevanger, 1991; Spiteri & Ruuth, 2002; Gottlieb et al., 2008]
+    elif sim_variables.timestep in ["ssprk(5,4)", "(5,4)"]:
         # Evolve system by SSP-RK (5,4) method (4th-order); effective SSP coeff = 0.302
         # Computation of 1st register
         k1 = grid + .39175222657189*dt*h_zero
@@ -135,48 +157,6 @@ def evolve_time(grid, interface_fluxes, dt, sim_variables):
 
         # Computation of the final update
         return grid + (dt * (h_zero + 2*compute_H(interface_fluxes1, sim_variables) + 2*compute_H(interface_fluxes2, sim_variables) + compute_H(interface_fluxes3, sim_variables)))/6
-
-    # Not working; values blow up [Ketcheson, 2008]
-    if sim_variables.timestep in ["ssprk(10,4)", "(10,4)"]:
-        # Evolve system by SSP-RK (10,4) method (4th-order); effective SSP coeff = 0.6
-        # Computation of 1st register
-        k1 = grid + 1/6*dt*h_zero
-        interface_fluxes1 = evolve_space(k1, sim_variables)
-
-        # Computation of 2nd register
-        k2 = k1 + 1/6*dt*compute_H(interface_fluxes1, sim_variables)
-        interface_fluxes2 = evolve_space(k2, sim_variables)
-
-        # Computation of 3rd register
-        k3 = k2 + 1/6*dt*compute_H(interface_fluxes2, sim_variables)
-        interface_fluxes3 = evolve_space(k3, sim_variables)
-
-        # Computation of 4th register
-        k4 = k3 + 1/6*dt*compute_H(interface_fluxes3, sim_variables)
-        interface_fluxes4 = evolve_space(k4, sim_variables)
-
-        # Computation of 5th register
-        k5 = 3/5*grid + 6/15*k4 + 1/15*dt*compute_H(interface_fluxes4, sim_variables)
-        interface_fluxes5 = evolve_space(k5, sim_variables)
-
-        # Computation of 6th register
-        k6 = k5 + 1/6*dt*compute_H(interface_fluxes5, sim_variables)
-        interface_fluxes6 = evolve_space(k6, sim_variables)
-
-        # Computation of 7th register
-        k7 = k6 + 1/6*dt*compute_H(interface_fluxes6, sim_variables)
-        interface_fluxes7 = evolve_space(k7, sim_variables)
-
-        # Computation of 8th register
-        k8 = k7 + 1/6*dt*compute_H(interface_fluxes7, sim_variables)
-        interface_fluxes8 = evolve_space(k8, sim_variables)
-
-        # Computation of 9th register
-        k9 = k8 + 1/6*dt*compute_H(interface_fluxes8, sim_variables)
-        interface_fluxes9 = evolve_space(k9, sim_variables)
-
-        # Computation of 10th register
-        return -11/10*grid + 3/5*k9 + 5/2*k5 + 1/10*dt*compute_H(interface_fluxes9, sim_variables)
 
     else:
         # Evolve system by a full timestep (1st-order)
