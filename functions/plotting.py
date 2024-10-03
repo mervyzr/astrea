@@ -33,12 +33,12 @@ else:
     if STYLE != "default":
         _color = plt.rcParams['axes.prop_cycle'].by_key()['color']
         COLOURS = [_color[:2], _color[2:4]]
-        if STYLE == "dark_background":
-            THEO_COLOUR = "white"
-        else:
-            THEO_COLOUR = "black"
     else:
         COLOURS = [["blue", "red"], ["green", "darkviolet"]]
+    if STYLE == "dark_background":
+        THEO_COLOUR = "white"
+    else:
+        THEO_COLOUR = "black"
 
 
 # Initiate the live plot feature
