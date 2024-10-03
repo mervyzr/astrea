@@ -56,7 +56,7 @@ def generate_test_conditions(config):
         boundary = "wrap"  # periodic
         initial_left = np.array([0,1,1,0,1e-6,0,0,0])
         initial_right = np.array([0,1,1,0,1e-6,0,0,0])
-        misc = {'ampl':.9999, 'fwhm':.02, 'y_offset':1}
+        misc = {'ampl':.75, 'fwhm':.08, 'y_offset':1}
 
     elif "slow" in config:
         start_pos = 0
