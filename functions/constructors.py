@@ -6,7 +6,8 @@ from functions import fv
 # Functions for constructing objects such as the grid, eigenvectors, Jacobian and flux terms
 ##############################################################################
 
-# Initialise the discrete POINTWISE solution array with initial conditions and primitive variables w
+# Initialise the discrete POINTWISE solution array with initial conditions and primitive variables w, and transform into discrete AVERAGES <w>
+# Gives option to convert to conservative variables <q>
 def initialise(sim_variables, convert=False):
 
     def make_physical_grid(_start_pos, _end_pos, _N):
@@ -83,9 +84,10 @@ def initialise(sim_variables, convert=False):
             computational_grid = np.repeat(computational_grid[np.newaxis,...], 2*layer+1, axis=0)
 
     if convert:
-        return fv.point_convert_primitive(computational_grid, sim_variables)
+        grid = fv.point_convert_primitive(computational_grid, sim_variables)
     else:
-        return computational_grid
+        grid = computational_grid
+    return fv.convert_mode(grid, sim_variables)
 
 
 # Make flux as a function of cell-averaged (primitive) variables

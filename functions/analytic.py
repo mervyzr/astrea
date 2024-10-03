@@ -38,8 +38,7 @@ def calculate_solution_error(simulation, sim_variables, norm):
         N = len(w_num)
         divisor = len(w_num) ** dimension
     sim_variables = sim_variables._replace(cells=N)
-    _w_theo = constructors.initialise(sim_variables, convert=False)
-    w_theo = fv.convert_mode(_w_theo, sim_variables)
+    w_theo = constructors.initialise(sim_variables)
 
     thermal_num, thermal_theo = fv.divide(w_num[...,4], w_num[...,0]), fv.divide(w_theo[...,4], w_theo[...,0])
     w_num, w_theo = np.concatenate((w_num, thermal_num[...,None]), axis=-1), np.concatenate((w_theo, thermal_theo[...,None]), axis=-1)
