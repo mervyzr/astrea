@@ -189,6 +189,10 @@ def handle_variables(dct):
             print(f"{BColours.WARNING}{default_values[k][1]}{BColours.ENDC}")
             dct[k] = default_values[k][0]
 
+    if dct['scheme'] in ["hllc", "c"] and (dct['initial_left'][-3:].any() or dct['initial_right'][-3:].any()):
+        print(f"{BColours.WARNING}HLLC scheme does not work with magnetic fields present..{BColours.ENDC}")
+        dct['scheme'] = "lf"
+
     if dct['run_type'] not in ["s", "single", "1", 1] and dct['run_type'].startswith('m'):
         if dct['save_video']:
             print(f"{BColours.WARNING}Videos can only be saved with run_type='single'..{BColours.ENDC}")
@@ -201,10 +205,15 @@ def handle_variables(dct):
         print(f"{BColours.WARNING}Switching off live plot when saving media because live plot interferes with matplotlib.savefig..{BColours.ENDC}")
         dct['live_plot'] = False
 
-    if (dct['dimension'] < 1 or dct['dimension'] > 2) and (dct['live_plot'] or dct['save_plots'] or dct['save_video']):
-        print(f"{BColours.WARNING}Saving media currently not supported for 3D..{BColours.ENDC}")
-        dct['live_plot'] = False
-        dct['save_plots'] = False
-        dct['save_video'] = False
+    if 1 <= dct['dimension'] <= 2:
+        if dct['dimension'] != 2 and dct['config'] in ["khi", "kelvin", "helmholtz", "kelvin-helmholtz", "ivc", "vortex", "isentropic vortex", "ll3", "ll4", "ll6", "ll11", "ll12", "ll15", "lax-liu3", "lax-liu4", "lax-liu6", "lax-liu11", "lax-liu12", "lax-liu15"]:
+            print(f"{BColours.WARNING}The configuration selected is only valid in 2D; setting dimension=2..{BColours.ENDC}")
+            dct['dimension'] = 2
+    else:
+        if dct['live_plot'] or dct['save_plots'] or dct['save_video']:
+            print(f"{BColours.WARNING}Saving media currently not supported for 3D..{BColours.ENDC}")
+            dct['live_plot'] = False
+            dct['save_plots'] = False
+            dct['save_video'] = False
 
     return dct
