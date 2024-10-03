@@ -29,11 +29,14 @@ try:
 except Exception as e:
     plt.style.use("default")
     COLOURS = [["blue", "red"], ["green", "darkviolet"]]
-    pass
 else:
     if STYLE != "default":
         _color = plt.rcParams['axes.prop_cycle'].by_key()['color']
         COLOURS = [_color[:2], _color[2:4]]
+        if STYLE == "dark_background":
+            THEO_COLOUR = "white"
+        else:
+            THEO_COLOUR = "black"
     else:
         COLOURS = [["blue", "red"], ["green", "darkviolet"]]
 
@@ -206,7 +209,7 @@ def plot_quantities(f, sim_variables, save_path):
 
                 y_theo = [[analytical[...,0], analytical[...,4]], [analytical[...,1], analytical[...,4]/analytical[...,0]]]
                 for _i, _j in PLOT_INDEXES:
-                    ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label=rf"{config.title()}$_{{theo}}$")
+                    ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=2, color=THEO_COLOUR, linestyle="--", label=rf"{config.title()}$_{{theo}}$")
 
             # Add Sod analytical solution, using the highest resolution and timing
             elif config == "sod":
@@ -218,7 +221,7 @@ def plot_quantities(f, sim_variables, save_path):
 
                 y_theo = [[Sod[...,0], Sod[...,4]], [Sod[...,1], Sod[...,4]/Sod[...,0]]]
                 for _i, _j in PLOT_INDEXES:
-                    ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=1, color="black", linestyle="--", label=r"Sod$_{theo}$")
+                    ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=2, color=THEO_COLOUR, linestyle="--", label=r"Sod$_{theo}$")
 
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
             if len(f) != 1 or config == "sod" or config.startswith("gauss") or config.startswith("sin"):
@@ -270,7 +273,7 @@ def plot_solution_errors(f, sim_variables, save_path, coeff, norm=1):
             for order in [1,2,4]:
                 alpha = 10**(c + np.log10(coeff))
                 ytheo = alpha*x**(-order)
-                ax[_j].loglog(x, ytheo, linewidth=1, color="black", linestyle="--")
+                ax[_j].loglog(x, ytheo, linewidth=2, color=THEO_COLOUR, linestyle="--")
                 ax[_j].annotate(rf"$O(N^{order})$", (x[-1], ytheo[-1]), fontsize=12)
             ax[_j].loglog(x, y_data[_i][_j], linewidth=2, linestyle="--", marker="o", color=COLOURS[_i][_j])
             ax[_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|\text{{EOC}}_{{max}}|$ = {round(max(np.abs(np.diff(np.log(y_data[_i][_j]))/np.diff(np.log(x)))), 4)}")
