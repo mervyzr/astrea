@@ -1,8 +1,7 @@
 import math
 
+import scipy
 import numpy as np
-import scipy as sp
-from scipy.integrate import quad, simpson
 
 from functions import fv, constructors
 
@@ -78,7 +77,7 @@ def calculate_conservation(simulation, sim_variables):
     for t in list(simulation.keys()):
         grid = convert(simulation[t][:], sim_variables)
         for i in range(dimension)[::-1]:
-            grid = simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
+            grid = scipy.integrate.simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
         eq[float(t)] = grid
     return eq
 
@@ -104,7 +103,7 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
     for t in intervals:
         grid = convert(simulation[str(t)][:], sim_variables)
         for i in range(dimension)[::-1]:
-            grid = simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
+            grid = scipy.integrate.simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
         eq[t] = grid
     return eq
 
@@ -126,7 +125,7 @@ def calculate_Sod_analytical(grid, t, sim_variables):
 
     # Root-finding value for pressure in region 2 (post-shock)
     f = lambda x: (((x/P1) - 1) * np.sqrt((1 - mu)/(gamma*(mu + (x/P1))))) - (beta * (cs5/cs1) * (1-((x/P5)**(1/(gamma*beta)))))
-    P2 = P3 = sp.optimize.fsolve(f, (P5-P1)/2)[0]
+    P2 = P3 = scipy.optimize.fsolve(f, (P5-P1)/2)[0]
 
     # Define variables in other regions
     rho2, rho3 = rho1 * ((P2 + (mu*P1))/(P1 + (mu*P2))), rho5 * (P2/P5)**(1/gamma)
