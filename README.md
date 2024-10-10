@@ -8,11 +8,11 @@
 
 `mHydyS` (pronounced _"Hades"_; the _"m"_ is silent 😀) is a (one-)/two-dimensional (magneto-)hydrodynamics code for the purpose of simulating shocks with a chemical network of ions and neutrals, and possible implementation of radiative heating and cooling.
 
-__*This code is created as part of the Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner.*__
+**_This code is created as part of the Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner._**
 
 # Description
 
-The code is written entirely in Python3 and employs a finite volume subgrid model (Eulerian) with a uniform Cartesian grid. It relies heavily upon the use of the _`numpy`_ module for calculations, and also the _`h5py`_ module for handling data. The simulation allows for periodic or outlet boundary conditions. It also allows for magnetic fields in one dimension with the magnetic permeability set to one for simplicity. The solution in the grid is updated in parallel.
+The simulation code employs a finite volume subgrid model (Eulerian) with a fixed and uniform Cartesian grid. It is written entirely in Python 3, and uses the _`numpy`_ and _`h5py`_ modules extensively for calculations and data handling, respectively. As such, the last stable Python version supported is _3.12_; there are some issues with building the wheels for _`h5py`_ ([see here](https://github.com/h5py/h5py/issues/2475)) and _`scipy`_ in Python _3.13_. The simulation allows for periodic or outlet boundary conditions. It also allows for magnetic fields in one dimension with the magnetic permeability set to one for simplicity. The solution in the grid is updated in parallel.
 
 ### Spatial discretisation
 
@@ -51,6 +51,7 @@ Riemann solvers that attempt to derive the flux from the full (_but not exact_) 
 ### Hydrodynamical tests
 
 Several (magneto-)hydrodynamical tests are in place:
+
 - Hydrodynamics
   - Sod shock tube test (Sod, 1978)
   - Sedov blast test (Sedov, 1946)
