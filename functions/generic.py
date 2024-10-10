@@ -4,7 +4,7 @@ import argparse
 import itertools
 from datetime import timedelta
 
-import scipy
+from numpy.polynomial import legendre
 
 ##############################################################################
 # Generic functions not specific to finite volume
@@ -109,7 +109,7 @@ def handle_config(_dct):
                 else:
                     v = precision_list[v//16]
             if k == "scheme" and v in ["osher-solomon", "osher", "solomon", "os"]:
-                _roots, _weights = scipy.special.roots_legendre(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
+                _roots, _weights = legendre.leggauss(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
                 dct['roots'] = .5*_roots + .5  # Gauss-Legendre quadrature with interval [0,1]
                 dct['weights'] = _weights/2  # Gauss-Legendre quadrature with interval [0,1]
             if k == "dimension":
