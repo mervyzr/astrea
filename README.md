@@ -12,7 +12,11 @@ mHydyS (pronounced _"Hades"_; the _"m"_ is silent 😀) is a (one-)/two-dimensio
 
 # Description
 
-The simulation code employs a finite volume subgrid model (Eulerian) with a fixed and uniform Cartesian grid. It is written entirely in Python 3, and uses the `numpy` and `h5py` modules extensively for calculations and data handling respectively. As such, the last stable Python version supported is _**Python 3.12**_ ; there are some issues with building the wheels for `h5py` and `scipy` in Python 3.13 (see [here](https://github.com/h5py/h5py/issues/2475) and [here](https://docs.scipy.org/doc/scipy/dev/toolchain.html)). The simulation allows for periodic or outlet boundary conditions. It also allows for magnetic fields in one dimension with the magnetic permeability set to one for simplicity. The solution in the grid is updated in parallel.
+### Code
+
+The simulation employs a finite volume subgrid model (Eulerian) with a fixed and uniform Cartesian grid with periodic or outlet boundary conditions. The solution in the grid is updated in parallel. The simulation also allows for magnetic fields with the magnetic permeability set to one for simplicity.
+
+The code is written entirely in Python 3, and uses the `numpy` and `h5py` modules extensively for calculations and data handling respectively. As such, the last stable Python version supported is _**Python 3.12**_ ; there are some issues with building the wheels for `h5py` and `scipy` in Python 3.13 (see [here](https://github.com/h5py/h5py/issues/2475) and [here](https://docs.scipy.org/doc/scipy/dev/toolchain.html)). Some experimentation was done to parallelise the code with `Open MPI` and `MPICH`, or to enable multi-threading. However, this is generally not recommended because of the global-interpreter-lock (GIL) in Python and the sequential nature of the simulation. Futhermore, `numpy` should already use multi-threading _wherever possible_, and 'parallelised Python' with `numpy` do not show a substantial increase in speed anyway over fully parallel code in Fortran or C (Ross, 2016).
 
 ### Spatial discretisation
 
