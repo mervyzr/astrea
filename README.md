@@ -26,7 +26,7 @@ The code employs various reconstruction methods with _primitive variables_ as pa
 
 In order to fulfil the Total Variation Diminishing (TVD) condition (Harten, 1983), which ensures that the reconstruction scheme is monotonicity-preserving, limiters have to be after the spatial reconstructions. The PCM does not require any limiters. The PLM employs the "minmod" slope limiter (Derigs et al., 2018). The PPM employs several limiters: when extrapolating from the cell centres to the interfaces (Colella et al., 2011) and when interpolating to the left and right of each cell interface (Colella et al., 2011; McCorquodale & Colella, 2011). The WENO method currently does not employ any limiters. There are other TVD slope limiters available in the code (e.g., superbee).
 
-The parabolic reconstruction method by McCorquodale & Colella (2011) also includes a slope flattener (Colella, 1990) and artificial viscosity as additional dissipation mechanisms to suppress oscillations at strong shocks.
+The parabolic reconstruction method by McCorquodale & Colella also includes a slope flattener (Colella, 1990) and artificial viscosity as additional dissipation mechanisms to suppress oscillations at strong shocks.
 
 ### Time discretisation
 
