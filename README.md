@@ -12,7 +12,7 @@
 
 # Description
 
-The simulation code employs a finite volume subgrid model (Eulerian) with a fixed and uniform Cartesian grid. It is written entirely in Python 3, and uses the _`numpy`_ and _`h5py`_ modules extensively for calculations and data handling, respectively. As such, the last stable Python version supported is _3.12_; there are some issues with building the wheels for _`h5py`_ ([see here](https://github.com/h5py/h5py/issues/2475)) and _`scipy`_ in Python _3.13_. The simulation allows for periodic or outlet boundary conditions. It also allows for magnetic fields in one dimension with the magnetic permeability set to one for simplicity. The solution in the grid is updated in parallel.
+The simulation code employs a finite volume subgrid model (Eulerian) with a fixed and uniform Cartesian grid. It is written entirely in Python 3, and uses the _`numpy`_ and _`h5py`_ modules extensively for calculations and data handling, respectively. As such, the last stable Python version supported is _**Python 3.12**_ ; there are some issues with building the wheels for [_`h5py`_](https://github.com/h5py/h5py/issues/2475) and [_`scipy`_](https://docs.scipy.org/doc/scipy/dev/toolchain.html) in Python 3.13. The simulation allows for periodic or outlet boundary conditions. It also allows for magnetic fields in one dimension with the magnetic permeability set to one for simplicity. The solution in the grid is updated in parallel.
 
 ### Spatial discretisation
 
