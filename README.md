@@ -6,13 +6,13 @@
 
 # mHydyS
 
-`mHydyS` (pronounced _"Hades"_; the _"m"_ is silent 😀) is a (one-)/two-dimensional (magneto-)hydrodynamics code for the purpose of simulating shocks with a chemical network of ions and neutrals, and possible implementation of radiative heating and cooling.
+mHydyS (pronounced _"Hades"_; the _"m"_ is silent 😀) is a (one-)/two-dimensional (magneto-)hydrodynamics code for the purpose of simulating shocks with a chemical network of ions and neutrals, and possible implementation of radiative heating and cooling.
 
 **_This code is created as part of the Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner._**
 
 # Description
 
-The simulation code employs a finite volume subgrid model (Eulerian) with a fixed and uniform Cartesian grid. It is written entirely in Python 3, and uses the _`numpy`_ and _`h5py`_ modules extensively for calculations and data handling, respectively. As such, the last stable Python version supported is _**Python 3.12**_ ; there are some issues with building the wheels for [_`h5py`_](https://github.com/h5py/h5py/issues/2475) and [_`scipy`_](https://docs.scipy.org/doc/scipy/dev/toolchain.html) in Python 3.13. The simulation allows for periodic or outlet boundary conditions. It also allows for magnetic fields in one dimension with the magnetic permeability set to one for simplicity. The solution in the grid is updated in parallel.
+The simulation code employs a finite volume subgrid model (Eulerian) with a fixed and uniform Cartesian grid. It is written entirely in Python 3, and uses the `numpy` and `h5py` modules extensively for calculations and data handling respectively. As such, the last stable Python version supported is _**Python 3.12**_ ; there are some issues with building the wheels for `h5py` and `scipy` in Python 3.13 (see [here](https://github.com/h5py/h5py/issues/2475) and [here](https://docs.scipy.org/doc/scipy/dev/toolchain.html)). The simulation allows for periodic or outlet boundary conditions. It also allows for magnetic fields in one dimension with the magnetic permeability set to one for simplicity. The solution in the grid is updated in parallel.
 
 ### Spatial discretisation
 
@@ -74,11 +74,11 @@ Analytical solutions for the Sod shock test (Pfrommer et al., 2006), Gaussian wa
 
 # Installation
 
-Clone this repository onto your local machine, and navigate to the cloned repository. Run _`python3 static/setup.py`_ to install a venv (_.shock_venv_) in the home directory. This will also install the requirements for the project in the venv, and create a _`settings.yml`_ file for changing configurations. _It is highly recommended to run Python projects in virtual environments._
+Clone this repository onto your local machine, and navigate to the cloned repository. Run _`python3 static/setup.py`_ to install a venv (_.shock_venv_) in the home directory. This will also install the requirements for the project in the venv, and create a `settings.yml` file for changing configurations. _It is highly recommended to run Python projects in virtual environments._
 
 # Usage
 
-Edit your parameters in _`settings.yml`_ and run _`python3 simulate.py`_. Alternatively, the code can run with CLI options, e.g., _`python3 simulate.py --config==sedov`_. See _`python3 simulate.py --help`_ for a list of available options.
+Edit your parameters in `settings.yml` and run _`python3 simulate.py`_. Alternatively, the code can run with CLI options, e.g., _`python3 simulate.py --config==sedov`_. See _`python3 simulate.py --help`_ for a list of available options.
 
 ## Organisation
 
