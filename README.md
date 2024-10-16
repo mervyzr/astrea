@@ -78,11 +78,21 @@ Analytical solutions for the Sod shock test (Pfrommer et al., 2006), Gaussian wa
 
 # Installation
 
-Clone this repository onto your local machine, and navigate to the cloned repository. Run _`python3 static/setup.py`_ to install a venv (_.shock_venv_) in the home directory. This will also install the requirements for the project in the venv, and create a `settings.yml` file for changing configurations. _It is highly recommended to run Python projects in virtual environments._
+_It is recommended to run Python projects in separate virtual environments._
+
+Clone this repository onto your local machine, and navigate to the cloned repository. In the command line, run _`/path/to/venv/bin/python3 -m pip install .`_; this will install the minimum packages to run the simulation and create a `settings.yml` file for simulation configurations.
 
 # Usage
 
-Edit your parameters in `settings.yml` and run _`python3 simulate.py`_. Alternatively, the code can run with CLI options, e.g., _`python3 simulate.py --config==sedov`_. See _`python3 simulate.py --help`_ for a list of available options.
+The main method to run the simulation would be to edit the simulation parameters in `settings.yml`, and run _`python3 simulate.py`_ or _`./simulate.py`_ in the command line.
+
+Alternatively, the code can be run with CLI options, e.g., _`python3 simulate.py --config==sedov`_. See _`python3 simulate.py --help`_ for a list of available options.
+
+Running the code in a Python interactive shell is also possible, but this is not recommended:
+```python
+import simulate
+simulate.run()
+```
 
 ## Organisation
 
