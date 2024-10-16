@@ -28,7 +28,7 @@ np.set_printoptions(linewidth=400, suppress=True)
 
 
 # Finite volume shock function
-def core_run(grp: h5py, _sim_variables: namedtuple):
+def code_run(grp: h5py, _sim_variables: namedtuple):
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables
     grid = constructors.initialise(_sim_variables, convert=True)
 
@@ -142,7 +142,7 @@ def run() -> None:
                 lap, now = perf_counter(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 if not noprint:
                     generic.print_output(now, SEED, _sim_variables)
-                core_run(grp, _sim_variables)
+                code_run(grp, _sim_variables)
                 elapsed = perf_counter() - lap
                 grp.attrs['elapsed'] = elapsed
                 if not noprint:
