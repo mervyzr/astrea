@@ -38,7 +38,7 @@ setup(
         "h5py",
         "matplotlib",
         "pyyaml",
-        "wheel",
+        "tinydb",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
