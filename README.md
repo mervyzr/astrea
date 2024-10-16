@@ -109,11 +109,11 @@ Edit your parameters in `settings.yml` and run _`python3 simulate.py`_. Alternat
 │   ├── ppm.py           : Piecewise parabolic method [Felker & Stone, 2015]
 │   ├── weno.py          : WENO method [Shu, 2009; San & Kara, 2015]
 ├── settings.yml         : Parameters for the simulation
+├── setup.py             : Installation script
 ├── simulate.py          : Runs the simulation, and contains the update loop
 ├── static
 │   ├── __init__.py
 │   ├── .default.yml     : Default settings file
 │   ├── requirements.txt
-│   ├── setup.py         : Installation script
 │   ├── tests.py         : Hydrodynamics test configurations
 ```
