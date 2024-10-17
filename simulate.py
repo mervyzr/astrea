@@ -10,6 +10,7 @@ from collections import namedtuple
 
 import h5py
 import yaml
+import dotenv
 import numpy as np
 
 import evolvers
@@ -23,8 +24,10 @@ from functions import fv, generic, plotting, constructors
 # Globals
 CURRENT_DIR = os.getcwd()
 SEED = np.random.randint(0, 1e8)
-np.random.seed(SEED)
-np.set_printoptions(linewidth=400, suppress=True)
+
+# Load env variables
+if sys.version_info.major == 3 and sys.version_info.minor >= 13:
+    dotenv.load_dotenv()
 
 
 # Finite volume shock function
@@ -77,6 +80,8 @@ def core_run(grp: h5py, _sim_variables: namedtuple):
 
 # Main script; includes handlers and core execution of simulation code
 def run() -> None:
+    np.random.seed(SEED)
+
     # Save the HDF5 file (with seed) to store the temporary data
     file_name = f"{CURRENT_DIR}/.tempShockData_{SEED}.hdf5"
     noprint, debug = False, False
