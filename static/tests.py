@@ -4,7 +4,7 @@ import numpy as np
 # Initial conditions for test configs
 ##############################################################################
 
-def generate_test_conditions(config):
+def generate_test_conditions(config, cells):
     # [Sod, 1978]
     if config == "sod":
         start_pos = 0
@@ -221,4 +221,4 @@ def generate_test_conditions(config):
         initial_right = np.array([.125,0,0,0,.1,0,0,0])
         misc = None
 
-    return {'start_pos':start_pos, 'end_pos':end_pos, 'shock_pos':shock_pos, 't_end':t_end, 'boundary':boundary.lower(), 'misc':misc, 'initial_left':initial_left, 'initial_right':initial_right}
+    return {'start_pos':start_pos, 'end_pos':end_pos, 'shock_pos':shock_pos, 't_end':t_end, 'boundary':boundary.lower(), 'misc':misc, 'initial_left':initial_left, 'initial_right':initial_right, 'dx':abs(end_pos-start_pos)/cells}

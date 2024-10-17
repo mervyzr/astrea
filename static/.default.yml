@@ -11,8 +11,8 @@ simulation_parameters:
   dimension   : 1
 
 numerical_parameters:
-  # Floating-point precision : 16-bit, 32-bit, 64-bit, 128-bit
-  precision   : 64
+  # Floating-point precision : float16, float32, float64, float128
+  precision   : float64
   # Subgrid models : PCM, PLM, PPM, WENO-3/5/7
   subgrid     : PPM
   # Iteration methods : Euler, RK4, SSPRK(2,2), SSPRK(3,3), SSPRK(4,3), SSPRK(5,3), SSPRK(5,4), SSPRK(10,4)
