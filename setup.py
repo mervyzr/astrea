@@ -39,6 +39,7 @@ setup(
         "matplotlib",
         "pyyaml",
         "tinydb",
+        "python-dotenv",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
