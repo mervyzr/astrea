@@ -84,32 +84,28 @@ def run() -> None:
 
     # Save the HDF5 file (with seed) to store the temporary data
     file_name = f"{CURRENT_DIR}/.tempShockData_{SEED}.hdf5"
-    noprint, debug = False, False
+    debug, noprint, config_variables = False, False, {}
 
     # Generate the simulation variables from settings (dict)
     with open(f"{CURRENT_DIR}/settings.yml", "r") as settings_file:
-        config_dict = yaml.safe_load(settings_file)
-        config_variables = generic.handle_config(config_dict)
+        config_variables = yaml.safe_load(settings_file)
 
     # Check CLI arguments
     if len(sys.argv) > 1:
-        config_variables, noprint, debug = generic.handle_CLI(config_variables)
-    else:
-        noprint, debug = False, False
+        cli_variables, debug, noprint = generic.handle_CLI()
     
     if not debug:
         np.seterr(all='ignore')
 
-    # Generate test configuration
-    test_variables = tests.generate_test_conditions(config_variables['config'])
+    # Variables handler; filter erroneous entries and default values
+    config_variables = generic.handle_variables(config_variables, cli_variables)
+
+    # Generate test configuration and final variables
+    test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'])
     sim_variables = config_variables | test_variables
 
-    # Variables handler; filter erroneous entries and default values
-    sim_variables = generic.handle_variables(sim_variables)
-
-    # Simulation condition handler
+    # Auto-generate the resolutions/grid-sizes for run type
     if sim_variables['run_type'].startswith('m'):
-        # Auto-generate the resolutions/grid-sizes for multiple simulations
         coeff = 1
         n_list = coeff*2**np.arange(3,11)
     else:
