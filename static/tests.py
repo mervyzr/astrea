@@ -6,7 +6,7 @@ import numpy as np
 
 def generate_test_conditions(config, cells):
     # [Sod, 1978]
-    if config == "sod":
+    if "sod" in config:
         start_pos = 0
         end_pos = 1
         shock_pos = .5
@@ -16,7 +16,7 @@ def generate_test_conditions(config, cells):
         initial_right = np.array([.125,0,0,0,.1,0,0,0])  # primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
         misc = None
 
-    elif config == "sin":
+    elif "sin" in config:
         start_pos = 0
         end_pos = 1
         shock_pos = 1
@@ -27,7 +27,7 @@ def generate_test_conditions(config, cells):
         misc = {'freq':2, 'ampl':.1, 'y_offset':1}
 
     # [Sedov, 1959]
-    elif config == "sedov":
+    elif "sedov" in config:
         start_pos = -10
         end_pos = 10
         shock_pos = .5  # blast boundary
@@ -38,7 +38,7 @@ def generate_test_conditions(config, cells):
         misc = None
 
     # [Shu & Osher, 1989]
-    elif "shu" in config or "osher" in config:
+    elif "shu" in config or "osher" in config or config == "so":
         start_pos = -1
         end_pos = 1
         shock_pos = -.8
@@ -89,7 +89,7 @@ def generate_test_conditions(config, cells):
         misc = None
 
     # [Ryu & Jones, 1995]
-    elif "ryu" in config or "jones" in config or "rj" in config:
+    elif "ryu" in config or "jones" in config or config == "rj":
         start_pos = -.5
         end_pos = .5
         shock_pos = 0
@@ -100,7 +100,7 @@ def generate_test_conditions(config, cells):
         misc = None
 
     # [Brio & Wu, 1988]
-    elif "brio" in config or "wu" in config or "bw" in config:
+    elif "brio" in config or "wu" in config or config == "bw":
         start_pos = -.5
         end_pos = .5
         shock_pos = 0
@@ -110,7 +110,7 @@ def generate_test_conditions(config, cells):
         initial_right = np.array([.125,0,0,0,.1,.75,-1,0])
         misc = None
 
-    elif config in ["khi", "kelvin-helmholtz"] or ("kelvin" in config or "helmholtz" in config):
+    elif "kelvin" in config or "helmholtz" in config or config == "khi":
         start_pos = -1
         end_pos = 1
         shock_pos = .5
@@ -121,7 +121,7 @@ def generate_test_conditions(config, cells):
         misc = {'perturb_ampl':.01, 'freq':2}
 
     # [Yee et. al., 1999]
-    elif config in ["ivc", "vortex", "isentropic vortex"]:
+    elif "isentropic" in config or "vortex" in config or config == "ivc":
         start_pos = 0
         end_pos = 10
         shock_pos = 5
@@ -169,7 +169,7 @@ def generate_test_conditions(config, cells):
             initial_right = np.array([.125,0,0,0,.1,0,0,0])
 
     # [Lax & Liu, 1998]
-    elif "ll" in config or "lax-liu" in config:
+    elif "lax" in config or "liu" in config or "ll" in config:
         start_pos = 0
         end_pos = 1
         shock_pos = .5

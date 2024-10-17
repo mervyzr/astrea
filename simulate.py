@@ -84,7 +84,6 @@ def run() -> None:
 
     # Save the HDF5 file (with seed) to store the temporary data
     file_name = f"{CURRENT_DIR}/.tempShockData_{SEED}.hdf5"
-    debug, noprint, config_variables = False, False, {}
 
     # Generate the simulation variables from settings (dict)
     with open(f"{CURRENT_DIR}/settings.yml", "r") as settings_file:
@@ -93,7 +92,9 @@ def run() -> None:
     # Check CLI arguments
     if len(sys.argv) > 1:
         cli_variables, debug, noprint = generic.handle_CLI()
-    
+    else:
+        cli_variables, debug, noprint = {}, False, False
+
     if not debug:
         np.seterr(all='ignore')
 
