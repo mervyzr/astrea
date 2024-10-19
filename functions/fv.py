@@ -5,6 +5,13 @@ import numpy as np
 # Generic functions used throughout the finite volume code
 ##############################################################################
 
+COEFF = {
+    2: np.array([0, 0, 0, 1, -2, 1, 0, 0, 0]),
+    4: np.array([0, 0, -1/12, 4/3, -5/2, 4/3, -1/12, 0, 0]),
+    6: np.array([0, 1/90, -3/20, 3/2, -49/18, 3/2, -3/20, 1/90, 0]),
+    8: np.array([-1/560, 8/315, -1/5, 8/5, -205/72, 8/5, -1/5, 8/315, -1/560])
+}
+
 # For handling division-by-zero warnings during array divisions
 # !! MONITOR THE PHYSICS WHEN USING THIS; ZEROS IN DIVISOR MIGHT MEAN YOUR CODE IS INCORRECT INSTEAD !!
 def divide(dividend, divisor):
@@ -67,7 +74,9 @@ def point_convert_conservative(grid, sim_variables):
     return arr
 
 
-# Conversion between averaged and centred variable "modes" with Laplacian operator (4th-order accuracy with 2nd-order centred difference)
+# Conversion between averaged and centred variable "modes" with the Laplacian operator and centred difference coefficients (up to 2nd derivative because parabolic function)
+# Attempts to raise the order of accuracy for the Laplacian to 4th-, 6th- and even 8th-order were made, but not too feasible because the averaging function
+# is limited by the time-stepping and the limiting functions (currently max is 4th order)
 def convert_mode(grid, sim_variables, _type="cell"):
     ceil_dimension, boundary, permutations = math.ceil(sim_variables.dimension), sim_variables.boundary, sim_variables.permutations
     new_grid = np.copy(grid)
