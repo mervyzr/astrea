@@ -46,7 +46,7 @@ def generate_test_conditions(config, cells):
         boundary = "wrap"  # periodic
         initial_left = np.array([0,1,1,0,1,0,0,0])
         initial_right = np.array([0,1,1,0,1,0,0,0])
-        misc = {'ampl':.1, 'y_offset':1}
+        misc = {'ampl':.1, 'y_offset':3}
 
         if "non" in config or "np" in config:
             misc['freq'] = 8
@@ -57,7 +57,7 @@ def generate_test_conditions(config, cells):
         boundary = "wrap"  # periodic
         initial_left = np.array([0,1,1,0,1e-6,0,0,0])
         initial_right = np.array([0,1,1,0,1e-6,0,0,0])
-        misc = {'ampl':.75, 'y_offset':1}
+        misc = {'ampl':.75, 'y_offset':3}
 
         if "non" in config or "np" in config:
             start_pos = -4
