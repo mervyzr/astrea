@@ -74,7 +74,7 @@ def initialise(sim_variables, convert=False):
 
         if "shu" in config or "osher" in config:
             computational_grid[np.where(x>shock_pos),0] = fv.sin_func(x[x>shock_pos], params)
-        elif config == "sin":
+        elif config.startswith("sin"):
             computational_grid[...,0] = fv.sin_func(x, params)
         elif config.startswith('gauss'):
             computational_grid[...,0] = fv.gauss_func(x, params)

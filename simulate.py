@@ -162,7 +162,7 @@ def run() -> None:
                 if not _sim_variables.run_type.startswith('m'):
                     plotting.plot_total_variation(f, _sim_variables, save_path)
                     plotting.plot_conservation_equations(f, _sim_variables, save_path)
-                if _sim_variables.run_type.startswith('m') and (_sim_variables.config.startswith('sin') or _sim_variables.config.startswith('gauss')):
+                if _sim_variables.run_type.startswith('m') and _sim_variables.config_category == "smooth":
                     plotting.plot_solution_errors(f, _sim_variables, save_path, coeff)
 
             # Save video (only for run_type=single)

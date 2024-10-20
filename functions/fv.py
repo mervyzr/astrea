@@ -38,8 +38,7 @@ def norm(arr, axis=-1):
 
 # Generic Gaussian function
 def gauss_func(x, params):
-    peak_pos = (x[0]+x[-1])/2
-    return params['y_offset'] + params['ampl']*np.exp(-((x-peak_pos)**2)/params['fwhm'])
+    return params['y_offset'] + params['ampl']*np.exp(-((x-params['peak_pos'])**2)/params['fwhm'])
 
 
 # Generic sin function
