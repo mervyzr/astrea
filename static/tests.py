@@ -16,16 +16,6 @@ def generate_test_conditions(config, cells):
         initial_right = np.array([.125,0,0,0,.1,0,0,0])  # primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
         misc = None
 
-    elif "sin" in config:
-        start_pos = 0
-        end_pos = 1
-        shock_pos = 1
-        t_end = 1
-        boundary = "wrap"  # periodic
-        initial_left = np.array([0,1,1,0,1,0,0,0])
-        initial_right = np.array([0,1,1,0,1,0,0,0])
-        misc = {'freq':2, 'ampl':.1, 'y_offset':1}
-
     # [Sedov, 1959]
     elif "sedov" in config:
         start_pos = -10
@@ -48,15 +38,39 @@ def generate_test_conditions(config, cells):
         initial_right = np.array([0,0,0,0,1,0,0,0])
         misc = {'freq':5, 'ampl':.2, 'y_offset':1}
 
-    elif config.startswith('gauss'):
-        start_pos = -1
+    elif config.startswith("sin"):
+        start_pos = 0
         end_pos = 1
         shock_pos = 1
-        t_end = 2
+        t_end = 1
+        boundary = "wrap"  # periodic
+        initial_left = np.array([0,1,1,0,1,0,0,0])
+        initial_right = np.array([0,1,1,0,1,0,0,0])
+        misc = {'ampl':.1, 'y_offset':1}
+
+        if "non" in config or "np" in config:
+            misc['freq'] = 8
+        else:
+            misc['freq'] = 2
+
+    elif config.startswith('gauss'):
         boundary = "wrap"  # periodic
         initial_left = np.array([0,1,1,0,1e-6,0,0,0])
         initial_right = np.array([0,1,1,0,1e-6,0,0,0])
-        misc = {'ampl':.75, 'fwhm':.08, 'y_offset':1}
+        misc = {'ampl':.75, 'y_offset':1}
+
+        if "non" in config or "np" in config:
+            start_pos = -4
+            end_pos = 4
+            shock_pos = 4
+            t_end = 4
+            misc.update({'peak_pos':start_pos+2, 'fwhm':.5})
+        else:
+            start_pos = -1
+            end_pos = 1
+            shock_pos = 1
+            t_end = 2
+            misc.update({'peak_pos':.5*(end_pos+start_pos), 'fwhm':.08})
 
     elif "slow" in config:
         start_pos = 0

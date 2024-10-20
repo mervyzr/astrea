@@ -189,7 +189,7 @@ def plot_quantities(f, sim_variables, save_path):
             fig.text(0.04, 0.4, r"Cell position $y$", fontsize=18, ha='center', rotation="vertical")
         else:
             # Add analytical solution for smooth functions, using the highest resolution and timing
-            if config.startswith("sin") or config.startswith("gauss"):
+            if sim_variables.config_category == "smooth":
                 if 1 < dimension < 2:
                     analytical = constructors.initialise(sim_variables)[middle_layer]
                 else:
@@ -198,6 +198,8 @@ def plot_quantities(f, sim_variables, save_path):
                 # Adjust ylim and tolerances for Gaussian and sin-wave tests
                 if config.startswith("gauss"):
                     P_tol = 5e-7
+                    if ("non" in config or "np" in config) and dimension < 2:
+                        analytical = np.flip(analytical, axis=0)
                 else:
                     P_tol = .005
                 P_range = np.linspace(initial_left[4]-P_tol, initial_left[4]+P_tol, 9)
@@ -212,7 +214,7 @@ def plot_quantities(f, sim_variables, save_path):
                     ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=2, color=THEO_COLOUR, linestyle="--", label=rf"{config.title()}$_{{theo}}$")
 
             # Add Sod analytical solution, using the highest resolution and timing
-            elif config == "sod":
+            elif "sod" in config:
                 tube, _t = f[str(max(n_list))][str(timings[max(n_list)][time_index])], timings[max(n_list)][time_index]
                 if 1 < dimension < 2:
                     Sod = analytic.calculate_Sod_analytical(tube[middle_layer], _t, sim_variables)
@@ -224,7 +226,7 @@ def plot_quantities(f, sim_variables, save_path):
                     ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=2, color=THEO_COLOUR, linestyle="--", label=r"Sod$_{theo}$")
 
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
-            if len(f) != 1 or config == "sod" or config.startswith("gauss") or config.startswith("sin"):
+            if len(f) != 1 or "sod" in config or config.startswith("gauss") or config.startswith("sin"):
                 if len(f) > 5:
                     _ncol = 2
                 else:

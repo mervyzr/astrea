@@ -14,7 +14,7 @@ from numpy.polynomial import legendre
 
 CURRENTDIR = os.getcwd()
 DB = TinyDB(f"{CURRENTDIR}/static/.db.json")
-PARAMS = Query()
+PARAMS, ACCEPTED = Query(), Query()
 
 
 # Colours for printing to terminal
@@ -172,6 +172,7 @@ def handle_variables(config_variables: dict, cli_variables: dict):
 
     # Add relevant key-pairs to the dictionary
     final_dict['permutations'] = [axes for axes in list(itertools.permutations(list(range(math.ceil(final_dict['dimension']+1))))) if axes[-1] == math.ceil(final_dict['dimension'])]
+    final_dict['config_category'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
 
     if final_dict['scheme'] in DB.get(PARAMS.type == 'scheme' and PARAMS.category == 'full')['accepted']:
         _roots, _weights = legendre.leggauss(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
