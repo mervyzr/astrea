@@ -10,6 +10,17 @@ from numerics import limiters
 ##############################################################################
 
 def run(grid, sim_variables, C=5/4):
+
+    def make_faces(_wS, _w, _w2, order=4):
+        if order == 6:
+            _w3 = fv.add_boundary(_wS, boundary, 3)
+            _wL = 37/60 * (_w[:-2] + _wS) - 2/15 * (_w2[:-4] + _w[2:]) + 1/60 * (_w3[:-6] + _w2[4:])
+            _wR = 37/60 * (_wS + _w[2:]) - 2/15 * (_w[:-2] + _w2[4:]) + 1/60 * (_w2[:-4] + _w3[6:])
+        else:
+            _wL = 7/12 * (_w[:-2] + _wS) - 1/12 * (_w2[:-4] + _w[2:])
+            _wR = 7/12 * (_wS + _w[2:]) - 1/12 * (_w[:-2] + _w2[4:])
+        return _wL, _wR
+
     gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
@@ -29,14 +40,11 @@ def run(grid, sim_variables, C=5/4):
         Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
                             |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
         """
-        # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
-        wF = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])
+        # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67] / (6th-order) [Colella & Sekora, 2008, eq. 17]
+        wF_L, wF_R = make_faces(wS, w, w2)
 
-        # Face i+1/2 (6th-order) [Colella & Sekora, 2008, eq. 17]
-        #w3 = fv.add_boundary(wS, boundary, 3)
-        #wF = 1/60 * (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:]))
-
-        limited_values = limiters.interface_limiter(wF, w[:-2], wS, w[2:], w2[4:], C)
+        wF_limit_L = limiters.interface_limiter(wF_L, w2[:-4], w[:-2], wS, w[2:], C)
+        wF_limit_R = limiters.interface_limiter(wF_R, w[:-2], wS, w[2:], w2[4:], C)
 
         """Reconstruct the interpolants using the limited values
         Current convention: |               w(i-1/2)                    w(i+1/2)              |
@@ -45,8 +53,7 @@ def run(grid, sim_variables, C=5/4):
                     OR      |       w-(i-1/2)  |   w+(i-1/2)    w-(i+1/2)  |  w+(i+1/2)       |
         """
         # Limited parabolic interpolant [Colella et al., 2011, p. 26]
-        wF_limit_2 = fv.add_boundary(limited_values, boundary, 2)
-        wF_limit_L, wF_limit_R = wF_limit_2[1:-3], limited_values
+        wF_limit_L_pad, wF_limit_R_pad = fv.add_boundary(wF_limit_L, boundary), fv.add_boundary(wF_limit_R, boundary)
 
         # Check for cell extrema in cells (eq. 89)
         d_uL, d_uR = wS - wF_limit_L, wF_limit_R - wS
@@ -56,9 +63,13 @@ def run(grid, sim_variables, C=5/4):
         overshoot = (np.abs(d_uL) > 2*np.abs(d_uR)) | (np.abs(d_uR) > 2*np.abs(d_uL))
 
         # Check for extrema in interpolants (eq. 91-94)
-        d_wF_minmod = np.minimum(np.abs(wF_limit_L - wF_limit_2[:-4]), np.abs(wF_limit_2[4:] - wF_limit_R))
-        d_wS_minmod = np.minimum(np.abs(wS - w[:-2]), np.abs(w[2:] - wS))
-        interpolant_extrema = ((d_wF_minmod >= d_wS_minmod) & ((wF_limit_L - wF_limit_2[:-4])*(wF_limit_2[4:] - wF_limit_R) < 0)) | ((d_wS_minmod >= d_wF_minmod) & ((wS - w[:-2])*(w[2:] - wS) < 0))
+        d_wF_minmod_L, d_wF_minmod_R = wF_limit_L - wF_limit_L_pad[:-2], wF_limit_R_pad[2:] - wF_limit_R
+        d_wS_minmod_L, d_wS_minmod_R = wS - w[:-2], w[2:] - wS
+
+        d_wF_minmod = np.minimum(np.abs(d_wF_minmod_L), np.abs(d_wF_minmod_R))
+        d_wS_minmod = np.minimum(np.abs(d_wS_minmod_L), np.abs(d_wS_minmod_R))
+
+        interpolant_extrema = ((d_wF_minmod >= d_wS_minmod) & (d_wF_minmod_L*d_wF_minmod_R < 0)) | ((d_wS_minmod >= d_wF_minmod) & (d_wS_minmod_L*d_wS_minmod_R < 0))
 
         # If there are extrema in either the cells or interpolants
         if cell_extrema.any() or interpolant_extrema.any():
@@ -120,6 +131,25 @@ def run(grid, sim_variables, C=5/4):
 
 # Modified piecewise parabolic reconstruction method (m-PPM); does not have interface limiting
 def run_modified(grid, sim_variables, dissipate=False, C=5/4):
+
+    def make_faces(_wS, _w, _w2, order=4):
+        if order == 6:
+            _w3 = fv.add_boundary(_wS, boundary, 3)
+            _wL = 37/60 * (_w[:-2] + _wS) - 2/15 * (_w2[:-4] + _w[2:]) + 1/60 * (_w3[:-6] + _w2[4:])
+            _wR = 37/60 * (_wS + _w[2:]) - 2/15 * (_w[:-2] + _w2[4:]) + 1/60 * (_w2[:-4] + _w3[6:])
+        else:
+            _wL = 7/12 * (_w[:-2] + _wS) - 1/12 * (_w2[:-4] + _w[2:])
+            _wR = 7/12 * (_wS + _w[2:]) - 1/12 * (_w[:-2] + _w2[4:])
+        return _wL, _wR
+    
+    def modify_stencil(_wF, _wS):
+        _wF[0] = 1/12 * (25*_wS[1] - 23*_wS[2] + 13*_wS[3] - 3*_wS[4])
+        _wF[-1] = 1/12 * (25*_wS[-1] - 23*_wS[-2] + 13*_wS[-3] - 3*_wS[-4])
+
+        _wF[1] = 1/12 * (3*_wS[1] + 13*_wS[2] - 5*_wS[3] + _wS[4])
+        _wF[-2] = 1/12 * (3*_wS[-1] + 13*_wS[-2] - 5*_wS[-3] + _wS[-4])
+        return _wF
+
     gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
@@ -139,19 +169,11 @@ def run_modified(grid, sim_variables, dissipate=False, C=5/4):
         Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
                             |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
         """
-        # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
-        wF = 7/12 * (wS+w[2:]) - 1/12 * (w[:-2]+w2[4:])
-
-        # Face i+1/2 (6th-order) [Colella & Sekora, 2008, eq. 17]
-        #w3 = fv.add_boundary(wS, boundary, 3)
-        #wF = 1/60 * (37*(wS+w[2:]) - 8*(w[:-2]+w2[4:]) + (w2[:-4]+w3[6:]))
+        # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67] / (6th-order) [Colella & Sekora, 2008, eq. 17]
+        wF_L, wF_R = make_faces(wS, w, w2)
 
         # Modified stencil [McCorquodale & Colella, 2011, eq. 21-22]
-        wF[0] = 1/12 * (25*wS[1] - 23*wS[2] + 13*wS[3] - 3*wS[4])
-        wF[-1] = 1/12 * (25*wS[-1] - 23*wS[-2] + 13*wS[-3] - 3*wS[-4])
-
-        wF[1] = 1/12 * (3*wS[1] + 13*wS[2] - 5*wS[3] + wS[4])
-        wF[-2] = 1/12 * (3*wS[-1] + 13*wS[-2] - 5*wS[-3] + wS[-4])
+        #wF_L, wF_R = modify_stencil(wF_L, w[:-2]), modify_stencil(wF_R, wS)
 
         """Reconstruct the interpolants using the limited values
         Current convention: |               w(i-1/2)                    w(i+1/2)              |
@@ -161,8 +183,7 @@ def run_modified(grid, sim_variables, dissipate=False, C=5/4):
         """
         # Limited modified parabolic interpolant [McCorquodale & Colella, 2011]
         # Define the left and right parabolic interpolants
-        wF_limit = fv.add_boundary(wF, boundary)
-        wF_limit_L, wF_limit_R = wF_limit[:-2], wF
+        wF_limit_L, wF_limit_R = wF_L, wF_R
 
         # Set differences
         dw_minus, dw_plus = wS - wF_limit_L, wF_limit_R - wS
