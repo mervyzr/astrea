@@ -9,6 +9,7 @@ from numerics import limiters
 # Piecewise parabolic reconstruction method (PPM) [Colella & Woodward, 1984]
 ##############################################################################
 
+
 # [Colella et al., 2011]
 def run_C(grid, sim_variables, C=5/4):
     gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
