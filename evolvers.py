@@ -23,8 +23,9 @@ def evolve_space(grid, sim_variables):
     if sim_variables.subgrid.startswith("w"):
         data = weno.run(grid, sim_variables)
     elif sim_variables.subgrid in ["ppm", "parabolic", "p"]:
-        data = ppm.run_modified(grid, sim_variables, dissipate=False)
-        #data = ppm.run(grid, sim_variables)
+        data = ppm.run_MC(grid, sim_variables, dissipate=False)
+        #data = ppm.run_C(grid, sim_variables)
+        #data = ppm.run_XPPM(grid, sim_variables)
     elif sim_variables.subgrid in ["plm", "linear", "l"]:
         data = plm.run(grid, sim_variables)
     else:
@@ -161,7 +162,7 @@ def evolve_time(grid, interface_fluxes, dt, sim_variables):
         interface_fluxes3 = evolve_space(k3, sim_variables)
 
         # Computation of the final update
-        return grid + (dt * (h_zero + 2*compute_H(interface_fluxes1, sim_variables) + 2*compute_H(interface_fluxes2, sim_variables) + compute_H(interface_fluxes3, sim_variables)))/6
+        return grid + 1/6 * (dt * (h_zero + 2*compute_H(interface_fluxes1, sim_variables) + 2*compute_H(interface_fluxes2, sim_variables) + compute_H(interface_fluxes3, sim_variables)))
 
     else:
         # Evolve system by a full timestep (1st-order)
