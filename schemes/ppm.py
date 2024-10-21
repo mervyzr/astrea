@@ -9,18 +9,18 @@ from numerics import limiters
 # Piecewise parabolic reconstruction method (PPM) [Colella & Woodward, 1984]
 ##############################################################################
 
+def make_faces(_wS, _w, _w2, _boundary, order=4):
+    if order == 6:
+        _w3 = fv.add_boundary(_wS, _boundary, 3)
+        _wL = 37/60 * (_w[:-2] + _wS) - 2/15 * (_w2[:-4] + _w[2:]) + 1/60 * (_w3[:-6] + _w2[4:])
+        _wR = 37/60 * (_wS + _w[2:]) - 2/15 * (_w[:-2] + _w2[4:]) + 1/60 * (_w2[:-4] + _w3[6:])
+    else:
+        _wL = 7/12 * (_w[:-2] + _wS) - 1/12 * (_w2[:-4] + _w[2:])
+        _wR = 7/12 * (_wS + _w[2:]) - 1/12 * (_w[:-2] + _w2[4:])
+    return _wL, _wR
+
+
 def run(grid, sim_variables, C=5/4):
-
-    def make_faces(_wS, _w, _w2, order=4):
-        if order == 6:
-            _w3 = fv.add_boundary(_wS, boundary, 3)
-            _wL = 37/60 * (_w[:-2] + _wS) - 2/15 * (_w2[:-4] + _w[2:]) + 1/60 * (_w3[:-6] + _w2[4:])
-            _wR = 37/60 * (_wS + _w[2:]) - 2/15 * (_w[:-2] + _w2[4:]) + 1/60 * (_w2[:-4] + _w3[6:])
-        else:
-            _wL = 7/12 * (_w[:-2] + _wS) - 1/12 * (_w2[:-4] + _w[2:])
-            _wR = 7/12 * (_wS + _w[2:]) - 1/12 * (_w[:-2] + _w2[4:])
-        return _wL, _wR
-
     gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
@@ -41,7 +41,7 @@ def run(grid, sim_variables, C=5/4):
                             |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
         """
         # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67] / (6th-order) [Colella & Sekora, 2008, eq. 17]
-        wF_L, wF_R = make_faces(wS, w, w2)
+        wF_L, wF_R = make_faces(wS, w, w2, boundary)
 
         wF_limit_L = limiters.interface_limiter(wF_L, w2[:-4], w[:-2], wS, w[2:], C)
         wF_limit_R = limiters.interface_limiter(wF_R, w[:-2], wS, w[2:], w2[4:], C)
@@ -131,16 +131,6 @@ def run(grid, sim_variables, C=5/4):
 
 # Modified piecewise parabolic reconstruction method (m-PPM); does not have interface limiting
 def run_modified(grid, sim_variables, dissipate=False, C=5/4):
-
-    def make_faces(_wS, _w, _w2, order=4):
-        if order == 6:
-            _w3 = fv.add_boundary(_wS, boundary, 3)
-            _wL = 37/60 * (_w[:-2] + _wS) - 2/15 * (_w2[:-4] + _w[2:]) + 1/60 * (_w3[:-6] + _w2[4:])
-            _wR = 37/60 * (_wS + _w[2:]) - 2/15 * (_w[:-2] + _w2[4:]) + 1/60 * (_w2[:-4] + _w3[6:])
-        else:
-            _wL = 7/12 * (_w[:-2] + _wS) - 1/12 * (_w2[:-4] + _w[2:])
-            _wR = 7/12 * (_wS + _w[2:]) - 1/12 * (_w[:-2] + _w2[4:])
-        return _wL, _wR
     
     def modify_stencil(_wF, _wS):
         _wF[0] = 1/12 * (25*_wS[1] - 23*_wS[2] + 13*_wS[3] - 3*_wS[4])
@@ -170,7 +160,7 @@ def run_modified(grid, sim_variables, dissipate=False, C=5/4):
                             |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
         """
         # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67] / (6th-order) [Colella & Sekora, 2008, eq. 17]
-        wF_L, wF_R = make_faces(wS, w, w2)
+        wF_L, wF_R = make_faces(wS, w, w2, boundary)
 
         # Modified stencil [McCorquodale & Colella, 2011, eq. 21-22]
         #wF_L, wF_R = modify_stencil(wF_L, w[:-2]), modify_stencil(wF_R, wS)
