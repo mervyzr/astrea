@@ -27,6 +27,7 @@ class BColours:
     FAIL = '\033[91m'
     ENDC = '\033[0m'
     BOLD = '\033[1m'
+    ITALIC = '\033[3m'
     UNDERLINE = '\033[4m'
 
 
@@ -85,7 +86,7 @@ def handle_CLI():
     quotes = DB.get(PARAMS.type == 'quotes')['name']
 
     parser = argparse.ArgumentParser(description='Run the mHydyS simulation.\n\nmHydyS is a 1D or 2D (magneto-)hydrodynamics finite volume simulation written in Python3. Refer to the README for more information.', 
-                                     epilog=f"~ {quotes[random.randint(0,len(quotes)-1)]} ~", 
+                                     epilog=f"--- {BColours.ITALIC}{quotes[random.randint(0,len(quotes)-1)]}{BColours.ENDC} ---", 
                                      formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument('--config', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Configuration to run in the simulation', choices=accepted_values('config'))
