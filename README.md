@@ -86,11 +86,22 @@ Clone this repository onto your local machine, and navigate to the cloned reposi
 
 # Usage
 
-The main method to run the simulation would be to edit the simulation parameters in `settings.yml`, and run _`python3 simulate.py`_ or _`./simulate.py`_ in the command line.
+The main method to run the simulation would be to edit the simulation parameters in `settings.yml` and running the main Python file:
+```bash
+python3 simulate.py
+```
+OR
+```bash
+./simulate.py
+```
 
-Alternatively, the code can be run with CLI options, e.g., _`python3 simulate.py --config==sedov`_. See _`python3 simulate.py --help`_ for a list of available options.
+Alternatively, the code can be run with CLI options:
+```bash
+python3 simulate.py --config==sedov --cells=256
+```
+See _`--help`_ for a list of available options.
 
-Running the code in a Python interactive shell is also possible, but this is not recommended:
+Running the code in a Python interactive shell is also possible, although not recommended:
 
 ```python
 import simulate
