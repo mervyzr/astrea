@@ -1,5 +1,5 @@
 [![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
-[![Python](https://img.shields.io/badge/Python-%E2%89%A53.9-brightgreen?logo=python&logoColor=white)](https://www.python.org)
+[![Python](https://img.shields.io/badge/Python-3.9%20%7C%203.1x-brightgreen?logo=python&logoColor=white)](https://www.python.org)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 <!-- ![GitHub Tag](https://img.shields.io/github/v/tag/mervyzr/mHydyS) -->
@@ -16,11 +16,11 @@ mHydyS (pronounced _"Hades"_; the _"m"_ is silent 😀) is a (one-)/two-dimensio
 
 The simulation employs a finite volume subgrid model (Eulerian) with a fixed and uniform Cartesian grid with periodic or outlet boundary conditions. The solution in the grid is updated in parallel. The simulation also allows for magnetic fields with the magnetic permeability set to one for simplicity.
 
-The code is written entirely in Python 3, and uses the `numpy` and `h5py` modules extensively for calculations and data handling respectively. The last _stable_ **^** Python version supported is _**Python 3.12**_.
+The code is written entirely in Python 3, and uses the `numpy` and `h5py` modules extensively for calculations and data handling respectively. The last _stable^_ Python version supported is _**Python 3.12**_.
 
 Some experimentation was done to parallelise the code with `Open MPI` and `MPICH`, or to enable multithreading. However, this is generally not recommended because of the global-interpreter-lock (GIL) in Python and the sequential nature of the simulation. Futhermore, `numpy` should already use multi-threading _wherever possible_, and 'parallelised Python' with `numpy` does not show a substantial increase in speed anyway over 'fully-parallel' code in Fortran or C (Ross, 2016).
 
-**^**There are some issues with building the wheels for `h5py` and `scipy` in Python 3.13 with the GIL disabled and experimental JIT compiler enabled (see [here](https://github.com/h5py/h5py/issues/2475) and [here](https://docs.scipy.org/doc/scipy/dev/toolchain.html)). Therefore, the code can only run with Python 3.13 built without those two options.
+^There are some issues with building the wheels for `h5py` and `scipy` in Python 3.13 with the GIL disabled and experimental JIT compiler enabled (see [here](https://github.com/h5py/h5py/issues/2475) and [here](https://docs.scipy.org/doc/scipy/dev/toolchain.html)). Therefore, the code can only run with Python 3.13 built without those two options.
 
 ### Spatial discretisation
 
