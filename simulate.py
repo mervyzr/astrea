@@ -27,7 +27,8 @@ SEED = np.random.randint(0, 1e8)
 
 # Load env variables
 if sys.version_info.major == 3 and sys.version_info.minor >= 13:
-    dotenv.load_dotenv(f"{CURRENT_DIR}/static/.env")
+    #dotenv.load_dotenv(f"{CURRENT_DIR}/static/.env")
+    pass
 
 
 # Finite volume shock function
