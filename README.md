@@ -8,7 +8,7 @@
 
 mHydyS (pronounced _"Hades"_; the _"m"_ is silent 😀) is a (one-)/two-dimensional (magneto-)hydrodynamics code for the purpose of simulating shocks with a chemical network of ions and neutrals, and possible implementation of radiative heating and cooling.
 
-**_This code is created as part of the Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner._**
+**_This code is created as part of the [Master's thesis research project](https://github.com/mervyzr/mHydyS_latex) at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner._**
 
 # Description
 
