@@ -3,6 +3,7 @@
 import os
 import sys
 import shutil
+import signal
 import traceback
 from datetime import datetime
 from time import perf_counter
@@ -24,11 +25,7 @@ from functions import fv, generic, plotting, constructors
 # Globals
 CURRENT_DIR = os.getcwd()
 SEED = np.random.randint(0, 1e8)
-
-# Load env variables
-if sys.version_info.major == 3 and sys.version_info.minor >= 13:
-    #dotenv.load_dotenv(f"{CURRENT_DIR}/static/.env")
-    pass
+LOAD_ENV = False
 
 
 # Finite volume shock function
@@ -86,6 +83,17 @@ def run() -> None:
     # Save the HDF5 file (with seed) to store the temporary data
     file_name = f"{CURRENT_DIR}/.tempShockData_{SEED}.hdf5"
 
+    # Signal handler for Ctrl+C
+    def graceful_exit(sig, frame):
+        sys.stdout.write('\033[2K\033[1G')
+        print(f"Ctrl+C pressed; exiting gracefully...")
+        os.remove(file_name)
+        sys.exit(0)
+
+    # Load env variables
+    if LOAD_ENV and (sys.version_info.major == 3 and sys.version_info.minor >= 13):
+        dotenv.load_dotenv(f"{CURRENT_DIR}/static/.env")
+
     # Generate the simulation variables from settings (dict)
     with open(f"{CURRENT_DIR}/settings.yml", "r") as settings_file:
         config_variables = yaml.safe_load(settings_file)
@@ -121,6 +129,9 @@ def run() -> None:
     # Run in a try-except-else to handle crashes and prevent exiting code entirely
     script_start = datetime.now().strftime('%Y%m%d%H%M')
     save_path = f"{CURRENT_DIR}/savedData/{script_start}_{SEED}"
+
+    original_sigint_handler = signal.getsignal(signal.SIGINT)
+    signal.signal(signal.SIGINT, graceful_exit)
 
     try:
         # Initiate the HDF5 database to store data temporarily
@@ -190,6 +201,9 @@ def run() -> None:
             shutil.move(file_name, f"{save_path}/mHydyS_{_sim_variables.config}_{_sim_variables.subgrid}_{_sim_variables.timestep}_{SEED}.hdf5")
         else:
             os.remove(file_name)
+    
+    finally:
+        signal.signal(signal.SIGINT, original_sigint_handler)
     ###################################### SCRIPT END ######################################
 
 
