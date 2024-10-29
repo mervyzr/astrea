@@ -68,16 +68,6 @@ def generate_test_conditions(config, cells):
         initial_right = np.array([1,-10.5636,0,0,1,0,0,0])
         misc = None
 
-    elif "rarefaction" in config or "double" in config:
-        start_pos = 0
-        end_pos = 1
-        shock_pos = .5
-        t_end = .1
-        boundary = "edge"  # outflow
-        initial_left = np.array([1,-2,0,0,.4,0,0,0])
-        initial_right = np.array([1,2,0,0,.4,0,0,0])
-        misc = None
-
     elif config.startswith('sq'):
         start_pos = -1
         end_pos = 1
@@ -138,6 +128,7 @@ def generate_test_conditions(config, cells):
         boundary = "edge"  # outflow
         misc = None
 
+        # Double rarefaction wave
         if "2" in config:
             shock_pos = .5
             t_end = .14
