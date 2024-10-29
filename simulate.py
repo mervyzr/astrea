@@ -57,25 +57,27 @@ def core_run(grp: h5py, _sim_variables: namedtuple):
         if _sim_variables.live_plot:
             plotting.update_plot(tube_snapshot, t, _sim_variables.dimension, *plotting_params)
 
-        # Compute the numerical fluxes at each interface
-        interface_fluxes = evolvers.evolve_space(grid, _sim_variables)
-
-        # Compute the maximum eigenvalues for determining the full time step
-        eigmaxes = [_sim_variables.dx/Riemann_flux.eigmax for Riemann_flux in list(interface_fluxes.values())]
-        dt = _sim_variables.cfl * min(eigmaxes)
-
-        # Handle the temporal update
-        if t+dt > _sim_variables.t_end:
-            if t == _sim_variables.t_end:
-                break
-            else:
-                # Update the solution with the 'remaining' dt
-                grid = evolvers.evolve_time(grid, interface_fluxes, _sim_variables.t_end-t, _sim_variables)
-                t = _sim_variables.t_end
+        # Handle the simulation end
+        if t == _sim_variables.t_end:
+            break
         else:
+            # Compute the numerical fluxes at each interface
+            interface_fluxes = evolvers.evolve_space(grid, _sim_variables)
+
+            # Compute the maximum eigenvalues for determining the full time step
+            eigmaxes = [_sim_variables.dx/Riemann_flux.eigmax for Riemann_flux in list(interface_fluxes.values())]
+            dt = _sim_variables.cfl * min(eigmaxes)
+
+            # Handle dt close to simulation end
+            if t+dt > _sim_variables.t_end:
+                dt = _sim_variables.t_end-t
+
             # Update the solution with the numerical fluxes using iterative methods
             grid = evolvers.evolve_time(grid, interface_fluxes, dt, _sim_variables)
+
+            # Update time step
             t += dt
+
     return grp
 
 ##############################################################################
