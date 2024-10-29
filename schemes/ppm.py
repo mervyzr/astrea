@@ -212,15 +212,6 @@ def run_XPPM(grid, sim_variables, C=5/4):
 
 # [McCorquodale & Colella, 2011]
 def run_MC(grid, sim_variables, dissipate=False, C=5/4):
-    
-    def modify_stencil(_wF, _wS):
-        _wF[0] = 1/12 * (25*_wS[1] - 23*_wS[2] + 13*_wS[3] - 3*_wS[4])
-        _wF[-1] = 1/12 * (25*_wS[-1] - 23*_wS[-2] + 13*_wS[-3] - 3*_wS[-4])
-
-        _wF[1] = 1/12 * (3*_wS[1] + 13*_wS[2] - 5*_wS[3] + _wS[4])
-        _wF[-2] = 1/12 * (3*_wS[-1] + 13*_wS[-2] - 5*_wS[-3] + _wS[-4])
-        return _wF
-
     gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
@@ -242,9 +233,6 @@ def run_MC(grid, sim_variables, dissipate=False, C=5/4):
         """
         # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
         wF = 7/12 * (wS + w[2:]) - 1/12 * (w[:-2] + w2[4:])
-
-        # Modified stencil [McCorquodale & Colella, 2013, eq. 21-22]
-        #wF = modify_stencil(wF, wS)
 
         """Reconstruct the interpolants using the limited values
         Current convention: |               w(i-1/2)                    w(i+1/2)              |
