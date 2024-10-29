@@ -1,4 +1,4 @@
-[![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![Python](https://img.shields.io/badge/Python-3.9%20%7C%203.1x-brightgreen?logo=python&logoColor=white)](https://www.python.org)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
@@ -8,7 +8,7 @@
 
 mHydyS (pronounced _"Hades"_; the _"m"_ is silent 😀) is a (one-)/two-dimensional (magneto-)hydrodynamics code for the purpose of simulating shocks with a chemical network of ions and neutrals, and possible implementation of radiative heating and cooling.
 
-**_This code is created as part of the [Master's thesis research project](https://github.com/mervyzr/mHydyS_latex) at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner._**
+**_This code is created as part of the Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner._**
 
 # Description
 
