@@ -1,5 +1,4 @@
 import os
-import math
 import random
 import argparse
 import itertools
@@ -59,11 +58,7 @@ def print_output(instance_time, seed, sim_variables, **kwargs):
     _timestep = f"{BColours.OKCYAN}{sim_variables.timestep.upper()}{BColours.ENDC}"
     _scheme = f"{BColours.OKCYAN}{sim_variables.scheme.upper()}{BColours.ENDC}"
     _cfl = f"{BColours.OKCYAN}{sim_variables.cfl}{BColours.ENDC}"
-
-    if sim_variables.dimension%1 != 0:
-        _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({sim_variables.dimension}D){BColours.ENDC}"
-    else:
-        _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({int(sim_variables.dimension)}D){BColours.ENDC}"
+    _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({sim_variables.dimension}D){BColours.ENDC}"
 
     if kwargs:
         if kwargs['elapsed'] >= 3600:
@@ -93,7 +88,7 @@ def handle_CLI():
     parser.add_argument('--cells', '--N', '--n', dest='cells', metavar='', type=int, default=argparse.SUPPRESS, help='Number of cells in the grid')
     parser.add_argument('--cfl', metavar='', type=float, default=argparse.SUPPRESS, help='Courant number in the Courant-Friedrichs-Lewy stability condition')
     parser.add_argument('--gamma', metavar='', type=float, default=argparse.SUPPRESS, help='Adiabatic index')
-    parser.add_argument('--dimension', '--dim', dest='dimension', type=float, metavar='', default=argparse.SUPPRESS, help='Dimension of the simulation', choices=DB.get(PARAMS.type == 'dimension')['accepted'])
+    parser.add_argument('--dimension', '--dim', dest='dimension', type=int, metavar='', default=argparse.SUPPRESS, help='Dimension of the simulation', choices=DB.get(PARAMS.type == 'dimension')['accepted'])
     parser.add_argument('--subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Subgrid model used in the reconstruction of the grid', choices=accepted_values('subgrid'))
     parser.add_argument('--timestep', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Time-stepping algorithm used in the update step of the simulation', choices=accepted_values('timestep'))
     parser.add_argument('--scheme', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Scheme of solver for the Riemann problem', choices=accepted_values('scheme'))
@@ -141,7 +136,7 @@ def handle_variables(config_variables: dict, cli_variables: dict):
         if k in ['live_plot', 'save_plots', 'save_video', 'save_file']:
             if not isinstance(v, bool):
                 v = False
-        elif k == "snapshots":
+        elif k in ['snapshots', 'dimension']:
             if not isinstance(v, int):
                 v = 1
         elif k == "cells":
@@ -172,7 +167,7 @@ def handle_variables(config_variables: dict, cli_variables: dict):
         final_dict[k] = v
 
     # Add relevant key-pairs to the dictionary
-    final_dict['permutations'] = [axes for axes in list(itertools.permutations(list(range(math.ceil(final_dict['dimension']+1))))) if axes[-1] == math.ceil(final_dict['dimension'])]
+    final_dict['permutations'] = [axes for axes in list(itertools.permutations(list(range(final_dict['dimension']+1)))) if axes[-1] == final_dict['dimension']]
     final_dict['config_category'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
 
     if final_dict['scheme'] in DB.get(PARAMS.type == 'scheme' and PARAMS.category == 'full')['accepted']:

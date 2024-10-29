@@ -53,7 +53,7 @@ def initiate_live_plot(sim_variables):
     graphs = []
     for _i, _j in PLOT_INDEXES:
         ax[_i,_j].set_ylabel(PLOT_LABELS[_i][_j])
-        if dimension >= 2:
+        if dimension == 2:
             fig.text(0.04, 0.4, r"Cell position $y$", ha='center', rotation='vertical')
             if _j == 1:
                 ax[_i,_j].yaxis.set_label_position("right")
@@ -78,7 +78,7 @@ def update_plot(arr, t, dimension, fig, ax, graphs):
     # top-left: density, top-right: pressure, bottom-left: velocity_x, bottom-right: specific thermal energy
     plot_data = [arr[...,0], arr[...,4], arr[...,1], fv.divide(arr[...,4], arr[...,0])]
 
-    if dimension >= 2:
+    if dimension == 2:
         for index, graph in enumerate(graphs):
             graph.set_data(plot_data[index])
             graph.set_clim([np.min(plot_data[index]), np.max(plot_data[index])])
@@ -86,12 +86,8 @@ def update_plot(arr, t, dimension, fig, ax, graphs):
         plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ at $t = {round(t,4)}$")
     else:
         for index, graph in enumerate(graphs):
-            if dimension > 1:
-                middle_layer = int(len(plot_data[index])/2)
-                graph.set_ydata(plot_data[index][middle_layer])
-            else:
-                graph.set_ydata(plot_data[index])
-                #graphBR.set_ydata(analytic.calculateEntropyDensity(arr, 1.4))  # scaled entropy density
+            graph.set_ydata(plot_data[index])
+            #graphBR.set_ydata(analytic.calculateEntropyDensity(arr, 1.4))  # scaled entropy density
 
         for _i, _j in PLOT_INDEXES:
             ax[_i,_j].relim()
@@ -114,7 +110,7 @@ def plot_quantities(f, sim_variables, save_path):
     n_list = [int(n) for n in f.keys()]
     n_list.sort()
 
-    if dimension >= 2:
+    if dimension == 2:
         figsize = [15, 10]
     else:
         figsize = [21, 10]
@@ -140,10 +136,6 @@ def plot_quantities(f, sim_variables, save_path):
         # Plot each simulation at the specific timing
         for N in n_list:
             time_key = str(timings[N][time_index])
-
-            if 1 < dimension < 2:
-                middle_layer = int(len(f[str(N)][time_key])/2)
-
             y1 = f[str(N)][time_key][...,0]   # density
             y2 = f[str(N)][time_key][...,4]   # pressure
             y3 = f[str(N)][time_key][...,1]   # vx
@@ -153,28 +145,19 @@ def plot_quantities(f, sim_variables, save_path):
 
             # density, pressure, vx, thermal energy
             for _i, _j in PLOT_INDEXES:
+                y = y_data[_i][_j]
+
                 if len(f) != 1:
-                    if dimension >= 2:
-                        pass
-                    else:
-                        if 1 < dimension:
-                            y = y_data[_i][_j][middle_layer]
-                        else:
-                            y = y_data[_i][_j]
+                    if dimension < 2:
                         ax[_i,_j].plot(x, y, linewidth=2, label=f"N = {N}")
                         plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(timings[max(n_list)][time_index],3)}$", fontsize=24)
                 else:
-                    if dimension >= 2:
-                        graph = ax[_i,_j].imshow(y_data[_i][_j], interpolation="hermite", cmap=TWOD_COLOURS[_i][_j])
+                    if dimension == 2:
+                        graph = ax[_i,_j].imshow(y, interpolation="hermite", cmap=TWOD_COLOURS[_i][_j])
                         divider = make_axes_locatable(ax[_i,_j])
                         cax = divider.append_axes('right', size='5%', pad=0.05)
                         fig.colorbar(graph, cax=cax, orientation='vertical')
                     else:
-                        if dimension > 1:
-                            y = y_data[_i][_j][middle_layer]
-                        else:
-                            y = y_data[_i][_j]
-
                         if BEAUTIFY:
                             gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
                         else:
@@ -183,17 +166,14 @@ def plot_quantities(f, sim_variables, save_path):
                         plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(timings[max(n_list)][time_index],3)}$ ($N = {N}$)", fontsize=24)
 
         # Add analytical solutions only for 1D
-        if dimension >= 2:
+        if dimension == 2:
             plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ at $t \approx {round(timings[max(n_list)][time_index],3)}$ ($N = {N}$)", fontsize=24)
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
             fig.text(0.04, 0.4, r"Cell position $y$", fontsize=18, ha='center', rotation="vertical")
         else:
             # Add analytical solution for smooth functions, using the highest resolution and timing
             if sim_variables.config_category == "smooth":
-                if 1 < dimension < 2:
-                    analytical = constructors.initialise(sim_variables)[middle_layer]
-                else:
-                    analytical = constructors.initialise(sim_variables)
+                analytical = constructors.initialise(sim_variables)
 
                 # Adjust ylim and tolerances for Gaussian and sin-wave tests
                 if config.startswith("gauss"):
@@ -216,10 +196,7 @@ def plot_quantities(f, sim_variables, save_path):
             # Add Sod analytical solution, using the highest resolution and timing
             elif "sod" in config:
                 tube, _t = f[str(max(n_list))][str(timings[max(n_list)][time_index])], timings[max(n_list)][time_index]
-                if 1 < dimension < 2:
-                    Sod = analytic.calculate_Sod_analytical(tube[middle_layer], _t, sim_variables)
-                else:
-                    Sod = analytic.calculate_Sod_analytical(tube, _t, sim_variables)
+                Sod = analytic.calculate_Sod_analytical(tube, _t, sim_variables)
 
                 y_theo = [[Sod[...,0], Sod[...,4]], [Sod[...,1], Sod[...,4]/Sod[...,0]]]
                 for _i, _j in PLOT_INDEXES:
@@ -417,7 +394,7 @@ def make_video(f, sim_variables, save_path, vidpath):
     n_list = [int(n) for n in f.keys()]
     n_list.sort()
 
-    if dimension >= 2:
+    if dimension == 2:
         figsize = [15, 10]
     else:
         figsize = [21, 10]
@@ -443,20 +420,16 @@ def make_video(f, sim_variables, save_path, vidpath):
             y_data = [[y1, y2], [y3, y4]]
 
             for _i, _j in PLOT_INDEXES:
-                if dimension >= 2:
-                    graph = ax[_i,_j].imshow(y_data[_i][_j], interpolation="hermite", cmap=TWOD_COLOURS[_i][_j])
+                y = y_data[_i][_j]
+
+                if dimension == 2:
+                    graph = ax[_i,_j].imshow(y, interpolation="hermite", cmap=TWOD_COLOURS[_i][_j])
                     divider = make_axes_locatable(ax[_i,_j])
                     cax = divider.append_axes('right', size='5%', pad=0.05)
                     fig.colorbar(graph, cax=cax, orientation='vertical')
                     plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=24)
                     fig.text(0.04, 0.4, r"Cell position $y$", fontsize=18, ha='center')
                 else:
-                    if dimension > 1:
-                        middle_layer = int(len(y_data[_i][_j])/2)
-                        y = y_data[_i][_j][middle_layer]
-                    else:
-                        y = y_data[_i][_j]
-
                     if BEAUTIFY:
                         gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
                     else:
@@ -506,20 +479,16 @@ def plot_instance(grid, show_plot=True, text="", start_pos=0, end_pos=1, **kwarg
     y_data = [[y1, y2], [y3, y4]]
 
     for _i, _j in PLOT_INDEXES:
-        if dimension >= 2:
-            graph = ax[_i,_j].imshow(y_data[_i][_j], interpolation="hermite", cmap=TWOD_COLOURS[_i][_j])
+        y = y_data[_i][_j]
+
+        if dimension == 2:
+            graph = ax[_i,_j].imshow(y, interpolation="hermite", cmap=TWOD_COLOURS[_i][_j])
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes('right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
             plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ {text}", fontsize=24)
             fig.text(0.04, 0.4, r"Cell position $y$", fontsize=18, ha='center')
         else:
-            if dimension > 1:
-                middle_layer = int(len(y_data[_i][_j])/2)
-                y = y_data[_i][_j][middle_layer]
-            else:
-                y = y_data[_i][_j]
-
             if BEAUTIFY:
                 gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
             else:

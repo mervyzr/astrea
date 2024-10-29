@@ -1,5 +1,3 @@
-import math
-
 import scipy
 import numpy as np
 
@@ -30,13 +28,8 @@ def calculate_solution_error(simulation, sim_variables, norm):
     w_num = simulation[str(max(time_keys))]  # Get last instance of the grid with largest time key
 
     # Create theoretical array
-    if 1 < dimension < 2:
-        N = len(w_num[0])
-        divisor = len(w_num) * len(w_num[0])
-    else:
-        N = len(w_num)
-        divisor = len(w_num) ** dimension
-    sim_variables = sim_variables._replace(cells=N)
+    normalising_factor = 1/(len(w_num) ** dimension)
+    sim_variables = sim_variables._replace(cells=len(w_num))
     w_theo = constructors.initialise(sim_variables)
     
     if config.startswith("gauss") and ("np" in config or "non" in config) and dimension < 2:
@@ -46,16 +39,16 @@ def calculate_solution_error(simulation, sim_variables, norm):
     w_num, w_theo = np.concatenate((w_num, thermal_num[...,None]), axis=-1), np.concatenate((w_theo, thermal_theo[...,None]), axis=-1)
 
     if norm > 10:
-        return np.max(np.abs(w_num-w_theo), axis=tuple(range(math.ceil(dimension))))
+        return np.max(np.abs(w_num-w_theo), axis=tuple(range(dimension)))
     elif norm <= 0:
-        return np.sum(np.abs(w_num-w_theo), axis=tuple(range(math.ceil(dimension))))/divisor
+        return normalising_factor * np.sum(np.abs(w_num-w_theo), axis=tuple(range(dimension)))
     else:
-        return (np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(range(math.ceil(dimension))))/divisor)**(1/norm)
+        return (normalising_factor * np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(range(dimension))))**(1/norm)
 
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
 def calculate_tv(simulation, sim_variables):
-    dimension, tv = math.ceil(sim_variables.dimension), {}
+    dimension, tv = sim_variables.dimension, {}
     for t in list(simulation.keys()):
         grid = simulation[t]
         thermal = fv.divide(grid[...,4], grid[...,0])
@@ -70,7 +63,7 @@ def calculate_tv(simulation, sim_variables):
 # Function for checking the conservation equations; works with primitive variables but needs to be converted
 def calculate_conservation(simulation, sim_variables):
     N, subgrid, start_pos, end_pos = sim_variables.cells, sim_variables.subgrid, sim_variables.start_pos, sim_variables.end_pos
-    dimension, eq = math.ceil(sim_variables.dimension), {}
+    dimension, eq = sim_variables.dimension, {}
 
     if subgrid.startswith("w") or subgrid in ["ppm", "parabolic", "p"]:
         convert = fv.convert_primitive
@@ -90,7 +83,7 @@ def calculate_conservation(simulation, sim_variables):
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
 def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
     N, subgrid, start_pos, end_pos, t_end = sim_variables.cells, sim_variables.subgrid, sim_variables.start_pos, sim_variables.end_pos, sim_variables.t_end
-    dimension, eq = math.ceil(sim_variables.dimension), {}
+    dimension, eq = sim_variables.dimension, {}
 
     if subgrid.startswith("w") or subgrid in ["ppm", "parabolic", "p"]:
         convert = fv.convert_primitive

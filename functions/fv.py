@@ -1,4 +1,3 @@
-import math
 import numpy as np
 
 ##############################################################################
@@ -77,13 +76,13 @@ def point_convert_conservative(grid, sim_variables):
 # Attempts to raise the order of accuracy for the Laplacian to 4th-, 6th- and even 8th-order were made, but not too feasible because the averaging function
 # is limited by the time-stepping and the limiting functions (currently max is 4th order)
 def convert_mode(grid, sim_variables, _type="cell"):
-    ceil_dimension, boundary, permutations = math.ceil(sim_variables.dimension), sim_variables.boundary, sim_variables.permutations
+    dimension, boundary, permutations = sim_variables.dimension, sim_variables.boundary, sim_variables.permutations
     new_grid = np.copy(grid)
 
     for axes in permutations:
         reversed_axes = np.argsort(axes)  # Only necessary for 3D
         if "face" in _type:
-            for ax in range(1, ceil_dimension):
+            for ax in range(1, dimension):
                 padding = [(0,0)] * grid.ndim
                 padding[ax] = (1,1)
 
@@ -98,13 +97,13 @@ def convert_mode(grid, sim_variables, _type="cell"):
 
 # Converting (cell-/face-averaged) primitive variables w to (cell-/face-averaged) conservative variables q through a higher-order approx.
 def convert_primitive(grid, sim_variables, _type="cell"):
-    ceil_dimension, boundary, permutations = math.ceil(sim_variables.dimension), sim_variables.boundary, sim_variables.permutations
+    dimension, boundary, permutations = sim_variables.dimension, sim_variables.boundary, sim_variables.permutations
     w, q = np.copy(grid), np.zeros_like(grid)
 
     for axes in permutations:
         reversed_axes = np.argsort(axes)  # Only necessary for 3D
         if "face" in _type:
-            for ax in range(1, ceil_dimension):
+            for ax in range(1, dimension):
                 padding = [(0,0)] * grid.ndim
                 padding[ax] = (1,1)
 
@@ -125,13 +124,13 @@ def convert_primitive(grid, sim_variables, _type="cell"):
 
 # Converting (cell-/face-averaged) conservative variables q to (cell-/face-averaged) primitive variables q through a higher-order approx.
 def convert_conservative(grid, sim_variables, _type="cell"):
-    ceil_dimension, boundary, permutations = math.ceil(sim_variables.dimension), sim_variables.boundary, sim_variables.permutations
+    dimension, boundary, permutations = sim_variables.dimension, sim_variables.boundary, sim_variables.permutations
     w, q = np.zeros_like(grid), np.copy(grid)
 
     for axes in permutations:
         reversed_axes = np.argsort(axes)  # Only necessary for 3D
         if "face" in _type:
-            for ax in range(1, ceil_dimension):
+            for ax in range(1, dimension):
                 padding = [(0,0)] * grid.ndim
                 padding[ax] = (1,1)
 

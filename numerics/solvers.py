@@ -58,7 +58,7 @@ def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
         interface_variables = retrieve_variables(arrays, sim_variables.subgrid, sim_variables.scheme)
         intf_fluxes_avg = run_Riemann_solver(sim_variables, characteristics, **interface_variables)
 
-        if 1 < sim_variables.dimension:
+        if sim_variables.dimension == 2:
             # Compute the orthogonal L/R Riemann states and fluxes
             higher_order_interface_variables = {}
             for intf, arr in interface_variables.items():

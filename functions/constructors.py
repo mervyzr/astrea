@@ -26,7 +26,7 @@ def initialise(sim_variables, convert=False):
 
     physical_grid = make_physical_grid(start_pos, end_pos, N)
 
-    if dimension >= 2:
+    if dimension == 2:
         x, y = np.meshgrid(physical_grid, physical_grid)
         centre = (end_pos+start_pos)/2
 
@@ -78,10 +78,6 @@ def initialise(sim_variables, convert=False):
             computational_grid[...,0] = fv.sin_func(x, params)
         elif config.startswith('gauss'):
             computational_grid[...,0] = fv.gauss_func(x, params)
-
-        if dimension > 1:
-            layer = 2
-            computational_grid = np.repeat(computational_grid[np.newaxis,...], 2*layer+1, axis=0)
 
     if convert:
         grid = fv.point_convert_primitive(computational_grid, sim_variables)
