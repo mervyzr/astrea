@@ -4,9 +4,9 @@ import numpy as np
 # Initial conditions for test configs
 ##############################################################################
 
-def generate_test_conditions(config):
+def generate_test_conditions(config, cells):
     # [Sod, 1978]
-    if config == "sod":
+    if "sod" in config:
         start_pos = 0
         end_pos = 1
         shock_pos = .5
@@ -16,18 +16,8 @@ def generate_test_conditions(config):
         initial_right = np.array([.125,0,0,0,.1,0,0,0])  # primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
         misc = None
 
-    elif config == "sin":
-        start_pos = 0
-        end_pos = 1
-        shock_pos = 1
-        t_end = 1
-        boundary = "wrap"  # periodic
-        initial_left = np.array([0,1,1,0,1,0,0,0])
-        initial_right = np.array([0,1,1,0,1,0,0,0])
-        misc = {'freq':2, 'ampl':.1, 'y_offset':1}
-
     # [Sedov, 1959]
-    elif config == "sedov":
+    elif "sedov" in config:
         start_pos = -10
         end_pos = 10
         shock_pos = .5  # blast boundary
@@ -38,7 +28,7 @@ def generate_test_conditions(config):
         misc = None
 
     # [Shu & Osher, 1989]
-    elif "shu" in config or "osher" in config:
+    elif "shu" in config or "osher" in config or config == "so":
         start_pos = -1
         end_pos = 1
         shock_pos = -.8
@@ -48,15 +38,59 @@ def generate_test_conditions(config):
         initial_right = np.array([0,0,0,0,1,0,0,0])
         misc = {'freq':5, 'ampl':.2, 'y_offset':1}
 
-    elif config.startswith('gauss'):
-        start_pos = -1
+    elif config.startswith("sin"):
+        start_pos = 0
         end_pos = 1
         shock_pos = 1
-        t_end = 2
+        t_end = 1
+        boundary = "wrap"  # periodic
+        initial_left = np.array([0,1,1,0,1,0,0,0])
+        initial_right = np.array([0,1,1,0,1,0,0,0])
+        misc = {'ampl':.1, 'y_offset':3}
+
+        if "non" in config or "np" in config:
+            misc['freq'] = 8
+        else:
+            misc['freq'] = 2
+
+    elif config.startswith('gauss'):
         boundary = "wrap"  # periodic
         initial_left = np.array([0,1,1,0,1e-6,0,0,0])
         initial_right = np.array([0,1,1,0,1e-6,0,0,0])
-        misc = {'ampl':.9999, 'fwhm':.02, 'y_offset':1}
+        misc = {'ampl':.75, 'y_offset':3}
+
+        if "non" in config or "np" in config:
+            start_pos = -4
+            end_pos = 4
+            shock_pos = 4
+            t_end = 4
+            misc.update({'peak_pos':start_pos+2, 'fwhm':.5})
+        else:
+            start_pos = -1
+            end_pos = 1
+            shock_pos = 1
+            t_end = 2
+            misc.update({'peak_pos':.5*(end_pos+start_pos), 'fwhm':.08})
+
+    elif "slow" in config:
+        start_pos = 0
+        end_pos = 1
+        shock_pos = .5
+        t_end = .08
+        boundary = "edge"  # outflow
+        initial_left = np.array([5.6698,-1.5336,0,0,100,0,0,0])
+        initial_right = np.array([1,-10.5636,0,0,1,0,0,0])
+        misc = None
+
+    elif "rarefaction" in config or "double" in config:
+        start_pos = 0
+        end_pos = 1
+        shock_pos = .5
+        t_end = .1
+        boundary = "edge"  # outflow
+        initial_left = np.array([1,-2,0,0,.4,0,0,0])
+        initial_right = np.array([1,2,0,0,.4,0,0,0])
+        misc = None
 
     elif config.startswith('sq'):
         start_pos = -1
@@ -69,7 +103,7 @@ def generate_test_conditions(config):
         misc = None
 
     # [Ryu & Jones, 1995]
-    elif "ryu" in config or "jones" in config or "rj" in config:
+    elif "ryu" in config or "jones" in config or config == "rj":
         start_pos = -.5
         end_pos = .5
         shock_pos = 0
@@ -80,7 +114,7 @@ def generate_test_conditions(config):
         misc = None
 
     # [Brio & Wu, 1988]
-    elif "brio" in config or "wu" in config or "bw" in config:
+    elif "brio" in config or "wu" in config or config == "bw":
         start_pos = -.5
         end_pos = .5
         shock_pos = 0
@@ -90,7 +124,7 @@ def generate_test_conditions(config):
         initial_right = np.array([.125,0,0,0,.1,.75,-1,0])
         misc = None
 
-    elif config in ["khi", "kelvin-helmholtz"] or ("kelvin" in config or "helmholtz" in config):
+    elif "kelvin" in config or "helmholtz" in config or config == "khi":
         start_pos = -1
         end_pos = 1
         shock_pos = .5
@@ -101,7 +135,7 @@ def generate_test_conditions(config):
         misc = {'perturb_ampl':.01, 'freq':2}
 
     # [Yee et. al., 1999]
-    elif config in ["ivc", "vortex", "isentropic vortex"]:
+    elif "isentropic" in config or "vortex" in config or config == "ivc":
         start_pos = 0
         end_pos = 10
         shock_pos = 5
@@ -111,7 +145,7 @@ def generate_test_conditions(config):
         initial_right = np.array([1,0,0,0,1,0,0,0])
         misc = {'vortex_str':5, 'freq':2}
 
-    # [Toro, 2009]
+    # [Toro, 1999, p.225]
     elif "toro" in config:
         start_pos = 0
         end_pos = 1
@@ -149,7 +183,7 @@ def generate_test_conditions(config):
             initial_right = np.array([.125,0,0,0,.1,0,0,0])
 
     # [Lax & Liu, 1998]
-    elif "ll" in config or "lax-liu" in config:
+    elif "lax" in config or "liu" in config or "ll" in config:
         start_pos = 0
         end_pos = 1
         shock_pos = .5
@@ -201,4 +235,4 @@ def generate_test_conditions(config):
         initial_right = np.array([.125,0,0,0,.1,0,0,0])
         misc = None
 
-    return {'start_pos':start_pos, 'end_pos':end_pos, 'shock_pos':shock_pos, 't_end':t_end, 'boundary':boundary.lower(), 'misc':misc, 'initial_left':initial_left, 'initial_right':initial_right}
+    return {'start_pos':start_pos, 'end_pos':end_pos, 'shock_pos':shock_pos, 't_end':t_end, 'boundary':boundary.lower(), 'misc':misc, 'initial_left':initial_left, 'initial_right':initial_right, 'dx':abs(end_pos-start_pos)/cells}

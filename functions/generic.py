@@ -1,20 +1,21 @@
+import os
+import math
 import random
 import argparse
+import itertools
 from datetime import timedelta
+from tinydb import TinyDB, Query
+
+from numpy.polynomial import legendre
 
 ##############################################################################
-# Generic functions not specific to finite volume
+# Generic functions not specific to the finite volume method
 ##############################################################################
 
-ACCEPTED_VALUES = {
-    "config": ["sod", "sin", "sin-wave", "sedov", "shu-osher", "shu", "osher", "gaussian", "gauss", "sq", "square", "square-wave", "ryu-jones", "ryu", "jones", "rj", "brio-wu", "brio", "wu", "bw", "khi", "kelvin", "helmholtz", "kelvin-helmholtz", "ivc", "vortex", "isentropic vortex", "toro1", "toro2", "toro3", "toro4", "toro5", "ll3", "ll4", "ll6", "ll11", "ll12", "ll15", "lax-liu3", "lax-liu4", "lax-liu6", "lax-liu11", "lax-liu12", "lax-liu15"],
-    "dimension": [1, 1.5, 2],
-    "precision": [16, 32, 64, 128],
-    "subgrid": ["pcm", "constant", "c", "plm", "linear", "l", "ppm", "parabolic", "p", "weno", "weno3", "weno-3", "weno5", "weno-5", "weno7", "weno-7", "w"],
-    "timestep": ["euler", "rk4", "ssprk(2,2)","ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)", "(2,2)", "(3,3)", "(4,3)", "(5,3)", "(5,4)"],
-    "scheme": ["lf", "llf", "lax","friedrich", "lax-friedrich", "lw", "lax-wendroff", "wendroff", "hllc", "c", "osher-solomon", "osher", "solomon", "os", "entropy", "stable", "entropy-stable", "es"],
-    "run_type": ["s", "single", "m", "multiple", "multi", "many"]
-    }
+CURRENTDIR = os.getcwd()
+DB = TinyDB(f"{CURRENTDIR}/static/.db.json")
+PARAMS, ACCEPTED = Query(), Query()
+
 
 # Colours for printing to terminal
 class BColours:
@@ -26,6 +27,7 @@ class BColours:
     FAIL = '\033[91m'
     ENDC = '\033[0m'
     BOLD = '\033[1m'
+    ITALIC = '\033[3m'
     UNDERLINE = '\033[4m'
 
 
@@ -78,123 +80,122 @@ def print_output(instance_time, seed, sim_variables, **kwargs):
         pass
 
 
-# Function for tidying simulation variables
-def handle_config(_dct):
-    dct = {}
-    for parameters in _dct.values():
-        for k,v in parameters.items():
-            if k == "cells":
-                try:
-                    v -= v%2
-                except Exception as e:
-                    v = 128
-            if k == "precision":
-                precision_list = {1:"float16", 2:"float32", 4:"float64", 8:"float128"}
-                try:
-                    int(v)
-                except Exception as e:
-                    try:
-                        v.lower()
-                    except Exception as e:
-                        v = "float64"
-                    else:
-                        if "bit" in v:
-                            bit = int(v.replace("-","").split("bit")[0])
-                        elif "float" in v:
-                            bit = int(v.split("float")[1])
-                        v = precision_list[bit//16]
-                else:
-                    v = precision_list[v//16]
-            if isinstance(v, str):
-                v = v.lower()
-
-            dct[k] = v
-    return dct
-
-
 # CLI arguments handler; updates the simulation variables (which is a dict) and checks for any invalid values
-def handle_CLI(config_variables):
-    quotes = ["It's not a bug; it's an undocumented feature",\
-            "Experience is the name everyone gives to their mistakes",\
-            "Confusion is part of programming",\
-            "Light attracts bugs",\
-            "Programmer: A machine that turns coffee into code",\
-            "When I wrote this code, only God and I understood what I did. Now only God knows",\
-            "If, at first you do not succeed, call it version 1.0",\
-            "Keep It Simple, Stupid",\
-            "If you torture the data long enough, it will confess",\
-            "To steal ideas from one person is plagiarism; to steal from many is research",\
-            "Never forget the greatest researcher of our time: et al.",\
-            "The difference between screwing around and science is writing it down",\
-            "Computer science is no more about computers than astronomy is about telescopes"]
+def handle_CLI():
+    accepted_values = lambda _type: [value for category in DB.search(PARAMS.type == _type) for value in category['accepted']]
+    quotes = DB.get(PARAMS.type == 'quotes')['name']
 
     parser = argparse.ArgumentParser(description='Run the mHydyS simulation.\n\nmHydyS is a 1D or 2D (magneto-)hydrodynamics finite volume simulation written in Python3. Refer to the README for more information.', 
-                                     epilog=f"Fun quote: {quotes[random.randint(0,len(quotes)-1)]}", 
+                                     epilog=f"--- {BColours.ITALIC}{quotes[random.randint(0,len(quotes)-1)]}{BColours.ENDC} ---", 
                                      formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument('--config', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Configuration to run in the simulation', choices=ACCEPTED_VALUES['config'])
-    parser.add_argument('--cells', '--N', '--n', dest='cells', metavar='', type=int, default=argparse.SUPPRESS, help='Number of cells in the grid', choices=range(2,16385,2))
+    parser.add_argument('--config', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Configuration to run in the simulation', choices=accepted_values('config'))
+    parser.add_argument('--cells', '--N', '--n', dest='cells', metavar='', type=int, default=argparse.SUPPRESS, help='Number of cells in the grid')
     parser.add_argument('--cfl', metavar='', type=float, default=argparse.SUPPRESS, help='Courant number in the Courant-Friedrichs-Lewy stability condition')
     parser.add_argument('--gamma', metavar='', type=float, default=argparse.SUPPRESS, help='Adiabatic index')
-    parser.add_argument('--dimension', '--dim', dest='dimension', type=float, metavar='', default=argparse.SUPPRESS, help='Dimension of the simulation', choices=ACCEPTED_VALUES['dimension'])
-    parser.add_argument('--precision', metavar='', type=int, default=argparse.SUPPRESS, help='Floating-point precision of the variables', choices=ACCEPTED_VALUES['precision'])
-    parser.add_argument('--subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Subgrid model used in the reconstruction of the grid', choices=ACCEPTED_VALUES['subgrid'])
-    parser.add_argument('--timestep', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Time-stepping algorithm used in the update step of the simulation', choices=ACCEPTED_VALUES['timestep'])
-    parser.add_argument('--scheme', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Scheme of solver for the Riemann problem', choices=ACCEPTED_VALUES['scheme'])
-    parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Number of runs in a complete simulation', choices=ACCEPTED_VALUES['run_type'])
-    parser.add_argument('--live_plot', metavar='', type=bool, default=argparse.SUPPRESS, help='Toggle the live plot', choices=[True, False])
-    parser.add_argument('--save_plots', metavar='', type=bool, default=argparse.SUPPRESS, help='Save plots to file', choices=[True, False])
+    parser.add_argument('--dimension', '--dim', dest='dimension', type=float, metavar='', default=argparse.SUPPRESS, help='Dimension of the simulation', choices=DB.get(PARAMS.type == 'dimension')['accepted'])
+    parser.add_argument('--subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Subgrid model used in the reconstruction of the grid', choices=accepted_values('subgrid'))
+    parser.add_argument('--timestep', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Time-stepping algorithm used in the update step of the simulation', choices=accepted_values('timestep'))
+    parser.add_argument('--scheme', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Scheme of solver for the Riemann problem', choices=accepted_values('scheme'))
+    parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Number of runs in a complete simulation', choices=DB.get(PARAMS.type == 'run_type')['accepted'])
+    
+    parser.add_argument('--live_plot', '--live-plot', '--live', dest='live_plot', default=argparse.SUPPRESS, help='Switch on the live plot', action='store_true')
+    parser.add_argument('--no_live_plot', '--no-live-plot', '--no-live', '--no_live', dest='live_plot', default=argparse.SUPPRESS, help='Switch off the live plot', action='store_false')
+    
+    parser.add_argument('--save_plots', '--save-plots', dest='save_plots', default=argparse.SUPPRESS, help='Switch on saving plots to file', action='store_true')
+    parser.add_argument('--no_save_plots', '--no-save-plots', dest='save_plots', default=argparse.SUPPRESS, help='Switch off saving plots to file', action='store_false')
     parser.add_argument('--snapshots', metavar='', type=int, default=argparse.SUPPRESS, help='Number of snapshots of the simulation to save to file')
-    parser.add_argument('--save_video', metavar='', type=bool, default=argparse.SUPPRESS, help='Save a video of the entire simulation', choices=[True, False])
-    parser.add_argument('--save_file', metavar='', type=bool, default=argparse.SUPPRESS, help='Save the simulation data file (.hdf5)', choices=[True, False])
+    
+    parser.add_argument('--save_video', '--save-video', dest='save_video', default=argparse.SUPPRESS, help='Switch on saving a video of the simulation', action='store_true')
+    parser.add_argument('--no_save_video', '--no-save-video', dest='save_video', default=argparse.SUPPRESS, help='Switch off saving a video of the simulation', action='store_false')
+    
+    parser.add_argument('--save_file', '--save-file', dest='save_file', default=argparse.SUPPRESS, help='Switch on saving the simulation data file (.hdf5)', action='store_true')
+    parser.add_argument('--no_save_file', '--no-save-file', dest='save_file', default=argparse.SUPPRESS, help='Switch off saving the simulation data file (.hdf5)', action='store_false')
+    
     parser.add_argument('--debug', '--DEBUG', dest='debug', help='Toggle for more detailed description of errors/bugs', action='store_true')
-    parser.add_argument('-q', '--quiet', '--noprint', dest='noprint', help='Toggle printing to screen', action='store_true')
+    parser.add_argument('-q', '--quiet', '--noprint', '--NOPRINT', '--no-print', dest='noprint', help='Toggle printing to screen', action='store_true')
     parser.add_argument('--test', '--TEST', dest='test', default=argparse.SUPPRESS, help=argparse.SUPPRESS, action='store_true')
 
     args = parser.parse_args()
 
-    noprint = args.noprint
-    debug = args.debug
-
-    for k,v in vars(args).items():
-        if k in config_variables:
-            config_variables[k] = v
-
-    return config_variables, noprint, debug
+    return vars(args), args.debug, args.noprint
 
 
 # Variables handler; handles all variables from CLI & settings file and revert to default values for the simulation variables (dict) if unknown
-def handle_variables(dct):
-    default_values = {
-        "config": ["sod", "Test unknown; reverting to Sod shock tube test.."],
-        "dimension": [1, "Invalid value for dimension; reverting to 1D.."],
-        "subgrid": ["pcm", "Subgrid option unknown; reverting to piecewise constant method.."],
-        "timestep": ["euler", "Timestep unknown; reverting to Forward Euler timestep.."],
-        "scheme": ["lf", "Scheme unknown; reverting to Lax-Friedrich scheme.."],
-        "run_type": ["single", "Run type unknown; reverting to run_type='single' simulation.."]
-        }
+def handle_variables(config_variables: dict, cli_variables: dict):
+    # Remove nested configuration dictionary
+    _config_variables = {}
+    for parameters in config_variables.values():
+        for k,v in parameters.items():
+            _config_variables[k] = v
 
-    for k, lst in ACCEPTED_VALUES.items():
-        if dct[k] not in lst:
-            print(f"{BColours.WARNING}{default_values[k][1]}{BColours.ENDC}")
-            dct[k] = default_values[k][0]
+    # Replace the relevant configuration variables with the CLI variables
+    if bool(cli_variables):
+        for k,v in cli_variables.items():
+            if k in _config_variables:
+                _config_variables[k] = v
 
-    if dct['run_type'] not in ["s", "single", "1", 1] and dct['run_type'].startswith('m'):
-        if dct['save_video']:
+    # Check validity of variables
+    final_dict = {}
+    for k,v in _config_variables.items():
+        if k in ['live_plot', 'save_plots', 'save_video', 'save_file']:
+            if not isinstance(v, bool):
+                v = False
+        elif k == "snapshots":
+            if not isinstance(v, int):
+                v = 1
+        elif k == "cells":
+            try:
+                v = int(v) - int(v)%2
+            except Exception as e:
+                v = 128
+        elif k in ['gamma', 'cfl']:
+            if not isinstance(v, float):
+                if k == "gamma":
+                    v = 1.4
+                else:
+                    v = .5
+        else:
+            if isinstance(v, str):
+                v = v.lower()
+
+            found = False
+            for dct in DB.search(PARAMS.type == k):
+                if v in dct['accepted']:
+                    found = True
+                    break
+
+            if not found:
+                v = DB.get(PARAMS.type == 'default')[k]
+                print(f"{BColours.WARNING}{k.upper()} value not valid; reverting back to default value: {v}..{BColours.ENDC}")
+
+        final_dict[k] = v
+
+    # Add relevant key-pairs to the dictionary
+    final_dict['permutations'] = [axes for axes in list(itertools.permutations(list(range(math.ceil(final_dict['dimension']+1))))) if axes[-1] == math.ceil(final_dict['dimension'])]
+    final_dict['config_category'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
+
+    if final_dict['scheme'] in DB.get(PARAMS.type == 'scheme' and PARAMS.category == 'full')['accepted']:
+        _roots, _weights = legendre.leggauss(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
+        final_dict['roots'] = .5*_roots + .5  # Gauss-Legendre quadrature with interval [0,1]
+        final_dict['weights'] = _weights/2  # Gauss-Legendre quadrature with interval [0,1]
+
+    # Exclusion cases
+    if final_dict['scheme'] in DB.get(PARAMS.type == 'scheme' and PARAMS.category == 'hll')['accepted']:
+        if final_dict['scheme'] in ['hllc', 'c'] and final_dict['config'] in DB.get(PARAMS.type == 'config' and PARAMS.category == 'magnetic')['accepted']:
+            print(f"{BColours.WARNING}HLLC scheme does not work with magnetic fields present..{BColours.ENDC}")
+            final_dict['scheme'] = DB.get(PARAMS.type == 'default')['scheme']
+
+    if final_dict['run_type'].startswith('m'):
+        if final_dict['save_video']:
             print(f"{BColours.WARNING}Videos can only be saved with run_type='single'..{BColours.ENDC}")
-            dct['save_video'] = False
-        if dct['live_plot']:
+            final_dict['save_video'] = False
+        if final_dict['live_plot']:
             print(f"{BColours.WARNING}Live plots can only be switched on for single simulation runs..{BColours.ENDC}")
-            dct['live_plot'] = False
+            final_dict['live_plot'] = False
+    else:
+        if (final_dict['save_plots'] or final_dict['save_video']) and (final_dict['live_plot']):
+            print(f"{BColours.WARNING}Switching off live plot when saving media because live plot interferes with matplotlib.savefig..{BColours.ENDC}")
+            final_dict['live_plot'] = False
 
-    if dct['run_type'] in ["s", "single", "1", 1] and (dct['save_plots'] or dct['save_video']) and (dct['live_plot']):
-        print(f"{BColours.WARNING}Switching off live plot when saving media because live plot interferes with matplotlib.savefig..{BColours.ENDC}")
-        dct['live_plot'] = False
-
-    if (dct['dimension'] < 1 or dct['dimension'] > 2) and (dct['live_plot'] or dct['save_plots'] or dct['save_video']):
-        print(f"{BColours.WARNING}Saving media currently not supported for 3D..{BColours.ENDC}")
-        dct['live_plot'] = False
-        dct['save_plots'] = False
-        dct['save_video'] = False
-
-    return dct
+    return final_dict

@@ -1,8 +1,7 @@
 import math
 
+import scipy
 import numpy as np
-import scipy as sp
-from scipy.integrate import quad, simpson
 
 from functions import fv, constructors
 
@@ -25,7 +24,7 @@ def calculate_entropy_density(grid, gamma):
 
 # Function for solution error calculation of sin-wave and Gaussian tests
 def calculate_solution_error(simulation, sim_variables, norm):
-    dimension = sim_variables.dimension
+    config, dimension = sim_variables.config, sim_variables.dimension
 
     time_keys = [float(t) for t in simulation.keys()]
     w_num = simulation[str(max(time_keys))]  # Get last instance of the grid with largest time key
@@ -38,7 +37,10 @@ def calculate_solution_error(simulation, sim_variables, norm):
         N = len(w_num)
         divisor = len(w_num) ** dimension
     sim_variables = sim_variables._replace(cells=N)
-    w_theo = constructors.initialise(sim_variables, convert=False)
+    w_theo = constructors.initialise(sim_variables)
+    
+    if config.startswith("gauss") and ("np" in config or "non" in config) and dimension < 2:
+        w_theo = np.flip(w_theo, axis=0)
 
     thermal_num, thermal_theo = fv.divide(w_num[...,4], w_num[...,0]), fv.divide(w_theo[...,4], w_theo[...,0])
     w_num, w_theo = np.concatenate((w_num, thermal_num[...,None]), axis=-1), np.concatenate((w_theo, thermal_theo[...,None]), axis=-1)
@@ -67,13 +69,18 @@ def calculate_tv(simulation, sim_variables):
 
 # Function for checking the conservation equations; works with primitive variables but needs to be converted
 def calculate_conservation(simulation, sim_variables):
-    N, gamma, start_pos, end_pos = sim_variables.cells, sim_variables.gamma, sim_variables.start_pos, sim_variables.end_pos
+    N, subgrid, start_pos, end_pos = sim_variables.cells, sim_variables.subgrid, sim_variables.start_pos, sim_variables.end_pos
     dimension, eq = math.ceil(sim_variables.dimension), {}
 
+    if subgrid.startswith("w") or subgrid in ["ppm", "parabolic", "p"]:
+        convert = fv.convert_primitive
+    else:
+        convert = fv.point_convert_primitive
+
     for t in list(simulation.keys()):
-        grid = fv.point_convert_primitive(simulation[t], sim_variables)
+        grid = convert(simulation[t][:], sim_variables)
         for i in range(dimension)[::-1]:
-            grid = simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
+            grid = scipy.integrate.simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
         eq[float(t)] = grid
     return eq
 
@@ -82,8 +89,13 @@ def calculate_conservation(simulation, sim_variables):
 # The reason is because at the boundaries, some values are lost to the ghost cells and not counted into the conservation plots
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
 def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
-    N, gamma, start_pos, end_pos, t_end = sim_variables.cells, sim_variables.gamma, sim_variables.start_pos, sim_variables.end_pos, sim_variables.t_end
+    N, subgrid, start_pos, end_pos, t_end = sim_variables.cells, sim_variables.subgrid, sim_variables.start_pos, sim_variables.end_pos, sim_variables.t_end
     dimension, eq = math.ceil(sim_variables.dimension), {}
+
+    if subgrid.startswith("w") or subgrid in ["ppm", "parabolic", "p"]:
+        convert = fv.convert_primitive
+    else:
+        convert = fv.point_convert_primitive
 
     intervals = np.array([], dtype=float)
     periods = np.linspace(0, t_end, interval)
@@ -92,9 +104,9 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
         intervals = np.append(intervals, timings[np.argmin(abs(timings-period))])
 
     for t in intervals:
-        grid = fv.point_convert_primitive(simulation[str(t)], sim_variables)
+        grid = convert(simulation[str(t)][:], sim_variables)
         for i in range(dimension)[::-1]:
-            grid = simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
+            grid = scipy.integrate.simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
         eq[t] = grid
     return eq
 
@@ -116,7 +128,7 @@ def calculate_Sod_analytical(grid, t, sim_variables):
 
     # Root-finding value for pressure in region 2 (post-shock)
     f = lambda x: (((x/P1) - 1) * np.sqrt((1 - mu)/(gamma*(mu + (x/P1))))) - (beta * (cs5/cs1) * (1-((x/P5)**(1/(gamma*beta)))))
-    P2 = P3 = sp.optimize.fsolve(f, (P5-P1)/2)[0]
+    P2 = P3 = scipy.optimize.fsolve(f, (P5-P1)/2)[0]
 
     # Define variables in other regions
     rho2, rho3 = rho1 * ((P2 + (mu*P1))/(P1 + (mu*P2))), rho5 * (P2/P5)**(1/gamma)

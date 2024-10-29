@@ -32,7 +32,7 @@ def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
 
         # HLL-type schemes
         if _sim_variables.scheme in ["hllc", "c"]:
-            return calculate_HLLC_flux(_wLs, _wRs, _fRs, _fLs, _sim_variables)
+            return calculate_HLLC_flux(_wLs, _wRs, _qLs, _qRs, _fRs, _fLs, _sim_variables)
         # Osher-Solomon schemes
         elif _sim_variables.scheme in ["os", "osher-solomon", "osher", "solomon"]:
             return calculate_DOTS_flux(_qLs, _qRs, _fLs, _fRs, _sim_variables.gamma, _sim_variables.roots, _sim_variables.weights)
@@ -48,29 +48,31 @@ def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
     Riemann_flux = namedtuple('Riemann_flux', ['flux', 'eigmax'])
     fluxes = {}
 
-    # Rotate grid and apply algorithm for each axis/dimension
+    # Rotate grid and apply algorithm for each axis/dimension for interfaces
     for axes, arrays in data.items():
 
         # Determine the eigenvalues for the computation of time stepping in each direction
         characteristics, eigmax = fv.compute_eigen(arrays['jacobian'])
 
         # Calculate the interface-averaged fluxes
-        variables = retrieve_variables(arrays, sim_variables.subgrid, sim_variables.scheme)
-        intf_avg_fluxes = run_Riemann_solver(sim_variables, characteristics, **variables)
+        interface_variables = retrieve_variables(arrays, sim_variables.subgrid, sim_variables.scheme)
+        intf_fluxes_avg = run_Riemann_solver(sim_variables, characteristics, **interface_variables)
 
         if 1 < sim_variables.dimension:
-            higher_order_variables = {}
+            # Compute the orthogonal L/R Riemann states and fluxes
+            higher_order_interface_variables = {}
+            for intf, arr in interface_variables.items():
+                higher_order_interface_variables[intf] = fv.convert_mode(arr, sim_variables, "face")
+        
+            intf_fluxes_cntr = run_Riemann_solver(sim_variables, characteristics, **higher_order_interface_variables)
 
-            for intf, arr in variables.items():
-                higher_order_variables[intf] = fv.convert_interface(arr, sim_variables.boundary)
-
-            intf_cntr_fluxes = run_Riemann_solver(sim_variables, characteristics, **higher_order_variables)
-            _fluxes = fv.convert_interface(intf_avg_fluxes, sim_variables.boundary, intf_cntr_fluxes)
+            # Compute the higher-order fluxes
+            _fluxes = fv.compute_high_approx_flux(intf_fluxes_cntr, intf_fluxes_avg, sim_variables.boundary)
         else:
-            _fluxes = intf_avg_fluxes
+            # Orthogonal Laplacian in 1D is zero
+            _fluxes = intf_fluxes_avg
 
         fluxes[axes] = Riemann_flux(_fluxes, eigmax)
-
     return fluxes
 
 
@@ -93,13 +95,12 @@ def calculate_LaxWendroff_flux(qLs, qRs, fLs, fRs, characteristics):
 
 
 # HLLC Riemann solver [Fleischmann et al., 2020]
-def calculate_HLLC_flux(wLs, wRs, fLs, fRs, sim_variables):
+def calculate_HLLC_flux(wLs, wRs, qLs, qRs, fLs, fRs, sim_variables):
     gamma = sim_variables.gamma
 
     # The convention here is using the opposite (LR -> RL)
-    rhoL, uL, pL = wRs[...,0], wRs[...,1], wRs[...,4]
-    rhoR, uR, pR = wLs[...,0], wLs[...,1], wLs[...,4]
-    QL, QR = fv.convert_primitive(wRs, sim_variables), fv.convert_primitive(wLs, sim_variables)
+    rhoL, uL, pL, QL = wRs[...,0], wRs[...,1], wRs[...,4], qRs
+    rhoR, uR, pR, QR = wLs[...,0], wLs[...,1], wLs[...,4], qLs
 
     cL, cR = np.sqrt(gamma*fv.divide(pL, rhoL)), np.sqrt(gamma*fv.divide(pR, rhoR))
     u_hat = fv.divide(uL*np.sqrt(rhoL) + uR*np.sqrt(rhoR), np.sqrt(rhoL) + np.sqrt(rhoR))
@@ -280,12 +281,12 @@ def calculate_ES_flux(wLs, wRs, gamma):
 
 
 """# HLLC Riemann solver [Toro, 2019]
-def calculate_Toro_flux(wLs, wRs, fLs, fRs, sim_variables):
+def calculate_Toro_flux(wLs, wRs, qLs, qRs, fLs, fRs, sim_variables):
     gamma = sim_variables.gamma
 
     rhoL, uL, pL = wRs[...,0], wRs[...,1], wRs[...,4]
     rhoR, uR, pR = wLs[...,0], wLs[...,1], wLs[...,4]
-    QL, QR = fv.convert_primitive(wRs, sim_variables), fv.convert_primitive(wLs, sim_variables)
+    QL, QR = qRs, qLs
 
     zeta = (gamma-1)/(2*gamma)
     aL, aR = np.sqrt(gamma*fv.divide(pL, rhoL)), np.sqrt(gamma*fv.divide(pR, rhoR))

@@ -1,7 +1,6 @@
 from collections import defaultdict
 
 from functions import fv, constructors
-from numerics import solvers
 
 ##############################################################################
 # WENO reconstruction method [Shu, 2009]
@@ -170,7 +169,7 @@ def run(grid, sim_variables):
         wLs, wRs = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
 
         # Convert the primitive variables
-        qLs, qRs = fv.convert_primitive(wLs, sim_variables), fv.convert_primitive(wRs, sim_variables)
+        qLs, qRs = fv.convert_primitive(wLs, sim_variables, "face"), fv.convert_primitive(wRs, sim_variables, "face")
 
         # Compute the fluxes and the Jacobian
         _w = fv.add_boundary(avg_wS, boundary)
@@ -187,4 +186,4 @@ def run(grid, sim_variables):
         data[axes]['fRs'] = fRs
         data[axes]['jacobian'] = A
 
-    return solvers.calculate_Riemann_flux(sim_variables, data)
+    return data

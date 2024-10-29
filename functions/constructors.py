@@ -6,75 +6,88 @@ from functions import fv
 # Functions for constructing objects such as the grid, eigenvectors, Jacobian and flux terms
 ##############################################################################
 
-# Initialise the discrete solution array with initial conditions and primitive variables w. Returns the solution array in conserved variables q
+# Initialise the discrete POINTWISE solution array with initial conditions and primitive variables w, and transform into discrete AVERAGES <w>
+# Gives option to convert to conservative variables <q>
 def initialise(sim_variables, convert=False):
+
+    def make_physical_grid(_start_pos, _end_pos, _N):
+        dx = abs(_end_pos-_start_pos)/_N
+        half_cell = dx/2
+        return np.linspace(_start_pos-half_cell, _end_pos+half_cell, _N+2)[1:-1]
+
     config, N, gamma, dimension, precision = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimension, sim_variables.precision
     start_pos, end_pos, shock_pos, params = sim_variables.start_pos, sim_variables.end_pos, sim_variables.shock_pos, sim_variables.misc
     initial_left, initial_right = sim_variables.initial_left, sim_variables.initial_right
 
     _i = (N,) * int(dimension)
     _i += (len(initial_right),)
-    arr = np.zeros(_i, dtype=precision)
-    arr[:] = initial_right
+    computational_grid = np.zeros(_i, dtype=precision)
+    computational_grid[:] = initial_right
+
+    physical_grid = make_physical_grid(start_pos, end_pos, N)
 
     if dimension >= 2:
-        x, y = np.meshgrid(np.linspace(start_pos, end_pos, N), np.linspace(start_pos, end_pos, N))
+        x, y = np.meshgrid(physical_grid, physical_grid)
         centre = (end_pos+start_pos)/2
 
         if config == "sedov":
             mask = np.where(((x-centre)**2 + (y-centre)**2) <= shock_pos**2)
-            arr[mask] = initial_left
+            computational_grid[mask] = initial_left
 
         elif config.startswith("gauss"):
             r = np.sqrt((x-centre)**2 + (y-centre)**2)
             mask = params['y_offset'] + params['ampl']*np.exp(-((r-centre)**2)/params['fwhm'])
-            arr[...,0] = mask
+            computational_grid[...,0] = mask
 
         elif config in ["khi", "kelvin-helmholtz"] or ("kelvin" in config or "helmholtz" in config):
-            arr[np.where(abs(y) <= shock_pos)] = initial_left
-            arr[...,2] = params['perturb_ampl'] * np.sin(params['freq']*np.pi*x/(end_pos-start_pos))
+            computational_grid[np.where(abs(y) <= shock_pos)] = initial_left
+            computational_grid[...,2] = params['perturb_ampl'] * np.sin(params['freq']*np.pi*x/(end_pos-start_pos))
 
         elif config in ["ivc", "vortex", "isentropic vortex"]:
-            r = np.sqrt((x-centre)**2 + (y-centre)**2)
+            x, y = np.meshgrid(physical_grid, make_physical_grid(start_pos-centre, end_pos-centre, N))
+            x_centre, y_centre = (np.min(x)+np.max(x))/2, (np.min(y)+np.max(y))/2
+
+            r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
             T = 1 - (((gamma-1)*params['vortex_str']**2)/(2*gamma*(params['freq']*np.pi)**2))*np.exp(1-r**2)
 
-            arr[...,0] = T**(1/(gamma-1))
-            arr[...,1] = (params['vortex_str']/(params['freq']*np.pi)) * np.exp((1-r**2)/2)
-            arr[...,2] = (params['vortex_str']/(params['freq']*np.pi)) * np.exp((1-r**2)/2)
-            arr[...,4] = T**(gamma/(gamma-1))
+            computational_grid[...,0] = T**(1/(gamma-1))
+            computational_grid[...,1] = (params['vortex_str']/(params['freq']*np.pi)) * np.exp((1-r**2)/2)
+            computational_grid[...,2] = (params['vortex_str']/(params['freq']*np.pi)) * np.exp((1-r**2)/2)
+            computational_grid[...,4] = T**(gamma/(gamma-1))
 
         elif "ll" in config or "lax-liu" in config:
-            arr[np.where(x <= shock_pos)] = initial_left
-            arr[np.where((x <= shock_pos) & (y >= shock_pos))] = params['bottom_left']
-            arr[np.where((x > shock_pos) & (y >= shock_pos))] = params['bottom_right']
+            computational_grid[np.where(x <= shock_pos)] = initial_left
+            computational_grid[np.where((x <= shock_pos) & (y >= shock_pos))] = params['bottom_left']
+            computational_grid[np.where((x > shock_pos) & (y >= shock_pos))] = params['bottom_right']
 
         else:
-            arr[np.where(x < shock_pos)] = initial_left
+            computational_grid[np.where(x < shock_pos)] = initial_left
     else:
-        x = np.linspace(start_pos, end_pos, N)
+        x = physical_grid
 
         if config == "sedov" or config.startswith('sq'):
             mask = np.where(np.abs(x) <= shock_pos)
         else:
             mask = np.where(x <= shock_pos)
 
-        arr[mask] = initial_left
+        computational_grid[mask] = initial_left
 
         if "shu" in config or "osher" in config:
-            arr[np.where(x>shock_pos),0] = fv.sin_func(x[x>shock_pos], params)
-        elif config == "sin":
-            arr[...,0] = fv.sin_func(x, params)
+            computational_grid[np.where(x>shock_pos),0] = fv.sin_func(x[x>shock_pos], params)
+        elif config.startswith("sin"):
+            computational_grid[...,0] = fv.sin_func(x, params)
         elif config.startswith('gauss'):
-            arr[...,0] = fv.gauss_func(x, params)
+            computational_grid[...,0] = fv.gauss_func(x, params)
 
         if dimension > 1:
             layer = 2
-            arr = np.repeat(arr[np.newaxis,...], 2*layer+1, axis=0)
+            computational_grid = np.repeat(computational_grid[np.newaxis,...], 2*layer+1, axis=0)
 
     if convert:
-        return fv.point_convert_primitive(arr, sim_variables)
+        grid = fv.point_convert_primitive(computational_grid, sim_variables)
     else:
-        return arr
+        grid = computational_grid
+    return fv.convert_mode(grid, sim_variables)
 
 
 # Make flux as a function of cell-averaged (primitive) variables
@@ -121,7 +134,7 @@ def make_Jacobian(grid, gamma, axis):
     return arr
 
 
-# Calculate the Roe-averaged primitive variables from the left- & right-interface states for use in Roe solver in order to better capture shocks [Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
+# Calculate the Roe-averaged primitive variables from the left- & right-interface states for use in Roe solver in order to better capture shocks [Roe & Pike, 1984; Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
 def make_Roe_average(left_interface, right_interface):
     avg = np.zeros_like(left_interface)
     rhoL, rhoR = np.sqrt(left_interface[...,0]), np.sqrt(right_interface[...,0])

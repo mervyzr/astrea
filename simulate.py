@@ -2,18 +2,19 @@
 
 import os
 import sys
-import math
 import shutil
+import signal
 import traceback
-import itertools
 from datetime import datetime
 from time import perf_counter
 from collections import namedtuple
 
 import h5py
 import yaml
+import dotenv
+import yaml
+import dotenv
 import numpy as np
-import scipy as sp
 
 import evolvers
 from static import tests
@@ -26,14 +27,12 @@ from functions import fv, generic, plotting, constructors
 # Globals
 CURRENT_DIR = os.getcwd()
 SEED = np.random.randint(0, 1e8)
-np.random.seed(SEED)
-np.set_printoptions(linewidth=400, suppress=True)
+LOAD_ENV = False
 
 
 # Finite volume shock function
-def run_simulation(grp: h5py, _sim_variables: namedtuple):
+def core_run(grp: h5py, _sim_variables: namedtuple):
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables
-    # Even though the solution array is discrete, the variables are averages (FV) instead of points (FD)
     grid = constructors.initialise(_sim_variables, convert=True)
 
     # Initiate live plotting, if enabled
@@ -41,7 +40,7 @@ def run_simulation(grp: h5py, _sim_variables: namedtuple):
         plotting_params = plotting.initiate_live_plot(_sim_variables)
     
     # Define the conversion based on subgrid model
-    if _sim_variables.subgrid in ["weno", "w", "ppm", "parabolic", "p"]:
+    if _sim_variables.subgrid.startswith("w") or _sim_variables.subgrid in ["ppm", "parabolic", "p"]:
         convert = fv.convert_conservative
     else:
         convert = fv.point_convert_conservative
@@ -61,63 +60,66 @@ def run_simulation(grp: h5py, _sim_variables: namedtuple):
         # Compute the numerical fluxes at each interface
         interface_fluxes = evolvers.evolve_space(grid, _sim_variables)
 
-        # Compute the full time step dt
+        # Compute the maximum eigenvalues for determining the full time step
         eigmaxes = [_sim_variables.dx/Riemann_flux.eigmax for Riemann_flux in list(interface_fluxes.values())]
         dt = _sim_variables.cfl * min(eigmaxes)
 
-        # Update the solution with the numerical fluxes using iterative methods
-        grid = evolvers.evolve_time(grid, interface_fluxes, dt, _sim_variables)
-
-        # Handle the time update for machine precision
+        # Handle the temporal update
         if t+dt > _sim_variables.t_end:
             if t == _sim_variables.t_end:
-                return grp
+                break
             else:
+                # Update the solution with the 'remaining' dt
+                grid = evolvers.evolve_time(grid, interface_fluxes, _sim_variables.t_end-t, _sim_variables)
                 t = _sim_variables.t_end
         else:
+            # Update the solution with the numerical fluxes using iterative methods
+            grid = evolvers.evolve_time(grid, interface_fluxes, dt, _sim_variables)
             t += dt
+    return grp
 
 ##############################################################################
 
 # Main script; includes handlers and core execution of simulation code
-def main() -> None:
+def run() -> None:
+    np.random.seed(SEED)
+
     # Save the HDF5 file (with seed) to store the temporary data
     file_name = f"{CURRENT_DIR}/.tempShockData_{SEED}.hdf5"
-    noprint, debug = False, False
+
+    # Signal handler for Ctrl+C
+    def graceful_exit(sig, frame):
+        sys.stdout.write('\033[2K\033[1G')
+        print(f"Ctrl+C pressed; exiting gracefully...")
+        os.remove(file_name)
+        sys.exit(0)
+
+    # Load env variables
+    if LOAD_ENV and (sys.version_info.major == 3 and sys.version_info.minor >= 13):
+        dotenv.load_dotenv(f"{CURRENT_DIR}/static/.env")
 
     # Generate the simulation variables from settings (dict)
     with open(f"{CURRENT_DIR}/settings.yml", "r") as settings_file:
-        config_dict = yaml.safe_load(settings_file)
-        config_variables = generic.handle_config(config_dict)
+        config_variables = yaml.safe_load(settings_file)
 
     # Check CLI arguments
     if len(sys.argv) > 1:
-        config_variables, noprint, debug = generic.handle_CLI(config_variables)
+        cli_variables, debug, noprint = generic.handle_CLI()
     else:
-        noprint, debug = False, False
-    
+        cli_variables, debug, noprint = {}, False, False
+
     if not debug:
         np.seterr(all='ignore')
 
-    # Generate test configuration
-    test_variables = tests.generate_test_conditions(config_variables['config'])
-    sim_variables = config_variables | test_variables
-    print(sim_variables)
-
     # Variables handler; filter erroneous entries and default values
-    sim_variables = generic.handle_variables(sim_variables)
+    config_variables = generic.handle_variables(config_variables, cli_variables)
 
-    # Generate frequently used variables
-    sim_variables['dx'] = abs(sim_variables['end_pos']-sim_variables['start_pos'])/sim_variables['cells']
-    sim_variables['permutations'] = [axes for axes in list(itertools.permutations(list(range(math.ceil(sim_variables['dimension']+1))))) if axes[-1] == math.ceil(sim_variables['dimension'])]
-    if sim_variables['scheme'] in ['osher-solomon', 'osher', 'solomon', 'os']:
-        _roots, _weights = sp.special.roots_legendre(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
-        sim_variables['roots'] = .5*_roots + .5  # Gauss-Legendre quadrature with interval [0,1]
-        sim_variables['weights'] = _weights/2  # Gauss-Legendre quadrature with interval [0,1]
+    # Generate test configuration and final variables
+    test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'])
+    sim_variables = config_variables | test_variables
 
-    # Simulation condition handler
+    # Auto-generate the resolutions/grid-sizes for run type
     if sim_variables['run_type'].startswith('m'):
-        # Auto-generate the resolutions/grid-sizes for multiple simulations
         coeff = 1
         n_list = coeff*2**np.arange(3,11)
     else:
@@ -131,6 +133,9 @@ def main() -> None:
     # Run in a try-except-else to handle crashes and prevent exiting code entirely
     script_start = datetime.now().strftime('%Y%m%d%H%M')
     save_path = f"{CURRENT_DIR}/savedData/{script_start}_{SEED}"
+
+    original_sigint_handler = signal.getsignal(signal.SIGINT)
+    signal.signal(signal.SIGINT, graceful_exit)
 
     try:
         # Initiate the HDF5 database to store data temporarily
@@ -155,7 +160,7 @@ def main() -> None:
                 lap, now = perf_counter(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 if not noprint:
                     generic.print_output(now, SEED, _sim_variables)
-                run_simulation(grp, _sim_variables)
+                core_run(grp, _sim_variables)
                 elapsed = perf_counter() - lap
                 grp.attrs['elapsed'] = elapsed
                 if not noprint:
@@ -173,7 +178,7 @@ def main() -> None:
                 if not _sim_variables.run_type.startswith('m'):
                     plotting.plot_total_variation(f, _sim_variables, save_path)
                     plotting.plot_conservation_equations(f, _sim_variables, save_path)
-                if _sim_variables.run_type.startswith('m') and (_sim_variables.config.startswith('sin') or _sim_variables.config.startswith('gauss')):
+                if _sim_variables.run_type.startswith('m') and _sim_variables.config_category == "smooth":
                     plotting.plot_solution_errors(f, _sim_variables, save_path, coeff)
 
             # Save video (only for run_type=single)
@@ -200,8 +205,11 @@ def main() -> None:
             shutil.move(file_name, f"{save_path}/mHydyS_{_sim_variables.config}_{_sim_variables.subgrid}_{_sim_variables.timestep}_{SEED}.hdf5")
         else:
             os.remove(file_name)
+    
+    finally:
+        signal.signal(signal.SIGINT, original_sigint_handler)
     ###################################### SCRIPT END ######################################
 
 
 if __name__ == "__main__":
-    main()
+    run()
