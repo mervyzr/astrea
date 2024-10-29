@@ -250,6 +250,7 @@ def run_MC(grid, sim_variables, dissipate=False, C=5/4):
         Current convention: |               w(i-1/2)                    w(i+1/2)              |
                             | i-1          <-- | -->         i         <-- | -->          i+1 |
                             |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
+                    OR      |       w-(i-1/2)  |   w+(i-1/2)    w-(i+1/2)  |  w+(i+1/2)       |
         """
         # Limited modified parabolic interpolant [McCorquodale & Colella, 2011]
         # Define the left and right parabolic interpolants
