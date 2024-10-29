@@ -46,31 +46,17 @@ def generate_test_conditions(config, cells):
         boundary = "wrap"  # periodic
         initial_left = np.array([0,1,1,0,1,0,0,0])
         initial_right = np.array([0,1,1,0,1,0,0,0])
-        misc = {'ampl':.1, 'y_offset':3}
-
-        if "non" in config or "np" in config:
-            misc['freq'] = 8
-        else:
-            misc['freq'] = 2
+        misc = {'freq':2, 'ampl':.1, 'y_offset':2}
 
     elif config.startswith('gauss'):
+        start_pos = -1
+        end_pos = 1
+        shock_pos = 1
+        t_end = 2
         boundary = "wrap"  # periodic
         initial_left = np.array([0,1,1,0,1e-6,0,0,0])
         initial_right = np.array([0,1,1,0,1e-6,0,0,0])
-        misc = {'ampl':.75, 'y_offset':3}
-
-        if "non" in config or "np" in config:
-            start_pos = -4
-            end_pos = 4
-            shock_pos = 4
-            t_end = 4
-            misc.update({'peak_pos':start_pos+2, 'fwhm':.5})
-        else:
-            start_pos = -1
-            end_pos = 1
-            shock_pos = 1
-            t_end = 2
-            misc.update({'peak_pos':.5*(end_pos+start_pos), 'fwhm':.08})
+        misc = {'peak_pos':0, 'ampl':.75, 'fwhm':.08, 'y_offset':1}
 
     elif "slow" in config:
         start_pos = 0

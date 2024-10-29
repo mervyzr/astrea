@@ -178,8 +178,6 @@ def plot_quantities(f, sim_variables, save_path):
                 # Adjust ylim and tolerances for Gaussian and sin-wave tests
                 if config.startswith("gauss"):
                     P_tol = 5e-7
-                    if ("non" in config or "np" in config) and dimension < 2:
-                        analytical = np.flip(analytical, axis=0)
                 else:
                     P_tol = .005
                 P_range = np.linspace(initial_left[4]-P_tol, initial_left[4]+P_tol, 9)

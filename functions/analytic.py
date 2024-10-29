@@ -31,9 +31,6 @@ def calculate_solution_error(simulation, sim_variables, norm):
     normalising_factor = 1/(len(w_num) ** dimension)
     sim_variables = sim_variables._replace(cells=len(w_num))
     w_theo = constructors.initialise(sim_variables)
-    
-    if config.startswith("gauss") and ("np" in config or "non" in config) and dimension < 2:
-        w_theo = np.flip(w_theo, axis=0)
 
     thermal_num, thermal_theo = fv.divide(w_num[...,4], w_num[...,0]), fv.divide(w_theo[...,4], w_theo[...,0])
     w_num, w_theo = np.concatenate((w_num, thermal_num[...,None]), axis=-1), np.concatenate((w_theo, thermal_theo[...,None]), axis=-1)
