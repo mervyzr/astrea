@@ -54,6 +54,10 @@ def run(grid, sim_variables, paper="mc", dissipate=False):
                 # Limit interface values [Colella et al., 2011, p. 25-26]
                 wF = limiters.interface_limiter(wF, w[:-2], wS, w[2:], w2[4:])
 
+            if (paper == "mc" or "mccorquodale" in paper) and dissipate:
+                eta = apply_flattener(wS, axis, boundary)
+                wF = (eta.T*wF.T).T + ((1-eta).T*wS.T).T
+
             # Define the left and right parabolic interpolants
             wF_pad2 = fv.add_boundary(wF, boundary, 2)
             wF_limit_L, wF_limit_R = np.copy(wF_pad2[1:-3]), np.copy(wF_pad2[2:-2])
@@ -102,32 +106,34 @@ def run(grid, sim_variables, paper="mc", dissipate=False):
     return data
 
 
-# Calculate the coefficients of the slope flattener for the parabolic extrapolants using pressure and v_x [Colella, 1990]
-def calculate_flatten_coeff(wS, boundary, slope_determinants=[.33, .75, .85]):
+# Calculate the coefficient of the slope flattener for the parabolic extrapolants [Colella, 1990]
+def apply_flattener(wS, axis, boundary, slope_determinants=[.33, .75, .85]):
     delta, z0, z1 = slope_determinants
 
-    chi_bar = np.zeros_like(wS[:,4])
+    w2 = fv.add_boundary(wS, boundary, 2)
+    w = np.copy(w2[1:-1])
 
-    vxs = np.pad(wS[:,1], 1, mode=boundary)
-    Ps = np.pad(wS[:,4], 2, mode=boundary)
+    def zeta_func(_z, _z0, _z1):
+        _arr = np.copy(1 - fv.divide(_z-_z0, _z1-_z0))
+        _arr[_z > _z1] = 0
+        _arr[_z < _z0] = 1
+        return _arr
 
-    z = fv.divide(np.abs(Ps[3:-1]-Ps[1:-3]), np.abs(Ps[4:]-Ps[:-4]))
+    chi_bar = zeta_func(fv.divide(np.abs(w[...,4][2:]-w[...,4][:-2]), np.abs(w2[...,4][4:]-w2[...,4][:-4])), z0, z1)
+    chi_bar[((w[...,axis+1][:-2]-w[...,axis+1][2:]) <= 0) & (fv.divide(np.abs(w[...,4][2:]-w[...,4][:-2]), np.minimum(w[...,4][2:], w[...,4][:-2])) <= delta)] = 0
+    chi_bar_padded = fv.add_boundary(chi_bar, boundary)
 
-    eta = np.minimum(np.ones_like(z), np.maximum(np.zeros_like(z), 1-((z-z0)/(z1-z0))))
-    criteria = ((vxs[:-2]-vxs[2:]) > 0) & (np.abs(Ps[3:-1]-Ps[1:-3])/np.minimum(Ps[3:-1],Ps[1:-3]) > delta)
-    chi_bar[criteria] = eta[criteria]
-    chi_plus_one = np.pad(chi_bar, 1, mode=boundary)
+    signage = np.sign(w[...,4][2:]-w[...,4][:-2])
 
     chi = np.copy(chi_bar)
-    signage = np.sign(Ps[3:-1]-Ps[1:-3])
-    chi[signage < 0] = np.minimum(chi_plus_one[2:], chi_bar)[signage < 0]
-    chi[signage > 0] = np.minimum(chi_plus_one[:-2], chi_bar)[signage > 0]
+    chi[signage < 0] = np.minimum(chi_bar, chi_bar_padded[2:])[signage < 0]
+    chi[signage > 0] = np.minimum(chi_bar, chi_bar_padded[:-2])[signage > 0]
 
-    arr = np.ones_like(wS)
-    return (chi*arr.T).T
+    arr_expander = np.ones_like(wS)
+    return (chi.T*arr_expander.T).T
 
 
-# Implement artificial viscosity
+# Implement artificial viscosity [McCorquodale & Colella, 2011, eq. 35-38]
 def apply_artificial_viscosity(wS, gamma, boundary, viscosity_determinants=[.3, .3]):
     alpha, beta = viscosity_determinants
 
