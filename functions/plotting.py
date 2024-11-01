@@ -47,22 +47,23 @@ def initiate_live_plot(sim_variables):
     plt.ion()
 
     fig, ax = plt.subplots(nrows=2, ncols=2)
-    fig.text(0.5, 0.04, r"Cell position $x$", ha='center')
     plt.subplots_adjust(wspace=.2)
 
     graphs = []
     for _i, _j in PLOT_INDEXES:
         ax[_i,_j].set_ylabel(PLOT_LABELS[_i][_j])
         if dimension == 2:
-            fig.text(0.04, 0.4, r"Cell position $y$", ha='center', rotation='vertical')
+            fig.text(0.5, 0.04, r"Cell index $x$", ha='center')
+            fig.text(0.04, 0.4, r"Cell index $y$", ha='center', rotation='vertical')
             if _j == 1:
                 ax[_i,_j].yaxis.set_label_position("right")
                 ax[_i,_j].yaxis.labelpad = 55
-            graph = ax[_i,_j].imshow(np.zeros((N,N)), interpolation="hermite", cmap=TWOD_COLOURS[_i][_j])
+            graph = ax[_i,_j].imshow(np.zeros((N,N)), interpolation="hermite", cmap=TWOD_COLOURS[_i][_j], origin="lower")
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes('right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
+            fig.text(0.5, 0.04, r"Cell position $x$", ha='center')
             if _j == 1:
                 ax[_i,_j].yaxis.tick_right()
                 ax[_i,_j].yaxis.set_label_position("right")
@@ -83,7 +84,7 @@ def update_plot(arr, t, dimension, fig, ax, graphs):
             graph.set_data(plot_data[index])
             graph.set_clim([np.min(plot_data[index]), np.max(plot_data[index])])
 
-        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ at $t = {round(t,4)}$")
+        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t = {round(t,4)}$")
     else:
         for index, graph in enumerate(graphs):
             graph.set_ydata(plot_data[index])
@@ -153,7 +154,7 @@ def plot_quantities(f, sim_variables, save_path):
                         plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(timings[max(n_list)][time_index],3)}$", fontsize=24)
                 else:
                     if dimension == 2:
-                        graph = ax[_i,_j].imshow(y, interpolation="hermite", cmap=TWOD_COLOURS[_i][_j])
+                        graph = ax[_i,_j].imshow(y, interpolation="hermite", cmap=TWOD_COLOURS[_i][_j], origin="lower")
                         divider = make_axes_locatable(ax[_i,_j])
                         cax = divider.append_axes('right', size='5%', pad=0.05)
                         fig.colorbar(graph, cax=cax, orientation='vertical')
@@ -167,9 +168,9 @@ def plot_quantities(f, sim_variables, save_path):
 
         # Add analytical solutions only for 1D
         if dimension == 2:
-            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ at $t \approx {round(timings[max(n_list)][time_index],3)}$ ($N = {N}$)", fontsize=24)
-            fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
-            fig.text(0.04, 0.4, r"Cell position $y$", fontsize=18, ha='center', rotation="vertical")
+            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t \approx {round(timings[max(n_list)][time_index],3)}$ ($N = {N}$)", fontsize=24)
+            fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
+            fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
         else:
             # Add analytical solution for smooth functions, using the highest resolution and timing
             if sim_variables.config_category == "smooth":
@@ -421,20 +422,21 @@ def make_video(f, sim_variables, save_path, vidpath):
                 y = y_data[_i][_j]
 
                 if dimension == 2:
-                    graph = ax[_i,_j].imshow(y, interpolation="hermite", cmap=TWOD_COLOURS[_i][_j])
+                    fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
+                    fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
+                    graph = ax[_i,_j].imshow(y, interpolation="hermite", cmap=TWOD_COLOURS[_i][_j], origin="lower")
                     divider = make_axes_locatable(ax[_i,_j])
                     cax = divider.append_axes('right', size='5%', pad=0.05)
                     fig.colorbar(graph, cax=cax, orientation='vertical')
-                    plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=24)
-                    fig.text(0.04, 0.4, r"Cell position $y$", fontsize=18, ha='center')
+                    plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=24)
+                    
                 else:
+                    fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
                     if BEAUTIFY:
                         gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
                     else:
                         ax[_i,_j].plot(x, y, linewidth=2, color=COLOURS[_i][_j])
                     plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=24)
-
-            fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
 
             plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330)
 
@@ -480,20 +482,20 @@ def plot_instance(grid, show_plot=True, text="", start_pos=0, end_pos=1, **kwarg
         y = y_data[_i][_j]
 
         if dimension == 2:
-            graph = ax[_i,_j].imshow(y, interpolation="hermite", cmap=TWOD_COLOURS[_i][_j])
+            fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
+            fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
+            graph = ax[_i,_j].imshow(y, interpolation="hermite", cmap=TWOD_COLOURS[_i][_j], origin="lower")
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes('right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
-            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell positions $x$ & $y$ {text}", fontsize=24)
-            fig.text(0.04, 0.4, r"Cell position $y$", fontsize=18, ha='center')
+            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ {text}", fontsize=24)
         else:
+            fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
             if BEAUTIFY:
                 gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
             else:
                 ax[_i,_j].plot(x, y, linewidth=2, color=COLOURS[_i][_j])
             plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}", fontsize=24)
-
-    fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
 
     if show_plot:
         plt.show(block=True)
