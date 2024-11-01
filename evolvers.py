@@ -23,9 +23,7 @@ def evolve_space(grid, sim_variables):
     if sim_variables.subgrid.startswith("w"):
         data = weno.run(grid, sim_variables)
     elif sim_variables.subgrid in ["ppm", "parabolic", "p"]:
-        data = ppm.run_MC(grid, sim_variables, dissipate=False)
-        #data = ppm.run_C(grid, sim_variables)
-        #data = ppm.run_XPPM(grid, sim_variables)
+        data = ppm.run(grid, sim_variables, paper='mc')
     elif sim_variables.subgrid in ["plm", "linear", "l"]:
         data = plm.run(grid, sim_variables)
     else:
@@ -41,7 +39,7 @@ def evolve_time(grid, interface_fluxes, dt, sim_variables):
 
     # Methods for linear and non-linear systems [Shu & Osher, 1988]
     # [Ketcheson, 2008]
-    if sim_variables.timestep in ["ssprk(10,4)", "(10,4)"]:
+    if sim_variables.timestep in ["ssprk(10,4)", "(10,4)", "ssprk104"]:
         # Evolve system by SSP-RK (10,4) method (4th-order); effective SSP coeff = 0.6
         # Computation of i-th registers (i = 1,2,3,4)
         k = np.copy(grid)
@@ -63,7 +61,7 @@ def evolve_time(grid, interface_fluxes, dt, sim_variables):
         return -11/35*grid + 5/7*k5 + 3/5*_k + 1/10*dt*compute_H(interface_fluxes, sim_variables)
 
     # [Kraaijevanger, 1991; Spiteri & Ruuth, 2002; Gottlieb et al., 2008]
-    elif sim_variables.timestep in ["ssprk(5,4)", "(5,4)"]:
+    elif sim_variables.timestep in ["ssprk(5,4)", "(5,4)", "ssprk54"]:
         # Evolve system by SSP-RK (5,4) method (4th-order); effective SSP coeff = 0.302
         # Computation of 1st register
         k1 = grid + .39175222657189*dt*h_zero
@@ -85,7 +83,7 @@ def evolve_time(grid, interface_fluxes, dt, sim_variables):
         return .517231671970585*k2 + .096059710526147*k3 + .06369246866629*dt*compute_H(interface_fluxes3, sim_variables) + .386708617503269*k4 + .226007483236906*dt*compute_H(interface_fluxes4, sim_variables)
 
     # [Spiteri & Ruuth, 2002; Gottlieb et al., 2008]
-    elif sim_variables.timestep in ["ssprk(5,3)", "(5,3)"]:
+    elif sim_variables.timestep in ["ssprk(5,3)", "(5,3)", "ssprk53"]:
         # Evolve system by SSP-RK (5,3) method (3rd-order); effective SSP coeff = 0.53
         # Computation of 1st register
         k1 = grid + .3772689151171*dt*h_zero
@@ -106,7 +104,7 @@ def evolve_time(grid, interface_fluxes, dt, sim_variables):
         # Computation of 5th register
         return .0073613226092*grid + .20127980325145*k1 + .00182955389682*k2 + .78952932024253*k4 + (dt * (.0027771981946*h_zero + .00001567934613*compute_H(interface_fluxes1, sim_variables) + .29786487010104*compute_H(interface_fluxes4, sim_variables)))
 
-    elif sim_variables.timestep in ["ssprk(4,3)", "(4,3)"]:
+    elif sim_variables.timestep in ["ssprk(4,3)", "(4,3)", "ssprk43"]:
         # Evolve system by SSP-RK (4,3) method (3rd-order); effective SSP coeff = 0.5
         # Computation of 1st register
         k1 = grid + .5*dt*h_zero
@@ -124,7 +122,7 @@ def evolve_time(grid, interface_fluxes, dt, sim_variables):
         return k3 + .5*dt*compute_H(interface_fluxes3, sim_variables)
 
     # [Shu & Osher, 1988; Gottlieb et al., 2008]
-    elif sim_variables.timestep in ["ssprk(3,3)", "(3,3)"]:
+    elif sim_variables.timestep in ["ssprk(3,3)", "(3,3)", "ssprk33"]:
         # Evolve system by SSP-RK (3,3) method (3rd-order); effective SSP coeff = 0.333
         # Computation of 1st register
         k1 = grid + dt*h_zero
@@ -138,7 +136,7 @@ def evolve_time(grid, interface_fluxes, dt, sim_variables):
         return 1/3 * (grid + 2*k2 + 2*dt*compute_H(interface_fluxes2, sim_variables))
 
     # [Gottlieb et al., 2008]
-    elif sim_variables.timestep in ["ssprk(2,2)", "(2,2)"]:
+    elif sim_variables.timestep in ["ssprk(2,2)", "(2,2)", "ssprk22"]:
         # Evolve system by SSP-RK (2,2) method (2nd-order); effective SSP coeff = 0.5
         # Computation of 1st register
         k1 = grid + dt*h_zero
