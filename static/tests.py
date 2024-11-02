@@ -44,8 +44,8 @@ def generate_test_conditions(config, cells):
         shock_pos = 1
         t_end = 1
         boundary = "wrap"  # periodic
-        initial_left = np.array([0,1,1,0,1,0,0,0])
-        initial_right = np.array([0,1,1,0,1,0,0,0])
+        initial_left = np.array([0,1,1,1,1,0,0,0])
+        initial_right = np.array([0,1,1,1,1,0,0,0])
         misc = {'freq':2, 'ampl':.1, 'y_offset':2}
 
     elif config.startswith('gauss'):
@@ -54,8 +54,8 @@ def generate_test_conditions(config, cells):
         shock_pos = 1
         t_end = 2
         boundary = "wrap"  # periodic
-        initial_left = np.array([0,1,1,0,1e-6,0,0,0])
-        initial_right = np.array([0,1,1,0,1e-6,0,0,0])
+        initial_left = np.array([0,1,1,1,1e-6,0,0,0])
+        initial_right = np.array([0,1,1,1,1e-6,0,0,0])
         misc = {'peak_pos':0, 'ampl':.75, 'fwhm':.08, 'y_offset':1}
 
     elif "slow" in config:
