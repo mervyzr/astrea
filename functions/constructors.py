@@ -27,7 +27,7 @@ def initialise(sim_variables, convert=False):
     physical_grid = make_physical_grid(start_pos, end_pos, N)
 
     if dimension == 2:
-        x, y = np.meshgrid(physical_grid, physical_grid)
+        x, y = np.meshgrid(physical_grid, physical_grid, indexing='ij')
         centre = (end_pos+start_pos)/2
 
         if config == "sedov":
