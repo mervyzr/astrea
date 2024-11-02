@@ -113,11 +113,13 @@ def make_Jacobian(grid, gamma, axis):
     i, j = np.diag_indices(_arr.shape[-1])
 
     # Replace matrix with values
+    # Hydrodynamic components
     arr[...,i,j] = v[...,None]  # diagonal elements
     arr[...,0,axis+1] = rhos
     arr[...,axis+1,4] = 1/rhos
     arr[...,4,axis+1] = gamma * pressures
 
+    # Magneto- components
     arr[...,axis+5,axis+5] = 0
     arr[...,axis+1,(axis+1)%3+5] = fv.divide(B_fields[...,(axis+1)%3], rhos)
     arr[...,axis+1,(axis+2)%3+5] = fv.divide(B_fields[...,(axis+2)%3], rhos)
