@@ -19,7 +19,7 @@ def initialise(sim_variables, convert=False):
     start_pos, end_pos, shock_pos, params = sim_variables.start_pos, sim_variables.end_pos, sim_variables.shock_pos, sim_variables.misc
     initial_left, initial_right = sim_variables.initial_left, sim_variables.initial_right
 
-    _i = (N,) * int(dimension)
+    _i = (N,) * dimension
     _i += (len(initial_right),)
     computational_grid = np.zeros(_i, dtype=precision)
     computational_grid[:] = initial_right
@@ -44,7 +44,6 @@ def initialise(sim_variables, convert=False):
             computational_grid[...,2] = params['perturb_ampl'] * np.sin(params['freq']*np.pi*x/(end_pos-start_pos))
 
         elif config in ["ivc", "vortex", "isentropic vortex"]:
-            x, y = np.meshgrid(physical_grid, make_physical_grid(start_pos-centre, end_pos-centre, N))
             x_centre, y_centre = (np.min(x)+np.max(x))/2, (np.min(y)+np.max(y))/2
 
             r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
