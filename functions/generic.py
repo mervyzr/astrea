@@ -169,6 +169,7 @@ def handle_variables(config_variables: dict, cli_variables: dict):
     # Add relevant key-pairs to the dictionary
     final_dict['permutations'] = [axes for axes in list(itertools.permutations(list(range(final_dict['dimension']+1)))) if axes[-1] == final_dict['dimension']]
     final_dict['config_category'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
+    final_dict['timestep_category'] = DB.get(PARAMS.accepted.any([final_dict['timestep']]))['category']
 
     if final_dict['scheme'] in DB.get(PARAMS.type == 'scheme' and PARAMS.category == 'full')['accepted']:
         _roots, _weights = legendre.leggauss(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
