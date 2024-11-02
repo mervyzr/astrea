@@ -63,7 +63,7 @@ def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
             higher_order_interface_variables = {}
             for intf, arr in interface_variables.items():
                 higher_order_interface_variables[intf] = fv.convert_mode(arr, sim_variables, "face")
-        
+
             intf_fluxes_cntr = run_Riemann_solver(sim_variables, characteristics, **higher_order_interface_variables)
 
             # Compute the higher-order fluxes
