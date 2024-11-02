@@ -58,7 +58,7 @@ def initiate_live_plot(sim_variables):
             if _j == 1:
                 ax[_i,_j].yaxis.set_label_position("right")
                 ax[_i,_j].yaxis.labelpad = 55
-            graph = ax[_i,_j].imshow(np.zeros((N,N)), interpolation="hermite", cmap=TWOD_COLOURS[_i][_j], origin="lower")
+            graph = ax[_i,_j].imshow(np.zeros((N,N)), interpolation="nearest", cmap=TWOD_COLOURS[_i][_j], origin="lower")
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes('right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
@@ -75,9 +75,9 @@ def initiate_live_plot(sim_variables):
 
 
 # Update live plot
-def update_plot(arr, t, dimension, fig, ax, graphs):
+def update_plot(grid_snapshot, t, dimension, fig, ax, graphs):
     # top-left: density, top-right: pressure, bottom-left: velocity_x, bottom-right: specific thermal energy
-    plot_data = [arr[...,0], arr[...,4], arr[...,1], fv.divide(arr[...,4], arr[...,0])]
+    plot_data = [grid_snapshot[...,0], grid_snapshot[...,4], grid_snapshot[...,1], fv.divide(grid_snapshot[...,4], grid_snapshot[...,0])]
 
     if dimension == 2:
         for index, graph in enumerate(graphs):
@@ -88,7 +88,7 @@ def update_plot(arr, t, dimension, fig, ax, graphs):
     else:
         for index, graph in enumerate(graphs):
             graph.set_ydata(plot_data[index])
-            #graphBR.set_ydata(analytic.calculateEntropyDensity(arr, 1.4))  # scaled entropy density
+            #graphBR.set_ydata(analytic.calculateEntropyDensity(grid_snapshot, 1.4))  # scaled entropy density
 
         for _i, _j in PLOT_INDEXES:
             ax[_i,_j].relim()
@@ -154,7 +154,7 @@ def plot_quantities(f, sim_variables, save_path):
                         plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(timings[max(n_list)][time_index],3)}$", fontsize=24)
                 else:
                     if dimension == 2:
-                        graph = ax[_i,_j].imshow(y, interpolation="hermite", cmap=TWOD_COLOURS[_i][_j], origin="lower")
+                        graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=TWOD_COLOURS[_i][_j], origin="lower")
                         divider = make_axes_locatable(ax[_i,_j])
                         cax = divider.append_axes('right', size='5%', pad=0.05)
                         fig.colorbar(graph, cax=cax, orientation='vertical')
@@ -424,7 +424,7 @@ def make_video(f, sim_variables, save_path, vidpath):
                 if dimension == 2:
                     fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
                     fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
-                    graph = ax[_i,_j].imshow(y, interpolation="hermite", cmap=TWOD_COLOURS[_i][_j], origin="lower")
+                    graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=TWOD_COLOURS[_i][_j], origin="lower")
                     divider = make_axes_locatable(ax[_i,_j])
                     cax = divider.append_axes('right', size='5%', pad=0.05)
                     fig.colorbar(graph, cax=cax, orientation='vertical')
@@ -484,7 +484,7 @@ def plot_instance(grid, show_plot=True, text="", start_pos=0, end_pos=1, **kwarg
         if dimension == 2:
             fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
             fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
-            graph = ax[_i,_j].imshow(y, interpolation="hermite", cmap=TWOD_COLOURS[_i][_j], origin="lower")
+            graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=TWOD_COLOURS[_i][_j], origin="lower")
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes('right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')

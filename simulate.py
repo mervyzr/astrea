@@ -38,6 +38,7 @@ def core_run(grp: h5py, _sim_variables: namedtuple):
     # Initiate live plotting, if enabled
     if _sim_variables.live_plot:
         plotting_params = plotting.initiate_live_plot(_sim_variables)
+        plot_axes = _sim_variables.permutations[-1]
     
     # Define the conversion based on subgrid model
     if _sim_variables.subgrid.startswith("w") or _sim_variables.subgrid in ["ppm", "parabolic", "p"]:
@@ -49,13 +50,13 @@ def core_run(grp: h5py, _sim_variables: namedtuple):
     t = 0.0
     while t <= _sim_variables.t_end:
         # Saves each instance of the system at time t
-        tube_snapshot = convert(grid, _sim_variables)
-        dataset = grp.create_dataset(str(float(t)), data=tube_snapshot)
+        grid_snapshot = convert(grid, _sim_variables).transpose(plot_axes)
+        dataset = grp.create_dataset(str(float(t)), data=grid_snapshot)
         dataset.attrs['t'] = float(t)
 
         # Update the live plot, if enabled
         if _sim_variables.live_plot:
-            plotting.update_plot(tube_snapshot, t, _sim_variables.dimension, *plotting_params)
+            plotting.update_plot(grid_snapshot, t, _sim_variables.dimension, *plotting_params)
 
         # Handle the simulation end
         if t == _sim_variables.t_end:
@@ -92,7 +93,7 @@ def run() -> None:
     # Signal handler for Ctrl+C
     def graceful_exit(sig, frame):
         sys.stdout.write('\033[2K\033[1G')
-        print(f"Ctrl+C pressed; exiting gracefully...")
+        print(f"Received SIGINT; exiting gracefully...")
         os.remove(file_name)
         sys.exit(0)
 
