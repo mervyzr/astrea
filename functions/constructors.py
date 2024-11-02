@@ -40,7 +40,7 @@ def initialise(sim_variables, convert=False):
             computational_grid[...,0] = mask
 
         elif config in ["khi", "kelvin-helmholtz"] or ("kelvin" in config or "helmholtz" in config):
-            computational_grid[np.where(abs(y) <= shock_pos)] = initial_left
+            computational_grid[np.where(y <= shock_pos)] = initial_left
             computational_grid[...,2] = params['perturb_ampl'] * np.sin(params['freq']*np.pi*x/(end_pos-start_pos))
 
         elif config in ["ivc", "vortex", "isentropic vortex"]:

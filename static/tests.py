@@ -104,11 +104,11 @@ def generate_test_conditions(config, cells):
         start_pos = 0
         end_pos = 1
         shock_pos = .5
-        t_end = 1
+        t_end = 2
         boundary = "wrap"  # periodic
         initial_left = np.array([2,-.5,0,0,2.5,0,0,0])
         initial_right = np.array([1,.5,0,0,2.5,0,0,0])
-        misc = {'perturb_ampl':.01, 'freq':2}
+        misc = {'perturb_ampl':.5, 'freq':4}
 
     # [Yee et. al., 1999]
     elif "isentropic" in config or "vortex" in config or config == "ivc":
