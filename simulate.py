@@ -39,7 +39,7 @@ def core_run(grp: h5py, _sim_variables: namedtuple):
     # Initiate live plotting, if enabled
     if _sim_variables.live_plot:
         plotting_params = plotting.initiate_live_plot(_sim_variables)
-    
+
     # Define the conversion based on subgrid model
     if _sim_variables.subgrid.startswith("w") or _sim_variables.subgrid in ["ppm", "parabolic", "p"]:
         convert = fv.convert_conservative
