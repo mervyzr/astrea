@@ -34,11 +34,11 @@ LOAD_ENV = False
 def core_run(grp: h5py, _sim_variables: namedtuple):
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables
     grid = constructors.initialise(_sim_variables, convert=True)
+    plot_axes = _sim_variables.permutations[-1]
 
     # Initiate live plotting, if enabled
     if _sim_variables.live_plot:
         plotting_params = plotting.initiate_live_plot(_sim_variables)
-        plot_axes = _sim_variables.permutations[-1]
     
     # Define the conversion based on subgrid model
     if _sim_variables.subgrid.startswith("w") or _sim_variables.subgrid in ["ppm", "parabolic", "p"]:
