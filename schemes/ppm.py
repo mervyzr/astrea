@@ -86,10 +86,7 @@ def run(grid, sim_variables, paper="mc", dissipate=False):
         fLs, fRs = constructors.make_flux_term(wLs, gamma, axis), constructors.make_flux_term(wRs, gamma, axis)
 
         if (paper == "mc" or "mccorquodale" in paper) and dissipate:
-            qS = fv.add_boundary(_grid, boundary)
-            mu = apply_artificial_viscosity(wS, gamma, boundary) * np.diff(qS, axis=0)[1:]
-            _mu = fv.add_boundary(mu, boundary)
-            f += _mu
+            data[axes]['mu'] = apply_artificial_viscosity(wS, axis, sim_variables)
 
         A = constructors.make_Jacobian(_w, gamma, axis)
 
@@ -133,17 +130,40 @@ def apply_flattener(wS, axis, boundary, slope_determinants=[.33, .75, .85]):
     return (chi.T*arr_expander.T).T
 
 
-# Implement artificial viscosity [McCorquodale & Colella, 2011, eq. 35-38]
-def apply_artificial_viscosity(wS, gamma, boundary, viscosity_determinants=[.3, .3]):
+# Implement artificial viscosity [McCorquodale & Colella, 2011]
+def apply_artificial_viscosity(wS, axis, sim_variables, viscosity_determinants=[.3, .3]):
     alpha, beta = viscosity_determinants
+    dimension, gamma, boundary, dx = sim_variables.dimension, sim_variables.gamma, sim_variables.boundary, sim_variables.dx
 
-    vxs = np.pad(wS[:,1], 1, mode=boundary)
-    cs = np.sqrt((gamma*wS[:,4])/wS[:,0])
-    Gamma = np.diff(vxs)[1:]
+    w = fv.add_boundary(wS, boundary)
 
-    nu = np.zeros_like(Gamma)
-    c_min = np.minimum(cs, np.pad(cs, 1, mode=boundary)[2:])
-    nu[Gamma < 0] = (Gamma * np.minimum(np.ones_like(Gamma), (Gamma**2)/(beta*c_min**2)))[Gamma < 0]
+    velocity = wS[...,axis+1]
+    velocity_w = w[...,axis+1]
 
-    arr = np.ones_like(wS)
-    return (alpha*nu*arr.T).T
+    # Calculate face-centred divergence of velocity [eq. 35]
+    lambda_R = velocity_w[2:] - velocity_w[1:-1]
+    if velocity.ndim != 1:
+        for ax in range(1, dimension):
+            padding = [(0,0)] * velocity.ndim
+            padding[ax] = (1,1)
+
+            padded_velocity = np.pad(velocity, padding, mode=boundary)
+            padded_w = np.pad(velocity_w, padding, mode=boundary)
+
+            lambda_R += .25 * (np.diff(padded_w.take(range(1,padded_w.shape[ax]), axis=ax), axis=ax) + np.diff(padded_velocity.take(range(1,padded_velocity.shape[ax]), axis=ax), axis=ax))
+
+    # Calculate sound speed
+    cs = np.sqrt(fv.divide(gamma*w[...,4], w[...,0]))
+    c_min = np.minimum(cs[1:-1], cs[2:])
+
+    # Calculate artificial viscosity coefficient [eq. 36]
+    reference = np.copy(lambda_R)
+    nu = (lambda_R.T * np.minimum(1, fv.divide((dx * lambda_R)**2, beta * c_min**2)).T).T
+    nu[reference >= 0] = 0
+
+    # Calculate the coefficient [eq. 38]
+    arr_expander = np.ones_like(wS)
+    coeff = (nu.T * arr_expander.T).T
+    mu = alpha * (coeff.T * np.diff(w[1:], axis=0).T).T
+
+    return mu
