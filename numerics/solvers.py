@@ -31,16 +31,21 @@ def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
         _wLs, _wRs, _qLs, _qRs, _fLs, _fRs = kwargs["wLs"], kwargs["wRs"], kwargs["qLs"], kwargs["qRs"], kwargs["fLs"], kwargs["fRs"]
 
         # HLL-type schemes
-        if _sim_variables.scheme in ["hllc", "c"]:
-            return calculate_HLLC_flux(_wLs, _wRs, _qLs, _qRs, _fRs, _fLs, _sim_variables)
-        # Osher-Solomon schemes
-        elif _sim_variables.scheme in ["os", "osher-solomon", "osher", "solomon"]:
-            return calculate_DOTS_flux(_qLs, _qRs, _fLs, _fRs, _sim_variables.gamma, _sim_variables.roots, _sim_variables.weights)
+        if _sim_variables.scheme_category == "hll":
+            if _sim_variables.scheme.endswith("d"):
+                #return calculate_HLLD_flux(_wLs, _wRs, _qLs, _qRs, _fRs, _fLs, _sim_variables)
+                pass
+            else:
+                return calculate_HLLC_flux(_wLs, _wRs, _qLs, _qRs, _fRs, _fLs, _sim_variables)
+        # 'Complete Riemann' schemes
+        elif _sim_variables.scheme_category == "complete":
+            if _sim_variables.scheme.startswith("o"):
+                return calculate_ES_flux(_wLs, _wRs, _sim_variables.gamma)
+            else:
+                return calculate_DOTS_flux(_qLs, _qRs, _fLs, _fRs, _sim_variables.gamma, _sim_variables.roots, _sim_variables.weights)            
         # Roe-type/Lax-type schemes
         else:
-            if _sim_variables.scheme in ["entropy", "stable", "entropy-stable", "es"]:
-                return calculate_ES_flux(_wLs, _wRs, _sim_variables.gamma)
-            elif _sim_variables.scheme in ["lw", "lax-wendroff", "wendroff"]:
+            if _sim_variables.scheme.endswith("w"):
                 return calculate_LaxWendroff_flux(_qLs, _qRs, _fLs, _fRs, _characteristics)
             else:
                 return calculate_LaxFriedrich_flux(_qLs, _qRs, _fLs, _fRs, _characteristics)
