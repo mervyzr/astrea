@@ -154,9 +154,8 @@ def make_OS_right_eigenvectors(tubes, gamma):
 
     # Define speed
     sound_speed = np.sqrt(gamma * fv.divide(pressures, rhos))
-    alfven_speed = np.sqrt(fv.divide(fv.norm(B_fields)**2, rhos))
-    alfven_speed_x = fv.divide(B_fields[...,0], np.sqrt(rhos))
-
+    alfven_speed = fv.divide(fv.norm(B_fields), np.sqrt(rhos))
+    alfven_speed_x = fv.divide(np.abs(B_fields[...,0]), np.sqrt(rhos))
     fast_magnetosonic_wave = .5 * (sound_speed**2 + alfven_speed**2 + np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2))))
     slow_magnetosonic_wave = .5 * (sound_speed**2 + alfven_speed**2 - np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2))))
 
@@ -236,8 +235,8 @@ def make_ES_right_eigenvectors(grid, gamma):
 
     # Define speeds
     sound_speed = np.sqrt(gamma * fv.divide(pressures, rhos))
-    alfven_speed = np.sqrt(fv.divide(fv.norm(B_fields)**2, rhos))
-    alfven_speed_x = fv.divide(grid[...,5], np.sqrt(rhos))
+    alfven_speed = fv.divide(fv.norm(B_fields), np.sqrt(rhos))
+    alfven_speed_x = fv.divide(np.abs(grid[...,5]), np.sqrt(rhos))
     fast_magnetosonic_wave = .5 * (sound_speed**2 + alfven_speed**2 + np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2))))
     slow_magnetosonic_wave = .5 * (sound_speed**2 + alfven_speed**2 - np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2))))
 
