@@ -172,7 +172,7 @@ def handle_variables(config_variables: dict, cli_variables: dict):
     final_dict['timestep_category'] = DB.get(PARAMS.accepted.any([final_dict['timestep']]))['category']
     final_dict['scheme_category'] = DB.get(PARAMS.accepted.any([final_dict['scheme']]))['category']
 
-    if final_dict['scheme'] in DB.get(PARAMS.type == 'scheme' and PARAMS.category == 'full')['accepted']:
+    if final_dict['scheme'] in DB.get(PARAMS.type == 'scheme' and PARAMS.category == 'complete')['accepted']:
         _roots, _weights = legendre.leggauss(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
         final_dict['roots'] = .5*_roots + .5  # Gauss-Legendre quadrature with interval [0,1]
         final_dict['weights'] = _weights/2  # Gauss-Legendre quadrature with interval [0,1]
