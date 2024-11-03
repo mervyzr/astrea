@@ -141,7 +141,7 @@ def calculate_DOTS_flux(qLs, qRs, fLs, fRs, gamma, roots, weights):
     # Define speeds
     sound_speed = np.sqrt(gamma * fv.divide(pressures, rhos))
     alfven_speed = fv.divide(fv.norm(B_fields), np.sqrt(rhos))
-    alfven_speed_x = fv.divide(np.abs(B_fields[...,0]), np.sqrt(rhos))
+    alfven_speed_x = fv.divide(B_fields[...,0], np.sqrt(rhos))
     fast_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 + np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
     slow_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 - np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
 
@@ -238,7 +238,7 @@ def calculate_ES_flux(wLs, wRs, gamma):
     # Define speeds
     sound_speed = np.sqrt(gamma * fv.divide(P1_hat, rho_hat))
     alfven_speed = fv.divide(fv.norm(np.array([B1_hat.T, B2_hat.T, B3_hat.T]).T), np.sqrt(rho_hat))
-    alfven_speed_x = fv.divide(np.abs(B1_hat), np.sqrt(rho_hat))
+    alfven_speed_x = fv.divide(B1_hat, np.sqrt(rho_hat))
     fast_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 + np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
     slow_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 - np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
 
