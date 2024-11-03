@@ -50,7 +50,7 @@ def add_boundary(grid, boundary, stencil=1):
 def point_convert_primitive(grid, sim_variables):
     arr = np.copy(grid)
     rhos, vecs, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
-    arr[...,4] = (pressures/(sim_variables.gamma-1)) + (.5*rhos*norm(vecs)**2) + (.5*norm(B_fields)**2)
+    arr[...,4] = (pressures/(sim_variables.gamma-1)) + .5*(rhos*norm(vecs)**2 + norm(B_fields)**2)
     arr[...,1:4] = (vecs.T * rhos.T).T
     return arr
 
@@ -60,7 +60,7 @@ def point_convert_conservative(grid, sim_variables):
     arr = np.copy(grid)
     rhos, energies, B_fields = grid[...,0], grid[...,4], grid[...,5:8]
     vecs = divide(grid[...,1:4].T, grid[...,0].T).T
-    arr[...,4] = (sim_variables.gamma-1) * (energies - (.5*rhos*norm(vecs)**2) - (.5*norm(B_fields)**2))
+    arr[...,4] = (sim_variables.gamma-1) * (energies - .5*(rhos*norm(vecs)**2 + norm(B_fields)**2))
     arr[...,1:4] = vecs
     return arr
 
