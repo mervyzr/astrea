@@ -95,12 +95,73 @@ def calculate_LaxWendroff_flux(qLs, qRs, fLs, fRs, characteristics):
 
 
 # HLLC Riemann solver [Fleischmann et al., 2020]
-def calculate_HLLC_flux(wLs, wRs, qLs, qRs, fLs, fRs, sim_variables):
+def calculate_HLLC_flux(wLs, wRs, qLs, qRs, fLs, fRs, sim_variables, axis=0):
+    axis %= 3
     gamma = sim_variables.gamma
 
     # The convention here is using the opposite (LR -> RL)
-    rhoL, uL, pL, QL = wRs[...,0], wRs[...,1], wRs[...,4], qRs
-    rhoR, uR, pR, QR = wLs[...,0], wLs[...,1], wLs[...,4], qLs
+    rhoL, uL, pL, QL = wRs[...,0], wRs[...,axis+1], wRs[...,4], qRs
+    rhoR, uR, pR, QR = wLs[...,0], wLs[...,axis+1], wLs[...,4], qLs
+
+    cL, cR = np.sqrt(gamma*fv.divide(pL, rhoL)), np.sqrt(gamma*fv.divide(pR, rhoR))
+    u_hat = fv.divide(uL*np.sqrt(rhoL) + uR*np.sqrt(rhoR), np.sqrt(rhoL) + np.sqrt(rhoR))
+    c2_hat = fv.divide(np.sqrt(rhoL)*cL**2 + np.sqrt(rhoR)*cR**2, np.sqrt(rhoL) + np.sqrt(rhoR)) + .5*((uR-uL)**2)*fv.divide(np.sqrt(rhoL)*np.sqrt(rhoR), (np.sqrt(rhoL)+np.sqrt(rhoR))**2)
+
+    sL, sR = np.minimum(uL-cL, u_hat-np.sqrt(c2_hat)), np.maximum(uR+cR, u_hat+np.sqrt(c2_hat))
+    sM = fv.divide(pR - pL + (rhoL*uL*(sL-uL)) - (rhoR*uR*(sR-uR)), rhoL*(sL-uL) - rhoR*(sR-uR))
+
+    coeffL, coeffR = fv.divide(sL-uL, sL-sM), fv.divide(sR-uR, sR-sM)
+    _QL, _QR = (coeffL.T * QL.T).T, (coeffR.T * QR.T).T
+
+    _QL[...,1] = rhoL * coeffL * sM
+    _QR[...,1] = rhoR * coeffR * sM
+    _QL[...,4] = _QL[...,4] + coeffL*(sM-uL)*(rhoL*sM + fv.divide(pL, sL-uL))
+    _QR[...,4] = _QR[...,4] + coeffR*(sM-uR)*(rhoR*sM + fv.divide(pR, sR-uR))
+
+    flux = np.copy(fLs)
+    _fLs, _fRs = fLs + (sL.T * (_QL-QL).T).T, fRs + (sR.T * (_QR-QR).T).T
+    flux[(sL <= 0) & (0 < sM)] = _fLs[(sL <= 0) & (0 < sM)]
+    flux[(sM <= 0) & (0 <= sR)] = _fRs[(sM <= 0) & (0 <= sR)]
+    flux[sR < 0] = fRs[sR < 0]
+    return flux
+
+
+# HLLD Riemann solver [Miyoshi & Kusano, 2005]
+def calculate_HLLD_flux(wLs, wRs, qLs, qRs, fLs, fRs, sim_variables, axis=0):
+
+    def make_speeds(_wF, _gamma):
+        _rhos, _pressures, _B_fields = _wF[...,0], _wF[...,4], _wF[...,5:8]/np.sqrt(4*np.pi)
+
+        _sound_speed = np.sqrt(fv.divide(_gamma*_pressures, _rhos))
+        _alfven_speed = fv.divide(fv.norm(_B_fields), np.sqrt(_rhos))
+        _alfven_speed_x = fv.divide(_B_fields[...,0], np.sqrt(_rhos))
+        _fast_magnetosonic = np.sqrt(.5 * (_sound_speed**2 + _alfven_speed**2 + np.sqrt(((_sound_speed**2 + _alfven_speed**2)**2) - (4*(_sound_speed**2)*(_alfven_speed_x**2)))))
+        _slow_magnetosonic = np.sqrt(.5 * (_sound_speed**2 + _alfven_speed**2 - np.sqrt(((_sound_speed**2 + _alfven_speed**2)**2) - (4*(_sound_speed**2)*(_alfven_speed_x**2)))))
+
+        return _sound_speed, _alfven_speed, _alfven_speed_x, _fast_magnetosonic, _slow_magnetosonic
+
+    axis %= 3
+    gamma = sim_variables.gamma
+
+    rhoL, uL, pL, BL, QL = wLs[...,0], wLs[...,axis+1], wLs[...,4], wLs[...,5:8], qLs
+    rhoR, uR, pR, BR, QR = wRs[...,0], wRs[...,axis+1], wRs[...,4], wRs[...,5:8], qRs
+
+    csL, caL, caxL, cafL, casL = make_speeds(wLs)
+    csR, caR, caxR, cafR, casR = make_speeds(wRs)
+
+    sL, sR = np.minimum(uL, uR) - np.maximum(cafL, cafR), np.minimum(uL, uR) + np.maximum(cafL, cafR)
+    sM = fv.divide(pL - pR + rhoR*uR*(sR-uR) - rhoL*uL*(sL-uL) + .5*(fv.norm(BL)**2 - fv.norm(BR)**2), rhoR*(sR-uR) - rhoL*(sL-uL))
+
+    rhoL_star, rhoR_star = rhoL * fv.divide(sL-uL, sL-sM), rhoR * fv.divide(sR-uR, sR-sM)
+    sL_star, sR_star = sM - fv.divide(BL[...,0], np.sqrt(rhoL_star)), sM - fv.divide(BR[...,0], np.sqrt(rhoR_star))
+
+    fLs_star, fRs_star = 1, 1
+
+    flux = np.copy(fLs)
+
+
+
+
 
     cL, cR = np.sqrt(gamma*fv.divide(pL, rhoL)), np.sqrt(gamma*fv.divide(pR, rhoR))
     u_hat = fv.divide(uL*np.sqrt(rhoL) + uR*np.sqrt(rhoR), np.sqrt(rhoL) + np.sqrt(rhoR))
