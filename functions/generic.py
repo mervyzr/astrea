@@ -53,12 +53,16 @@ class RecursiveNamespace:
 def print_output(instance_time, seed, sim_variables, **kwargs):
     _seed = f"{BColours.OKBLUE}{seed}{BColours.ENDC}"
     _config = f"{BColours.OKCYAN}{sim_variables.config.upper()}{BColours.ENDC}"
-    _cells = f"{BColours.OKCYAN}{sim_variables.cells}{BColours.ENDC}"
     _subgrid = f"{BColours.OKCYAN}{sim_variables.subgrid.upper()}{BColours.ENDC}"
     _timestep = f"{BColours.OKCYAN}{sim_variables.timestep.upper()}{BColours.ENDC}"
     _scheme = f"{BColours.OKCYAN}{sim_variables.scheme.upper()}{BColours.ENDC}"
     _cfl = f"{BColours.OKCYAN}{sim_variables.cfl}{BColours.ENDC}"
     _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({sim_variables.dimension}D){BColours.ENDC}"
+
+    if sim_variables.dimension != 1:
+        _cells = f"{BColours.OKCYAN}{sim_variables.cells}^{sim_variables.dimension}{BColours.ENDC}"
+    else:
+        _cells = f"{BColours.OKCYAN}{sim_variables.cells}{BColours.ENDC}"
 
     if kwargs:
         if kwargs['elapsed'] >= 3600:
