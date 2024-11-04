@@ -26,10 +26,10 @@ def run(grid, sim_variables):
         limited_values = limiters.minmod_limiter(w)
 
         """Linear reconstruction [Derigs et al., 2017]
-        Current convention: |               w(i-1/2)                    w(i+1/2)              |
-                            | i-1          <-- | -->         i         <-- | -->          i+1 |
-                            |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
-                    OR      |       w-(i-1/2)  |   w+(i-1/2)    w-(i+1/2)  |  w+(i+1/2)       |
+        Current convention: |                        w(i-1/2)                    w(i+1/2)                       |
+                            |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
+                            |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
+                    OR      |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
         """
         gradients = .5 * limited_values
         wL, wR = np.copy(wS-gradients), np.copy(wS+gradients)  # (eq. 4.13)

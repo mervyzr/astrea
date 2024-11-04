@@ -12,10 +12,10 @@ def run(grid, sim_variables):
     data = nested_dict()
 
     # WENO reconstruction [Shu, 2009; San & Kara, 2015]
-    """Current convention: |               w(i-1/2)                    w(i+1/2)              |
-                           | i-1          <-- | -->         i         <-- | -->          i+1 |
-                           |        w_R(i-1)  |   w_L(i)          w_R(i)  |  w_L(i+1)        |
-                   OR      |       w-(i-1/2)  |   w+(i-1/2)    w-(i+1/2)  |  w+(i+1/2)       |
+    """Current convention: |                        w(i-1/2)                    w(i+1/2)                       |
+                           |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
+                           |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
+                    OR     |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
     """
     def reconstruct(_wS, _boundary, _order=5):
         eps = 1e-6
