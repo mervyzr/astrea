@@ -168,7 +168,7 @@ def plot_quantities(f, sim_variables, save_path):
 
         # Add analytical solutions only for 1D
         if dimension == 2:
-            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t \approx {round(timings[max(n_list)][time_index],3)}$ ($N = {N}$)", fontsize=24)
+            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t \approx {round(timings[max(n_list)][time_index],3)}$ ($N = {N}^{dimension}$)", fontsize=24)
             fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
             fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
         else:
@@ -299,7 +299,7 @@ def plot_solution_errors(f, sim_variables, save_path, coeff, norm=1):
 
 
 def plot_total_variation(f, sim_variables, save_path):
-    config, subgrid, timestep, scheme = sim_variables.config, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
+    config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
 
     # hdf5 keys are string; need to convert back to int and sort again
     n_list = [int(n) for n in f.keys()]
@@ -326,7 +326,7 @@ def plot_total_variation(f, sim_variables, save_path):
         for _i, _j in PLOT_INDEXES:
             ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=COLOURS[_i][_j])
 
-        plt.suptitle(rf"Total variation of primitive variables TV($\vec{{w}}$) against time $t$ for {config.title()} test ($N = {N}$)", fontsize=24)
+        plt.suptitle(rf"Total variation of primitive variables TV($\vec{{w}}$) against time $t$ for {config.title()} test ($N = {N}^{dimension}$)", fontsize=24)
         fig.text(0.5, 0.04, r"Time $t$", fontsize=18, ha='center')
 
         plt.savefig(f"{save_path}/TV_{config}_{subgrid}_{timestep}_{scheme}_{N}.png", dpi=330)
@@ -338,7 +338,7 @@ def plot_total_variation(f, sim_variables, save_path):
 
 
 def plot_conservation_equations(f, sim_variables, save_path):
-    config, subgrid, timestep, scheme = sim_variables.config, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
+    config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
 
     # hdf5 keys are string; need to convert back to int and sort again
     n_list = [int(n) for n in f.keys()]
@@ -377,7 +377,7 @@ def plot_conservation_equations(f, sim_variables, save_path):
                 ax[2].annotate(round(y_i, decimal_point), (x[0], y_i), fontsize=12)
                 ax[2].annotate(round(y_f, decimal_point), (x[-1], y_f), fontsize=12)
 
-        plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ for {config.title()} test ($N = {N}$)", fontsize=24)
+        plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ for {config.title()} test ($N = {N}^{dimension}$)", fontsize=24)
         fig.text(0.5, 0.04, r"Time $t$", fontsize=18, ha='center')
 
         plt.savefig(f"{save_path}/conserveEq_{config}_{subgrid}_{timestep}_{scheme}_{N}.png", dpi=330)
@@ -431,7 +431,7 @@ def make_video(f, sim_variables, save_path, vidpath):
                     divider = make_axes_locatable(ax[_i,_j])
                     cax = divider.append_axes('right', size='5%', pad=0.05)
                     fig.colorbar(graph, cax=cax, orientation='vertical')
-                    plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=24)
+                    plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}^{dimension}$)", fontsize=24)
                     
                 else:
                     fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
