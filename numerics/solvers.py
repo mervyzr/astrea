@@ -24,19 +24,18 @@ def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
             _wLs, _wRs = _arrays["wLs"], _arrays["wRs"]
             _qLs, _qRs = _arrays["qLs"], _arrays["qRs"]
             _fLs, _fRs = _arrays["fLs"], _arrays["fRs"]
-        return {"wLs":_wLs, "wRs":_wRs, "qLs":_qLs, "qRs":_qRs, "fLs":_fLs, "fRs":_fRs}
-    
+        return {"wLs":_wLs, "wRs":_wRs, "qLs":_qLs, "qRs":_qRs, "fLs":_fLs, "fRs":_fRs, "wS":_arrays["wS"]}
+
     # Select Riemann solver based on scheme
     def run_Riemann_solver(_sim_variables, _characteristics, **kwargs):
-        _wLs, _wRs, _qLs, _qRs, _fLs, _fRs = kwargs["wLs"], kwargs["wRs"], kwargs["qLs"], kwargs["qRs"], kwargs["fLs"], kwargs["fRs"]
+        _wLs, _wRs, _qLs, _qRs, _fLs, _fRs, _wS = kwargs["wLs"], kwargs["wRs"], kwargs["qLs"], kwargs["qRs"], kwargs["fLs"], kwargs["fRs"], kwargs["wS"]
 
         # HLL-type schemes
         if _sim_variables.scheme_category == "hll":
             if _sim_variables.scheme.endswith("d"):
-                #return calculate_HLLD_flux(_wLs, _wRs, _qLs, _qRs, _fRs, _fLs, _sim_variables)
-                pass
+                return calculate_HLLD_flux(_wS, _wLs, _wRs, _qLs, _qRs, _fRs, _fLs, _sim_variables, 0)
             else:
-                return calculate_HLLC_flux(_wLs, _wRs, _qLs, _qRs, _fRs, _fLs, _sim_variables)
+                return calculate_HLLC_flux(_wLs, _wRs, _qLs, _qRs, _fRs, _fLs, _sim_variables, 0)
         # 'Complete Riemann' schemes
         elif _sim_variables.scheme_category == "complete":
             if _sim_variables.scheme.startswith("o"):
@@ -100,7 +99,7 @@ def calculate_LaxWendroff_flux(qLs, qRs, fLs, fRs, characteristics):
 
 
 # HLLC Riemann solver [Fleischmann et al., 2020]
-def calculate_HLLC_flux(wLs, wRs, qLs, qRs, fLs, fRs, sim_variables, axis=0):
+def calculate_HLLC_flux(wLs, wRs, qLs, qRs, fLs, fRs, sim_variables, axis):
     axis %= 3
     gamma = sim_variables.gamma
 
@@ -132,62 +131,85 @@ def calculate_HLLC_flux(wLs, wRs, qLs, qRs, fLs, fRs, sim_variables, axis=0):
 
 
 # HLLD Riemann solver [Miyoshi & Kusano, 2005]
-def calculate_HLLD_flux(wLs, wRs, qLs, qRs, fLs, fRs, sim_variables, axis=0):
+def calculate_HLLD_flux(wS, wLs, wRs, qLs, qRs, fLs, fRs, sim_variables, axis):
 
     def make_speeds(_wF, _gamma):
-        _rhos, _pressures, _B_fields = _wF[...,0], _wF[...,4], _wF[...,5:8]/np.sqrt(4*np.pi)
+        _rhos, _pressures, _B_fields = _wF[...,0], _wF[...,4], _wF[...,5:8]
 
         _sound_speed = np.sqrt(fv.divide(_gamma*_pressures, _rhos))
         _alfven_speed = fv.divide(fv.norm(_B_fields), np.sqrt(_rhos))
         _alfven_speed_x = fv.divide(_B_fields[...,0], np.sqrt(_rhos))
         _fast_magnetosonic = np.sqrt(.5 * (_sound_speed**2 + _alfven_speed**2 + np.sqrt(((_sound_speed**2 + _alfven_speed**2)**2) - (4*(_sound_speed**2)*(_alfven_speed_x**2)))))
-        _slow_magnetosonic = np.sqrt(.5 * (_sound_speed**2 + _alfven_speed**2 - np.sqrt(((_sound_speed**2 + _alfven_speed**2)**2) - (4*(_sound_speed**2)*(_alfven_speed_x**2)))))
+        #_slow_magnetosonic = np.sqrt(.5 * (_sound_speed**2 + _alfven_speed**2 - np.sqrt(((_sound_speed**2 + _alfven_speed**2)**2) - (4*(_sound_speed**2)*(_alfven_speed_x**2)))))
 
-        return _sound_speed, _alfven_speed, _alfven_speed_x, _fast_magnetosonic, _slow_magnetosonic
+        return _fast_magnetosonic
 
     axis %= 3
     gamma = sim_variables.gamma
 
-    rhoL, uL, pL, BL, QL = wLs[...,0], wLs[...,axis+1], wLs[...,4], wLs[...,5:8], qLs
-    rhoR, uR, pR, BR, QR = wRs[...,0], wRs[...,axis+1], wRs[...,4], wRs[...,5:8], qRs
+    rhoL, vecL, pL, BL, QL = wLs[...,0], wLs[...,1:4], wLs[...,4], wLs[...,5:8], qLs
+    rhoR, vecR, pR, BR, QR = wRs[...,0], wRs[...,1:4], wRs[...,4], wRs[...,5:8], qRs
 
-    csL, caL, caxL, cafL, casL = make_speeds(wLs)
-    csR, caR, caxR, cafR, casR = make_speeds(wRs)
+    cafL, cafR = make_speeds(wLs, gamma), make_speeds(wRs, gamma)
 
-    sL, sR = np.minimum(uL, uR) - np.maximum(cafL, cafR), np.minimum(uL, uR) + np.maximum(cafL, cafR)
-    sM = fv.divide(pL - pR + rhoR*uR*(sR-uR) - rhoL*uL*(sL-uL) + .5*(fv.norm(BL)**2 - fv.norm(BR)**2), rhoR*(sR-uR) - rhoL*(sL-uL))
+    sL, sR = np.minimum(vecL[...,axis], vecR[...,axis]) - np.maximum(cafL, cafR), np.minimum(vecL[...,axis], vecR[...,axis]) + np.maximum(cafL, cafR)
+    sM = fv.divide(pL - pR + rhoR*vecR[...,axis]*(sR-vecR[...,axis]) - rhoL*vecL[...,axis]*(sL-vecL[...,axis]) + .5*(fv.norm(BL)**2 - fv.norm(BR)**2), rhoR*(sR-vecR[...,axis]) - rhoL*(sL-vecL[...,axis]))
 
-    rhoL_star, rhoR_star = rhoL * fv.divide(sL-uL, sL-sM), rhoR * fv.divide(sR-uR, sR-sM)
-    sL_star, sR_star = sM - fv.divide(BL[...,0], np.sqrt(rhoL_star)), sM - fv.divide(BR[...,0], np.sqrt(rhoR_star))
+    # Calculate the star states
+    rhoL_star, rhoR_star = rhoL * fv.divide(sL-vecL[...,axis], sL-sM), rhoR * fv.divide(sR-vecR[...,axis], sR-sM)
+    sL_star, sR_star = sM - fv.divide(BL[...,axis], np.sqrt(rhoL_star)), sM - fv.divide(BR[...,axis], np.sqrt(rhoR_star))
 
-    fLs_star, fRs_star = 1, 1
+    p_star = fv.divide(rhoR*(pL+.5*fv.norm(BL)**2)*(sR-vecR[...,axis]) - rhoL*(pR+.5*fv.norm(BR)**2)*(sL-vecL[...,axis]) + rhoL*rhoR*(sR-vecR[...,axis])*(sL-vecL[...,axis])*(vecR[...,axis]-vecL[...,axis]), rhoR*(sR-vecR[...,axis]) - rhoL*(sL-vecL[...,axis]))
+    vyL_star = vecL[...,(axis+1)%3+1] - wS[...,(axis+0)%3+5]*BL[...,(axis+1)%3+1]*fv.divide(sM-vecL[...,axis], rhoL*(sL-vecL[...,axis])*(sL-sM) - wS[...,(axis+0)%3+5]**2)
+    vyR_star = vecR[...,(axis+1)%3+1] - wS[...,(axis+0)%3+5]*BR[...,(axis+1)%3+1]*fv.divide(sM-vecR[...,axis], rhoR*(sR-vecR[...,axis])*(sR-sM) - wS[...,(axis+0)%3+5]**2)
+    vzL_star = vecL[...,(axis+2)%3+1] - wS[...,(axis+0)%3+5]*BL[...,(axis+2)%3+1]*fv.divide(sM-vecL[...,axis], rhoL*(sL-vecL[...,axis])*(sL-sM) - wS[...,(axis+0)%3+5]**2)
+    vzR_star = vecR[...,(axis+2)%3+1] - wS[...,(axis+0)%3+5]*BR[...,(axis+2)%3+1]*fv.divide(sM-vecR[...,axis], rhoR*(sR-vecR[...,axis])*(sR-sM) - wS[...,(axis+0)%3+5]**2)
+    ByL_star = BL[...,(axis+1)%3+1] * fv.divide(rhoL*(sL-vecL[...,axis])**2 - wS[...,(axis+0)%3+5]**2, rhoL*(sL-vecL[...,axis])*(sL-sM) - wS[...,(axis+0)%3+5]**2)
+    ByR_star = BR[...,(axis+1)%3+1] * fv.divide(rhoR*(sR-vecR[...,axis])**2 - wS[...,(axis+0)%3+5]**2, rhoR*(sR-vecR[...,axis])*(sR-sM) - wS[...,(axis+0)%3+5]**2)
+    BzL_star = BL[...,(axis+2)%3+1] * fv.divide(rhoL*(sL-vecL[...,axis])**2 - wS[...,(axis+0)%3+5]**2, rhoL*(sL-vecL[...,axis])*(sL-sM) - wS[...,(axis+0)%3+5]**2)
+    BzR_star = BR[...,(axis+2)%3+1] * fv.divide(rhoR*(sR-vecR[...,axis])**2 - wS[...,(axis+0)%3+5]**2, rhoR*(sR-vecR[...,axis])*(sR-sM) - wS[...,(axis+0)%3+5]**2)
 
+    QL_star, QR_star = np.zeros_like(QL), np.zeros_like(QR)
+    QL_star[...,0], QR_star[...,0] = rhoL_star, rhoR_star
+    QL_star[...,(axis+0)%3+1], QR_star[...,(axis+0)%3+1] = sM, sM
+    QL_star[...,(axis+1)%3+1], QR_star[...,(axis+1)%3+1] = vyL_star, vyR_star
+    QL_star[...,(axis+2)%3+1], QR_star[...,(axis+2)%3+1] = vzL_star, vzR_star
+    QL_star[...,(axis+1)%3+5], QR_star[...,(axis+1)%3+5] = ByL_star, ByR_star
+    QL_star[...,(axis+2)%3+5], QR_star[...,(axis+2)%3+5] = BzL_star, BzR_star
+    QL_star[...,4] = np.copy(fv.divide(QL[...,4]*(sL-vecL[...,axis]) - vecL[...,axis]*(pL+.5*fv.norm(BL)**2) + p_star*sM + wS[...,(axis+0)%3+5]*(np.sum(vecL*BL, axis=-1) - np.sum(QL_star[...,1:4]*QL_star[...,5:8], axis=-1)), sL-sM))
+    QR_star[...,4] = np.copy(fv.divide(QR[...,4]*(sR-vecR[...,axis]) - vecR[...,axis]*(pR+.5*fv.norm(BR)**2) + p_star*sM + wS[...,(axis+0)%3+5]*(np.sum(vecR*BR, axis=-1) - np.sum(QR_star[...,1:4]*QR_star[...,5:8], axis=-1)), sR-sM))
+
+    fLs_star, fRs_star = np.copy(fLs), np.copy(fRs)
+    fLs_star += sL * (QL_star - QL)
+    fRs_star += sR * (QR_star - QR)
+
+    # Calculate the double-star states
+    vy_starstar = fv.divide(vyL_star*np.sqrt(rhoL_star) + vyR_star*np.sqrt(rhoR_star) + np.sign(wS[...,(axis+0)%3+5])*(ByR_star-ByL_star), np.sqrt(rhoL_star) + np.sqrt(rhoR_star))
+    vz_starstar = fv.divide(vzL_star*np.sqrt(rhoL_star) + vzR_star*np.sqrt(rhoR_star) + np.sign(wS[...,(axis+0)%3+5])*(BzR_star-BzL_star), np.sqrt(rhoL_star) + np.sqrt(rhoR_star))
+    By_starstar = fv.divide(ByR_star*np.sqrt(rhoL_star) + ByL_star*np.sqrt(rhoR_star) + np.sign(wS[...,(axis+0)%3+5])*(vyR_star-vyL_star)*np.sqrt(rhoL_star*rhoR_star), np.sqrt(rhoL_star) + np.sqrt(rhoR_star))
+    Bz_starstar = fv.divide(BzR_star*np.sqrt(rhoL_star) + BzL_star*np.sqrt(rhoR_star) + np.sign(wS[...,(axis+0)%3+5])*(vzR_star-vzL_star)*np.sqrt(rhoL_star*rhoR_star), np.sqrt(rhoL_star) + np.sqrt(rhoR_star))
+
+    QL_starstar, QR_starstar = np.zeros_like(QL), np.zeros_like(QR)
+    QL_starstar[...,0], QR_starstar[...,0] = rhoL_star, rhoR_star
+    QL_starstar[...,(axis+0)%3+1], QR_starstar[...,(axis+0)%3+1] = sM, sM
+    QL_starstar[...,(axis+1)%3+1], QR_starstar[...,(axis+1)%3+1] = vy_starstar, vy_starstar
+    QL_starstar[...,(axis+2)%3+1], QR_starstar[...,(axis+2)%3+1] = vz_starstar, vz_starstar
+    QL_starstar[...,(axis+1)%3+5], QR_starstar[...,(axis+1)%3+5] = By_starstar, By_starstar
+    QL_starstar[...,(axis+2)%3+5], QR_starstar[...,(axis+2)%3+5] = Bz_starstar, Bz_starstar
+    QL_starstar[...,4] = np.copy(QL_star[...,4] - np.sqrt(rhoL_star)*np.sign(wS[...,(axis+0)%3+5])*(np.sum(QL_star[...,1:4]*QL_star[...,5:8], axis=-1) - np.sum(QL_starstar[...,1:4]*QL_starstar[...,5:8], axis=-1)))
+    QR_starstar[...,4] = np.copy(QR_star[...,4] - np.sqrt(rhoR_star)*np.sign(wS[...,(axis+0)%3+5])*(np.sum(QR_star[...,1:4]*QR_star[...,5:8], axis=-1) - np.sum(QR_starstar[...,1:4]*QR_starstar[...,5:8], axis=-1)))
+
+    fLs_starstar, fRs_starstar = np.copy(fLs), np.copy(fRs)
+    fLs_starstar += sL_star * (QL_starstar - QL_star)
+    fRs_starstar += sR_star * (QR_starstar - QR_star)
+
+    # Compute the flux
     flux = np.copy(fLs)
-
-
-
-
-
-    cL, cR = np.sqrt(gamma*fv.divide(pL, rhoL)), np.sqrt(gamma*fv.divide(pR, rhoR))
-    u_hat = fv.divide(uL*np.sqrt(rhoL) + uR*np.sqrt(rhoR), np.sqrt(rhoL) + np.sqrt(rhoR))
-    c2_hat = fv.divide(np.sqrt(rhoL)*cL**2 + np.sqrt(rhoR)*cR**2, np.sqrt(rhoL) + np.sqrt(rhoR)) + .5*((uR-uL)**2)*fv.divide(np.sqrt(rhoL)*np.sqrt(rhoR), (np.sqrt(rhoL)+np.sqrt(rhoR))**2)
-
-    sL, sR = np.minimum(uL-cL, u_hat-np.sqrt(c2_hat)), np.maximum(uR+cR, u_hat+np.sqrt(c2_hat))
-    s_star = fv.divide(pR - pL + (rhoL*uL*(sL-uL)) - (rhoR*uR*(sR-uR)), rhoL*(sL-uL) - rhoR*(sR-uR))
-
-    coeffL, coeffR = fv.divide(sL-uL, sL-s_star), fv.divide(sR-uR, sR-s_star)
-    _QL, _QR = (coeffL.T * QL.T).T, (coeffR.T * QR.T).T
-
-    _QL[...,1] = rhoL * coeffL * s_star
-    _QR[...,1] = rhoR * coeffR * s_star
-    _QL[...,4] = _QL[...,4] + coeffL*(s_star-uL)*(rhoL*s_star + fv.divide(pL, sL-uL))
-    _QR[...,4] = _QR[...,4] + coeffR*(s_star-uR)*(rhoR*s_star + fv.divide(pR, sR-uR))
-
-    flux = np.copy(fLs)
-    _fLs, _fRs = fLs + (sL.T * (_QL-QL).T).T, fRs + (sR.T * (_QR-QR).T).T
-    flux[(sL < 0) & (s_star >= 0)] = _fLs[(sL < 0) & (s_star >= 0)]
-    flux[(sR > 0) & (s_star <= 0)] = _fRs[(sR > 0) & (s_star <= 0)]
-    flux[sR <= 0] = fRs[sR <= 0]
+    flux[(sL <= 0) & (0 < sL_star)] = fLs_star[(sL <= 0) & (0 < sL_star)]
+    flux[(sL_star <= 0) & (0 < sM)] = fLs_starstar[(sL_star <= 0) & (0 < sM)]
+    flux[(sM <= 0) & (0 < sR_star)] = fRs_starstar[(sM <= 0) & (0 < sR_star)]
+    flux[(sR_star <= 0) & (0 <= sR)] = fRs_star[(sR_star <= 0) & (0 <= sR)]
+    flux[sR < 0] = fRs[sR < 0]
     return flux
 
 
@@ -202,7 +224,7 @@ def calculate_DOTS_flux(qLs, qRs, fLs, fRs, gamma, roots, weights):
 
     # Generate the diagonal matrix of eigenvalues
     _lambda = np.zeros_like(_right_eigenvectors)
-    rhos, vxs, pressures, B_fields = psi[...,0], psi[...,1], psi[...,4], psi[...,5:8]/np.sqrt(4*np.pi)
+    rhos, vxs, pressures, B_fields = psi[...,0], psi[...,1], psi[...,4], psi[...,5:8]
 
     # Define speeds
     sound_speed = np.sqrt(gamma * fv.divide(pressures, rhos))
