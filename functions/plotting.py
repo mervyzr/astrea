@@ -219,7 +219,7 @@ def plot_quantities(f, sim_variables, save_path):
 
 
 def plot_solution_errors(f, sim_variables, save_path, coeff, norm=1):
-    config, subgrid, timestep, scheme = sim_variables.config, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
+    config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
 
     # hdf5 keys are string; need to convert back to int and sort again
     n_list = [int(n) for n in f.keys()]
@@ -273,7 +273,10 @@ def plot_solution_errors(f, sim_variables, save_path, coeff, norm=1):
     ax.grid(linestyle="--", linewidth=0.5)
 
     x_diff = x[1:]
-    y_diff = [[np.log2(y1[:-1]/y1[1:]), np.log2(y2[:-1]/y2[1:])], [np.log2(y3[:-1]/y3[1:]), np.log2(y4[:-1]/y4[1:])]]
+    y_diff = np.array([[np.log2(y1[:-1]/y1[1:]), np.log2(y2[:-1]/y2[1:])], [np.log2(y3[:-1]/y3[1:]), np.log2(y4[:-1]/y4[1:])]])
+
+    if dimension == 2:
+        y_diff /= np.log2(4)
 
     for _i, _j in PLOT_INDEXES:
         if _i == _j:
