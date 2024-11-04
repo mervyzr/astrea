@@ -95,7 +95,7 @@ def make_flux_term(grid, gamma, axis):
     arr[...,(axis+0)%3+1] = rhos*(vecs[...,axis]**2) + pressures + (.5*fv.norm(B_fields)**2) - B_fields[...,axis]**2
     arr[...,(axis+1)%3+1] = rhos*vecs[...,axis]*vecs[...,(axis+1)%3] - B_fields[...,axis]*B_fields[...,(axis+1)%3]
     arr[...,(axis+2)%3+1] = rhos*vecs[...,axis]*vecs[...,(axis+2)%3] - B_fields[...,axis]*B_fields[...,(axis+2)%3]
-    arr[...,4] = (vecs[...,axis] * ((.5*rhos*fv.norm(vecs)**2) + ((gamma*pressures)/(gamma-1)) + (fv.norm(B_fields)**2))) - (B_fields[...,axis]*np.sum(B_fields*vecs, axis=-1))
+    arr[...,4] = (vecs[...,axis] * ((.5*rhos*fv.norm(vecs)**2) + ((gamma*pressures)/(gamma-1)) + (fv.norm(B_fields)**2))) - (B_fields[...,axis]*np.sum(vecs*B_fields, axis=-1))
     arr[...,(axis+1)%3+5] = B_fields[...,(axis+1)%3]*vecs[...,axis] - B_fields[...,axis]*vecs[...,(axis+1)%3]
     arr[...,(axis+2)%3+5] = B_fields[...,(axis+2)%3]*vecs[...,axis] - B_fields[...,axis]*vecs[...,(axis+2)%3]
     return arr
@@ -104,7 +104,7 @@ def make_flux_term(grid, gamma, axis):
 # Jacobian matrix based on primitive variables
 def make_Jacobian(grid, gamma, axis):
     axis %= 3
-    rhos, v, pressures, B_fields = grid[...,0], grid[...,axis+1], grid[...,4], grid[...,5:8]/np.sqrt(4*np.pi)
+    rhos, v, pressures, B_fields = grid[...,0], grid[...,axis+1], grid[...,4], grid[...,5:8]
     
     # Create empty square arrays for each cell
     _arr = np.zeros_like(grid)
@@ -146,7 +146,7 @@ def make_Roe_average(left_interface, right_interface):
 
 # Make the right eigenvector for adiabatic magnetohydrodynamics in Osher-Solomon flux
 def make_OS_right_eigenvectors(tubes, gamma):
-    rhos, pressures, B_fields = tubes[...,0], tubes[...,4], tubes[...,5:8]/np.sqrt(4*np.pi)
+    rhos, pressures, B_fields = tubes[...,0], tubes[...,4], tubes[...,5:8]
 
     # Define the right eigenvectors for each cell in each grid
     _right_eigenvectors = np.zeros_like(tubes)
