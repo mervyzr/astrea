@@ -97,20 +97,20 @@ def handle_CLI():
     parser.add_argument('--timestep', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Time-stepping algorithm used in the update step of the simulation', choices=accepted_values('timestep'))
     parser.add_argument('--scheme', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Scheme of solver for the Riemann problem', choices=accepted_values('scheme'))
     parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='Number of runs in a complete simulation', choices=DB.get(PARAMS.type == 'run_type')['accepted'])
-    
+
     parser.add_argument('--live_plot', '--live-plot', '--live', dest='live_plot', default=argparse.SUPPRESS, help='Switch on the live plot', action='store_true')
     parser.add_argument('--no_live_plot', '--no-live-plot', '--no-live', '--no_live', dest='live_plot', default=argparse.SUPPRESS, help='Switch off the live plot', action='store_false')
-    
+
     parser.add_argument('--save_plots', '--save-plots', dest='save_plots', default=argparse.SUPPRESS, help='Switch on saving plots to file', action='store_true')
     parser.add_argument('--no_save_plots', '--no-save-plots', dest='save_plots', default=argparse.SUPPRESS, help='Switch off saving plots to file', action='store_false')
     parser.add_argument('--snapshots', metavar='', type=int, default=argparse.SUPPRESS, help='Number of snapshots of the simulation to save to file')
-    
+
     parser.add_argument('--save_video', '--save-video', dest='save_video', default=argparse.SUPPRESS, help='Switch on saving a video of the simulation', action='store_true')
     parser.add_argument('--no_save_video', '--no-save-video', dest='save_video', default=argparse.SUPPRESS, help='Switch off saving a video of the simulation', action='store_false')
-    
+
     parser.add_argument('--save_file', '--save-file', dest='save_file', default=argparse.SUPPRESS, help='Switch on saving the simulation data file (.hdf5)', action='store_true')
     parser.add_argument('--no_save_file', '--no-save-file', dest='save_file', default=argparse.SUPPRESS, help='Switch off saving the simulation data file (.hdf5)', action='store_false')
-    
+
     parser.add_argument('--debug', '--DEBUG', dest='debug', help='Toggle for more detailed description of errors/bugs', action='store_true')
     parser.add_argument('-q', '--quiet', '--noprint', '--NOPRINT', '--no-print', dest='noprint', help='Toggle printing to screen', action='store_true')
     parser.add_argument('--test', '--TEST', dest='test', default=argparse.SUPPRESS, help=argparse.SUPPRESS, action='store_true')
@@ -183,7 +183,7 @@ def handle_variables(config_variables: dict, cli_variables: dict):
 
     # Exclusion cases
     if final_dict['scheme'] in DB.get(PARAMS.type == 'scheme' and PARAMS.category == 'hll')['accepted']:
-        if final_dict['scheme'] in ['hllc', 'c'] and final_dict['config'] in DB.get(PARAMS.type == 'config' and PARAMS.category == 'magnetic')['accepted']:
+        if (final_dict['scheme_category'] == "hll" and final_dict['scheme'].endswith('c')) and final_dict['config'] in DB.get(PARAMS.type == 'config' and PARAMS.category == 'magnetic')['accepted']:
             print(f"{BColours.WARNING}HLLC scheme does not work with magnetic fields present..{BColours.ENDC}")
             final_dict['scheme'] = DB.get(PARAMS.type == 'default')['scheme']
 
