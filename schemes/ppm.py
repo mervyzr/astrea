@@ -72,17 +72,17 @@ def run(grid, sim_variables, paper="mc", dissipate=False):
         """
         wL, wR = limiters.interpolant_limiter(wF_limit_L, wF_limit_R, wS, w, w2, paper.lower(), **kwargs)
 
-        # Get the average solution
-        avg_wS = constructors.make_Roe_average(wL, wR)
-
         # Pad the reconstructed interfaces
         wLs, wRs = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
+
+        # Get the average solution between the interfaces at the boundaries
+        boundary_avg = constructors.make_Roe_average(wLs, wRs)[1:]
 
         # Convert the primitive variables
         qLs, qRs = fv.convert_primitive(wLs, sim_variables, "face"), fv.convert_primitive(wRs, sim_variables, "face")
 
         # Compute the fluxes and the Jacobian
-        _w = fv.add_boundary(avg_wS, boundary)
+        _w = fv.add_boundary(boundary_avg, boundary)
         fLs, fRs = constructors.make_flux_term(wLs, gamma, axis), constructors.make_flux_term(wRs, gamma, axis)
 
         if (paper == "mc" or "mccorquodale" in paper) and dissipate:
