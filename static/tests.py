@@ -44,8 +44,8 @@ def generate_test_conditions(config, cells):
         shock_pos = 1
         t_end = 1
         boundary = "wrap"  # periodic
-        initial_left = np.array([0,1,1,1,1,0,0,0])
-        initial_right = np.array([0,1,1,1,1,0,0,0])
+        initial_left = np.array([0,1,1,0,1,0,0,0])
+        initial_right = np.array([0,1,1,0,1,0,0,0])
         misc = {'freq':2, 'ampl':.1, 'y_offset':2}
 
     elif config.startswith('gauss'):
@@ -54,8 +54,8 @@ def generate_test_conditions(config, cells):
         shock_pos = 1
         t_end = 2
         boundary = "wrap"  # periodic
-        initial_left = np.array([0,1,1,1,1e-6,0,0,0])
-        initial_right = np.array([0,1,1,1,1e-6,0,0,0])
+        initial_left = np.array([0,1,1,0,1e-6,0,0,0])
+        initial_right = np.array([0,1,1,0,1e-6,0,0,0])
         misc = {'peak_pos':0, 'ampl':.75, 'fwhm':.08, 'y_offset':1}
 
     elif "slow" in config:
@@ -160,47 +160,102 @@ def generate_test_conditions(config, cells):
             initial_right = np.array([.125,0,0,0,.1,0,0,0])
 
     # [Lax & Liu, 1998]
-    elif "lax" in config or "liu" in config or "ll" in config:
+    elif ("lax" in config or "liu" in config) or "ll" in config:
         start_pos = 0
         end_pos = 1
         shock_pos = .5
+        t_end = .3
         boundary = "wrap"  # periodic
 
-        if "3" in config:
-            t_end = .3
+        if "ll" in config:
+            index = int(config.replace(' ','').split('ll')[-1])
+        else:
+            index = int(config.replace(' ','').split('liu')[-1])
+
+        if index in [1, 2]:
+            initial_left = np.array([.5197,-.7259,0,0,.4,0,0,0])
+            initial_right = np.array([1,0,0,0,1,0,0,0])
+            if index == 1:
+                misc = {'bottom_left':np.array([.1072,-.7259,-1.4045,0,.0439,0,0,0]), 'bottom_right':np.array([.2579,0,-1.4045,0,.15,0,0,0])}
+            else:
+                misc = {'bottom_left':np.array([1,-.7259,-.7259,0,1,0,0,0]), 'bottom_right':np.array([.5197,0,-.7259,0,.4,0,0,0])}
+
+        elif index == 3:
             initial_left = np.array([.5323,1.206,0,0,.3,0,0,0])
             initial_right = np.array([1.5,0,0,0,1.5,0,0,0])
             misc = {'bottom_left':np.array([.138,1.206,1.206,0,.029,0,0,0]), 'bottom_right':np.array([.5323,0,1.206,0,.3,0,0,0])}
 
-        elif "4" in config:
-            t_end = .25
+        elif index == 4:
             initial_left = np.array([.5065,.8939,0,0,.35,0,0,0])
             initial_right = np.array([1.1,0,0,0,1.1,0,0,0])
             misc = {'bottom_left':np.array([1.1,.8939,.8939,0,1.1,0,0,0]), 'bottom_right':np.array([.5065,0,.8939,0,.35,0,0,0])}
 
-        elif "6" in config:
-            t_end = .3
-            initial_left = np.array([2,.75,.5,0,1,0,0,0])
-            initial_right = np.array([1,.75,-.5,0,1,0,0,0])
-            misc = {'bottom_left':np.array([1,-.75,.5,0,1,0,0,0]), 'bottom_right':np.array([3,-.75,-.5,0,1,0,0,0])}
+        elif index in [5, 6]:
+            coeff = -1**index
+            initial_left = np.array([2,coeff*.75,.5,0,1,0,0,0])
+            initial_right = np.array([1,coeff*.75,-.5,0,1,0,0,0])
+            misc = {'bottom_left':np.array([1,-coeff*.75,.5,0,1,0,0,0]), 'bottom_right':np.array([3,-coeff*.75,-.5,0,1,0,0,0])}
 
-        elif "11" in config:
-            t_end = .3
+        elif index == 7:
+            initial_left = np.array([.5197,-.6259,.1,0,.4,0,0,0])
+            initial_right = np.array([1,.1,.1,0,1,0,0,0])
+            misc = {'bottom_left':np.array([.8,.1,.1,0,.4,0,0,0]), 'bottom_right':np.array([.5197,.1,-.6259,0,.4,0,0,0])}
+
+        elif index == 8:
+            initial_left = np.array([1,-.6259,.1,0,1,0,0,0])
+            initial_right = np.array([.5197,.1,.1,0,.4,0,0,0])
+            misc = {'bottom_left':np.array([.8,.1,.1,0,1,0,0,0]), 'bottom_right':np.array([1,.1,-.6259,0,1,0,0,0])}
+
+        elif index == 9:
+            initial_left = np.array([2,0,-.3,0,1,0,0,0])
+            initial_right = np.array([1,0,.3,0,1,0,0,0])
+            misc = {'bottom_left':np.array([1.039,0,-.8133,0,.4,0,0,0]), 'bottom_right':np.array([.5197,0,-.4259,0,.4,0,0,0])}
+
+        elif index == 10:
+            initial_left = np.array([.5,0,.6076,0,1,0,0,0])
+            initial_right = np.array([1,0,.4297,0,1,0,0,0])
+            misc = {'bottom_left':np.array([.2281,0,-.6076,0,.3333,0,0,0]), 'bottom_right':np.array([.4562,0,-.4297,0,.3333,0,0,0])}
+
+        elif index == 11:
             initial_left = np.array([.5313,.8276,0,0,.4,0,0,0])
             initial_right = np.array([1,.1,0,0,1,0,0,0])
             misc = {'bottom_left':np.array([.8,.1,0,0,.4,0,0,0]), 'bottom_right':np.array([.5313,.1,.7276,0,.4,0,0,0])}
 
-        elif "15" in config:
-            t_end = .2
+        elif index == 12:
+            initial_left = np.array([1,.7276,0,0,1,0,0,0])
+            initial_right = np.array([.5313,0,0,0,.4,0,0,0])
+            misc = {'bottom_left':np.array([.8,0,0,0,1,0,0,0]), 'bottom_right':np.array([1,0,.7276,0,1,0,0,0])}
+
+        elif index == 13:
+            initial_left = np.array([2,.3,0,0,1,0,0,0])
+            initial_right = np.array([1,0,-.3,0,1,0,0,0])
+            misc = {'bottom_left':np.array([1.0625,0,.8145,0,.4,0,0,0]), 'bottom_right':np.array([.5313,0,.4276,0,.4,0,0,0])}
+
+        elif index == 14:
+            initial_left = np.array([1,0,-1.2172,0,8,0,0,0])
+            initial_right = np.array([2,0,-.5606,0,8,0,0,0])
+            misc = {'bottom_left':np.array([.4736,0,1.2172,0,2.6667,0,0,0]), 'bottom_right':np.array([.9474,0,1.1606,0,2.6667,0,0,0])}
+
+        elif index == 15:
             initial_left = np.array([.5197,-.6259,-.3,0,.4,0,0,0])
             initial_right = np.array([1,.1,-.3,0,1,0,0,0])
             misc = {'bottom_left':np.array([.8,.1,-.3,0,.4,0,0,0]), 'bottom_right':np.array([.5313,.1,.4276,0,.4,0,0,0])}
 
-        else:
-            t_end = .25
-            initial_left = np.array([1,.7276,0,0,1,0,0,0])
-            initial_right = np.array([.5313,0,0,0,.4,0,0,0])
-            misc = {'bottom_left':np.array([.8,0,0,0,1,0,0,0]), 'bottom_right':np.array([1,0,.7276,0,1,0,0,0])}
+        elif index == 16:
+            initial_left = np.array([1.0222,-.6179,.1,0,1,0,0,0])
+            initial_right = np.array([.5313,.1,.1,0,.4,0,0,0])
+            misc = {'bottom_left':np.array([.8,.1,.1,0,1,0,0,0]), 'bottom_right':np.array([1,.1,.8276,0,1,0,0,0])}
+
+        elif index in [17, 18, 19]:
+            if index == 17:
+                v1, v4 = -.4, -1.1259
+            elif index == 18:
+                v1, v4 = 1, .2741
+            else:
+                v1, v4 = .3, -.4259
+            initial_left = np.array([2,0,-.3,0,1,0,0,0])
+            initial_right = np.array([1,0,v1,0,1,0,0,0])
+            misc = {'bottom_left':np.array([1.0625,0,.2145,0,.4,0,0,0]), 'bottom_right':np.array([.5197,0,v4,0,.4,0,0,0])}
 
     else:
         start_pos = 0
