@@ -101,10 +101,70 @@ def update_plot(grid_snapshot, t, dimension, fig, ax, graphs):
     pass
 
 
+# Function for plotting a snapshot of the grid
+def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
+    config, N, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
+    start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
+
+    try:
+        text = kwargs["text"]
+    except Exception as e:
+        text = ""
+
+    if dimension == 2:
+        figsize = [15, 10]
+    else:
+        figsize = [21, 10]
+
+    fig, ax = plt.subplots(nrows=2, ncols=2, figsize=figsize)
+
+    for _i, _j in PLOT_INDEXES:
+        ax[_i,_j].set_ylabel(PLOT_LABELS[_i][_j], fontsize=18)
+        if dimension < 2:
+            ax[_i,_j].set_xlim([start_pos, end_pos])
+            ax[_i,_j].grid(linestyle="--", linewidth=0.5)
+
+    x = np.linspace(start_pos, end_pos, N)
+    y1 = grid_snapshot[...,0]  # density
+    y2 = grid_snapshot[...,4]  # pressure
+    y3 = grid_snapshot[...,1]  # vx
+    y4 = y2/y1  # specific thermal energy
+    y_data = [[y1, y2], [y3, y4]]
+
+    for _i, _j in PLOT_INDEXES:
+        y = y_data[_i][_j]
+
+        if dimension == 2:
+            graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=TWOD_COLOURS[_i][_j], origin="lower")
+            divider = make_axes_locatable(ax[_i,_j])
+            cax = divider.append_axes('right', size='5%', pad=0.05)
+            fig.colorbar(graph, cax=cax, orientation='vertical')
+        else:
+            if BEAUTIFY:
+                gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
+            else:
+                ax[_i,_j].plot(x, y, linewidth=2, color=COLOURS[_i][_j])
+
+    if dimension == 2:
+        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t \approx {round(t,3)}$ ($N = {N}^{dimension}$) {text}", fontsize=24)
+        fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
+        fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
+    else:
+        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}", fontsize=24)
+        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
+
+    plt.savefig(f"{kwargs['save_path']}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{scheme}_{'%.3f' % round(t,3)}.png", dpi=330)
+
+    plt.cla()
+    plt.clf()
+    plt.close()
+    pass
+
+
 # Plot snapshots of quantities for multiple runs
 def plot_quantities(f, sim_variables, save_path):
     config, dimension, subgrid, timestep = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep
-    scheme, precision, snapshots = sim_variables.scheme, sim_variables.precision, int(sim_variables.snapshots)
+    scheme, precision, snapshots = sim_variables.scheme, sim_variables.precision, sim_variables.snapshots
     start_pos, end_pos, initial_left = sim_variables.start_pos, sim_variables.end_pos, sim_variables.initial_left
 
     # hdf5 keys are string; need to convert back to int and sort again
@@ -158,6 +218,9 @@ def plot_quantities(f, sim_variables, save_path):
                         divider = make_axes_locatable(ax[_i,_j])
                         cax = divider.append_axes('right', size='5%', pad=0.05)
                         fig.colorbar(graph, cax=cax, orientation='vertical')
+                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t \approx {round(timings[max(n_list)][time_index],3)}$ ($N = {N}^{dimension}$)", fontsize=24)
+                        fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
+                        fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
                     else:
                         if BEAUTIFY:
                             gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
@@ -167,11 +230,7 @@ def plot_quantities(f, sim_variables, save_path):
                         plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(timings[max(n_list)][time_index],3)}$ ($N = {N}$)", fontsize=24)
 
         # Add analytical solutions only for 1D
-        if dimension == 2:
-            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t \approx {round(timings[max(n_list)][time_index],3)}$ ($N = {N}^{dimension}$)", fontsize=24)
-            fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
-            fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
-        else:
+        if dimension < 2:
             # Add analytical solution for smooth functions, using the highest resolution and timing
             if sim_variables.config_category == "smooth":
                 analytical = constructors.initialise(sim_variables)
@@ -210,7 +269,7 @@ def plot_quantities(f, sim_variables, save_path):
                 handles, labels = plt.gca().get_legend_handles_labels()
                 fig.legend(handles, labels, prop={'size': 16}, loc='upper right', ncol=_ncol)
 
-        plt.savefig(f"{save_path}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{scheme}_{round(timings[max(n_list)][time_index],3)}.png", dpi=330)
+        plt.savefig(f"{save_path}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{scheme}_{'%.3f' % round(timings[max(n_list)][time_index],3)}.png", dpi=330)
 
         plt.cla()
         plt.clf()
@@ -456,60 +515,6 @@ def make_video(f, sim_variables, save_path, vidpath):
             pass
         else:
             shutil.rmtree(vidpath)
-    return None
-
-
-# Useful function for plotting each instance of the grid (livePlot must be switched OFF)
-def plot_instance(grid, show_plot=True, text="", start_pos=0, end_pos=1, **kwargs):
-    try:
-        dimension = kwargs['dimension']
-    except Exception as e:
-        dimension = 1
-
-    fig, ax = plt.subplots(nrows=2, ncols=2)
-
-    for index, (_i,_j) in enumerate(PLOT_INDEXES):
-        ax[_i,_j].set_ylabel(PLOT_LABELS[index], fontsize=18)
-        if dimension < 2:
-            ax[_i,_j].set_xlim([start_pos, end_pos])
-            ax[_i,_j].grid(linestyle="--", linewidth=0.5)
-
-    y1 = grid[...,0]   # density
-    y2 = grid[...,4]   # pressure
-    y3 = grid[...,1]   # vx
-    y4 = y2/y1  # specific thermal energy
-    x = np.linspace(start_pos, end_pos, len(y1))
-    y_data = [[y1, y2], [y3, y4]]
-
-    for _i, _j in PLOT_INDEXES:
-        y = y_data[_i][_j]
-
-        if dimension == 2:
-            fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
-            fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
-            graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=TWOD_COLOURS[_i][_j], origin="lower")
-            divider = make_axes_locatable(ax[_i,_j])
-            cax = divider.append_axes('right', size='5%', pad=0.05)
-            fig.colorbar(graph, cax=cax, orientation='vertical')
-            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ {text}", fontsize=24)
-        else:
-            fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
-            if BEAUTIFY:
-                gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
-            else:
-                ax[_i,_j].plot(x, y, linewidth=2, color=COLOURS[_i][_j])
-            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}", fontsize=24)
-
-    if show_plot:
-        plt.show(block=True)
-    else:
-        step = kwargs['step']
-        seed = kwargs['seed']
-        plt.savefig(f"{seed}_{step}_{text.replace(' ','').title()}.png", dpi=330)
-
-    plt.cla()
-    plt.clf()
-    plt.close()
     return None
 
 

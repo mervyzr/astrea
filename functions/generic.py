@@ -101,9 +101,12 @@ def handle_CLI():
     parser.add_argument('--live_plot', '--live-plot', '--live', dest='live_plot', default=argparse.SUPPRESS, help='Switch on the live plot', action='store_true')
     parser.add_argument('--no_live_plot', '--no-live-plot', '--no-live', '--no_live', dest='live_plot', default=argparse.SUPPRESS, help='Switch off the live plot', action='store_false')
 
+    parser.add_argument('--save_snaps', '--save-snaps', dest='save_snaps', default=argparse.SUPPRESS, help='Switch on saving snapshots to file', action='store_true')
+    parser.add_argument('--no_save_snaps', '--no-save-snaps', dest='save_snaps', default=argparse.SUPPRESS, help='Switch off saving snapshots to file', action='store_false')
+    parser.add_argument('--snapshots', metavar='', type=int, default=argparse.SUPPRESS, help='Number of snapshots of the simulation to save to file')
+
     parser.add_argument('--save_plots', '--save-plots', dest='save_plots', default=argparse.SUPPRESS, help='Switch on saving plots to file', action='store_true')
     parser.add_argument('--no_save_plots', '--no-save-plots', dest='save_plots', default=argparse.SUPPRESS, help='Switch off saving plots to file', action='store_false')
-    parser.add_argument('--snapshots', metavar='', type=int, default=argparse.SUPPRESS, help='Number of snapshots of the simulation to save to file')
 
     parser.add_argument('--save_video', '--save-video', dest='save_video', default=argparse.SUPPRESS, help='Switch on saving a video of the simulation', action='store_true')
     parser.add_argument('--no_save_video', '--no-save-video', dest='save_video', default=argparse.SUPPRESS, help='Switch off saving a video of the simulation', action='store_false')
@@ -121,7 +124,7 @@ def handle_CLI():
 
 
 # Variables handler; handles all variables from CLI & settings file and revert to default values for the simulation variables (dict) if unknown
-def handle_variables(config_variables: dict, cli_variables: dict):
+def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     # Remove nested configuration dictionary
     _config_variables = {}
     for parameters in config_variables.values():
@@ -137,7 +140,7 @@ def handle_variables(config_variables: dict, cli_variables: dict):
     # Check validity of variables
     final_dict = {}
     for k,v in _config_variables.items():
-        if k in ['live_plot', 'save_plots', 'save_video', 'save_file']:
+        if k in ['live_plot', 'save_snaps', 'save_video', 'save_plots', 'save_file']:
             if not isinstance(v, bool):
                 v = False
         elif k in ['snapshots', 'dimension']:
@@ -171,6 +174,7 @@ def handle_variables(config_variables: dict, cli_variables: dict):
         final_dict[k] = v
 
     # Add relevant key-pairs to the dictionary
+    final_dict['seed'] = int(seed)
     final_dict['permutations'] = [axes for axes in list(itertools.permutations(list(range(final_dict['dimension']+1)))) if axes[-1] == final_dict['dimension']]
     final_dict['config_category'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
     final_dict['timestep_category'] = DB.get(PARAMS.accepted.any([final_dict['timestep']]))['category']
@@ -189,14 +193,17 @@ def handle_variables(config_variables: dict, cli_variables: dict):
 
     if final_dict['run_type'].startswith('m'):
         if final_dict['save_video']:
-            print(f"{BColours.WARNING}Videos can only be saved with run_type='single'..{BColours.ENDC}")
+            print(f"{BColours.WARNING}Videos can only be saved for single simulation runs..{BColours.ENDC}")
             final_dict['save_video'] = False
         if final_dict['live_plot']:
             print(f"{BColours.WARNING}Live plots can only be switched on for single simulation runs..{BColours.ENDC}")
             final_dict['live_plot'] = False
+        if final_dict['save_snaps']:
+            print(f"{BColours.WARNING}Saving snapshots can only be switched on for single simulation runs..{BColours.ENDC}")
+            final_dict['save_snaps'] = False
     else:
-        if (final_dict['save_plots'] or final_dict['save_video']) and (final_dict['live_plot']):
-            print(f"{BColours.WARNING}Switching off live plot when saving media because live plot interferes with matplotlib.savefig..{BColours.ENDC}")
+        if (final_dict['save_snaps'] or final_dict['save_video'] or final_dict['save_plots']) and (final_dict['live_plot']):
+            print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live plot interferes with matplotlib.savefig..{BColours.ENDC}")
             final_dict['live_plot'] = False
 
     return final_dict

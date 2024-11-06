@@ -26,8 +26,9 @@ runtime_parameters:
 
 media_options:
   live_plot   : false
-  save_plots  : false
+  save_snaps  : false
   snapshots   : 1
+  save_plots  : false
   save_video  : false
   save_file   : false
 ...
