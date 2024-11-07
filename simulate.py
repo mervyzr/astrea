@@ -32,15 +32,9 @@ LOAD_ENV = False
 
 # Finite volume shock function
 def core_run(grp: h5py, _sim_variables: namedtuple, *args, **kwargs):
-    # Initialise a discrete solution array with primitive variables <w> and convert them to conservative variables
-    grid_init = constructors.initialise(_sim_variables, convert=True)
-
-    # Create the grids
-    grid = []
-    for axes in _sim_variables.permutations:
-        grid.append(grid_init.transpose(axes))
-    grid = np.asarray(grid)
-    #plot_axes = _sim_variables.permutations[-1]
+    # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables
+    grid = constructors.initialise(_sim_variables, convert=True)
+    plot_axes = _sim_variables.permutations[-1]
 
     # Initiate live or snapshot plotting, if enabled
     if _sim_variables.live_plot:
@@ -59,8 +53,7 @@ def core_run(grp: h5py, _sim_variables: namedtuple, *args, **kwargs):
     t = 0.0
     while t <= _sim_variables.t_end:
         # Saves each instance of the system at time t
-        #grid_snapshot = convert(grid, _sim_variables).transpose(plot_axes)
-        grid_snapshot = convert(grid, _sim_variables)
+        grid_snapshot = convert(grid, _sim_variables).transpose(plot_axes)
         dataset = grp.create_dataset(str(float(t)), data=grid_snapshot)
         dataset.attrs['t'] = float(t)
 
