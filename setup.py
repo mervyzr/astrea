@@ -24,7 +24,7 @@ class CustomInstallCommand(install):
 
 setup(
     name="mHydyS",
-    version="1.1.1",
+    version="1.1.0",
     author="Mervin Yap",
     author_email="myap@ph1.uni-koeln.de",
     description="(Magneto-)hydrodynamics code for simulating shocks in the ISM",
