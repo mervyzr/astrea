@@ -86,22 +86,6 @@ def initialise(sim_variables, convert=False):
 
 
 # Make flux as a function of cell-averaged (primitive) variables
-def make_flux_term(grid, gamma, axis):
-    axis %= 3
-    rhos, vecs, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
-    arr = np.zeros_like(grid)
-
-    arr[...,0] = rhos*vecs[...,axis]
-    arr[...,(axis+0)%3+1] = rhos*(vecs[...,axis]**2) + pressures + (.5*fv.norm(B_fields)**2) - B_fields[...,axis]**2
-    arr[...,(axis+1)%3+1] = rhos*vecs[...,axis]*vecs[...,(axis+1)%3] - B_fields[...,axis]*B_fields[...,(axis+1)%3]
-    arr[...,(axis+2)%3+1] = rhos*vecs[...,axis]*vecs[...,(axis+2)%3] - B_fields[...,axis]*B_fields[...,(axis+2)%3]
-    arr[...,4] = (vecs[...,axis] * ((.5*rhos*fv.norm(vecs)**2) + ((gamma*pressures)/(gamma-1)) + (fv.norm(B_fields)**2))) - (B_fields[...,axis]*np.sum(vecs*B_fields, axis=-1))
-    arr[...,(axis+1)%3+5] = B_fields[...,(axis+1)%3]*vecs[...,axis] - B_fields[...,axis]*vecs[...,(axis+1)%3]
-    arr[...,(axis+2)%3+5] = B_fields[...,(axis+2)%3]*vecs[...,axis] - B_fields[...,axis]*vecs[...,(axis+2)%3]
-    return arr
-
-
-# Make flux as a function of cell-averaged (primitive) variables
 def make_flux(grid, gamma, axes):
     rhos, vecs, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
     abscissa, ordinate, applicate = axes%3, (axes+1)%3, (axes+2)%3
@@ -124,7 +108,7 @@ def make_Jacobian(grid, gamma, axes):
 
     # Create empty square arrays for each cell
     _arr = np.zeros_like(grid)
-    arr = np.repeat(_arr[..., np.newaxis], _arr.shape[-1], axis=-1)
+    arr = np.repeat(_arr[...,None], _arr.shape[-1], axis=-1)
     i, j = np.diag_indices(_arr.shape[-1])
 
     # Replace matrix with values
@@ -142,36 +126,6 @@ def make_Jacobian(grid, gamma, axes):
     arr[axes,...,ordinate+5,abscissa+1] = B_fields[axes,...,ordinate]
     arr[axes,...,applicate+5,abscissa+1] = B_fields[axes,...,applicate]
     arr[axes,...,ordinate+5,ordinate+1] = arr[axes,...,applicate+5,applicate+1] = -B_fields[axes,...,axes]
-    return arr
-
-
-# Jacobian matrix based on primitive variables
-def make_Jacobian(grid, gamma, axis):
-    axis %= 3
-    rhos, v, pressures, B_fields = grid[...,0], grid[...,axis+1], grid[...,4], grid[...,5:8]
-    
-    # Create empty square arrays for each cell
-    _arr = np.zeros_like(grid)
-    arr = np.repeat(_arr[..., np.newaxis], _arr.shape[-1], axis=-1)
-    i, j = np.diag_indices(_arr.shape[-1])
-
-    # Replace matrix with values
-    # Hydrodynamic components
-    arr[...,i,j] = v[...,None]  # diagonal elements
-    arr[...,0,axis+1] = rhos
-    arr[...,axis+1,4] = 1/rhos
-    arr[...,4,axis+1] = gamma * pressures
-
-    # Magneto- components
-    arr[...,axis+5,axis+5] = 0
-    arr[...,axis+1,(axis+1)%3+5] = fv.divide(B_fields[...,(axis+1)%3], rhos)
-    arr[...,axis+1,(axis+2)%3+5] = fv.divide(B_fields[...,(axis+2)%3], rhos)
-    arr[...,(axis+1)%3+1,(axis+1)%3+5] = -fv.divide(B_fields[...,axis], rhos)
-    arr[...,(axis+2)%3+1,(axis+2)%3+5] = -fv.divide(B_fields[...,axis], rhos)
-    arr[...,(axis+1)%3+5,axis+1] = B_fields[...,(axis+1)%3]
-    arr[...,(axis+2)%3+5,axis+1] = B_fields[...,(axis+2)%3]
-    arr[...,(axis+1)%3+5,(axis+1)%3+1] = -B_fields[...,axis]
-    arr[...,(axis+2)%3+5,(axis+2)%3+1] = -B_fields[...,axis]
     return arr
 
 
