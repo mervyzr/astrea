@@ -86,29 +86,29 @@ def initialise(sim_variables, convert=False):
 
 
 # Make flux as a function of cell-averaged (primitive) variables
-def make_flux_term(grid, gamma, axis):
-    axis %= 3
+def make_flux(grid, gamma, axis):
     rhos, vecs, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
+    abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
     arr = np.zeros_like(grid)
 
-    arr[...,0] = rhos*vecs[...,axis]
-    arr[...,(axis+0)%3+1] = rhos*(vecs[...,axis]**2) + pressures + (.5*fv.norm(B_fields)**2) - B_fields[...,axis]**2
-    arr[...,(axis+1)%3+1] = rhos*vecs[...,axis]*vecs[...,(axis+1)%3] - B_fields[...,axis]*B_fields[...,(axis+1)%3]
-    arr[...,(axis+2)%3+1] = rhos*vecs[...,axis]*vecs[...,(axis+2)%3] - B_fields[...,axis]*B_fields[...,(axis+2)%3]
-    arr[...,4] = (vecs[...,axis] * ((.5*rhos*fv.norm(vecs)**2) + ((gamma*pressures)/(gamma-1)) + (fv.norm(B_fields)**2))) - (B_fields[...,axis]*np.sum(vecs*B_fields, axis=-1))
-    arr[...,(axis+1)%3+5] = B_fields[...,(axis+1)%3]*vecs[...,axis] - B_fields[...,axis]*vecs[...,(axis+1)%3]
-    arr[...,(axis+2)%3+5] = B_fields[...,(axis+2)%3]*vecs[...,axis] - B_fields[...,axis]*vecs[...,(axis+2)%3]
+    arr[...,0] = rhos * vecs[...,axis]
+    arr[...,abscissa+1] = rhos*vecs[...,axis]**2 + pressures + .5*fv.norm(B_fields)**2 - B_fields[...,axis]**2
+    arr[...,ordinate+1] = rhos*vecs[...,axis]*vecs[...,ordinate] - B_fields[...,axis]*B_fields[...,ordinate]
+    arr[...,applicate+1] = rhos*vecs[...,axis]*vecs[...,applicate] - B_fields[...,axis]*B_fields[...,applicate]
+    arr[...,4] = vecs[...,axis]*(.5*rhos*fv.norm(vecs)**2 + (gamma*pressures)/(gamma-1) + fv.norm(B_fields)**2) - B_fields[...,axis]*np.sum(vecs*B_fields, axis=-1)
+    arr[...,ordinate+5] = B_fields[...,ordinate]*vecs[...,axis] - B_fields[...,axis]*vecs[...,ordinate]
+    arr[...,applicate+5] = B_fields[...,applicate]*vecs[...,axis] - B_fields[...,axis]*vecs[...,applicate]
     return arr
 
 
 # Jacobian matrix based on primitive variables
 def make_Jacobian(grid, gamma, axis):
-    axis %= 3
     rhos, v, pressures, B_fields = grid[...,0], grid[...,axis+1], grid[...,4], grid[...,5:8]
+    abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
     
     # Create empty square arrays for each cell
     _arr = np.zeros_like(grid)
-    arr = np.repeat(_arr[..., np.newaxis], _arr.shape[-1], axis=-1)
+    arr = np.repeat(_arr[...,None], _arr.shape[-1], axis=-1)
     i, j = np.diag_indices(_arr.shape[-1])
 
     # Replace matrix with values
@@ -118,16 +118,14 @@ def make_Jacobian(grid, gamma, axis):
     arr[...,axis+1,4] = 1/rhos
     arr[...,4,axis+1] = gamma * pressures
 
-    # Magneto- components
+    # Magnetic field components
     arr[...,axis+5,axis+5] = 0
-    arr[...,axis+1,(axis+1)%3+5] = fv.divide(B_fields[...,(axis+1)%3], rhos)
-    arr[...,axis+1,(axis+2)%3+5] = fv.divide(B_fields[...,(axis+2)%3], rhos)
-    arr[...,(axis+1)%3+1,(axis+1)%3+5] = -fv.divide(B_fields[...,axis], rhos)
-    arr[...,(axis+2)%3+1,(axis+2)%3+5] = -fv.divide(B_fields[...,axis], rhos)
-    arr[...,(axis+1)%3+5,axis+1] = B_fields[...,(axis+1)%3]
-    arr[...,(axis+2)%3+5,axis+1] = B_fields[...,(axis+2)%3]
-    arr[...,(axis+1)%3+5,(axis+1)%3+1] = -B_fields[...,axis]
-    arr[...,(axis+2)%3+5,(axis+2)%3+1] = -B_fields[...,axis]
+    arr[...,abscissa+1,ordinate+5] = fv.divide(B_fields[...,ordinate], rhos)
+    arr[...,abscissa+1,applicate+5] = fv.divide(B_fields[...,applicate], rhos)
+    arr[...,ordinate+1,ordinate+5] = arr[...,applicate+1,applicate+5] = -fv.divide(B_fields[...,axis], rhos)
+    arr[...,ordinate+5,axis+1] = B_fields[...,ordinate]
+    arr[...,applicate+5,axis+1] = B_fields[...,applicate]
+    arr[...,ordinate+5,ordinate+1] = arr[...,applicate+5,applicate+1] = -B_fields[...,axis]
     return arr
 
 
@@ -150,7 +148,7 @@ def make_OS_right_eigenvectors(tubes, gamma):
 
     # Define the right eigenvectors for each cell in each grid
     _right_eigenvectors = np.zeros_like(tubes)
-    right_eigenvectors = np.repeat(_right_eigenvectors[..., np.newaxis], _right_eigenvectors.shape[-1], axis=-1)
+    right_eigenvectors = np.repeat(_right_eigenvectors[...,None], _right_eigenvectors.shape[-1], axis=-1)
 
     # Define speed
     sound_speed = np.sqrt(gamma * fv.divide(pressures, rhos))
@@ -231,7 +229,7 @@ def make_ES_right_eigenvectors(grid, gamma):
 
     # Define the right eigenvectors for each cell in each grid
     _right_eigenvectors = np.zeros_like(grid)
-    right_eigenvectors = np.repeat(_right_eigenvectors[..., np.newaxis], _right_eigenvectors.shape[-1], axis=-1)
+    right_eigenvectors = np.repeat(_right_eigenvectors[...,None], _right_eigenvectors.shape[-1], axis=-1)
 
     # Define speeds
     sound_speed = np.sqrt(gamma * fv.divide(pressures, rhos))

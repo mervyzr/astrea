@@ -173,7 +173,7 @@ def run(grid, sim_variables):
 
         # Compute the fluxes and the Jacobian
         _w = fv.add_boundary(boundary_avg, boundary)
-        fLs, fRs = constructors.make_flux_term(wLs, gamma, axis), constructors.make_flux_term(wRs, gamma, axis)
+        fLs, fRs = constructors.make_flux(wLs, gamma, axis), constructors.make_flux(wRs, gamma, axis)
         A = constructors.make_Jacobian(_w, gamma, axis)
 
         # Update dict

@@ -22,7 +22,7 @@ def calculate_entropy_density(grid, gamma):
 
 # Function for solution error calculation of sin-wave and Gaussian tests
 def calculate_solution_error(simulation, sim_variables, norm):
-    config, dimension = sim_variables.config, sim_variables.dimension
+    dimension = sim_variables.dimension
 
     time_keys = [float(t) for t in simulation.keys()]
     w_num = simulation[str(max(time_keys))]  # Get last instance of the grid with largest time key
@@ -46,6 +46,7 @@ def calculate_solution_error(simulation, sim_variables, norm):
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
 def calculate_tv(simulation, sim_variables):
     dimension, tv = sim_variables.dimension, {}
+
     for t in list(simulation.keys()):
         grid = simulation[t]
         thermal = fv.divide(grid[...,4], grid[...,0])

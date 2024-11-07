@@ -83,7 +83,7 @@ def run(grid, sim_variables, paper="mc", dissipate=False):
 
         # Compute the fluxes and the Jacobian
         _w = fv.add_boundary(boundary_avg, boundary)
-        fLs, fRs = constructors.make_flux_term(wLs, gamma, axis), constructors.make_flux_term(wRs, gamma, axis)
+        fLs, fRs = constructors.make_flux(wLs, gamma, axis), constructors.make_flux(wRs, gamma, axis)
 
         if (paper == "mc" or "mccorquodale" in paper) and dissipate:
             data[axes]['mu'] = apply_artificial_viscosity(wS, axis, sim_variables)
