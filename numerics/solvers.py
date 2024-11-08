@@ -273,8 +273,8 @@ def calculate_DOTS_flux(qLs, qRs, fLs, fRs, sim_variables):
     jacobian = np.sum((weights*abs_A.T).T, axis=0)
 
     # Compute the Osher-Solomon dissipation term
-    _qLs = jacobian @ qLs[..., np.newaxis]
-    _qRs = jacobian @ qRs[..., np.newaxis]
+    _qLs = jacobian @ qLs[...,None]
+    _qRs = jacobian @ qRs[...,None]
     _qLs = _qLs.reshape(len(_qLs), len(_qLs[0]))
     _qRs = _qRs.reshape(len(_qRs), len(_qRs[0]))
 
@@ -385,7 +385,7 @@ def calculate_ES_flux(wLs, wRs, sim_variables):
 
     # Calculate the dissipation term
     abs_A = right_eigenvectors @ eigenvalues @ right_eigenvectors.transpose(0,2,1)
-    _dissipation = abs_A @ entropy_vector[..., np.newaxis]
+    _dissipation = abs_A @ entropy_vector[...,None]
     dissipation = _dissipation.reshape(len(entropy_vector), len(entropy_vector[0]))
 
     return ec_flux + .5*dissipation

@@ -24,8 +24,8 @@ def sqrt(arr):
 
 
 # For handling norms; typically would always be using the last axis
-def norm(arr, axis=-1):
-    return np.linalg.norm(arr, axis=axis)
+def norm(arr):
+    return np.linalg.norm(arr, axis=-1)
 
 
 # Generic Gaussian function
@@ -36,6 +36,12 @@ def gauss_func(x, params):
 # Generic sin function
 def sin_func(x, params):
     return params['y_offset'] + params['ampl']*np.sin(params['freq']*np.pi*x)
+
+
+# Finite difference derivative (second order)
+def derivative(grid, ax):
+    width = grid.shape[ax]
+    return np.diff(grid.take(range(1,width), axis=ax), axis=ax) - np.diff(grid.take(range(0,width-1), axis=ax), axis=ax)
 
 
 # Add boundary conditions
@@ -51,15 +57,15 @@ def point_convert_primitive(grid, sim_variables):
     arr = np.copy(grid)
     rhos, vecs, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
     arr[...,4] = (pressures/(sim_variables.gamma-1)) + .5*(rhos*norm(vecs)**2 + norm(B_fields)**2)
-    arr[...,1:4] = (vecs.T * rhos.T).T
+    arr[...,1:4] = vecs * rhos[...,None]
     return arr
 
 
 # Pointwise (exact) conversion of conservative variables q to primitive variables w (up to 2nd-order accurate)
 def point_convert_conservative(grid, sim_variables):
     arr = np.copy(grid)
-    rhos, energies, B_fields = grid[...,0], grid[...,4], grid[...,5:8]
-    vecs = divide(grid[...,1:4].T, grid[...,0].T).T
+    rhos, moms, energies, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
+    vecs = divide(moms, rhos[...,None])
     arr[...,4] = (sim_variables.gamma-1) * (energies - .5*(rhos*norm(vecs)**2 + norm(B_fields)**2))
     arr[...,1:4] = vecs
     return arr
@@ -73,18 +79,17 @@ def convert_mode(grid, sim_variables, _type="cell"):
     new_grid = np.copy(grid)
 
     for axes in permutations:
-        reversed_axes = np.argsort(axes)  # Only necessary for 3D
+        reversed_axes = np.argsort(axes)  # Really only necessary for 3D
         if "face" in _type:
             for ax in range(1, dimension):
                 padding = [(0,0)] * grid.ndim
                 padding[ax] = (1,1)
 
                 padded_grid = np.pad(grid.transpose(axes), padding, mode=boundary)
-                width = padded_grid.shape[ax]
-                new_grid -= 1/24 * (np.diff(padded_grid.take(range(1,width), axis=ax), axis=ax) - np.diff(padded_grid.take(range(0,width-1), axis=ax), axis=ax)).transpose(reversed_axes)
+                new_grid -= 1/24 * derivative(padded_grid, ax).transpose(reversed_axes)
         else:
             padded_grid = add_boundary(grid.transpose(axes), boundary)
-            new_grid -= 1/24 * (np.diff(padded_grid[1:], axis=0) - np.diff(padded_grid[:-1], axis=0)).transpose(reversed_axes)
+            new_grid -= 1/24 * derivative(padded_grid, 0).transpose(reversed_axes)
     return new_grid
 
 
@@ -94,24 +99,23 @@ def convert_primitive(grid, sim_variables, _type="cell"):
     w, q = np.copy(grid), np.zeros_like(grid)
 
     for axes in permutations:
-        reversed_axes = np.argsort(axes)  # Only necessary for 3D
+        reversed_axes = np.argsort(axes)  # Really only necessary for 3D
         if "face" in _type:
             for ax in range(1, dimension):
                 padding = [(0,0)] * grid.ndim
                 padding[ax] = (1,1)
 
                 _w = np.pad(grid.transpose(axes), padding, mode=boundary)
-                width = _w.shape[ax]
-                w -= 1/24 * (np.diff(_w.take(range(1,width), axis=ax), axis=ax) - np.diff(_w.take(range(0,width-1), axis=ax), axis=ax)).transpose(reversed_axes)
+                w -= 1/24 * derivative(_w, ax).transpose(reversed_axes)
 
                 _q = point_convert_primitive(_w, sim_variables)
-                q += 1/24 * (np.diff(_q.take(range(1,width), axis=ax), axis=ax) - np.diff(_q.take(range(0,width-1), axis=ax), axis=ax)).transpose(reversed_axes)
+                q += 1/24 * derivative(_q, ax).transpose(reversed_axes)
         else:
             _w = add_boundary(grid.transpose(axes), boundary)
-            w -= 1/24 * (np.diff(_w[1:], axis=0) - np.diff(_w[:-1], axis=0)).transpose(reversed_axes)
+            w -= 1/24 * derivative(_w, 0).transpose(reversed_axes)
 
             _q = point_convert_primitive(_w, sim_variables)
-            q += 1/24 * (np.diff(_q[1:], axis=0) - np.diff(_q[:-1], axis=0)).transpose(reversed_axes)
+            q += 1/24 * derivative(_q, 0).transpose(reversed_axes)
     return point_convert_primitive(w, sim_variables) + q
 
 
@@ -128,17 +132,16 @@ def convert_conservative(grid, sim_variables, _type="cell"):
                 padding[ax] = (1,1)
 
                 _q = np.pad(grid.transpose(axes), padding, mode=boundary)
-                width = _q.shape[ax]
-                q -= 1/24 * (np.diff(_q.take(range(1,width), axis=ax), axis=ax) - np.diff(_q.take(range(0,width-1), axis=ax), axis=ax)).transpose(reversed_axes)
+                q -= 1/24 * derivative(_q, ax).transpose(reversed_axes)
 
                 _w = point_convert_conservative(_q, sim_variables)
-                w += 1/24 * (np.diff(_w.take(range(1,width), axis=ax), axis=ax) - np.diff(_w.take(range(0,width-1), axis=ax), axis=ax)).transpose(reversed_axes)
+                w += 1/24 * derivative(_w, ax).transpose(reversed_axes)
         else:
             _q = add_boundary(grid.transpose(axes), boundary)
-            q -= 1/24 * (np.diff(_q[1:], axis=0) - np.diff(_q[:-1], axis=0)).transpose(reversed_axes)
+            q -= 1/24 * derivative(_q, 0).transpose(reversed_axes)
 
             _w = point_convert_conservative(_q, sim_variables)
-            w += 1/24 * (np.diff(_w[1:], axis=0) - np.diff(_w[:-1], axis=0)).transpose(reversed_axes)
+            w += 1/24 * derivative(_w, 0).transpose(reversed_axes)
     return point_convert_conservative(q, sim_variables) + w
 
 
@@ -153,10 +156,9 @@ def compute_high_approx_flux(cntr_flux, avg_flux, boundary):
 
         # Pad and expand the orthogonal interface-averaged fluxes
         padded_arr = np.pad(_arr, padding, boundary)
-        width = padded_arr.shape[ax]
 
         # Subtract the Laplacian approximation of the interface-averaged fluxes from the interface-centred fluxes
-        arr -= 1/24 * (np.diff(padded_arr.take(range(1,width), axis=ax), axis=ax) - np.diff(padded_arr.take(range(0,width-1), axis=ax), axis=ax))
+        arr -= 1/24 * derivative(padded_arr, ax)
     return arr
 
 

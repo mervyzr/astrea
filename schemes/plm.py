@@ -42,7 +42,7 @@ def run(grid, sim_variables):
         qLs, qRs = fv.convert_primitive(wLs, sim_variables, "face"), fv.convert_primitive(wRs, sim_variables, "face")
 
         # Compute the fluxes and the Jacobian
-        fLs, fRs = constructors.make_flux_term(wLs, gamma, axis), constructors.make_flux_term(wRs, gamma, axis)
+        fLs, fRs = constructors.make_flux(wLs, gamma, axis), constructors.make_flux(wRs, gamma, axis)
         A = constructors.make_Jacobian(w, gamma, axis)
 
         # Update dict
