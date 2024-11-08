@@ -84,11 +84,11 @@ Analytical solutions for the Sod shock test (Pfrommer et al., 2006), Gaussian wa
 
 _It is recommended to run Python projects in separate virtual environments._
 
-Clone this repository onto your local machine, and navigate to the cloned repository. In the command line, run _`/path/to/venv/bin/python3 -m pip install .`_; this will install the minimum packages to run the simulation and create a `settings.yml` file for simulation configurations.
+Clone this repository onto your local machine, and navigate to the cloned repository. In the command line, run _`/path/to/venv/bin/python3 -m pip install .`_; this will install the minimum packages to run the simulation and create a `parameters.yml` file for simulation configurations.
 
 # Usage
 
-The main method to run the simulation would be to edit the simulation parameters in `settings.yml` and running the main Python file:
+The main method to run the simulation would be to edit the simulation parameters in `parameters.yml` and running the main Python file:
 
 ```bash
 python3 mhydys.py
@@ -133,17 +133,18 @@ mhydys.run()
 │   ├── __init__.py
 │   ├── limiters.py      : Implements flux/slope limiters to prevent spurious oscillations in the reconstructed states
 │   ├── solvers.py       : Contains the Riemann solvers
+├── parameters.yml       : Parameters for the simulation
 ├── schemes
 │   ├── __init__.py
 │   ├── pcm.py           : Piecewise constant method [Godunov, 1959]
 │   ├── plm.py           : Piecewise linear method [Derigs et al., 2018]
 │   ├── ppm.py           : Piecewise parabolic method [Felker & Stone, 2015]
 │   ├── weno.py          : WENO method [Shu, 2009; San & Kara, 2015]
-├── settings.yml         : Parameters for the simulation
 ├── setup.py             : Installation script
-├── mhydys.py          : Runs the simulation, and contains the update loop
+├── mhydys.py            : Runs the simulation, and contains the update loop
 ├── static
 │   ├── __init__.py
+│   ├── .db.json         : Parameters database
 │   ├── .default.yml     : Default settings file
 │   ├── requirements.txt
 │   ├── tests.py         : Hydrodynamics test configurations
