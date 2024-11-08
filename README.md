@@ -1,5 +1,5 @@
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-[![Python](https://img.shields.io/badge/Python-3.9%20%7C%203.1x-yellow?logo=python&logoColor=white)](https://www.python.org)
+[![Python](https://img.shields.io/badge/Python-3.1x-yellow?logo=python&logoColor=white)](https://www.python.org)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 <!-- ![GitHub Tag](https://img.shields.io/github/v/tag/mervyzr/mHydyS) -->
@@ -89,18 +89,23 @@ Clone this repository onto your local machine, and navigate to the cloned reposi
 # Usage
 
 The main method to run the simulation would be to edit the simulation parameters in `settings.yml` and running the main Python file:
+
 ```bash
 python3 simulate.py
 ```
+
 OR
+
 ```bash
 ./simulate.py
 ```
 
 Alternatively, the code can be run with CLI options:
+
 ```bash
 python3 simulate.py --config==sedov --cells=256
 ```
+
 See _`--help`_ for a list of available options.
 
 Running the code in a Python interactive shell is also possible, although not recommended:
