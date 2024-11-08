@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools >= 61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mhydys"
+version = 'v1.1.1'
+authors = [
+    {name = "Mervin Yap", email = "myap@ph1.uni-koeln.de"},
+]
+description = "(Magneto-)hydrodynamics code for simulating shocks in the ISM"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">= 3.10"
+dependencies = [
+    "numpy",
+    "scipy",
+    "h5py",
+    "matplotlib",
+    "pyyaml",
+    "tinydb",
+    "python-dotenv",
+]
+keywords = ["astrophysics", "computational astrophysics", "fluid dynamics", "computational fluid dynamics", "cfd", "finite volume"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: GPLv3",
+    "Programming Language :: Python :: 3",
+    "Operating System :: Linux :: macOS",
+]
+
+[project.urls]
+Homepage = "https://github.com/mervyzr/mHydyS"
+
+[tool.setuptools.packages.find]
+exclude = ["savedData"]
