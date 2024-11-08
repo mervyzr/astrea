@@ -1,7 +1,7 @@
 import numpy as np
 
 from schemes import pcm, plm, ppm, weno
-from numerics import solvers
+from num_methods import solvers
 
 ##############################################################################
 # Collates and controls space and time evolution

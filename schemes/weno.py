@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from functions import fv, constructors
+from functions import constructor, fv
 
 ##############################################################################
 # WENO reconstruction method [Shu, 2009]
@@ -166,15 +166,15 @@ def run(grid, sim_variables):
         wLs, wRs = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
 
         # Get the average solution between the interfaces at the boundaries
-        boundary_avg = constructors.make_Roe_average(wLs, wRs)[1:]
+        boundary_avg = constructor.make_Roe_average(wLs, wRs)[1:]
 
         # Convert the primitive variables
         qLs, qRs = fv.convert_primitive(wLs, sim_variables, "face"), fv.convert_primitive(wRs, sim_variables, "face")
 
         # Compute the fluxes and the Jacobian
         _w = fv.add_boundary(boundary_avg, boundary)
-        fLs, fRs = constructors.make_flux(wLs, gamma, axis), constructors.make_flux(wRs, gamma, axis)
-        A = constructors.make_Jacobian(_w, gamma, axis)
+        fLs, fRs = constructor.make_flux(wLs, gamma, axis), constructor.make_flux(wRs, gamma, axis)
+        A = constructor.make_Jacobian(_w, gamma, axis)
 
         # Update dict
         data[axes]['wS'] = wS

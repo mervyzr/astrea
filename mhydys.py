@@ -16,9 +16,9 @@ import yaml
 import dotenv
 import numpy as np
 
-import evolvers
 from static import tests
-from functions import fv, generic, plotting, constructors
+from num_methods import evolvers
+from functions import constructor, fv, generic, plotting
 
 ##############################################################################
 # Main script
@@ -33,7 +33,7 @@ LOAD_ENV = False
 # Finite volume shock function
 def core_run(grp: h5py, _sim_variables: namedtuple, *args, **kwargs):
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables
-    grid = constructors.initialise(_sim_variables, convert=True)
+    grid = constructor.initialise(_sim_variables, convert=True)
     plot_axes = _sim_variables.permutations[-1]
 
     # Initiate live or snapshot plotting, if enabled
@@ -108,7 +108,7 @@ def run() -> None:
         dotenv.load_dotenv(f"{CURRENT_DIR}/static/.env")
 
     # Generate the simulation variables from settings (dict)
-    with open(f"{CURRENT_DIR}/settings.yml", "r") as settings_file:
+    with open(f"{CURRENT_DIR}/parameters.yml", "r") as settings_file:
         config_variables = yaml.safe_load(settings_file)
 
     # Check CLI arguments

@@ -2,8 +2,8 @@ from collections import defaultdict
 
 import numpy as np
 
-from functions import fv, constructors
-from numerics import limiters
+from functions import constructor, fv
+from num_methods import limiters
 
 ##############################################################################
 # Piecewise linear reconstruction method (PLM) [van Leer, 1979]
@@ -42,8 +42,8 @@ def run(grid, sim_variables):
         qLs, qRs = fv.convert_primitive(wLs, sim_variables, "face"), fv.convert_primitive(wRs, sim_variables, "face")
 
         # Compute the fluxes and the Jacobian
-        fLs, fRs = constructors.make_flux(wLs, gamma, axis), constructors.make_flux(wRs, gamma, axis)
-        A = constructors.make_Jacobian(w, gamma, axis)
+        fLs, fRs = constructor.make_flux(wLs, gamma, axis), constructor.make_flux(wRs, gamma, axis)
+        A = constructor.make_Jacobian(w, gamma, axis)
 
         # Update dict
         data[axes]['wS'] = wS

@@ -2,7 +2,7 @@ from collections import namedtuple, defaultdict
 
 import numpy as np
 
-from functions import fv, constructors
+from functions import constructor, fv
 
 ##############################################################################
 # Approximate linearised and non-linearised Riemann solvers
@@ -241,7 +241,7 @@ def calculate_DOTS_flux(qLs, qRs, fLs, fRs, sim_variables):
     psi = arr_R + (roots*(arr_L-arr_R).T).T
 
     # Define the right eigenvectors
-    _right_eigenvectors = constructors.make_OS_right_eigenvectors(psi, gamma)
+    _right_eigenvectors = constructor.make_OS_right_eigenvectors(psi, gamma)
 
     # Generate the diagonal matrix of eigenvalues
     _lambda = np.zeros_like(_right_eigenvectors)
@@ -344,7 +344,7 @@ def calculate_ES_flux(wLs, wRs, sim_variables):
 
     # Entropy-stable flux with dissipation term section [Derigs et al., 2016]
     # Make the right eigenvectors for each cell in each grid using the averaged primitive variables
-    right_eigenvectors = constructors.make_ES_right_eigenvectors(np.array([rho_hat.T, u1_hat.T, v1_hat.T, w1_hat.T, P1_hat.T, B1_hat.T, B2_hat.T, B3_hat.T]).T, gamma)
+    right_eigenvectors = constructor.make_ES_right_eigenvectors(np.array([rho_hat.T, u1_hat.T, v1_hat.T, w1_hat.T, P1_hat.T, B1_hat.T, B2_hat.T, B3_hat.T]).T, gamma)
 
     # Define speeds
     sound_speed = np.sqrt(gamma * fv.divide(P1_hat, rho_hat))

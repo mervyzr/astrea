@@ -121,17 +121,17 @@ mhydys.run()
 ├── LICENSE
 ├── README.md
 ├── __init__.py
-├── evolvers.py          : Collates the schemes for space and time evolution
 ├── functions
 │   ├── __init__.py
 │   ├── analytic.py      : Analytical solutions to hydrodynamics tests
-│   ├── constructors.py  : Functions used to generate objects, such as eigenvectors and Jacobian matrices
-│   ├── fv.py            : Frequently used functions specific to the finite volume method
+│   ├── constructors.py  : Constructors for math objects, such as eigenvectors and Jacobian matrices
+│   ├── fv.py            : Frequently used functions specific to finite volume
 │   ├── generic.py       : Generic functions not specific to finite volume
 │   └── plotting.py      : Functions for (live-)plotting
-├── numerics
+├── num_methods
 │   ├── __init__.py
-│   ├── limiters.py      : Implements flux/slope limiters to prevent spurious oscillations in the reconstructed states
+│   ├── evolvers.py      : Collates the schemes for space and time evolution
+│   ├── limiters.py      : Implements flux/slope limiters in the reconstructed states
 │   ├── solvers.py       : Contains the Riemann solvers
 ├── parameters.yml       : Parameters for the simulation
 ├── schemes
@@ -144,8 +144,8 @@ mhydys.run()
 ├── mhydys.py            : Runs the simulation, and contains the update loop
 ├── static
 │   ├── __init__.py
-│   ├── .db.json         : Parameters database
-│   ├── .default.yml     : Default settings file
+│   ├── .db.json         : Database for parameters
+│   ├── .default.yml     : Default parameters file
 │   ├── requirements.txt
 │   ├── tests.py         : Hydrodynamics test configurations
 ```

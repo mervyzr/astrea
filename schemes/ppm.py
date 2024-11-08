@@ -2,8 +2,8 @@ from collections import defaultdict
 
 import numpy as np
 
-from functions import fv, constructors
-from numerics import limiters
+from functions import constructor, fv
+from num_methods import limiters
 
 ##############################################################################
 # Piecewise parabolic reconstruction method (PPM) [Colella & Woodward, 1984]
@@ -76,19 +76,19 @@ def run(grid, sim_variables, paper="mc", dissipate=False):
         wLs, wRs = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
 
         # Get the average solution between the interfaces at the boundaries
-        boundary_avg = constructors.make_Roe_average(wLs, wRs)[1:]
+        boundary_avg = constructor.make_Roe_average(wLs, wRs)[1:]
 
         # Convert the primitive variables
         qLs, qRs = fv.convert_primitive(wLs, sim_variables, "face"), fv.convert_primitive(wRs, sim_variables, "face")
 
         # Compute the fluxes and the Jacobian
         _w = fv.add_boundary(boundary_avg, boundary)
-        fLs, fRs = constructors.make_flux(wLs, gamma, axis), constructors.make_flux(wRs, gamma, axis)
+        fLs, fRs = constructor.make_flux(wLs, gamma, axis), constructor.make_flux(wRs, gamma, axis)
 
         if (paper == "mc" or "mccorquodale" in paper) and dissipate:
             data[axes]['mu'] = apply_artificial_viscosity(wS, axis, sim_variables)
 
-        A = constructors.make_Jacobian(_w, gamma, axis)
+        A = constructor.make_Jacobian(_w, gamma, axis)
 
         # Update dict
         data[axes]['wS'] = wS

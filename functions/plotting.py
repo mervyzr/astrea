@@ -11,7 +11,7 @@ import matplotlib.colors as mcolors
 from matplotlib.patches import Polygon
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from functions import analytic, fv, generic, constructors
+from functions import analytic, constructor, fv, generic
 
 ##############################################################################
 # Plotting functions and media handling
@@ -233,7 +233,7 @@ def plot_quantities(f, sim_variables, save_path):
         if dimension < 2:
             # Add analytical solution for smooth functions, using the highest resolution and timing
             if sim_variables.config_category == "smooth":
-                analytical = constructors.initialise(sim_variables)
+                analytical = constructor.initialise(sim_variables)
 
                 # Adjust ylim and tolerances for Gaussian and sin-wave tests
                 if config.startswith("gauss"):

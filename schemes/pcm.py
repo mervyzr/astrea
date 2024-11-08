@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from functions import fv, constructors
+from functions import constructor, fv
 
 ##############################################################################
 # Piecewise constant reconstruction method (PCM) [Godunov, 1959]
@@ -21,8 +21,8 @@ def run(grid, sim_variables):
 
         # Compute the fluxes and the Jacobian
         w = fv.add_boundary(wS, boundary)
-        f = constructors.make_flux(w, gamma, axis)
-        A = constructors.make_Jacobian(w, gamma, axis)
+        f = constructor.make_flux(w, gamma, axis)
+        A = constructor.make_Jacobian(w, gamma, axis)
 
         # Update dict
         data[axes]['wS'] = wS
