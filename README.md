@@ -91,28 +91,28 @@ Clone this repository onto your local machine, and navigate to the cloned reposi
 The main method to run the simulation would be to edit the simulation parameters in `settings.yml` and running the main Python file:
 
 ```bash
-python3 simulate.py
+python3 mhydys.py
 ```
 
 OR
 
 ```bash
-./simulate.py
+./mhydys.py
 ```
 
 Alternatively, the code can be run with CLI options:
 
 ```bash
-python3 simulate.py --config==sedov --cells=256
+python3 mhydys.py --config==sedov --cells=256
 ```
 
 See _`--help`_ for a list of available options.
 
-Running the code in a Python interactive shell is also possible, although not recommended:
+Running the code in a Python interactive shell is also possible, although this is generally not recommended:
 
 ```python
-import simulate
-simulate.run()
+import mhydys
+mhydys.run()
 ```
 
 ## Organisation
@@ -141,7 +141,7 @@ simulate.run()
 │   ├── weno.py          : WENO method [Shu, 2009; San & Kara, 2015]
 ├── settings.yml         : Parameters for the simulation
 ├── setup.py             : Installation script
-├── simulate.py          : Runs the simulation, and contains the update loop
+├── mhydys.py          : Runs the simulation, and contains the update loop
 ├── static
 │   ├── __init__.py
 │   ├── .default.yml     : Default settings file

@@ -90,11 +90,11 @@ def core_run(grp: h5py, _sim_variables: namedtuple, *args, **kwargs):
 ##############################################################################
 
 # Main script; includes handlers and core execution of simulation code
-def run(_seed, _dir) -> None:
-    np.random.seed(_seed)
+def run() -> None:
+    np.random.seed(SEED)
 
     # Save the HDF5 file (with seed) to store the temporary data
-    file_name = f"{_dir}/.tempSimData_{_seed}.hdf5"
+    file_name = f"{CURRENT_DIR}/.tempSimData_{SEED}.hdf5"
 
     # Signal handler for Ctrl+C
     def graceful_exit(sig, frame):
@@ -105,10 +105,10 @@ def run(_seed, _dir) -> None:
 
     # Load env variables
     if LOAD_ENV and (sys.version_info.major == 3 and sys.version_info.minor >= 13):
-        dotenv.load_dotenv(f"{_dir}/static/.env")
+        dotenv.load_dotenv(f"{CURRENT_DIR}/static/.env")
 
     # Generate the simulation variables from settings (dict)
-    with open(f"{_dir}/settings.yml", "r") as settings_file:
+    with open(f"{CURRENT_DIR}/settings.yml", "r") as settings_file:
         config_variables = yaml.safe_load(settings_file)
 
     # Check CLI arguments
@@ -121,7 +121,7 @@ def run(_seed, _dir) -> None:
         np.seterr(all='ignore')
 
     # Variables handler; filter erroneous entries and default values
-    config_variables = generic.handle_variables(_seed, config_variables, cli_variables)
+    config_variables = generic.handle_variables(SEED, config_variables, cli_variables)
 
     # Generate test configuration and final variables
     test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'])
@@ -143,13 +143,13 @@ def run(_seed, _dir) -> None:
 
     ###################################### SCRIPT INITIATE ######################################
     script_start = datetime.now().strftime('%Y%m%d%H%M')
-    save_path = f"{_dir}/savedData/sim{script_start}_{_seed}"
+    save_path = f"{CURRENT_DIR}/savedData/sim{script_start}_{SEED}"
 
     # Make directories if they do not exist
     if (_sim_variables.save_plots or _sim_variables.save_video or _sim_variables.save_file) and not os.path.exists(save_path):
         os.makedirs(save_path)
-    if _sim_variables.save_snaps and not os.path.exists(f"{_dir}/savedData/snap{_seed}"):
-        os.makedirs(f"{_dir}/savedData/snap{_seed}")
+    if _sim_variables.save_snaps and not os.path.exists(f"{CURRENT_DIR}/savedData/snap{SEED}"):
+        os.makedirs(f"{CURRENT_DIR}/savedData/snap{SEED}")
 
     # Run in a try-except-else to handle crashes and prevent exiting code entirely, with signal handler
     original_sigint_handler = signal.getsignal(signal.SIGINT)
@@ -180,12 +180,12 @@ def run(_seed, _dir) -> None:
                 ################### CORE ###################
                 lap, now = perf_counter(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 if not noprint:
-                    generic.print_output(now, _seed, _sim_variables)
+                    generic.print_output(now, SEED, _sim_variables)
                 core_run(grp, _sim_variables)
                 elapsed = perf_counter() - lap
                 grp.attrs['elapsed'] = elapsed
                 if not noprint:
-                    generic.print_output(now, _seed, _sim_variables, elapsed=elapsed, run_length=len(list(grp.keys())))
+                    generic.print_output(now, SEED, _sim_variables, elapsed=elapsed, run_length=len(list(grp.keys())))
                 ################### CORE ###################
                 ############################# END SIMULATION #############################
 
@@ -201,7 +201,7 @@ def run(_seed, _dir) -> None:
 
             # Save video (only for run_type=single)
             if _sim_variables.save_video:
-                vidpath = f"{_dir}/.vidplots"
+                vidpath = f"{CURRENT_DIR}/.vidplots"
                 if not os.path.exists(vidpath):
                     os.makedirs(vidpath)
                 plotting.make_video(f, _sim_variables, save_path, vidpath)
@@ -220,7 +220,7 @@ def run(_seed, _dir) -> None:
     else:
         # Save the temporary HDF5 database (!! Possibly large file sizes > 100GB !!)
         if _sim_variables.save_file:
-            shutil.move(file_name, f"{save_path}/mHydyS_{_sim_variables.config}_{_sim_variables.subgrid}_{_sim_variables.timestep}_{_seed}.hdf5")
+            shutil.move(file_name, f"{save_path}/mHydyS_{_sim_variables.config}_{_sim_variables.subgrid}_{_sim_variables.timestep}_{SEED}.hdf5")
         else:
             os.remove(file_name)
     
@@ -228,6 +228,5 @@ def run(_seed, _dir) -> None:
         signal.signal(signal.SIGINT, original_sigint_handler)
     ###################################### SCRIPT END ######################################
 
-
 if __name__ == "__main__":
-    run(SEED, CURRENT_DIR)
+    run()
