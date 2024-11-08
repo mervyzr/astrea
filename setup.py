@@ -9,39 +9,46 @@ from setuptools.command.install import install
 
 CURRENTDIR = os.getcwd()
 
-with open(f"{CURRENTDIR}/README.md", "r") as f:
-    long_description = f.read()
-
-
 class CustomInstallCommand(install):
     """Customised setuptools install command"""
     def run(self):
-        if not os.path.exists(f"{CURRENTDIR}/settings.yml"):
-            shutil.copy2(f"{CURRENTDIR}/static/.default.yml", f"{CURRENTDIR}/settings.yml")
-        subprocess.run(f"chmod +x {CURRENTDIR}/simulate.py", shell=True)
+        if not os.path.exists(f"{CURRENTDIR}/parameters.yml"):
+            shutil.copy2(f"{CURRENTDIR}/static/.default.yml", f"{CURRENTDIR}/parameters.yml")
+        subprocess.run(f"chmod +x {CURRENTDIR}/mhydys.py", shell=True)
         install.run(self)
 
 
 setup(
-    name="mHydyS",
+    name="mhydys",
     version="1.1.1",
     author="Mervin Yap",
     author_email="myap@ph1.uni-koeln.de",
     description="(Magneto-)hydrodynamics code for simulating shocks in the ISM",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
     url="<https://github.com/mervyzr/mHydyS>",
-    packages=find_packages(),
+    packages=find_packages(
+        exclude=['savedData','.vidplots'],
+    ),
     install_requires=[
-        "numpy",
-        "scipy",
-        "h5py",
+        "wheel",
+        "numpy>=2.1.0",
+        "scipy>=1.13",
+        "h5py>=3.6",
         "matplotlib",
         "pyyaml",
         "tinydb",
         "python-dotenv",
     ],
+    keywords=[
+        'astrophysics',
+        'computational astrophysics',
+        'fluid dynamics',
+        'computational fluid dynamics',
+        'finite volume',
+        'cfd',
+        'numerical simulation'
+    ],
     classifiers=[
+        "Development Status :: 4 - Beta",
         "Programming Language :: Python :: 3",
         "License :: GPLv3",
         "Operating System :: Linux :: macOS",
