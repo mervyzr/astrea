@@ -185,10 +185,3 @@ def compute_eigen(jacobian):
     eigmax = np.max(max_eigvals)
 
     return characteristics, eigmax
-
-
-
-
-
-
-
