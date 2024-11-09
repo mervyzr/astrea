@@ -45,10 +45,10 @@ def derivative(grid, ax):
 
 
 # Add boundary conditions
-def add_boundary(grid, boundary, stencil=1):
+def add_boundary(grid, boundary, stencil=1, axis=0):
     arr = np.copy(grid)
     padding = [(0,0)] * grid.ndim
-    padding[0] = (stencil,stencil)
+    padding[axis] = (stencil,stencil)
     return np.pad(arr, padding, mode=boundary)
 
 
@@ -78,18 +78,21 @@ def convert_mode(grid, sim_variables, _type="cell"):
     dimension, boundary, permutations = sim_variables.dimension, sim_variables.boundary, sim_variables.permutations
     new_grid = np.copy(grid)
 
-    for axes in permutations:
-        reversed_axes = np.argsort(axes)  # Really only necessary for 3D
-        if "face" in _type:
-            for ax in range(1, dimension):
-                padding = [(0,0)] * grid.ndim
-                padding[ax] = (1,1)
+    if "face" in _type:
+        _range = range(1, dimension)
+    else:
+        _range = range(0, 1)
 
-                padded_grid = np.pad(grid.transpose(axes), padding, mode=boundary)
-                new_grid -= 1/24 * derivative(padded_grid, ax).transpose(reversed_axes)
-        else:
-            padded_grid = add_boundary(grid.transpose(axes), boundary)
-            new_grid -= 1/24 * derivative(padded_grid, 0).transpose(reversed_axes)
+    if grid.ndim - dimension == 2:
+        for ax in _range:
+            _new_grid = add_boundary(grid, boundary, axis=ax+1)
+            new_grid -= 1/24 * derivative(_new_grid, ax+1)
+    else:
+        for axes in permutations:
+            reversed_axes = np.argsort(axes)  # Really only necessary for 3D
+            for ax in _range:
+                _new_grid = add_boundary(grid.transpose(axes), boundary, axis=ax)
+                new_grid -= 1/24 * derivative(_new_grid, ax).transpose(reversed_axes)
     return new_grid
 
 
@@ -98,24 +101,27 @@ def convert_primitive(grid, sim_variables, _type="cell"):
     dimension, boundary, permutations = sim_variables.dimension, sim_variables.boundary, sim_variables.permutations
     w, q = np.copy(grid), np.zeros_like(grid)
 
-    for axes in permutations:
-        reversed_axes = np.argsort(axes)  # Really only necessary for 3D
-        if "face" in _type:
-            for ax in range(1, dimension):
-                padding = [(0,0)] * grid.ndim
-                padding[ax] = (1,1)
+    if "face" in _type:
+        _range = range(1, dimension)
+    else:
+        _range = range(0, 1)
 
-                _w = np.pad(grid.transpose(axes), padding, mode=boundary)
+    if grid.ndim - dimension == 2:
+        for ax in _range:
+            _w = add_boundary(grid, boundary, axis=ax+1)
+            w -= 1/24 * derivative(_w, ax+1)
+
+            _q = point_convert_primitive(_w, sim_variables)
+            q += 1/24 * derivative(_q, ax+1)
+    else:
+        for axes in permutations:
+            reversed_axes = np.argsort(axes)  # Really only necessary for 3D
+            for ax in _range:
+                _w = add_boundary(grid.transpose(axes), boundary, axis=ax)
                 w -= 1/24 * derivative(_w, ax).transpose(reversed_axes)
 
                 _q = point_convert_primitive(_w, sim_variables)
                 q += 1/24 * derivative(_q, ax).transpose(reversed_axes)
-        else:
-            _w = add_boundary(grid.transpose(axes), boundary)
-            w -= 1/24 * derivative(_w, 0).transpose(reversed_axes)
-
-            _q = point_convert_primitive(_w, sim_variables)
-            q += 1/24 * derivative(_q, 0).transpose(reversed_axes)
     return point_convert_primitive(w, sim_variables) + q
 
 
@@ -124,24 +130,27 @@ def convert_conservative(grid, sim_variables, _type="cell"):
     dimension, boundary, permutations = sim_variables.dimension, sim_variables.boundary, sim_variables.permutations
     w, q = np.zeros_like(grid), np.copy(grid)
 
-    for axes in permutations:
-        reversed_axes = np.argsort(axes)  # Only necessary for 3D
-        if "face" in _type:
-            for ax in range(1, dimension):
-                padding = [(0,0)] * grid.ndim
-                padding[ax] = (1,1)
+    if "face" in _type:
+        _range = range(1, dimension)
+    else:
+        _range = range(0, 1)
 
-                _q = np.pad(grid.transpose(axes), padding, mode=boundary)
+    if grid.ndim - dimension == 2:
+        for ax in _range:
+            _q = add_boundary(grid, boundary, axis=ax+1)
+            q -= 1/24 * derivative(_q, ax+1)
+
+            _w = point_convert_conservative(_q, sim_variables)
+            w += 1/24 * derivative(_w, ax+1)
+    else:
+        for axes in permutations:
+            reversed_axes = np.argsort(axes)  # Really only necessary for 3D
+            for ax in _range:
+                _q = add_boundary(grid.transpose(axes), boundary, axis=ax)
                 q -= 1/24 * derivative(_q, ax).transpose(reversed_axes)
 
                 _w = point_convert_conservative(_q, sim_variables)
                 w += 1/24 * derivative(_w, ax).transpose(reversed_axes)
-        else:
-            _q = add_boundary(grid.transpose(axes), boundary)
-            q -= 1/24 * derivative(_q, 0).transpose(reversed_axes)
-
-            _w = point_convert_conservative(_q, sim_variables)
-            w += 1/24 * derivative(_w, 0).transpose(reversed_axes)
     return point_convert_conservative(q, sim_variables) + w
 
 
@@ -176,3 +185,10 @@ def compute_eigen(jacobian):
     eigmax = np.max(max_eigvals)
 
     return characteristics, eigmax
+
+
+
+
+
+
+
