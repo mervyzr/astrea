@@ -344,3 +344,47 @@ def make_ES_right_eigenvectors(grid, gamma):
     R_dot = right_eigenvectors @ np.sqrt(diag_scaler)
 
     return R_dot
+
+
+
+def make_flux(grid, gamma, axes):
+    rhos, vecs, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
+    abscissa, ordinate, applicate = axes%3, (axes+1)%3, (axes+2)%3
+    arr = np.zeros_like(grid)
+
+    arr[...,0] = rhos * vecs[axes,...,axes]
+    arr[axes,...,abscissa+1] = rhos*vecs[axes,...,axes]**2 + pressures + .5*fv.norm(B_fields)**2 - B_fields[axes,...,axes]**2
+    arr[axes,...,ordinate+1] = rhos*vecs[axes,...,axes]*vecs[axes,...,ordinate] - B_fields[axes,...,axes]*B_fields[axes,...,ordinate]
+    arr[axes,...,applicate+1] = rhos*vecs[axes,...,axes]*vecs[axes,...,applicate] - B_fields[axes,...,axes]*B_fields[axes,...,applicate]
+    arr[...,4] = (vecs[axes,...,axes] * (.5*rhos*fv.norm(vecs)**2 + (gamma*pressures)/(gamma-1) + fv.norm(B_fields)**2)) - (B_fields[axes,...,axes] * np.sum(vecs*B_fields, axis=-1))
+    arr[axes,...,ordinate+5] = B_fields[axes,...,ordinate]*vecs[axes,...,axes] - B_fields[axes,...,axes]*vecs[axes,...,ordinate]
+    arr[axes,...,applicate+5] = B_fields[axes,...,applicate]*vecs[axes,...,axes] - B_fields[axes,...,axes]*vecs[axes,...,applicate]
+    return arr
+
+
+# Jacobian matrix based on primitive variables
+def make_Jacobian(grid, gamma, axes):
+    rhos, v, pressures, B_fields = grid[...,0], grid[...,axes+1], grid[...,4], grid[...,5:8]
+    abscissa, ordinate, applicate = axes%3, (axes+1)%3, (axes+2)%3
+
+    # Create empty square arrays for each cell
+    _arr = np.zeros_like(grid)
+    arr = np.repeat(_arr[..., np.newaxis], _arr.shape[-1], axis=-1)
+    i, j = np.diag_indices(_arr.shape[-1])
+
+    # Replace matrix with values
+    # Hydrodynamic components
+    arr[...,i,j] = v[axes,...,axes,None]  # diagonal elements
+    arr[axes,...,0,axes+1] = rhos
+    arr[axes,...,axes+1,4] = 1/rhos
+    arr[axes,...,4,axes+1] = gamma * pressures
+
+    # Magnetic field components
+    arr[axes,...,axes+5,axes+5] = 0
+    arr[axes,...,abscissa+1,ordinate+5] = fv.divide(B_fields[axes,...,ordinate], rhos)
+    arr[axes,...,abscissa+1,applicate+5] = fv.divide(B_fields[axes,...,applicate], rhos)
+    arr[axes,...,ordinate+1,ordinate+5] = arr[axes,...,applicate+1,applicate+5] = -fv.divide(B_fields[axes,...,axes], rhos)
+    arr[axes,...,ordinate+5,abscissa+1] = B_fields[axes,...,ordinate]
+    arr[axes,...,applicate+5,abscissa+1] = B_fields[axes,...,applicate]
+    arr[axes,...,ordinate+5,ordinate+1] = arr[axes,...,applicate+5,applicate+1] = -B_fields[axes,...,axes]
+    return arr
