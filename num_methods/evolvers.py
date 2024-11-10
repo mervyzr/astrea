@@ -8,26 +8,30 @@ from num_methods import solvers
 ##############################################################################
 
 # Operator H as a function of the reconstruction values; calculate the flux through the surface [F(i+1/2) - F(i-1/2)]/dx
-def compute_H(interface_fluxes, sim_variables):
+def compute_H(Riemann_fluxes, sim_variables):
     total_flux = 0
-    for axes in sim_variables.permutations:
+    for index, axes in enumerate(sim_variables.permutations):
         reversed_axes = np.argsort(axes)
-        Riemann_flux = interface_fluxes[axes].flux
+        Riemann_flux = Riemann_fluxes.fluxes[index]
         flux_diff = np.diff(Riemann_flux, axis=0)/sim_variables.dx
         total_flux += flux_diff.transpose(reversed_axes)
     return -total_flux
 
-
 # Evolve the system in space by a standardised workflow
 def evolve_space(grid, sim_variables):
+    grids = []
+    for axes in sim_variables.permutations:
+        grids.append(grid.transpose(axes))
+    grids = np.asarray(grids)
+
     if sim_variables.subgrid.startswith("w"):
-        data = weno.run(grid, sim_variables)
+        data = weno.run(grids, sim_variables)
     elif sim_variables.subgrid in ["ppm", "parabolic", "p"]:
-        data = ppm.run(grid, sim_variables, paper='mc')
+        data = ppm.run(grids, sim_variables, author='mc')
     elif sim_variables.subgrid in ["plm", "linear", "l"]:
-        data = plm.run(grid, sim_variables)
+        data = plm.run(grids, sim_variables)
     else:
-        data = pcm.run(grid, sim_variables)
+        data = pcm.run(grids, sim_variables)
 
     fluxes = solvers.calculate_Riemann_flux(sim_variables, data)
     return fluxes

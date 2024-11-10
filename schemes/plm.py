@@ -9,50 +9,47 @@ from num_methods import limiters
 # Piecewise linear reconstruction method (PLM) [van Leer, 1979]
 ##############################################################################
 
-def run(grid, sim_variables):
-    gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
+def run(grids, sim_variables):
+    gamma, boundary, axes = sim_variables.gamma, sim_variables.boundary, sim_variables.axes
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
-    # Rotate grid and apply algorithm for each axis
-    for axis, axes in enumerate(permutations):
-        _grid = grid.transpose(axes)
+    ax = 1
 
-        # Convert to primitive variables; able to use pointwise conversion as it is still 2nd-order
-        wS = fv.point_convert_conservative(_grid, sim_variables)
+    # Convert to primitive variables; able to use pointwise conversion as it is still 2nd-order
+    wS = fv.point_convert_conservative(grids, sim_variables)
 
-        # Pad array with boundary & apply (TVD) slope limiters
-        w = fv.add_boundary(wS, boundary)
-        limited_values = limiters.minmod_limiter(w)
+    # Apply (TVD) slope limiters
+    limited_values = limiters.gradient_limiters(wS, boundary, ax=ax, limiter="minmod")
 
-        """Linear reconstruction [Derigs et al., 2017]
+    """Linear reconstruction [Derigs et al., 2017]
         Current convention: |                        w(i-1/2)                    w(i+1/2)                       |
                             |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
                             |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
                     OR      |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
-        """
-        gradients = .5 * limited_values
-        wL, wR = np.copy(wS-gradients), np.copy(wS+gradients)  # (eq. 4.13)
+    """
+    gradients = .5 * limited_values
+    wL, wR = np.copy(wS-gradients), np.copy(wS+gradients)  # (eq. 4.13)
 
-        # Pad the reconstructed interfaces
-        wLs, wRs = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
+    # Re-align the reconstructed interfaces to correspond with the solvers
+    w_minus, w_plus = wR, fv.add_boundary(wL, boundary, axis=ax).take(range(2,wL.shape[ax]+2), axis=ax)
 
-        # Convert the primitive variables
-        # The conversion can be pointwise conversion for face-average values as it is still 2nd-order
-        qLs, qRs = fv.convert_primitive(wLs, sim_variables, "face"), fv.convert_primitive(wRs, sim_variables, "face")
+    # Convert the primitive variables
+    # The conversion can be pointwise conversion for face-average values as it is still 2nd-order
+    q_minus, q_plus = fv.convert_primitive(w_minus, sim_variables, "face"), fv.convert_primitive(w_plus, sim_variables, "face")
 
-        # Compute the fluxes and the Jacobian
-        fLs, fRs = constructor.make_flux(wLs, gamma, axis), constructor.make_flux(wRs, gamma, axis)
-        A = constructor.make_Jacobian(w, gamma, axis)
+    # Compute the fluxes and the Jacobian
+    flux_minus, flux_plus = constructor.make_flux(w_minus, gamma, axes), constructor.make_flux(w_plus, gamma, axes)
+    A = constructor.make_Jacobian(wS, gamma, axes)
 
-        # Update dict
-        data[axes]['wS'] = wS
-        data[axes]['wLs'] = wLs
-        data[axes]['wRs'] = wRs
-        data[axes]['qLs'] = qLs
-        data[axes]['qRs'] = qRs
-        data[axes]['fLs'] = fLs
-        data[axes]['fRs'] = fRs
-        data[axes]['jacobian'] = A
+    # Update dict
+    data['wS'] = wS
+    data['w_minus'] = w_minus
+    data['w_plus'] = w_plus
+    data['q_minus'] = q_minus
+    data['q_plus'] = q_plus
+    data['flux_minus'] = flux_minus
+    data['flux_plus'] = flux_plus
+    data['Jacobian'] = A
 
     return data

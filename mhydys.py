@@ -69,18 +69,17 @@ def core_run(grp: h5py, _sim_variables: namedtuple, *args, **kwargs):
             break
         else:
             # Compute the numerical fluxes at each interface
-            interface_fluxes = evolvers.evolve_space(grid, _sim_variables)
+            Riemann_fluxes = evolvers.evolve_space(grid, _sim_variables)
 
             # Compute the maximum eigenvalues for determining the full time step
-            eigmaxes = [_sim_variables.dx/Riemann_flux.eigmax for Riemann_flux in list(interface_fluxes.values())]
-            dt = _sim_variables.cfl * min(eigmaxes)
+            dt = _sim_variables.cfl * _sim_variables.dx/Riemann_fluxes.eigmax
 
             # Handle dt close to simulation end
             if t+dt > _sim_variables.t_end:
                 dt = _sim_variables.t_end - t
 
             # Update the solution with the numerical fluxes using iterative methods
-            grid = evolvers.evolve_time(grid, interface_fluxes, dt, _sim_variables)
+            grid = evolvers.evolve_time(grid, Riemann_fluxes, dt, _sim_variables)
 
             # Update time step
             t += dt

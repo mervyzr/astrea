@@ -1,15 +1,19 @@
 from collections import defaultdict
 
+import numpy as np
+
 from functions import constructor, fv
 
 ##############################################################################
 # WENO reconstruction method [Shu, 2009]
 ##############################################################################
 
-def run(grid, sim_variables):
-    gamma, subgrid, boundary, permutations = sim_variables.gamma, sim_variables.subgrid, sim_variables.boundary, sim_variables.permutations
+def run(grids, sim_variables):
+    gamma, subgrid, boundary, axes = sim_variables.gamma, sim_variables.subgrid, sim_variables.boundary, sim_variables.axes
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
+
+    ax = 1
 
     # WENO reconstruction [Shu, 2009; San & Kara, 2015]
     """Current convention: |                        w(i-1/2)                    w(i+1/2)                       |
@@ -17,15 +21,15 @@ def run(grid, sim_variables):
                            |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
                     OR     |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
     """
-    def reconstruct(_wS, _boundary, _order=5):
+    def reconstruct(_wS, _boundary, _ax, _order=5):
         eps = 1e-6
 
         if _order == 3:
-            w = fv.add_boundary(_wS, _boundary)
+            w = fv.add_boundary(_wS, _boundary, axis=_ax)
 
             # Define frequently used terms
-            zeroth = w[1:-1]
-            minus_one, plus_one = w[:-2], w[2:]
+            zeroth = np.copy(_wS)
+            minus_one, plus_one = w.take(range(0,w.shape[ax]-2), axis=_ax), w.take(range(2,w.shape[ax]), axis=_ax)
 
             # Define the linear weights
             g0, g1 = 1/3, 2/3
@@ -43,14 +47,14 @@ def run(grid, sim_variables):
             wL = (a1(g0)/(a0(g1) + a1(g0)))*(1.5*zeroth - .5*plus_one) + (a0(g1)/(a0(g1) + a1(g0)))*(.5*zeroth + .5*minus_one)
 
         elif _order == 7:
-            w3 = fv.add_boundary(_wS, _boundary, 3)
+            w3 = fv.add_boundary(_wS, _boundary, stencil=3, axis=_ax)
+            w2 = fv.add_boundary(_wS, _boundary, stencil=2, axis=_ax)
+            w = fv.add_boundary(_wS, _boundary, axis=_ax)
 
             # Define frequently used terms
-            w2 = w3[1:-1]
-            w = w2[1:-1]
-            zeroth = w[1:-1]
-            minus_one, minus_two, minus_three = w[:-2], w2[:-4], w3[:-6]
-            plus_one, plus_two, plus_three = w[2:], w2[4:], w3[6:]
+            zeroth = np.copy(_wS)
+            minus_one, minus_two, minus_three = w.take(range(0,w.shape[ax]-2), axis=_ax), w2.take(range(0,w2.shape[ax]-4), axis=_ax), w3.take(range(0,w3.shape[ax]-6), axis=_ax)
+            plus_one, plus_two, plus_three = w.take(range(2,w.shape[ax]), axis=_ax), w2.take(range(4,w2.shape[ax]), axis=_ax), w3.take(range(6,w3.shape[ax]), axis=_ax)
 
             # Define the linear weights
             g0, g1, g2, g3 = 1/35, 12/35, 18/35, 4/35
@@ -102,13 +106,13 @@ def run(grid, sim_variables):
             )
 
         else:
-            w2 = fv.add_boundary(_wS, _boundary, 2)
+            w2 = fv.add_boundary(_wS, _boundary, stencil=2, axis=_ax)
+            w = fv.add_boundary(_wS, _boundary, axis=_ax)
 
             # Define frequently used terms
-            w = w2[1:-1]
-            zeroth = w[1:-1]
-            minus_one, minus_two = w[:-2], w2[:-4]
-            plus_one, plus_two = w[2:], w2[4:]
+            zeroth = np.copy(_wS)
+            minus_one, minus_two = w.take(range(0,w.shape[ax]-2), axis=_ax), w2.take(range(0,w2.shape[ax]-4), axis=_ax)
+            plus_one, plus_two = w.take(range(2,w.shape[ax]), axis=_ax), w2.take(range(4,w2.shape[ax]), axis=_ax)
 
             # Define the linear weights
             g0, g1, g2 = 1/10, 3/5, 3/10
@@ -146,44 +150,40 @@ def run(grid, sim_variables):
 
         return wL, wR
 
-    # Rotate grid and apply algorithm for each axis
-    for axis, axes in enumerate(permutations):
-        _grid = grid.transpose(axes)
+    # Convert to primitive variables
+    wS = fv.convert_conservative(grids, sim_variables)
 
-        # Convert to primitive variables
-        wS = fv.convert_conservative(_grid, sim_variables)
+    # Reconstruct the interface states
+    if len(subgrid.split("weno")) == 2:
+        try:
+            wL, wR = reconstruct(wS, boundary, ax, int(subgrid.replace('-','').split("weno")[-1]))
+        except Exception as e:
+            wL, wR = reconstruct(wS, boundary, ax)
+    else:
+        wL, wR = reconstruct(wS, boundary, ax)
 
-        # Reconstruct the interface states
-        if len(subgrid.split("weno")) == 2:
-            try:
-                wL, wR = reconstruct(wS, boundary, int(subgrid.replace('-','').split("weno")[-1]))
-            except Exception as e:
-                wL, wR = reconstruct(wS, boundary)
-        else:
-            wL, wR = reconstruct(wS, boundary)
+    # Re-align the reconstructed interfaces to correspond with the solvers
+    w_minus, w_plus = wR, fv.add_boundary(wL, boundary, axis=ax).take(range(2,wL.shape[ax]+2), axis=ax)
 
-        # Pad the reconstructed interfaces
-        wLs, wRs = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
+    # Get the average solution between the interfaces at the boundaries
+    interface_avg = constructor.make_Roe_average(w_minus, w_plus)
 
-        # Get the average solution between the interfaces at the boundaries
-        boundary_avg = constructor.make_Roe_average(wLs, wRs)[1:]
+    # Convert the primitive variables
+    q_minus, q_plus = fv.convert_primitive(w_minus, sim_variables, "face"), fv.convert_primitive(w_plus, sim_variables, "face")
 
-        # Convert the primitive variables
-        qLs, qRs = fv.convert_primitive(wLs, sim_variables, "face"), fv.convert_primitive(wRs, sim_variables, "face")
+    # Compute the fluxes and the Jacobian
+    flux_minus, flux_plus = constructor.make_flux(w_minus, gamma, axes), constructor.make_flux(w_plus, gamma, axes)
 
-        # Compute the fluxes and the Jacobian
-        _w = fv.add_boundary(boundary_avg, boundary)
-        fLs, fRs = constructor.make_flux(wLs, gamma, axis), constructor.make_flux(wRs, gamma, axis)
-        A = constructor.make_Jacobian(_w, gamma, axis)
+    A = constructor.make_Jacobian(interface_avg, gamma, axes)
 
-        # Update dict
-        data[axes]['wS'] = wS
-        data[axes]['wLs'] = wLs
-        data[axes]['wRs'] = wRs
-        data[axes]['qLs'] = qLs
-        data[axes]['qRs'] = qRs
-        data[axes]['fLs'] = fLs
-        data[axes]['fRs'] = fRs
-        data[axes]['jacobian'] = A
+    # Update dict
+    data['wS'] = wS
+    data['w_minus'] = w_minus
+    data['w_plus'] = w_plus
+    data['q_minus'] = q_minus
+    data['q_plus'] = q_plus
+    data['flux_minus'] = flux_minus
+    data['flux_plus'] = flux_plus
+    data['Jacobian'] = A
 
     return data

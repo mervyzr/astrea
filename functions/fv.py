@@ -81,15 +81,15 @@ def convert_mode(grid, sim_variables, _type="cell"):
     if "face" in _type:
         _range = range(1, dimension)
     else:
-        _range = range(0, 1)
+        _range = range(1)
 
     if grid.ndim - dimension == 2:
         for ax in _range:
             _new_grid = add_boundary(grid, boundary, axis=ax+1)
-            new_grid -= 1/24 * derivative(_new_grid, ax+1)
+            new_grid -= np.sum(1/24 * derivative(_new_grid, ax+1), axis=0)
     else:
         for axes in permutations:
-            reversed_axes = np.argsort(axes)  # Really only necessary for 3D
+            reversed_axes = np.argsort(axes)
             for ax in _range:
                 _new_grid = add_boundary(grid.transpose(axes), boundary, axis=ax)
                 new_grid -= 1/24 * derivative(_new_grid, ax).transpose(reversed_axes)
@@ -104,18 +104,18 @@ def convert_primitive(grid, sim_variables, _type="cell"):
     if "face" in _type:
         _range = range(1, dimension)
     else:
-        _range = range(0, 1)
+        _range = range(1)
 
     if grid.ndim - dimension == 2:
         for ax in _range:
             _w = add_boundary(grid, boundary, axis=ax+1)
-            w -= 1/24 * derivative(_w, ax+1)
+            w -= np.sum(1/24 * derivative(_w, ax+1), axis=0)
 
             _q = point_convert_primitive(_w, sim_variables)
-            q += 1/24 * derivative(_q, ax+1)
+            q += np.sum(1/24 * derivative(_q, ax+1), axis=0)
     else:
         for axes in permutations:
-            reversed_axes = np.argsort(axes)  # Really only necessary for 3D
+            reversed_axes = np.argsort(axes)
             for ax in _range:
                 _w = add_boundary(grid.transpose(axes), boundary, axis=ax)
                 w -= 1/24 * derivative(_w, ax).transpose(reversed_axes)
@@ -133,18 +133,18 @@ def convert_conservative(grid, sim_variables, _type="cell"):
     if "face" in _type:
         _range = range(1, dimension)
     else:
-        _range = range(0, 1)
+        _range = range(1)
 
     if grid.ndim - dimension == 2:
         for ax in _range:
             _q = add_boundary(grid, boundary, axis=ax+1)
-            q -= 1/24 * derivative(_q, ax+1)
+            q -= np.sum(1/24 * derivative(_q, ax+1), axis=0)
 
             _w = point_convert_conservative(_q, sim_variables)
-            w += 1/24 * derivative(_w, ax+1)
+            w += np.sum(1/24 * derivative(_w, ax+1), axis=0)
     else:
         for axes in permutations:
-            reversed_axes = np.argsort(axes)  # Really only necessary for 3D
+            reversed_axes = np.argsort(axes)
             for ax in _range:
                 _q = add_boundary(grid.transpose(axes), boundary, axis=ax)
                 q -= 1/24 * derivative(_q, ax).transpose(reversed_axes)
@@ -154,34 +154,28 @@ def convert_conservative(grid, sim_variables, _type="cell"):
     return point_convert_conservative(q, sim_variables) + w
 
 
-# Compute the 4th-order interface-averaged fluxes from the interface-averaged fluxes via higher order approximation
-def compute_high_approx_flux(cntr_flux, avg_flux, boundary):
-    arr, _arr = np.copy(cntr_flux), np.copy(avg_flux)
-
-    for ax in range(1, _arr.ndim-1):
-        # Pad the orthogonal interface-averaged fluxes
-        padding = [(0,0)] * _arr.ndim
-        padding[ax] = (1,1)
-
-        # Pad and expand the orthogonal interface-averaged fluxes
-        padded_arr = np.pad(_arr, padding, boundary)
-
-        # Subtract the Laplacian approximation of the interface-averaged fluxes from the interface-centred fluxes
-        arr -= 1/24 * derivative(padded_arr, ax)
-    return arr
-
-
 # Get the characteristics and max eigenvalues for calculating the time evolution
-def compute_eigen(jacobian):
-    characteristics = np.linalg.eigvals(jacobian)
+def compute_eigen(Jacobian, ax):
+    characteristics = np.linalg.eigvals(Jacobian)
 
     # Local max eigenvalue for each cell (1- or 3-Riemann invariant; shock wave or rarefaction wave)
     local_max_eigvals = np.max(np.abs(characteristics), axis=-1)
 
     # Local max eigenvalue between consecutive pairs of cell
-    max_eigvals = np.max([local_max_eigvals[:-1], local_max_eigvals[1:]], axis=0)
+    max_eigvals = np.maximum(local_max_eigvals.take(range(0,local_max_eigvals.shape[ax]-1), axis=ax), local_max_eigvals.take(range(1,local_max_eigvals.shape[ax]), axis=ax))
 
     # Maximum wave speed (max eigenvalue) for time evolution
     eigmax = np.max(max_eigvals)
 
     return characteristics, eigmax
+
+
+# Compute the 4th-order interface-averaged fluxes from the interface-averaged fluxes via higher order approximation
+def compute_high_approx_flux(cntr_flux, avg_flux, sim_variables):
+    dimension, boundary = sim_variables.dimension, sim_variables.boundary
+    _cntr_flux, _avg_flux = np.copy(cntr_flux), np.copy(avg_flux)
+
+    for ax in range(1, dimension):
+        padded_arr = add_boundary(_avg_flux, boundary, axis=ax+1)
+        _cntr_flux -= np.sum(1/24 * derivative(padded_arr, ax+1), axis=0)
+    return _cntr_flux

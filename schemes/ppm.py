@@ -10,95 +10,95 @@ from num_methods import limiters
 ##############################################################################
 
 # [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
-def run(grid, sim_variables, paper="mc", dissipate=False):
-    gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
+def run(grids, sim_variables, author="mc", dissipate=False):
+    gamma, boundary, axes = sim_variables.gamma, sim_variables.boundary, sim_variables.axes
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
-    # Rotate grid and apply algorithm for each axis
-    for axis, axes in enumerate(permutations):
-        _grid = grid.transpose(axes)
+    ax = 1
+    author = author.lower()
 
-        # Convert to primitive variables
-        wS = fv.convert_conservative(_grid, sim_variables)
+    # Convert to primitive variables
+    wS = fv.convert_conservative(grids, sim_variables)
 
-        # Pad array with boundary; PPM requires additional ghost cells
-        w2 = fv.add_boundary(wS, boundary, 2)
-        w = np.copy(w2[1:-1])
+    # Pad array with boundary; PPM requires additional ghost cells
+    w2 = fv.add_boundary(wS, boundary, stencil=2, axis=ax)
+    w = fv.add_boundary(wS, boundary, axis=ax)
+    w_minusOne, w_plusOne = w.take(range(0,w.shape[ax]-2), axis=ax), w.take(range(2,w.shape[ax]), axis=ax)
+    w_minusTwo, w_plusTwo = w2.take(range(0,w2.shape[ax]-4), axis=ax), w2.take(range(4,w2.shape[ax]), axis=ax)
 
-        if "x" in paper.lower() or "ph" in paper.lower() or paper.lower() in ["peterson", "hammett"]:
-            """Extrapolate the cell averages to face averages (both sides) 
-            Current convention: | <---     i-1     ---> | <---      i      ---> | <---     i+1     ---> |
-                                |w_L(i-1)       w_R(i-1)|w_L(i)           w_R(i)|w_L(i+1)       w_R(i+1)|
-            """
-            # Face i+1/2 (4th-order) (eq. 3.26-3.27)
-            wF_L = 7/12 * (w[:-2] + wS) - 1/12 * (w2[:-4] + w[2:])
-            wF_R = 7/12 * (wS + w[2:]) - 1/12 * (w[:-2] + w2[4:])
+    if "x" in author or "ph" in author or author in ["peterson", "hammett"]:
+        """Extrapolate the cell averages to face averages (both sides) 
+        Current convention: | <---     i-1     ---> | <---      i      ---> | <---     i+1     ---> |
+                            |w_L(i-1)       w_R(i-1)|w_L(i)           w_R(i)|w_L(i+1)       w_R(i+1)|
+        """
+        # Face i+1/2 (4th-order) (eq. 3.26-3.27)
+        wF_L = 7/12 * (w_minusOne + wS) - 1/12 * (w_minusTwo + w_plusOne)
+        wF_R = 7/12 * (wS + w_plusOne) - 1/12 * (w_minusOne + w_plusTwo)
 
-            # Face i+1/2 (5th-order) [Peterson & Hammett, 2008, eq. 3.40]
-            #wF_R = 1/60 * (2*w2[:-4] - 13*w[:-2] + 47*wS + 27*w[2:] - 2*w2[4:])
+        # Face i+1/2 (5th-order) [Peterson & Hammett, 2008, eq. 3.40]
+        #wF_R = 1/60 * (2*w_minusTwo - 13*w_minusOne + 47*wS + 27*w_plusOne - 2*w_plusTwo)
 
-            # Limit interface values [Peterson & Hammett, 2008, eq. 3.33-3.34]
-            wF_limit_L, wF_limit_R = limiters.interface_limiter(wF_L, w2[:-4], w[:-2], wS, w[2:]), limiters.interface_limiter(wF_R, w[:-2], wS, w[2:], w2[4:])
+        # Limit interface values [Peterson & Hammett, 2008, eq. 3.33-3.34]
+        limited_wFs = limiters.interface_limiter(wF_L, w_minusTwo, w_minusOne, wS, w_plusOne), limiters.interface_limiter(wF_R, w_minusOne, wS, w_plusOne, w_plusTwo)
 
-            kwargs = {}
-        else:
-            """Extrapolate the cell averages to face averages (forward/upwind)
-            Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
-                                |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
-            """
-            # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
-            wF = 7/12 * (wS + w[2:]) - 1/12 * (w[:-2] + w2[4:])
+        kwargs = {}
+    else:
+        """Extrapolate the cell averages to face averages (forward/upwind)
+        Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
+                            |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
+        """
+        # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
+        wF = 7/12 * (wS + w_plusOne) - 1/12 * (w_minusOne + w_plusTwo)
 
-            if paper.lower() == "c" or paper.lower() == "colella":
-                # Limit interface values [Colella et al., 2011, p. 25-26]
-                wF = limiters.interface_limiter(wF, w[:-2], wS, w[2:], w2[4:])
+        if author == "c" or author == "colella":
+            # Limit interface values [Colella et al., 2011, p. 25-26]
+            wF = limiters.interface_limiter(wF, w_minusOne, wS, w_plusOne, w_plusTwo)
 
-            if (paper == "mc" or "mccorquodale" in paper) and dissipate:
-                eta = apply_flattener(wS, axis, boundary)
-                wF = (eta.T*wF.T).T + ((1-eta).T*wS.T).T
+        if (author == "mc" or "mccorquodale" in author) and dissipate:
+            eta = apply_flattener(wS, axes, boundary)
+            wF = (eta.T*wF.T).T + ((1-eta).T*wS.T).T
 
-            # Define the left and right parabolic interpolants
-            wF_pad2 = fv.add_boundary(wF, boundary, 2)
-            wF_limit_L, wF_limit_R = np.copy(wF_pad2[1:-3]), np.copy(wF_pad2[2:-2])
+        # Define the left and right parabolic interpolants
+        wF_pad2 = fv.add_boundary(wF, boundary, stencil=2, axis=ax)
+        limited_wFs = np.copy(wF_pad2.take(range(1,wF_pad2.shape[ax]-3), axis=ax)), np.copy(wF_pad2.take(range(2,wF_pad2.shape[ax]-2), axis=ax))
 
-            kwargs = {"wF_pad2": wF_pad2, "boundary": boundary}
+        kwargs = {"wF_pad2":wF_pad2, "boundary":boundary}
 
-        """Reconstruct the limited parabolic interpolants from the interface values [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
+    """Reconstruct the limited parabolic interpolants from the interface values [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
         Current convention: |                        w(i-1/2)                    w(i+1/2)                       |
                             |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
                             |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
                     OR      |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
-        """
-        wL, wR = limiters.interpolant_limiter(wF_limit_L, wF_limit_R, wS, w, w2, paper.lower(), **kwargs)
+    """
+    wL, wR = limiters.interpolant_limiter(wS, w, w2, author, ax, *limited_wFs, **kwargs)
 
-        # Pad the reconstructed interfaces
-        wLs, wRs = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
+    # Re-align the reconstructed interfaces to correspond with the solvers
+    w_minus, w_plus = wR, fv.add_boundary(wL, boundary, axis=ax).take(range(2,wL.shape[ax]+2), axis=ax)
 
-        # Get the average solution between the interfaces at the boundaries
-        boundary_avg = constructor.make_Roe_average(wLs, wRs)[1:]
+    # Get the average solution between the interfaces at the boundaries
+    interface_avg = constructor.make_Roe_average(w_minus, w_plus)
 
-        # Convert the primitive variables
-        qLs, qRs = fv.convert_primitive(wLs, sim_variables, "face"), fv.convert_primitive(wRs, sim_variables, "face")
+    # Convert the primitive variables
+    q_minus, q_plus = fv.convert_primitive(w_minus, sim_variables, "face"), fv.convert_primitive(w_plus, sim_variables, "face")
 
-        # Compute the fluxes and the Jacobian
-        _w = fv.add_boundary(boundary_avg, boundary)
-        fLs, fRs = constructor.make_flux(wLs, gamma, axis), constructor.make_flux(wRs, gamma, axis)
+    # Compute the fluxes and the Jacobian
+    flux_minus, flux_plus = constructor.make_flux(w_minus, gamma, axes), constructor.make_flux(w_plus, gamma, axes)
 
-        if (paper == "mc" or "mccorquodale" in paper) and dissipate:
-            data[axes]['mu'] = apply_artificial_viscosity(wS, axis, sim_variables)
+    if (author == "mc" or "mccorquodale" in author) and dissipate:
+        data[axes]['mu'] = apply_artificial_viscosity(wS, axes, sim_variables)
 
-        A = constructor.make_Jacobian(_w, gamma, axis)
+    A = constructor.make_Jacobian(interface_avg, gamma, axes)
 
-        # Update dict
-        data[axes]['wS'] = wS
-        data[axes]['wLs'] = wLs
-        data[axes]['wRs'] = wRs
-        data[axes]['qLs'] = qLs
-        data[axes]['qRs'] = qRs
-        data[axes]['fLs'] = fLs
-        data[axes]['fRs'] = fRs
-        data[axes]['jacobian'] = A
+    # Update dict
+    data['wS'] = wS
+    data['w_minus'] = w_minus
+    data['w_plus'] = w_plus
+    data['q_minus'] = q_minus
+    data['q_plus'] = q_plus
+    data['flux_minus'] = flux_minus
+    data['flux_plus'] = flux_plus
+    data['Jacobian'] = A
 
     return data
 

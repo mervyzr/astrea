@@ -5,7 +5,7 @@ import itertools
 from datetime import timedelta
 from tinydb import TinyDB, Query
 
-from numpy.polynomial import legendre
+import numpy as np
 
 ##############################################################################
 # Generic functions not specific to the finite volume method
@@ -176,12 +176,13 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     # Add relevant key-pairs to the dictionary
     final_dict['seed'] = int(seed)
     final_dict['permutations'] = [axes for axes in list(itertools.permutations(list(range(final_dict['dimension']+1)))) if axes[-1] == final_dict['dimension']]
+    final_dict['axes'] = np.arange(final_dict['dimension'])
     final_dict['config_category'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
     final_dict['timestep_category'] = DB.get(PARAMS.accepted.any([final_dict['timestep']]))['category']
     final_dict['scheme_category'] = DB.get(PARAMS.accepted.any([final_dict['scheme']]))['category']
 
     if final_dict['scheme'] in DB.get(PARAMS.type == 'scheme' and PARAMS.category == 'complete')['accepted']:
-        _roots, _weights = legendre.leggauss(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
+        _roots, _weights = np.polynomial.legendre.leggauss(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
         final_dict['roots'] = .5*_roots + .5  # Gauss-Legendre quadrature with interval [0,1]
         final_dict['weights'] = _weights/2  # Gauss-Legendre quadrature with interval [0,1]
 

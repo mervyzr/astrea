@@ -85,10 +85,6 @@ def initialise(sim_variables, convert=False):
     return fv.convert_mode(grid, sim_variables)
 
 
-
-
-
-
 def make_flux(grid, gamma, axes):
     rhos, vecs, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
     abscissa, ordinate, applicate = axes%3, (axes+1)%3, (axes+2)%3
@@ -132,15 +128,15 @@ def make_Jacobian(grid, gamma, axes):
     return arr
 
 
-# Calculate the Roe-averaged primitive variables from the left- & right-interface states for use in Roe solver in order to better capture shocks [Roe & Pike, 1984; Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
+# Calculate the Roe-averaged primitive variables at the interfaces from the left- & right-interface states for use in Roe solver in order to better capture shocks [Roe & Pike, 1984; Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
 def make_Roe_average(left_interface, right_interface):
     avg = np.zeros_like(left_interface)
     rhoL, rhoR = np.sqrt(left_interface[...,0]), np.sqrt(right_interface[...,0])
 
     avg[...,0] = rhoL * rhoR
-    avg[...,1:4] = fv.divide((rhoL.T * left_interface[...,1:4].T) + (rhoR.T * right_interface[...,1:4].T), (rhoL + rhoR).T).T
+    avg[...,1:4] = fv.divide((left_interface[...,1:4] * rhoL[...,None]) + (right_interface[...,1:4] * rhoR[...,None]), (rhoL + rhoR)[...,None])
     avg[...,4] = fv.divide((rhoL * left_interface[...,4]) + (rhoR * right_interface[...,4]), rhoL + rhoR)
-    avg[...,5:8] = fv.divide((rhoR.T * left_interface[...,5:8].T) + (rhoL.T * right_interface[...,5:8].T), (rhoL + rhoR).T).T
+    avg[...,5:8] = fv.divide((left_interface[...,5:8] * rhoR[...,None]) + (right_interface[...,5:8] * rhoL[...,None]), (rhoL + rhoR)[...,None])
 
     return avg
 
