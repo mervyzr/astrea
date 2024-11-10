@@ -56,7 +56,7 @@ def run(grid, sim_variables, paper="mc", dissipate=False):
 
             if (paper == "mc" or "mccorquodale" in paper) and dissipate:
                 eta = apply_flattener(wS, axis, boundary)
-                wF = (eta.T*wF.T).T + ((1-eta).T*wS.T).T
+                wF = wF * eta[...,None] + wS * (1-eta)[...,None]
 
             # Define the left and right parabolic interpolants
             wF_pad2 = fv.add_boundary(wF, boundary, 2)
@@ -127,7 +127,7 @@ def apply_flattener(wS, axis, boundary, slope_determinants=[.33, .75, .85]):
     chi[signage > 0] = np.minimum(chi_bar, chi_bar_padded[:-2])[signage > 0]
 
     arr_expander = np.ones_like(wS)
-    return (chi.T*arr_expander.T).T
+    return arr_expander * chi[...,None]
 
 
 # Implement artificial viscosity [McCorquodale & Colella, 2011]
@@ -144,11 +144,8 @@ def apply_artificial_viscosity(wS, axis, sim_variables, viscosity_determinants=[
     lambda_R = velocity_w[2:] - velocity_w[1:-1]
     if velocity.ndim != 1:
         for ax in range(1, dimension):
-            padding = [(0,0)] * velocity.ndim
-            padding[ax] = (1,1)
-
-            padded_velocity = np.pad(velocity, padding, mode=boundary)
-            padded_w = np.pad(velocity_w, padding, mode=boundary)
+            padded_velocity = fv.add_boundary(velocity, boundary, axis=ax)
+            padded_w = fv.add_boundary(velocity_w, boundary, axis=ax)
 
             lambda_R += .25 * (np.diff(padded_w.take(range(1,padded_w.shape[ax]), axis=ax), axis=ax) + np.diff(padded_velocity.take(range(1,padded_velocity.shape[ax]), axis=ax), axis=ax))
 
@@ -158,12 +155,12 @@ def apply_artificial_viscosity(wS, axis, sim_variables, viscosity_determinants=[
 
     # Calculate artificial viscosity coefficient [eq. 36]
     reference = np.copy(lambda_R)
-    nu = (lambda_R.T * np.minimum(1, fv.divide((dx * lambda_R)**2, beta * c_min**2)).T).T
+    nu = np.minimum(1, fv.divide((dx * lambda_R)**2, beta * c_min**2)) * lambda_R[...,None]
     nu[reference >= 0] = 0
 
     # Calculate the coefficient [eq. 38]
     arr_expander = np.ones_like(wS)
-    coeff = (nu.T * arr_expander.T).T
-    mu = alpha * (coeff.T * np.diff(w[1:], axis=0).T).T
+    coeff = nu * arr_expander
+    mu = alpha * (coeff * np.diff(w[1:], axis=0))
 
     return mu

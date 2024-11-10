@@ -45,10 +45,10 @@ def derivative(grid, ax):
 
 
 # Add boundary conditions
-def add_boundary(grid, boundary, stencil=1):
+def add_boundary(grid, boundary, stencil=1, axis=0):
     arr = np.copy(grid)
     padding = [(0,0)] * grid.ndim
-    padding[0] = (stencil,stencil)
+    padding[axis] = (stencil,stencil)
     return np.pad(arr, padding, mode=boundary)
 
 
@@ -75,89 +75,67 @@ def point_convert_conservative(grid, sim_variables):
 # Attempts to raise the order of accuracy for the Laplacian to 4th-, 6th- and even 8th-order were made, but not too feasible because the averaging function
 # is limited by the time-stepping and the limiting functions (currently max is 4th order)
 def convert_mode(grid, sim_variables, _type="cell"):
-    dimension, boundary, permutations = sim_variables.dimension, sim_variables.boundary, sim_variables.permutations
     new_grid = np.copy(grid)
 
-    for axes in permutations:
-        reversed_axes = np.argsort(axes)  # Really only necessary for 3D
-        if "face" in _type:
-            for ax in range(1, dimension):
-                padding = [(0,0)] * grid.ndim
-                padding[ax] = (1,1)
+    if "face" in _type:
+        _range = range(1, sim_variables.dimension)
+    else:
+        _range = range(1)
 
-                padded_grid = np.pad(grid.transpose(axes), padding, mode=boundary)
-                new_grid -= 1/24 * derivative(padded_grid, ax).transpose(reversed_axes)
-        else:
-            padded_grid = add_boundary(grid.transpose(axes), boundary)
-            new_grid -= 1/24 * derivative(padded_grid, 0).transpose(reversed_axes)
+    for axes in sim_variables.permutations:
+        reversed_axes = np.argsort(axes)
+        for ax in _range:
+            _new_grid = add_boundary(grid.transpose(axes), sim_variables.boundary, axis=ax)
+            new_grid -= 1/24 * derivative(_new_grid, ax).transpose(reversed_axes)
     return new_grid
 
 
 # Converting (cell-/face-averaged) primitive variables w to (cell-/face-averaged) conservative variables q through a higher-order approx.
 def convert_primitive(grid, sim_variables, _type="cell"):
-    dimension, boundary, permutations = sim_variables.dimension, sim_variables.boundary, sim_variables.permutations
     w, q = np.copy(grid), np.zeros_like(grid)
 
-    for axes in permutations:
-        reversed_axes = np.argsort(axes)  # Really only necessary for 3D
-        if "face" in _type:
-            for ax in range(1, dimension):
-                padding = [(0,0)] * grid.ndim
-                padding[ax] = (1,1)
+    if "face" in _type:
+        _range = range(1, sim_variables.dimension)
+    else:
+        _range = range(1)
 
-                _w = np.pad(grid.transpose(axes), padding, mode=boundary)
-                w -= 1/24 * derivative(_w, ax).transpose(reversed_axes)
-
-                _q = point_convert_primitive(_w, sim_variables)
-                q += 1/24 * derivative(_q, ax).transpose(reversed_axes)
-        else:
-            _w = add_boundary(grid.transpose(axes), boundary)
-            w -= 1/24 * derivative(_w, 0).transpose(reversed_axes)
+    for axes in sim_variables.permutations:
+        reversed_axes = np.argsort(axes)
+        for ax in _range:
+            _w = add_boundary(grid.transpose(axes), sim_variables.boundary, axis=ax)
+            w -= 1/24 * derivative(_w, ax).transpose(reversed_axes)
 
             _q = point_convert_primitive(_w, sim_variables)
-            q += 1/24 * derivative(_q, 0).transpose(reversed_axes)
+            q += 1/24 * derivative(_q, ax).transpose(reversed_axes)
     return point_convert_primitive(w, sim_variables) + q
 
 
 # Converting (cell-/face-averaged) conservative variables q to (cell-/face-averaged) primitive variables q through a higher-order approx.
 def convert_conservative(grid, sim_variables, _type="cell"):
-    dimension, boundary, permutations = sim_variables.dimension, sim_variables.boundary, sim_variables.permutations
     w, q = np.zeros_like(grid), np.copy(grid)
 
-    for axes in permutations:
-        reversed_axes = np.argsort(axes)  # Only necessary for 3D
-        if "face" in _type:
-            for ax in range(1, dimension):
-                padding = [(0,0)] * grid.ndim
-                padding[ax] = (1,1)
+    if "face" in _type:
+        _range = range(1, sim_variables.dimension)
+    else:
+        _range = range(1)
 
-                _q = np.pad(grid.transpose(axes), padding, mode=boundary)
-                q -= 1/24 * derivative(_q, ax).transpose(reversed_axes)
-
-                _w = point_convert_conservative(_q, sim_variables)
-                w += 1/24 * derivative(_w, ax).transpose(reversed_axes)
-        else:
-            _q = add_boundary(grid.transpose(axes), boundary)
-            q -= 1/24 * derivative(_q, 0).transpose(reversed_axes)
+    for axes in sim_variables.permutations:
+        reversed_axes = np.argsort(axes)
+        for ax in _range:
+            _q = add_boundary(grid.transpose(axes), sim_variables.boundary, axis=ax)
+            q -= 1/24 * derivative(_q, ax).transpose(reversed_axes)
 
             _w = point_convert_conservative(_q, sim_variables)
-            w += 1/24 * derivative(_w, 0).transpose(reversed_axes)
+            w += 1/24 * derivative(_w, ax).transpose(reversed_axes)
     return point_convert_conservative(q, sim_variables) + w
 
 
 # Compute the 4th-order interface-averaged fluxes from the interface-averaged fluxes via higher order approximation
-def compute_high_approx_flux(cntr_flux, avg_flux, boundary):
+def compute_high_approx_flux(cntr_flux, avg_flux, sim_variables):
     arr, _arr = np.copy(cntr_flux), np.copy(avg_flux)
 
-    for ax in range(1, _arr.ndim-1):
-        # Pad the orthogonal interface-averaged fluxes
-        padding = [(0,0)] * _arr.ndim
-        padding[ax] = (1,1)
-
-        # Pad and expand the orthogonal interface-averaged fluxes
-        padded_arr = np.pad(_arr, padding, boundary)
-
-        # Subtract the Laplacian approximation of the interface-averaged fluxes from the interface-centred fluxes
+    for ax in range(1, sim_variables.dimension):
+        padded_arr = add_boundary(_arr, sim_variables.boundary, axis=ax)
         arr -= 1/24 * derivative(padded_arr, ax)
     return arr
 
@@ -170,7 +148,7 @@ def compute_eigen(jacobian):
     local_max_eigvals = np.max(np.abs(characteristics), axis=-1)
 
     # Local max eigenvalue between consecutive pairs of cell
-    max_eigvals = np.max([local_max_eigvals[:-1], local_max_eigvals[1:]], axis=0)
+    max_eigvals = np.maximum(local_max_eigvals[:-1], local_max_eigvals[1:])
 
     # Maximum wave speed (max eigenvalue) for time evolution
     eigmax = np.max(max_eigvals)

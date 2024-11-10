@@ -129,15 +129,15 @@ def make_Jacobian(grid, gamma, axis):
     return arr
 
 
-# Calculate the Roe-averaged primitive variables from the left- & right-interface states for use in Roe solver in order to better capture shocks [Roe & Pike, 1984; Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
+# Calculate the Roe-averaged primitive variables at the interface from the minus- & plus-interface states for use in Roe solver in order to better capture shocks [Roe & Pike, 1984; Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
 def make_Roe_average(left_interface, right_interface):
     avg = np.zeros_like(left_interface)
-    rhoL, rhoR = np.sqrt(left_interface[...,0]), np.sqrt(right_interface[...,0])
+    rho_minus, rho_plus = np.sqrt(right_interface[...,0]), np.sqrt(left_interface[...,0])
 
-    avg[...,0] = rhoL * rhoR
-    avg[...,1:4] = fv.divide((rhoL.T * left_interface[...,1:4].T) + (rhoR.T * right_interface[...,1:4].T), (rhoL + rhoR).T).T
-    avg[...,4] = fv.divide((rhoL * left_interface[...,4]) + (rhoR * right_interface[...,4]), rhoL + rhoR)
-    avg[...,5:8] = fv.divide((rhoR.T * left_interface[...,5:8].T) + (rhoL.T * right_interface[...,5:8].T), (rhoL + rhoR).T).T
+    avg[...,0] = rho_minus * rho_plus
+    avg[...,1:4] = fv.divide((left_interface[...,1:4] * rho_plus[...,None]) + (right_interface[...,1:4] * rho_minus[...,None]), (rho_minus + rho_plus)[...,None])
+    avg[...,4] = fv.divide((rho_plus * left_interface[...,4]) + (rho_minus * right_interface[...,4]), rho_minus + rho_plus)
+    avg[...,5:8] = fv.divide((left_interface[...,5:8] * rho_minus[...,None]) + (right_interface[...,5:8] * rho_plus[...,None]), (rho_minus + rho_plus)[...,None])
 
     return avg
 
