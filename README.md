@@ -78,7 +78,7 @@ Several (magneto-)hydrodynamical tests are in place:
   - Ryu-Jones 2a shock test (Ryu & Jones, 1995)
   - Brio-Wu shock test (Brio & Wu, 1998)
 
-Analytical solutions for the Sod shock test (Pfrommer et al., 2006), Gaussian wave test and the _sin_ wave test are overplotted in the saved plots. The solution error norms are also calculated when the smooth advection wave tests (Gaussian, _sin_) are run.
+Analytical solutions for the Sod shock test (Pfrommer et al., 2006), Gaussian wave test and the _sin_ wave test are overplotted in the saved plots. The solution error norms are also calculated when the smooth advection wave tests are run (Gaussian, _sin_).
 
 # Installation
 
