@@ -107,8 +107,8 @@ def handle_CLI():
     parser.add_argument('--live_plot', '--live-plot', '--live', dest='live_plot', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
     parser.add_argument('--save_snaps', '--save-snaps', dest='save_snaps', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
     parser.add_argument('--save_plots', '--save-plots', dest='save_plots', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving final plots of the simulation', choices=bool_choices)
-    parser.add_argument('--save_video', '--save-video', dest='save_video', type=bool_handler, default=argparse.SUPPRESS, help='switch on saving a video of the simulation', choices=bool_choices)
-    parser.add_argument('--save_file', '--save-file', dest='save_file', type=bool_handler, default=argparse.SUPPRESS, help='switch on saving the simulation data file (.hdf5)', choices=bool_choices)
+    parser.add_argument('--save_video', '--save-video', dest='save_video', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving a video of the simulation', choices=bool_choices)
+    parser.add_argument('--save_file', '--save-file', dest='save_file', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving the simulation data file (.hdf5)', choices=bool_choices)
 
     parser.add_argument('--debug', '--DEBUG', dest='debug', help='toggle for more detailed description of errors/bugs', action='store_true')
     parser.add_argument('-q', '--quiet', '--noprint', '--NOPRINT', '--no-print', dest='noprint', help='toggle printing to screen', action='store_true')
