@@ -11,7 +11,7 @@ mHydyS (pronounced _"Hades"_; the _"m"_ is silent 😀) is a (one-)/two-dimensio
 **_This code is created as part of the Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner._**
 
 <p align='center'>
-  <img src='./static/khi.png' width=400 alt='Kelvin-Helmholtz instability' class='center'>
+  <img src='./static/khi_rho.gif' width=400 alt='Kelvin-Helmholtz instability' class='center'>
 </p>
 
 # Description
