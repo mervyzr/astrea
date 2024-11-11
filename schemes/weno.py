@@ -162,28 +162,25 @@ def run(grid, sim_variables):
         else:
             wL, wR = reconstruct(wS, boundary)
 
-        # Pad the reconstructed interfaces
-        wLs, wRs = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
+        # Re-align the interfaces so that cell wall is in between interfaces
+        w_plus, w_minus = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
 
         # Get the average solution between the interfaces at the boundaries
-        boundary_avg = constructor.make_Roe_average(wLs, wRs)[1:]
+        boundary_avg = constructor.make_Roe_average(w_plus, w_minus)[1:]
 
         # Convert the primitive variables
-        qLs, qRs = fv.convert_primitive(wLs, sim_variables, "face"), fv.convert_primitive(wRs, sim_variables, "face")
+        q_plus, q_minus = fv.convert_primitive(w_plus, sim_variables, "face"), fv.convert_primitive(w_minus, sim_variables, "face")
 
         # Compute the fluxes and the Jacobian
         _w = fv.add_boundary(boundary_avg, boundary)
-        fLs, fRs = constructor.make_flux(wLs, gamma, axis), constructor.make_flux(wRs, gamma, axis)
+        flux_plus, flux_minus = constructor.make_flux(w_plus, gamma, axis), constructor.make_flux(w_minus, gamma, axis)
         A = constructor.make_Jacobian(_w, gamma, axis)
 
         # Update dict
         data[axes]['wS'] = wS
-        data[axes]['wLs'] = wLs
-        data[axes]['wRs'] = wRs
-        data[axes]['qLs'] = qLs
-        data[axes]['qRs'] = qRs
-        data[axes]['fLs'] = fLs
-        data[axes]['fRs'] = fRs
-        data[axes]['jacobian'] = A
+        data[axes]['wFs'] = w_plus, w_minus
+        data[axes]['qFs'] = q_plus, q_minus
+        data[axes]['fluxFs'] = flux_plus, flux_minus
+        data[axes]['Jacobian'] = A
 
     return data

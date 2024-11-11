@@ -23,7 +23,7 @@ def evolve_space(grid, sim_variables):
     if sim_variables.subgrid.startswith("w"):
         data = weno.run(grid, sim_variables)
     elif sim_variables.subgrid in ["ppm", "parabolic", "p"]:
-        data = ppm.run(grid, sim_variables, paper='mc')
+        data = ppm.run(grid, sim_variables, author='mc')
     elif sim_variables.subgrid in ["plm", "linear", "l"]:
         data = plm.run(grid, sim_variables)
     else:

@@ -26,9 +26,9 @@ def run(grid, sim_variables):
 
         # Update dict
         data[axes]['wS'] = wS
-        data[axes]['w'] = w
-        data[axes]['q'] = q
-        data[axes]['f'] = f
-        data[axes]['jacobian'] = A
+        data[axes]['wFs'] = w[1:], w[:-1]
+        data[axes]['qFs'] = q[1:], q[:-1]
+        data[axes]['fluxFs'] = f[1:], f[:-1]
+        data[axes]['Jacobian'] = A
 
     return data

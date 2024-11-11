@@ -50,7 +50,8 @@ def superbee_limiter(w):
 
 
 # Function for limiting the interface values extrapolated from cell centre for PPM [Colella et al., 2011, p. 26; Peterson & Hammett, 2008, eq. 3.33-3.34]
-def interface_limiter(w_face, w_minus_one, w_cell, w_plus_one, w_plus_two, C=5/4):
+def interface_limiter(w_face, w_minus_one, w_cell, w_plus_one, w_plus_two):
+    C = 5/4
     # Initial check for local extrema (eq. 84)
     local_extrema = (w_face - w_cell)*(w_plus_one - w_face) < 0
 
@@ -78,7 +79,10 @@ def interface_limiter(w_face, w_minus_one, w_cell, w_plus_one, w_plus_two, C=5/4
     
 
 # Parabolic interpolant limiter for PPM [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
-def interpolant_limiter(wF_L, wF_R, wS, w, w2, paper, C=5/4, **kwargs):
+def interpolant_limiter(wS, w, w2, paper, *args, **kwargs):
+    wF_L, wF_R = args
+    C = 5/4
+
     # Set differences
     dw_minus, dw_plus = wS - wF_L, wF_R - wS
 
