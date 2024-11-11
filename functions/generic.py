@@ -81,6 +81,11 @@ def print_output(instance_time, seed, sim_variables, **kwargs):
 
 # CLI arguments handler; updates the simulation variables (which is a dict) and checks for any invalid values
 def handle_CLI():
+
+    def bool_handler(value):
+        return (value.lower() == 'true' or value.lower() == '1')
+
+    bool_choices = ['true','false','True','False',1,0]
     accepted_values = lambda _type: [value for category in DB.search(PARAMS.type == _type) for value in category['accepted']]
     quotes = DB.get(PARAMS.type == 'quotes')['name']
 
@@ -98,21 +103,12 @@ def handle_CLI():
     parser.add_argument('--scheme', metavar='', type=str.lower, default=argparse.SUPPRESS, help='scheme of solver for the Riemann problem', choices=accepted_values('scheme'))
     parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='run a single run or multiple runs for each simulation', choices=DB.get(PARAMS.type == 'run_type')['accepted'])
 
-    parser.add_argument('--live_plot', '--live-plot', '--live', dest='live_plot', default=argparse.SUPPRESS, help='switch on the live plot', action='store_true')
-    parser.add_argument('--no_live_plot', '--no-live-plot', '--no-live', '--no_live', dest='live_plot', default=argparse.SUPPRESS, help='switch off the live plot', action='store_false')
-
-    parser.add_argument('--save_snaps', '--save-snaps', dest='save_snaps', default=argparse.SUPPRESS, help='switch on saving snapshots to file', action='store_true')
-    parser.add_argument('--no_save_snaps', '--no-save-snaps', dest='save_snaps', default=argparse.SUPPRESS, help='switch off saving snapshots to file', action='store_false')
     parser.add_argument('--snapshots', metavar='', type=int, default=argparse.SUPPRESS, help='number of snapshots to save')
-
-    parser.add_argument('--save_plots', '--save-plots', dest='save_plots', default=argparse.SUPPRESS, help='switch on saving plots to file', action='store_true')
-    parser.add_argument('--no_save_plots', '--no-save-plots', dest='save_plots', default=argparse.SUPPRESS, help='switch off saving plots to file', action='store_false')
-
-    parser.add_argument('--save_video', '--save-video', dest='save_video', default=argparse.SUPPRESS, help='switch on saving a video of the simulation', action='store_true')
-    parser.add_argument('--no_save_video', '--no-save-video', dest='save_video', default=argparse.SUPPRESS, help='switch off saving a video of the simulation', action='store_false')
-
-    parser.add_argument('--save_file', '--save-file', dest='save_file', default=argparse.SUPPRESS, help='switch on saving the simulation data file (.hdf5)', action='store_true')
-    parser.add_argument('--no_save_file', '--no-save-file', dest='save_file', default=argparse.SUPPRESS, help='switch off saving the simulation data file (.hdf5)', action='store_false')
+    parser.add_argument('--live_plot', '--live-plot', '--live', dest='live_plot', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
+    parser.add_argument('--save_snaps', '--save-snaps', dest='save_snaps', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
+    parser.add_argument('--save_plots', '--save-plots', dest='save_plots', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving final plots of the simulation', choices=bool_choices)
+    parser.add_argument('--save_video', '--save-video', dest='save_video', type=bool_handler, default=argparse.SUPPRESS, help='switch on saving a video of the simulation', choices=bool_choices)
+    parser.add_argument('--save_file', '--save-file', dest='save_file', type=bool_handler, default=argparse.SUPPRESS, help='switch on saving the simulation data file (.hdf5)', choices=bool_choices)
 
     parser.add_argument('--debug', '--DEBUG', dest='debug', help='toggle for more detailed description of errors/bugs', action='store_true')
     parser.add_argument('-q', '--quiet', '--noprint', '--NOPRINT', '--no-print', dest='noprint', help='toggle printing to screen', action='store_true')
