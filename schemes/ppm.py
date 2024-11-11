@@ -29,9 +29,10 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         w = np.copy(w2[1:-1])
 
         if "x" in author or "ph" in author or author in ["peterson", "hammett"]:
-            """Extrapolate the cell averages to face averages (both sides) 
-            Current convention: | <---     i-1     ---> | <---      i      ---> | <---     i+1     ---> |
-                                |w_L(i-1)       w_R(i-1)|w_L(i)           w_R(i)|w_L(i+1)       w_R(i+1)|
+            """Extrapolate the cell averages to face averages (both sides)
+            |                        w(i-1/2)                    w(i+1/2)                       |
+            |<--         i-1         -->|<--          i          -->|<--         i+1         -->|
+            |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
             """
             # Face i+1/2 (4th-order) (eq. 3.26-3.27)
             wF_L = 7/12 * (w[:-2] + wS) - 1/12 * (w2[:-4] + w[2:])
@@ -46,8 +47,9 @@ def run(grid, sim_variables, author="mc", dissipate=False):
             kwargs = {}
         else:
             """Extrapolate the cell averages to face averages (forward/upwind)
-            Current convention: |  i-1     ---> |  i       ---> |  i+1     ---> |
-                                |       w(i-1/2)|       w(i+1/2)|       w(i+3/2)|
+            |               w(i-1/2)            w(i+1/2)                |
+            |  i-1           -->|   i            -->|  i+1           -->|
+            |        w_R(i-1)   |          w_R(i)   |        w_R(i+1)   |
             """
             # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
             wF = 7/12 * (wS + w[2:]) - 1/12 * (w[:-2] + w2[4:])
@@ -67,10 +69,10 @@ def run(grid, sim_variables, author="mc", dissipate=False):
             kwargs = {"wF_pad2": wF_pad2, "boundary": boundary}
 
         """Reconstruct the limited parabolic interpolants from the interface values [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
-        Current convention: |                        w(i-1/2)                    w(i+1/2)                       |
-                            |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
-                            |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
-                    OR      |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
+        |                        w(i-1/2)                    w(i+1/2)                       |
+        |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
+        |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
+        |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
         """
         wL, wR = limiters.interpolant_limiter(wS, w, w2, author, *limited_wFs, **kwargs)
 
