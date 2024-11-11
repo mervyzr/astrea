@@ -37,13 +37,17 @@ def run(grid, sim_variables):
         # Re-align the interfaces so that cell wall is in between interfaces
         w_plus, w_minus = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
 
+        # Get the average solution between the interfaces at the boundaries
+        intf_avg = (.5 * (w_plus + w_minus))[1:]
+        _intf_avg = fv.add_boundary(intf_avg, boundary)
+
         # Convert the primitive variables
         # The conversion can be pointwise conversion for face-average values as it is still 2nd-order
         q_plus, q_minus = fv.convert_primitive(w_plus, sim_variables, "face"), fv.convert_primitive(w_minus, sim_variables, "face")
 
         # Compute the fluxes and the Jacobian
         flux_plus, flux_minus = constructor.make_flux(w_plus, gamma, axis), constructor.make_flux(w_minus, gamma, axis)
-        A = constructor.make_Jacobian(w, gamma, axis)
+        A = constructor.make_Jacobian(_intf_avg, gamma, axis)
 
         # Update dict
         data[axes]['wS'] = wS

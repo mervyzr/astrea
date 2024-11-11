@@ -80,19 +80,19 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         w_plus, w_minus = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
 
         # Get the average solution between the interfaces at the boundaries
-        boundary_avg = constructor.make_Roe_average(w_plus, w_minus)[1:]
+        intf_avg = constructor.make_Roe_average(w_plus, w_minus)[1:]
+        _intf_avg = fv.add_boundary(intf_avg, boundary)
 
         # Convert the primitive variables
         q_plus, q_minus = fv.convert_primitive(w_plus, sim_variables, "face"), fv.convert_primitive(w_minus, sim_variables, "face")
 
         # Compute the fluxes and the Jacobian
-        _w = fv.add_boundary(boundary_avg, boundary)
         flux_plus, flux_minus = constructor.make_flux(w_plus, gamma, axis), constructor.make_flux(w_minus, gamma, axis)
 
         if (author == "mc" or "mccorquodale" in author) and dissipate:
             data[axes]['mu'] = apply_artificial_viscosity(wS, axis, sim_variables)
 
-        A = constructor.make_Jacobian(_w, gamma, axis)
+        A = constructor.make_Jacobian(_intf_avg, gamma, axis)
 
         # Update dict
         data[axes]['wS'] = wS
