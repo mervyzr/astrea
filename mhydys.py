@@ -220,7 +220,7 @@ def run() -> None:
     else:
         # Save the temporary HDF5 database (!! Possibly large file sizes > 100GB !!)
         if _sim_variables.save_file:
-            shutil.move(file_name, f"{save_path}/mHydyS_{_sim_variables.config}_{_sim_variables.subgrid}_{_sim_variables.timestep}_{SEED}.hdf5")
+            shutil.move(file_name, f"{save_path}/mhydys_{_sim_variables.config}_{_sim_variables.subgrid}_{_sim_variables.timestep}_{SEED}.hdf5")
         else:
             os.remove(file_name)
     
