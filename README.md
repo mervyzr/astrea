@@ -12,7 +12,7 @@ m-hydys (pronounced _"Hades"_; the _"m"_ is silent 😀) is a (one-)/two-dimensi
 
 <p align='center'>
   <img src='./static/khi_rho.gif' width=400 alt='Kelvin-Helmholtz instability'>
-  <img src='./static/lax_liu_3.gif' width=400 alt='Lax-Liu 3'>
+  <img src='./static/lax_liu_6.gif' width=400 alt='Lax-Liu 6'>
 </p>
 
 # Description
