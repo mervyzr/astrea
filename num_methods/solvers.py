@@ -299,16 +299,15 @@ def calculate_ES_flux(sim_variables, **kwargs):
 
     # Stable numerical procedure for computing logarithmic mean [Ismail & Roe, 2009]
     def lon(term):
-        L, R = term
-        zeta = np.divide(L, R, out=np.zeros_like(L), where=R!=0)
-        f = np.divide(zeta-1, zeta+1, out=np.zeros_like(zeta), where=(zeta+1)!=0)
+        zeta = fv.divide(term[0], term[1])
+        f = fv.divide(zeta-1, zeta+1)
         u = f*f
 
         if (u < 1e-2).any():
             F = 1 + u/3 + u*u/5 + u*u*u/7
         else:
             F = np.log(zeta)/2/f
-        return (L+R)/(2*F)
+        return (term[0]+term[1])/(2*F)
 
     # Define frequently used terms; here we use L & R states for simplicity, i.e. L state = w-, R state = w+
     rhoL, vecL, PL, B_fieldL = w_minus[...,0], w_minus[...,1:4], w_minus[...,4], w_minus[...,5:8]

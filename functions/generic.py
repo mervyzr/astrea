@@ -50,8 +50,8 @@ class RecursiveNamespace:
 
 
 # Print status to Terminal
-def print_output(instance_time, seed, sim_variables, **kwargs):
-    _seed = f"{BColours.OKBLUE}{seed}{BColours.ENDC}"
+def print_output(instance_time, sim_variables, **kwargs):
+    _seed = f"{BColours.OKBLUE}{sim_variables.seed}{BColours.ENDC}"
     _config = f"{BColours.OKCYAN}{sim_variables.config.upper()}{BColours.ENDC}"
     _subgrid = f"{BColours.OKCYAN}{sim_variables.subgrid.upper()}{BColours.ENDC}"
     _timestep = f"{BColours.OKCYAN}{sim_variables.timestep.upper()}{BColours.ENDC}"
@@ -111,12 +111,12 @@ def handle_CLI():
     parser.add_argument('--save_file', '--save-file', dest='save_file', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving the simulation data file (.hdf5)', choices=bool_choices)
 
     parser.add_argument('--debug', '--DEBUG', dest='debug', help='toggle for more detailed description of errors/bugs', action='store_true')
-    parser.add_argument('-q', '--quiet', '--noprint', '--NOPRINT', '--no-print', dest='noprint', help='toggle printing to screen', action='store_true')
+    parser.add_argument('-q', '--quiet', '--noprint', '--NOPRINT', '--no_print', '--no-print', dest='quiet', help='toggle printing to screen', action='store_true')
     parser.add_argument('--test', '--TEST', dest='test', default=argparse.SUPPRESS, help=argparse.SUPPRESS, action='store_true')
 
     args = parser.parse_args()
 
-    return vars(args), args.debug, args.noprint
+    return vars(args), args.debug
 
 
 # Variables handler; handles all variables from CLI & settings file and revert to default values for the simulation variables (dict) if unknown
@@ -128,12 +128,11 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
             _config_variables[k] = v
 
     # Replace the relevant configuration variables with the CLI variables
-    if bool(cli_variables):
-        for k,v in cli_variables.items():
-            if k in _config_variables:
-                _config_variables[k] = v
+    for k,v in cli_variables.items():
+        if k in _config_variables:
+            _config_variables[k] = v
 
-    # Check validity of variables
+    # Check validity of variables; revert to default values if not valid
     final_dict = {}
     for k,v in _config_variables.items():
         if k in ['live_plot', 'take_snaps', 'save_video', 'save_plots', 'save_file']:
@@ -175,6 +174,10 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     final_dict['config_category'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
     final_dict['timestep_category'] = DB.get(PARAMS.accepted.any([final_dict['timestep']]))['category']
     final_dict['scheme_category'] = DB.get(PARAMS.accepted.any([final_dict['scheme']]))['category']
+    try:
+        final_dict['quiet'] = cli_variables["quiet"]
+    except Exception as e:
+        final_dict['quiet'] = False
 
     if final_dict['scheme'] in DB.get(PARAMS.type == 'scheme' and PARAMS.category == 'complete')['accepted']:
         _roots, _weights = legendre.leggauss(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
