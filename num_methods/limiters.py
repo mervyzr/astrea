@@ -79,14 +79,14 @@ def interface_limiter(w_face, w_minus_one, w_cell, w_plus_one, w_plus_two):
     
 
 # Parabolic interpolant limiter for PPM [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
-def interpolant_limiter(wS, w, w2, paper, *args, **kwargs):
+def interpolant_limiter(wS, w, w2, author, *args, **kwargs):
     wF_L, wF_R = args
     C = 5/4
 
     # Set differences
     dw_minus, dw_plus = wS - wF_L, wF_R - wS
 
-    if paper == "mc" or "mccorquodale" in paper:
+    if author == "mc" or "mccorquodale" in author:
         # Define functions
         boundary = kwargs['boundary']
         wL, wR = np.copy(wF_L), np.copy(wF_R)
@@ -146,7 +146,7 @@ def interpolant_limiter(wS, w, w2, paper, *args, **kwargs):
         # Check for cell extrema in cells [Colella et al., 2011, eq. 89; Peterson & Hammett, 2008, eq. 3.31]
         cell_extrema = dw_minus*dw_plus <= 0
 
-        if "x" in paper or "ph" in paper or paper in ["peterson", "hammett"]:
+        if "x" in author or "ph" in author or author in ["peterson", "hammett"]:
             interpolant_extrema = (w[:-2]-wS)*(wS-w[2:]) <= 0
         else:
             # Check for overshoot in cells [Colella et al., 2011, eq. 90]
@@ -180,7 +180,7 @@ def interpolant_limiter(wS, w, w2, paper, *args, **kwargs):
             # Update the limited local curvature estimates based on the conditions [Peterson & Hammett, 2008, eq. 3.38]
             D2w_lim[cell_extrema & non_monotonic] = limited_curvature[cell_extrema & non_monotonic]
 
-            if "x" in paper or "ph" in paper or paper in ["peterson", "hammett"]:
+            if "x" in author or "ph" in author or author in ["peterson", "hammett"]:
                 # Get the final limited values [Peterson & Hammett, 2008, eq. 3.39]
                 phi = fv.divide(D2w_lim, D2w)
 
