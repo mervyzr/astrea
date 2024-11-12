@@ -181,9 +181,9 @@ def generate_test_conditions(config, cells):
                 misc = {'bottom_left':np.array([1,-.7259,-.7259,0,1,0,0,0]), 'bottom_right':np.array([.5197,0,-.7259,0,.4,0,0,0])}
 
         elif index == 3:
-            initial_left = np.array([1.5,0,0,0,1.5,0,0,0])
-            initial_right = np.array([.5323,1.206,0,0,.3,0,0,0])
-            misc = {'bottom_left':np.array([.5323,0,1.206,0,.3,0,0,0]), 'bottom_right':np.array([.138,1.206,1.206,0,.029,0,0,0])}
+            initial_left = np.array([.5323,1.206,0,0,.3,0,0,0])
+            initial_right = np.array([1.5,0,0,0,1.5,0,0,0])
+            misc = {'bottom_left':np.array([.138,1.206,1.206,0,.029,0,0,0]), 'bottom_right':np.array([.5323,0,1.206,0,.3,0,0,0])}
 
         elif index == 4:
             initial_left = np.array([.5065,.8939,0,0,.35,0,0,0])
