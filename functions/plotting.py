@@ -447,9 +447,10 @@ def plot_conservation_equations(f, sim_variables, save_path):
         return None
 
 
-def make_video(f, sim_variables, save_path, vidpath):
+def make_video(f, sim_variables, save_path, vidpath, variable="all"):
     config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
+    variable = variable.lower()
 
     # hdf5 keys are string; need to convert back to int and sort again
     n_list = [int(n) for n in f.keys()]
@@ -465,42 +466,71 @@ def make_video(f, sim_variables, save_path, vidpath):
         counter = 0
 
         for t, grid in simulation.items():
-            fig, ax = plt.subplots(nrows=2, ncols=2, figsize=figsize)
-
-            for _i, _j in PLOT_INDEXES:
-                ax[_i,_j].set_ylabel(PLOT_LABELS[_i][_j], fontsize=18)
-                if dimension < 2:
-                    ax[_i,_j].set_xlim([start_pos, end_pos])
-                    ax[_i,_j].grid(linestyle="--", linewidth=0.5)
-
-            y1 = grid[...,0]  # density
-            y2 = grid[...,4]  # pressure
-            y3 = grid[...,1]  # vx
-            y4 = y2/y1  # specific thermal energy
             x = np.linspace(start_pos, end_pos, N)
-            y_data = [[y1, y2], [y3, y4]]
 
-            for _i, _j in PLOT_INDEXES:
-                y = y_data[_i][_j]
+            if variable == "all":
+                fig, ax = plt.subplots(nrows=2, ncols=2, figsize=figsize)
+
+                for _i, _j in PLOT_INDEXES:
+                    ax[_i,_j].set_ylabel(PLOT_LABELS[_i][_j], fontsize=18)
+                    if dimension < 2:
+                        ax[_i,_j].set_xlim([start_pos, end_pos])
+                        ax[_i,_j].grid(linestyle="--", linewidth=0.5)
+
+                y1 = grid[...,0]  # density
+                y2 = grid[...,4]  # pressure
+                y3 = grid[...,1]  # vx
+                y4 = y2/y1  # specific thermal energy
+                y_data = [[y1, y2], [y3, y4]]
+
+                for _i, _j in PLOT_INDEXES:
+                    y = y_data[_i][_j]
+
+                    if dimension == 2:
+                        fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
+                        fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
+                        graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=TWOD_COLOURS[_i][_j], origin="lower")
+                        divider = make_axes_locatable(ax[_i,_j])
+                        cax = divider.append_axes('right', size='5%', pad=0.05)
+                        fig.colorbar(graph, cax=cax, orientation='vertical')
+                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}^{dimension}$)", fontsize=24)
+                        
+                    else:
+                        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
+                        if BEAUTIFY:
+                            gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
+                        else:
+                            ax[_i,_j].plot(x, y, linewidth=2, color=COLOURS[_i][_j])
+                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=24)
+
+                plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330)
+
+            else:
+                fig, ax = plt.subplots(figsize=figsize)
+                plt.axis('off')
+
+                if variable in ["energy", "temperature", "temp", "t"]:
+                    y_data = fv.divide(grid[...,4], grid[...,0])
+                    colour, colour2 = "darkviolet", "plasma"
+                elif variable in ["pressure", "p"]:
+                    y_data = grid[...,4]
+                    colour, colour2 = "red", "hot"
+                elif variable in ["vx", "x"]:
+                    y_data = grid[...,1]
+                    colour, colour2 = "green", "cividis"
+                elif variable in ["vy", "y"]:
+                    y_data = grid[...,2]
+                    colour, colour2 = "yellow", "magma"
+                else:
+                    y_data = grid[...,0]
+                    colour, colour2 = "blue", "viridis"
 
                 if dimension == 2:
-                    fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
-                    fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
-                    graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=TWOD_COLOURS[_i][_j], origin="lower")
-                    divider = make_axes_locatable(ax[_i,_j])
-                    cax = divider.append_axes('right', size='5%', pad=0.05)
-                    fig.colorbar(graph, cax=cax, orientation='vertical')
-                    plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}^{dimension}$)", fontsize=24)
-                    
+                    ax.imshow(y_data, interpolation="nearest", cmap=colour2, origin="lower")
                 else:
-                    fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
-                    if BEAUTIFY:
-                        gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
-                    else:
-                        ax[_i,_j].plot(x, y, linewidth=2, color=COLOURS[_i][_j])
-                    plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=24)
+                    ax.plot(x, y_data, linewidth=2, color=colour)
 
-            plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330)
+                plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330, bbox_inches='tight', pad_inches=0, transparent=True)
 
             plt.cla()
             plt.clf()
