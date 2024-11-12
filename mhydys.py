@@ -39,7 +39,7 @@ def core_run(grp: h5py, _sim_variables: namedtuple, *args, **kwargs):
     # Initiate live or snapshot plotting, if enabled
     if _sim_variables.live_plot:
         plotting_params = plotting.initiate_live_plot(_sim_variables)
-    elif _sim_variables.save_snaps:
+    elif _sim_variables.take_snaps:
         tol = _sim_variables.t_end/(_sim_variables.snapshots*_sim_variables.cells)
         timings = np.linspace(0, _sim_variables.t_end, _sim_variables.snapshots+1)
 
@@ -60,7 +60,7 @@ def core_run(grp: h5py, _sim_variables: namedtuple, *args, **kwargs):
         # Update the live plot, if enabled, or save snapshot
         if _sim_variables.live_plot:
             plotting.update_plot(grid_snapshot, t, _sim_variables.dimension, *plotting_params)
-        elif _sim_variables.save_snaps:
+        elif _sim_variables.take_snaps:
             if (np.abs(t-timings) <= tol).any():
                 plotting.plot_snapshot(grid_snapshot, t, _sim_variables, save_path=f"./savedData/snap{_sim_variables.seed}")
 
@@ -148,7 +148,7 @@ def run() -> None:
     # Make directories if they do not exist
     if (_sim_variables.save_plots or _sim_variables.save_video or _sim_variables.save_file) and not os.path.exists(save_path):
         os.makedirs(save_path)
-    if _sim_variables.save_snaps and not os.path.exists(f"{CURRENT_DIR}/savedData/snap{SEED}"):
+    if _sim_variables.take_snaps and not os.path.exists(f"{CURRENT_DIR}/savedData/snap{SEED}"):
         os.makedirs(f"{CURRENT_DIR}/savedData/snap{SEED}")
 
     # Run in a try-except-else to handle crashes and prevent exiting code entirely, with signal handler

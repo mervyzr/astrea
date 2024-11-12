@@ -105,7 +105,7 @@ def handle_CLI():
 
     parser.add_argument('--snapshots', metavar='', type=int, default=argparse.SUPPRESS, help='number of snapshots to save')
     parser.add_argument('--live_plot', '--live-plot', '--live', dest='live_plot', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
-    parser.add_argument('--save_snaps', '--save-snaps', dest='save_snaps', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
+    parser.add_argument('--take_snaps', '--take-snaps', dest='take_snaps', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
     parser.add_argument('--save_plots', '--save-plots', dest='save_plots', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving final plots of the simulation', choices=bool_choices)
     parser.add_argument('--save_video', '--save-video', dest='save_video', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving a video of the simulation', choices=bool_choices)
     parser.add_argument('--save_file', '--save-file', dest='save_file', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving the simulation data file (.hdf5)', choices=bool_choices)
@@ -136,7 +136,7 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     # Check validity of variables
     final_dict = {}
     for k,v in _config_variables.items():
-        if k in ['live_plot', 'save_snaps', 'save_video', 'save_plots', 'save_file']:
+        if k in ['live_plot', 'take_snaps', 'save_video', 'save_plots', 'save_file']:
             if not isinstance(v, bool):
                 v = False
         elif k in ['snapshots', 'dimension']:
@@ -194,11 +194,11 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
         if final_dict['live_plot']:
             print(f"{BColours.WARNING}Live plots can only be switched on for single simulation runs..{BColours.ENDC}")
             final_dict['live_plot'] = False
-        if final_dict['save_snaps']:
+        if final_dict['take_snaps']:
             print(f"{BColours.WARNING}Saving snapshots can only be switched on for single simulation runs..{BColours.ENDC}")
-            final_dict['save_snaps'] = False
+            final_dict['take_snaps'] = False
     else:
-        if (final_dict['save_snaps'] or final_dict['save_video'] or final_dict['save_plots']) and (final_dict['live_plot']):
+        if (final_dict['take_snaps'] or final_dict['save_video'] or final_dict['save_plots']) and (final_dict['live_plot']):
             print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live plot interferes with matplotlib.savefig..{BColours.ENDC}")
             final_dict['live_plot'] = False
 
