@@ -49,8 +49,8 @@ class RecursiveNamespace:
                 setattr(self, key, val)
 
 
-# Print status to Terminal
-def print_output(instance_time, sim_variables, **kwargs):
+# Print progress status to Terminal
+def print_progress(t, sim_variables):
     _seed = f"{BColours.OKBLUE}{sim_variables.seed}{BColours.ENDC}"
     _config = f"{BColours.OKCYAN}{sim_variables.config.upper()}{BColours.ENDC}"
     _subgrid = f"{BColours.OKCYAN}{sim_variables.subgrid.upper()}{BColours.ENDC}"
@@ -58,25 +58,42 @@ def print_output(instance_time, sim_variables, **kwargs):
     _scheme = f"{BColours.OKCYAN}{sim_variables.scheme.upper()}{BColours.ENDC}"
     _cfl = f"{BColours.OKCYAN}{sim_variables.cfl}{BColours.ENDC}"
     _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({sim_variables.dimension}D){BColours.ENDC}"
+    _instance = f"{BColours.WARNING}{'%.6f'%t} / {sim_variables.t_end}{BColours.ENDC}"
 
     if sim_variables.dimension != 1:
         _cells = f"{BColours.OKCYAN}{sim_variables.cells}^{sim_variables.dimension}{BColours.ENDC}"
     else:
         _cells = f"{BColours.OKCYAN}{sim_variables.cells}{BColours.ENDC}"
 
-    if kwargs:
-        if kwargs['elapsed'] >= 3600:
-            _elapsed = f"{BColours.FAIL}{str(timedelta(seconds=kwargs['elapsed']))}s{BColours.ENDC}"
-        elif 3600 > kwargs['elapsed'] >= 1800:
-            _elapsed = f"{BColours.WARNING}{str(timedelta(seconds=kwargs['elapsed']))}s{BColours.ENDC}"
-        else:
-            _elapsed = f"{BColours.OKGREEN}{str(timedelta(seconds=kwargs['elapsed']))}s{BColours.ENDC}"
-        #_performance = f"{BColours.OKGREEN}{round(kwargs['elapsed']*1e6/(sim_variables.cells*run_length), 3)} \u03BCs/(dt*N){BColours.ENDC}"
-        print(f"[{instance_time} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SCHEME={_scheme}, TIMESTEP={_timestep} || Elapsed: {_elapsed} ({kwargs['run_length']})", flush=True)
-        pass
+    print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SCHEME={_scheme}, TIMESTEP={_timestep} || {_instance}", end='\r')
+    pass
+
+
+# Print final status to Terminal
+def print_final(grp, sim_variables):
+    _seed = f"{BColours.OKBLUE}{sim_variables.seed}{BColours.ENDC}"
+    _config = f"{BColours.OKCYAN}{sim_variables.config.upper()}{BColours.ENDC}"
+    _subgrid = f"{BColours.OKCYAN}{sim_variables.subgrid.upper()}{BColours.ENDC}"
+    _timestep = f"{BColours.OKCYAN}{sim_variables.timestep.upper()}{BColours.ENDC}"
+    _scheme = f"{BColours.OKCYAN}{sim_variables.scheme.upper()}{BColours.ENDC}"
+    _cfl = f"{BColours.OKCYAN}{sim_variables.cfl}{BColours.ENDC}"
+    _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({sim_variables.dimension}D){BColours.ENDC}"
+    #_performance = f"{BColours.OKGREEN}{round(kwargs['elapsed']*1e6/(sim_variables.cells*run_length), 3)} \u03BCs/(dt*N){BColours.ENDC}"
+
+    if sim_variables.dimension != 1:
+        _cells = f"{BColours.OKCYAN}{sim_variables.cells}^{sim_variables.dimension}{BColours.ENDC}"
     else:
-        print(f"[{instance_time} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SCHEME={_scheme}, TIMESTEP={_timestep} || {BColours.WARNING}RUNNING SIMULATION..{BColours.ENDC}", end='\r')
-        pass
+        _cells = f"{BColours.OKCYAN}{sim_variables.cells}{BColours.ENDC}"
+
+    if sim_variables.elapsed >= 60*60:
+        _elapsed = f"{BColours.FAIL}{str(timedelta(seconds=sim_variables.elapsed))}s{BColours.ENDC}"
+    elif 60*60 > sim_variables.elapsed >= 30*60:
+        _elapsed = f"{BColours.WARNING}{str(timedelta(seconds=sim_variables.elapsed))}s{BColours.ENDC}"
+    else:
+        _elapsed = f"{BColours.OKGREEN}{str(timedelta(seconds=sim_variables.elapsed))}s{BColours.ENDC}"
+
+    print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SCHEME={_scheme}, TIMESTEP={_timestep} || Elapsed: {_elapsed} ({len(grp)})", flush=True)
+    pass
 
 
 # CLI arguments handler; updates the simulation variables (which is a dict) and checks for any invalid values
@@ -170,6 +187,8 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
 
     # Add relevant key-pairs to the dictionary
     final_dict['seed'] = int(seed)
+    final_dict['now'] = None
+    final_dict['elapsed'] = None
     final_dict['permutations'] = [axes for axes in list(itertools.permutations(list(range(final_dict['dimension']+1)))) if axes[-1] == final_dict['dimension']]
     final_dict['config_category'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
     final_dict['timestep_category'] = DB.get(PARAMS.accepted.any([final_dict['timestep']]))['category']

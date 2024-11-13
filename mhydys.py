@@ -56,6 +56,8 @@ def core_run(grp: h5py, sim_variables: namedtuple, *args, **kwargs):
         grid_snapshot = convert(grid, sim_variables).transpose(plot_axes)
         dataset = grp.create_dataset(str(float(t)), data=grid_snapshot)
         dataset.attrs['t'] = float(t)
+        if not sim_variables.quiet:
+            generic.print_progress(t, sim_variables)
 
         # Update the live plot, if enabled, or save snapshot
         if sim_variables.live_plot:
@@ -162,7 +164,10 @@ def run() -> None:
             f.attrs['seed'] = sim_variables.seed
             for N in n_list:
                 ############################# INDIVIDUAL SIMULATION #############################
+                now = datetime.now()
+
                 # Update cells (and grid width) in simulation variables (namedtuple)
+                sim_variables = sim_variables._replace(now=now)
                 sim_variables = sim_variables._replace(cells=N)
                 sim_variables = sim_variables._replace(dx=abs(sim_variables.end_pos-sim_variables.start_pos)/sim_variables.cells)
 
@@ -178,16 +183,16 @@ def run() -> None:
                 grp.attrs['scheme'] = sim_variables.scheme
 
                 ################### CORE ###################
-                lap, now = perf_counter(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                if not sim_variables.quiet:
-                    generic.print_output(now, sim_variables)
+                lap = perf_counter()
                 core_run(grp, sim_variables)
                 elapsed = perf_counter() - lap
+                ################### CORE ###################
+
+                sim_variables = sim_variables._replace(elapsed=elapsed)
                 grp.attrs['elapsed'] = elapsed
                 if not sim_variables.quiet:
-                    generic.print_output(now, sim_variables, elapsed=elapsed, run_length=len(list(grp.keys())))
-                ################### CORE ###################
-                ############################# END SIMULATION #############################
+                    generic.print_final(grp, sim_variables)
+                ############################# END INDIVIDUAL SIMULATION #############################
 
             # Save plots; primitive quantities, total variation, conservation equation quantities, solution errors (errors only for run_type=multiple)
             if sim_variables.save_plots:
