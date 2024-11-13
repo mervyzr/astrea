@@ -173,6 +173,7 @@ def run() -> None:
 
                 # Save simulation variables into HDF5 file
                 grp = f.create_group(str(sim_variables.cells))
+                grp.attrs['now'] = now
                 grp.attrs['config'] = sim_variables.config
                 grp.attrs['cells'] = sim_variables.cells
                 grp.attrs['cfl'] = sim_variables.cfl
