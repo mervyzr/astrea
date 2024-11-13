@@ -164,7 +164,7 @@ def generate_test_conditions(config, cells):
         start_pos = 0
         end_pos = 1
         shock_pos = .5
-        t_end = 1.5
+        t_end = 1
         boundary = "wrap"  # periodic
 
         if "ll" in config:
