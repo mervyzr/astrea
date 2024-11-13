@@ -283,8 +283,9 @@ def calculate_DOTS_flux(sim_variables, **kwargs):
 
 
 # Entropy-stable flux calculation based on left and right interpolated primitive variables [Winters & Gassner, 2015; Derigs et al., 2016]
-def calculate_ES_flux(sim_variables, **kwargs):
+def calculate_ES_flux(axis, sim_variables, **kwargs):
     w_plus, w_minus = kwargs["wFs"]
+    abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
     gamma = sim_variables.gamma
 
     # To construct the entropy-stable flux, 2 components are needed:
@@ -295,27 +296,20 @@ def calculate_ES_flux(sim_variables, **kwargs):
 
     # Compute arithmetic mean
     def arith_mean(term):
-        return .5 * (term[0] + term[1])
+        return .5 * (term[0] - term[1])
 
     # Stable numerical procedure for computing logarithmic mean [Ismail & Roe, 2009]
     def lon(term):
-        zeta = fv.divide(term[0], term[1])
-        f = fv.divide(zeta-1, zeta+1)
-        u = f*f
-
-        if (u < 1e-2).any():
-            F = 1 + u/3 + u*u/5 + u*u*u/7
-        else:
-            F = np.log(zeta)/2/f
-        return (term[0]+term[1])/(2*F)
+        return fv.divide(term[0] - term[1], fv.log(term[0]) - fv.log(term[1]))
 
     # Define frequently used terms; here we use L & R states for simplicity, i.e. L state = w-, R state = w+
     rhoL, vecL, PL, B_fieldL = w_minus[...,0], w_minus[...,1:4], w_minus[...,4], w_minus[...,5:8]
     rhoR, vecR, PR, B_fieldR = w_plus[...,0], w_plus[...,1:4], w_plus[...,4], w_plus[...,5:8]
 
-    z1 = np.array([np.sqrt(fv.divide(rhoR, PR)), np.sqrt(fv.divide(rhoL, PL))])
-    z5 = np.array([np.sqrt(rhoR*PR), np.sqrt(rhoL*PL)])
-    vx, vy, vz = np.array([vecR[...,0], vecL[...,0]]), np.array([vecR[...,1], vecL[...,1]]), np.array([vecR[...,2], vecL[...,2]])
+    z1 = np.array([np.sqrt(fv.divide(rhoL, PL)), np.sqrt(fv.divide(rhoR, PR))])
+    z5 = np.array([np.sqrt(rhoL*PL), np.sqrt(rhoR*PR)])
+    vx, vy, vz = np.array([vecL[...,0], vecR[...,0]]), np.array([vecL[...,1], vecR[...,1]]), np.array([vecL[...,2], vecR[...,2]])
+    Bx, By, Bz = np.array([B_fieldL[...,0], B_fieldR[...,0]]), np.array([B_fieldL[...,1], B_fieldR[...,1]]), np.array([B_fieldL[...,2], B_fieldR[...,2]])
 
     # Compute the averages
     rho_hat = arith_mean(z1) * lon(z5)
@@ -324,26 +318,26 @@ def calculate_ES_flux(sim_variables, **kwargs):
     u1_hat = fv.divide(arith_mean(vx*z1), arith_mean(z1))
     v1_hat = fv.divide(arith_mean(vy*z1), arith_mean(z1))
     w1_hat = fv.divide(arith_mean(vz*z1), arith_mean(z1))
-    u2_hat = fv.divide(arith_mean(vx*(z1**2)), arith_mean(z1**2))
-    v2_hat = fv.divide(arith_mean(vy*(z1**2)), arith_mean(z1**2))
-    w2_hat = fv.divide(arith_mean(vz*(z1**2)), arith_mean(z1**2))
-    B1_hat = arith_mean(np.array([B_fieldR[...,0], B_fieldL[...,0]]))
-    B1_dot = arith_mean(np.array([B_fieldR[...,0]**2, B_fieldL[...,0]**2]))
-    B2_hat = arith_mean(np.array([B_fieldR[...,1], B_fieldL[...,1]]))
-    B2_dot = arith_mean(np.array([B_fieldR[...,1]**2, B_fieldL[...,1]**2]))
-    B3_hat = arith_mean(np.array([B_fieldR[...,2], B_fieldL[...,2]]))
-    B3_dot = arith_mean(np.array([B_fieldR[...,2]**2, B_fieldL[...,2]**2]))
-    B1B2 = arith_mean(np.array([B_fieldR[...,0]*B_fieldR[...,1], B_fieldL[...,0]*B_fieldL[...,1]]))
-    B1B3 = arith_mean(np.array([B_fieldR[...,0]*B_fieldR[...,2], B_fieldL[...,0]*B_fieldL[...,2]]))
+    u2_hat = fv.divide(arith_mean(vx*z1**2), arith_mean(z1**2))
+    v2_hat = fv.divide(arith_mean(vy*z1**2), arith_mean(z1**2))
+    w2_hat = fv.divide(arith_mean(vz*z1**2), arith_mean(z1**2))
+    B1_hat = arith_mean(Bx)
+    B1_dot = arith_mean(Bx**2)
+    B2_hat = arith_mean(By)
+    B2_dot = arith_mean(By**2)
+    B3_hat = arith_mean(Bz)
+    B3_dot = arith_mean(Bz**2)
+    B1B2 = arith_mean(Bx*By)
+    B1B3 = arith_mean(Bx*Bz)
 
     # Update the entropy-conserving flux vector; suitable for smooth solutions
     ec_flux[...,0] = rho_hat * u1_hat
-    ec_flux[...,1] = P1_hat + rho_hat*u1_hat**2 + .5*(B1_dot+B2_dot+B3_dot) - B1_dot
-    ec_flux[...,2] = rho_hat*u1_hat*v1_hat - B1B2
-    ec_flux[...,3] = rho_hat*u1_hat*w1_hat - B1B3
+    ec_flux[...,abscissa+1] = P1_hat + rho_hat*u1_hat**2 + .5*(B1_dot+B2_dot+B3_dot) - B1_dot
+    ec_flux[...,ordinate+1] = rho_hat*u1_hat*v1_hat - B1B2
+    ec_flux[...,applicate+1] = rho_hat*u1_hat*w1_hat - B1B3
     ec_flux[...,4] = (gamma/(gamma-1))*u1_hat*P2_hat + .5*rho_hat*u1_hat*(u1_hat**2 + v1_hat**2 + w1_hat**2) + u2_hat*(B2_hat**2 + B3_hat**2) - B1_hat*(v2_hat*B2_hat + w2_hat*B3_hat)
-    ec_flux[...,6] = u2_hat*B2_hat - v2_hat*B1_hat
-    ec_flux[...,7] = u2_hat*B3_hat - w2_hat*B1_hat
+    ec_flux[...,ordinate+5] = u2_hat*B2_hat - v2_hat*B1_hat
+    ec_flux[...,applicate+5] = u2_hat*B3_hat - w2_hat*B1_hat
 
 
     # Entropy-stable flux with dissipation term section [Derigs et al., 2016]
