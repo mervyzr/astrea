@@ -11,9 +11,9 @@ m-hydys (pronounced _"Hades"_; the _"m"_ is silent 😀) is a (one-)/two-dimensi
 **_This code is created as part of the Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner._**
 
 <p align='center'>
-  <img src='./static/lax_liu_3.gif' width=33% alt='Lax-Liu 3'>
-  <img src='./static/khi_rho.gif' width=33% alt='Kelvin-Helmholtz instability'>
-  <img src='./static/lax_liu_6.gif' width=33% alt='Lax-Liu 6'>
+  <img src='./static/lax_liu_3.gif' width=30% alt='Lax-Liu 3'>
+  <img src='./static/khi_rho.gif' width=30% alt='Kelvin-Helmholtz instability'>
+  <img src='./static/lax_liu_6.gif' width=30% alt='Lax-Liu 6'>
 </p>
 
 # Description
