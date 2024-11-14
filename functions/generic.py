@@ -121,14 +121,14 @@ def handle_CLI():
     parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='run a single run or multiple runs for each simulation', choices=DB.get(PARAMS.type == 'run_type')['accepted'])
 
     parser.add_argument('--snapshots', metavar='', type=int, default=argparse.SUPPRESS, help='number of snapshots to save')
-    parser.add_argument('--live_plot', '--live-plot', '--live', dest='live_plot', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
-    parser.add_argument('--take_snaps', '--take-snaps', dest='take_snaps', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
-    parser.add_argument('--save_plots', '--save-plots', dest='save_plots', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving final plots of the simulation', choices=bool_choices)
-    parser.add_argument('--save_video', '--save-video', dest='save_video', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving a video of the simulation', choices=bool_choices)
-    parser.add_argument('--save_file', '--save-file', dest='save_file', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving the simulation data file (.hdf5)', choices=bool_choices)
+    parser.add_argument('--live_plot', '--live-plot', '--live', dest='live_plot', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
+    parser.add_argument('--take_snaps', '--take-snaps', dest='take_snaps', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
+    parser.add_argument('--save_plots', '--save-plots', dest='save_plots', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving final plots of the simulation', choices=bool_choices)
+    parser.add_argument('--save_video', '--save-video', dest='save_video', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving a video of the simulation', choices=bool_choices)
+    parser.add_argument('--save_file', '--save-file', dest='save_file', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving the simulation data file (.hdf5)', choices=bool_choices)
 
     parser.add_argument('--debug', '--DEBUG', dest='debug', help='toggle for more detailed description of errors/bugs', action='store_true')
-    parser.add_argument('-q', '--quiet', '--noprint', '--NOPRINT', '--no_print', '--no-print', dest='quiet', help='toggle printing to screen', action='store_true')
+    parser.add_argument('--quiet', '-q', dest='quiet', help='toggle printing to screen', action='store_true')
     parser.add_argument('--test', '--TEST', dest='test', default=argparse.SUPPRESS, help=argparse.SUPPRESS, action='store_true')
 
     args = parser.parse_args()

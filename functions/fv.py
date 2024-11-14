@@ -55,9 +55,9 @@ def add_boundary(grid, boundary, stencil=1, axis=0):
 # Pointwise (exact) conversion of primitive variables w to conservative variables q (up to 2nd-order accurate)
 def point_convert_primitive(grid, sim_variables):
     arr = np.copy(grid)
-    rhos, vecs, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
-    arr[...,4] = (pressures/(sim_variables.gamma-1)) + .5*(rhos*norm(vecs)**2 + norm(B_fields)**2)
-    arr[...,1:4] = vecs * rhos[...,None]
+    rhos, vels, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
+    arr[...,4] = (pressures/(sim_variables.gamma-1)) + .5*(rhos*norm(vels)**2 + norm(B_fields)**2)
+    arr[...,1:4] = vels * rhos[...,None]
     return arr
 
 
@@ -65,9 +65,9 @@ def point_convert_primitive(grid, sim_variables):
 def point_convert_conservative(grid, sim_variables):
     arr = np.copy(grid)
     rhos, moms, energies, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
-    vecs = divide(moms, rhos[...,None])
-    arr[...,4] = (sim_variables.gamma-1) * (energies - .5*(rhos*norm(vecs)**2 + norm(B_fields)**2))
-    arr[...,1:4] = vecs
+    vels = divide(moms, rhos[...,None])
+    arr[...,4] = (sim_variables.gamma-1) * (energies - .5*(rhos*norm(vels)**2 + norm(B_fields)**2))
+    arr[...,1:4] = vels
     return arr
 
 

@@ -218,7 +218,7 @@ def run() -> None:
             print(f"\n{generic.BColours.FAIL}-------    Error    -------{generic.BColours.ENDC}")
             print(traceback.format_exc())
         else:
-            print(f"{generic.BColours.FAIL}-- Error: {e}{generic.BColours.ENDC} (use --DEBUG option for more details)")
+            print(f"{generic.BColours.FAIL}-- Error: {e}{generic.BColours.ENDC} (use --debug option for more details)")
         os.remove(file_name)
 
     # If no errors;

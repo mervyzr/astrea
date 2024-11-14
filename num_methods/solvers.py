@@ -243,7 +243,7 @@ def calculate_DOTS_flux(axis, sim_variables, **kwargs):
     psi = arr_minus + (roots*(arr_plus - arr_minus).T).T
 
     # Define the right eigenvectors
-    _right_eigenvectors = constructor.make_OS_right_eigenvectors(axis, psi, gamma)
+    _right_eigenvectors = constructor.make_right_eigenvectors(axis, psi, gamma)
 
     # Generate the diagonal matrix of eigenvalues
     _lambda = np.zeros_like(_right_eigenvectors)
