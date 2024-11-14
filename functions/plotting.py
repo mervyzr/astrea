@@ -290,7 +290,7 @@ def plot_solution_errors(f, sim_variables, save_path, coeff, norm=1):
 
     x, y1, y2, y3, y4 = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
     for N in n_list:
-        x = np.append(x, f[str(N)].attrs['cells'])
+        x = np.append(x, f[str(N)].attrs['cells']**dimension)
         solution_errors = analytic.calculate_solution_error(f[str(N)], sim_variables, norm)
         y1 = np.append(y1, solution_errors[0])  # density
         y2 = np.append(y2, solution_errors[4])  # pressure
@@ -304,7 +304,7 @@ def plot_solution_errors(f, sim_variables, save_path, coeff, norm=1):
             ax[_i].grid(linestyle="--", linewidth=0.5)
 
             EOC = np.diff(np.log(y_data[_i][_j]))/np.diff(np.log(x))
-            idx = np.random.randint(0, len(EOC))
+            idx = np.argmin(np.abs(np.average(EOC)-EOC))
             c = np.log10(y_data[_i][_j][idx]) - EOC[idx]*np.log10(x[idx])
 
             for order in [1,2,4,5]:
@@ -313,7 +313,7 @@ def plot_solution_errors(f, sim_variables, save_path, coeff, norm=1):
                 ax[_j].loglog(x, ytheo, linewidth=2, color=THEO_COLOUR, linestyle="--")
                 ax[_j].annotate(rf"$O(N^{order})$", (x[-1], ytheo[-1]), fontsize=12)
             ax[_j].loglog(x, y_data[_i][_j], linewidth=2, linestyle="--", marker="o", color=COLOURS[_i][_j])
-            ax[_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|\text{{EOC}}_{{max}}|$ = {round(max(np.abs(np.diff(np.log(y_data[_i][_j]))/np.diff(np.log(x)))), 4)}")
+            ax[_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|\text{{EOC}}_{{max}}|$ = {round(max(np.abs(EOC)), 4)}")
             ax[_j].legend(prop={'size': 14})
 
     plt.suptitle(rf"$L_{norm}$ solution error norm $\epsilon_\nu(\vec{{w}})$ against resolution $N_\nu$ for {config.title()} test", fontsize=24)
