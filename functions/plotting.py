@@ -307,7 +307,7 @@ def plot_solution_errors(f, sim_variables, save_path, coeff, norm=1):
             idx = np.random.randint(0, len(EOC))
             c = np.log10(y_data[_i][_j][idx]) - EOC[idx]*np.log10(x[idx])
 
-            for order in [1,2,4]:
+            for order in [1,2,4,5]:
                 alpha = 10**(c + np.log10(coeff))
                 ytheo = alpha*x**(-order)
                 ax[_j].loglog(x, ytheo, linewidth=2, color=THEO_COLOUR, linestyle="--")
