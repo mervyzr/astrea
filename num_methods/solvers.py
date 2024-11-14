@@ -21,9 +21,9 @@ def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
         # 'Complete Riemann' schemes
         elif _sim_variables.scheme_category == "complete":
             if _sim_variables.scheme.startswith("o"):
-                return calculate_DOTS_flux(_sim_variables, **kwargs)
+                return calculate_DOTS_flux(_axis, _sim_variables, **kwargs)
             else:
-                return calculate_ES_flux(_sim_variables, **kwargs)
+                return calculate_ES_flux(_axis, _sim_variables, **kwargs)
         # Roe-type/Lax-type schemes
         else:
             if _sim_variables.scheme.endswith("w"):
@@ -232,17 +232,18 @@ def calculate_HLLD_flux(axis, sim_variables, **kwargs):
 
 
 # Osher-Solomon(-Dumbser-Toro) Riemann solver [Dumbser & Toro, 2011]
-def calculate_DOTS_flux(sim_variables, **kwargs):
+def calculate_DOTS_flux(axis, sim_variables, **kwargs):
     q_plus, q_minus = kwargs["qFs"]
     flux_plus, flux_minus = kwargs["fluxFs"]
     gamma, roots, weights = sim_variables.gamma, sim_variables.roots, sim_variables.weights
+    axis %= 3
 
     # Define the path integral for the Osher-Solomon dissipation term
     arr_plus, arr_minus = np.repeat(q_plus[None,:], len(roots), axis=0), np.repeat(q_minus[None,:], len(roots), axis=0)
     psi = arr_minus + (roots*(arr_plus - arr_minus).T).T
 
     # Define the right eigenvectors
-    _right_eigenvectors = constructor.make_OS_right_eigenvectors(psi, gamma)
+    _right_eigenvectors = constructor.make_OS_right_eigenvectors(axis, psi, gamma)
 
     # Generate the diagonal matrix of eigenvalues
     _lambda = np.zeros_like(_right_eigenvectors)
@@ -342,7 +343,7 @@ def calculate_ES_flux(axis, sim_variables, **kwargs):
 
     # Entropy-stable flux with dissipation term section [Derigs et al., 2016]
     # Make the right eigenvectors for each cell in each grid using the averaged primitive variables
-    right_eigenvectors = constructor.make_ES_right_eigenvectors(np.array([rho_hat.T, u1_hat.T, v1_hat.T, w1_hat.T, P1_hat.T, B1_hat.T, B2_hat.T, B3_hat.T]).T, gamma)
+    right_eigenvectors = constructor.make_ES_right_eigenvectors(axis, np.array([rho_hat.T, u1_hat.T, v1_hat.T, w1_hat.T, P1_hat.T, B1_hat.T, B2_hat.T, B3_hat.T]).T, gamma)
 
     # Define speeds
     sound_speed = np.sqrt(gamma * fv.divide(P1_hat, rho_hat))
@@ -371,8 +372,8 @@ def calculate_ES_flux(axis, sim_variables, **kwargs):
 
     # Define the jump in the entropy vector
     entropy_vector = np.zeros_like(w_plus)
-    entropy_vector[...,0] = ((gamma-np.log(PL*rhoL**-gamma))/(gamma-1) - fv.divide(.5*rhoL*fv.norm(w_minus[...,1:4])**2, PL)) - ((gamma-np.log(w_plus[...,4]*w_plus[...,0]**-gamma))/(gamma-1) - fv.divide(.5*w_plus[...,0]*fv.norm(w_plus[...,1:4])**2, w_plus[...,4]))
-    entropy_vector[...,4] = fv.divide(w_plus[...,0], w_plus[...,4]) - fv.divide(rhoL, PL)
+    entropy_vector[...,0] = ((gamma-np.log(PL*rhoL**-gamma))/(gamma-1) - fv.divide(.5*rhoL*fv.norm(vecL)**2, PL)) - ((gamma-np.log(PR*rhoR**-gamma))/(gamma-1) - fv.divide(.5*rhoR*fv.norm(vecR)**2, PR))
+    entropy_vector[...,4] = fv.divide(rhoR, PR) - fv.divide(rhoL, PL)
     entropy_vector[...,1:4] = fv.divide(vecL * rhoL[...,None], PL[...,None]) - fv.divide(vecR * rhoR[...,None], PR[...,None])
     entropy_vector[...,5:8] = fv.divide(B_fieldL * rhoL[...,None], PL[...,None]) - fv.divide(B_fieldR * rhoR[...,None], PR[...,None])
     entropy_vector *= -1

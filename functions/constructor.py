@@ -119,13 +119,12 @@ def make_Jacobian(grid, gamma, axis):
     arr[...,4,axis+1] = gamma * pressures
 
     # Magnetic field components
-    arr[...,axis+5,axis+5] = 0
     arr[...,abscissa+1,ordinate+5] = fv.divide(B_fields[...,ordinate], rhos)
     arr[...,abscissa+1,applicate+5] = fv.divide(B_fields[...,applicate], rhos)
-    arr[...,ordinate+1,ordinate+5] = arr[...,applicate+1,applicate+5] = -fv.divide(B_fields[...,axis], rhos)
-    arr[...,ordinate+5,axis+1] = B_fields[...,ordinate]
-    arr[...,applicate+5,axis+1] = B_fields[...,applicate]
-    arr[...,ordinate+5,ordinate+1] = arr[...,applicate+5,applicate+1] = -B_fields[...,axis]
+    arr[...,ordinate+1,ordinate+5] = arr[...,applicate+1,applicate+5] = -fv.divide(B_fields[...,abscissa], rhos)
+    arr[...,ordinate+5,abscissa+1] = B_fields[...,ordinate]
+    arr[...,applicate+5,abscissa+1] = B_fields[...,applicate]
+    arr[...,ordinate+5,ordinate+1] = arr[...,applicate+5,applicate+1] = -B_fields[...,abscissa]
     return arr
 
 
@@ -142,12 +141,14 @@ def make_Roe_average(left_interface, right_interface):
     return avg
 
 
-# Make the right eigenvector for adiabatic magnetohydrodynamics in Osher-Solomon flux
-def make_OS_right_eigenvectors(tubes, gamma):
-    rhos, pressures, B_fields = tubes[...,0], tubes[...,4], tubes[...,5:8]
+# Make the right eigenvector for adiabatic magnetohydrodynamics in Osher-Solomon flux [Derigs]
+def make_OS_right_eigenvectors(axis, grids, gamma):
+    abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
+    rhos, vecs, pressures, B_fields = grids[...,0], grids[...,1:4], grids[...,4], grids[...,5:8]/np.sqrt(4*np.pi)
+    vx, vy, vz = vecs[...,abscissa], vecs[...,ordinate], vecs[...,applicate]
 
     # Define the right eigenvectors for each cell in each grid
-    _right_eigenvectors = np.zeros_like(tubes)
+    _right_eigenvectors = np.zeros_like(grids)
     right_eigenvectors = np.repeat(_right_eigenvectors[...,None], _right_eigenvectors.shape[-1], axis=-1)
 
     # Define speed
@@ -158,74 +159,106 @@ def make_OS_right_eigenvectors(tubes, gamma):
     slow_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 - np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
 
     # Define frequently used components
-    S = np.sign(B_fields[...,0])
-    alpha_f = np.ones_like(sound_speed)
-    alpha_s = np.zeros_like(sound_speed)
-    alpha_f[fast_magnetosonic_wave != slow_magnetosonic_wave] = (np.sqrt(fv.divide(sound_speed**2 - slow_magnetosonic_wave**2, fast_magnetosonic_wave**2 - slow_magnetosonic_wave**2)))[fast_magnetosonic_wave != slow_magnetosonic_wave]
-    alpha_s[fast_magnetosonic_wave != slow_magnetosonic_wave] = (np.sqrt(fv.divide(fast_magnetosonic_wave**2 - sound_speed**2, fast_magnetosonic_wave**2 - slow_magnetosonic_wave**2)))[fast_magnetosonic_wave != slow_magnetosonic_wave]
-    beta_y = fv.divide(B_fields[...,1], np.sqrt(B_fields[...,1]**2 + B_fields[...,2]**2))
-    beta_z = fv.divide(B_fields[...,2], np.sqrt(B_fields[...,1]**2 + B_fields[...,2]**2))
-    C_ff = fast_magnetosonic_wave * alpha_f
-    C_ss = slow_magnetosonic_wave * alpha_s
-    Q_f = C_ff * S
-    Q_s = C_ss * S
-    A_f = sound_speed * alpha_f * np.sqrt(rhos)
-    A_s = sound_speed * alpha_s * np.sqrt(rhos)
+    S = np.sign(grids[...,abscissa+5])
+    S[S == 0] = 1
+    alpha_f = np.sqrt(fv.divide(sound_speed**2 - slow_magnetosonic_wave**2, fast_magnetosonic_wave**2 - slow_magnetosonic_wave**2))
+    alpha_s = np.sqrt(fv.divide(fast_magnetosonic_wave**2 - sound_speed**2, fast_magnetosonic_wave**2 - slow_magnetosonic_wave**2))
+    b_perpend = np.sqrt(fv.divide(grids[...,ordinate+5]**2 + grids[...,applicate+5]**2, rhos))
+    beta2 = fv.divide(grids[...,ordinate+5], np.sqrt(grids[...,ordinate+5]**2 + grids[...,applicate+5]**2))
+    beta3 = fv.divide(grids[...,applicate+5], np.sqrt(grids[...,ordinate+5]**2 + grids[...,applicate+5]**2))
+
+    psi_plus_slow = (
+        .5 * alpha_s * rhos * fv.norm(vecs)**2
+        - sound_speed * alpha_f * rhos * b_perpend
+        + (alpha_s * rhos * sound_speed**2)/(gamma - 1)
+        + alpha_s * slow_magnetosonic_wave * rhos * vx
+        + alpha_f * fast_magnetosonic_wave * rhos * S * (vy*beta2 + vz*beta3)
+        )
+    psi_minus_slow = (
+        .5 * alpha_s * rhos * fv.norm(vecs)**2
+        - sound_speed * alpha_f * rhos * b_perpend
+        + (alpha_s * rhos * sound_speed**2)/(gamma - 1)
+        - alpha_s * slow_magnetosonic_wave * rhos * vx
+        - alpha_f * fast_magnetosonic_wave * rhos * S * (vy*beta2 + vz*beta3)
+        )
+    psi_plus_fast = (
+        .5 * alpha_f * rhos * fv.norm(vecs)**2
+        + sound_speed * alpha_s * rhos * b_perpend
+        + (alpha_f * rhos * sound_speed**2)/(gamma - 1)
+        + alpha_f * fast_magnetosonic_wave * rhos * vx
+        - alpha_s * slow_magnetosonic_wave * rhos * S * (vy*beta2 + vz*beta3)
+        )
+    psi_minus_fast = (
+        .5 * alpha_f * rhos * fv.norm(vecs)**2
+        + sound_speed * alpha_s * rhos * b_perpend
+        + (alpha_f * rhos * sound_speed**2)/(gamma - 1)
+        - alpha_f * fast_magnetosonic_wave * rhos * vx
+        + alpha_s * slow_magnetosonic_wave * rhos * S * (vy*beta2 + vz*beta3)
+        )
 
     # Generate the right eigenvectors
-    # First row
+    # First column (Fast- magnetoacoustic wave)
     right_eigenvectors[...,0,0] = rhos * alpha_f
+    right_eigenvectors[...,abscissa+1,0] = rhos * alpha_f * (vx - fast_magnetosonic_wave)
+    right_eigenvectors[...,ordinate+1,0] = rhos * (alpha_f*vy + alpha_s*slow_magnetosonic_wave*beta2*S)
+    right_eigenvectors[...,applicate+1,0] = rhos * (alpha_f*vz + alpha_s*slow_magnetosonic_wave*beta3*S)
+    right_eigenvectors[...,4,0] = psi_minus_fast
+    right_eigenvectors[...,ordinate+5,0] = alpha_s * sound_speed * beta2 * np.sqrt(rhos)
+    right_eigenvectors[...,applicate+5,0] = alpha_s * sound_speed * beta3 * np.sqrt(rhos)
+    # Second column (Alfven- wave)
+    right_eigenvectors[...,ordinate+1,1] = -beta3 * rhos**1.5
+    right_eigenvectors[...,applicate+1,1] = beta2 * rhos**1.5
+    right_eigenvectors[...,4,1] = (beta2*vz - beta3*vy) * rhos**1.5
+    right_eigenvectors[...,ordinate+5,1] = -rhos * beta3
+    right_eigenvectors[...,applicate+5,1] = rhos * beta2
+    # Third column (Slow- magnetoacoustic wave)
     right_eigenvectors[...,0,2] = rhos * alpha_s
+    right_eigenvectors[...,abscissa+1,2] = rhos * alpha_s * (vx - slow_magnetosonic_wave)
+    right_eigenvectors[...,ordinate+1,2] = rhos * (alpha_s*vy - alpha_f*fast_magnetosonic_wave*beta2*S)
+    right_eigenvectors[...,applicate+1,2] = rhos * (alpha_s*vz - alpha_f*fast_magnetosonic_wave*beta3*S)
+    right_eigenvectors[...,4,2] = psi_minus_slow
+    right_eigenvectors[...,ordinate+5,2] = -alpha_f * sound_speed * beta2 * np.sqrt(rhos)
+    right_eigenvectors[...,applicate+5,2] = -alpha_f * sound_speed * beta3 * np.sqrt(rhos)
+    # Fourth column (Entropy wave)
     right_eigenvectors[...,0,3] = 1
-    right_eigenvectors[...,0,4] = 1
+    right_eigenvectors[...,abscissa+1,3] = vx
+    right_eigenvectors[...,ordinate+1,3] = vy
+    right_eigenvectors[...,applicate+1,3] = vz
+    right_eigenvectors[...,4,3] = .5 * fv.norm(vecs)**2
+    # Fifth column (Divergence wave)
+    right_eigenvectors[...,4,4] = grids[...,abscissa+5]
+    right_eigenvectors[...,abscissa+5,4] = 1
+    # Sixth column (Slow+ magnetoacoustic wave)
     right_eigenvectors[...,0,5] = rhos * alpha_s
+    right_eigenvectors[...,abscissa+1,5] = rhos * alpha_s * (vx + slow_magnetosonic_wave)
+    right_eigenvectors[...,ordinate+1,5] = rhos * (alpha_s*vy + alpha_f*fast_magnetosonic_wave*beta2*S)
+    right_eigenvectors[...,applicate+1,5] = rhos * (alpha_s*vz + alpha_f*fast_magnetosonic_wave*beta3*S)
+    right_eigenvectors[...,4,5] = psi_plus_slow
+    right_eigenvectors[...,ordinate+5,5] = -alpha_f * sound_speed * beta2 * np.sqrt(rhos)
+    right_eigenvectors[...,applicate+5,5] = -alpha_f * sound_speed * beta3 * np.sqrt(rhos)
+    # Seventh column (Alfven+ wave)
+    right_eigenvectors[...,ordinate+1,6] = beta3 * rhos**1.5
+    right_eigenvectors[...,applicate+1,6] = -beta2 * rhos**1.5
+    right_eigenvectors[...,4,6] = (beta3*vy - beta2*vz) * rhos**1.5
+    right_eigenvectors[...,ordinate+5,6] = -rhos * beta3
+    right_eigenvectors[...,applicate+5,6] = rhos * beta2
+    # Eighth column (Fast+ magnetoacoustic wave)
     right_eigenvectors[...,0,7] = rhos * alpha_f
-    # Second row
-    right_eigenvectors[...,1,0] = -C_ff
-    right_eigenvectors[...,1,2] = -C_ss
-    right_eigenvectors[...,1,5] = C_ss
-    right_eigenvectors[...,1,7] = C_ff
-    # Third row
-    right_eigenvectors[...,2,0] = Q_s * beta_y
-    right_eigenvectors[...,2,1] = -beta_z
-    right_eigenvectors[...,2,2] = -Q_f * beta_y
-    right_eigenvectors[...,2,5] = Q_f * beta_y
-    right_eigenvectors[...,2,6] = beta_z
-    right_eigenvectors[...,2,7] = -Q_s * beta_y
-    # Fourth row
-    right_eigenvectors[...,3,0] = Q_s * beta_z
-    right_eigenvectors[...,3,1] = beta_y
-    right_eigenvectors[...,3,2] = -Q_f * beta_z
-    right_eigenvectors[...,3,5] = Q_f * beta_z
-    right_eigenvectors[...,3,6] = -beta_y
-    right_eigenvectors[...,3,7] = -Q_s * beta_z
-    # Fifth row
-    right_eigenvectors[...,4,0] = rhos * alpha_f * sound_speed**2
-    right_eigenvectors[...,4,2] = rhos * alpha_s * sound_speed**2
-    right_eigenvectors[...,4,5] = rhos * alpha_s * sound_speed**2
-    right_eigenvectors[...,4,7] = rhos * alpha_f * sound_speed**2
-    # Seventh row
-    right_eigenvectors[...,6,0] = A_s * beta_y
-    right_eigenvectors[...,6,1] = -beta_z * S * np.sqrt(rhos)
-    right_eigenvectors[...,6,2] = -A_f * beta_y
-    right_eigenvectors[...,6,5] = -A_f * beta_y
-    right_eigenvectors[...,6,6] = -beta_z * S * np.sqrt(rhos)
-    right_eigenvectors[...,6,7] = A_s * beta_y
-    # Eighth row
-    right_eigenvectors[...,7,0] = A_s * beta_z
-    right_eigenvectors[...,7,1] = -beta_y * S * np.sqrt(rhos)
-    right_eigenvectors[...,7,2] = -A_f * beta_z
-    right_eigenvectors[...,7,5] = -A_f * beta_z
-    right_eigenvectors[...,7,6] = -beta_y * S * np.sqrt(rhos)
-    right_eigenvectors[...,7,7] = A_s * beta_z
+    right_eigenvectors[...,abscissa+1,7] = rhos * alpha_f * (vx + fast_magnetosonic_wave)
+    right_eigenvectors[...,ordinate+1,7] = rhos * (alpha_f*vy - alpha_s*slow_magnetosonic_wave*beta2*S)
+    right_eigenvectors[...,applicate+1,7] = rhos * (alpha_f*vz - alpha_s*slow_magnetosonic_wave*beta3*S)
+    right_eigenvectors[...,4,7] = psi_plus_fast
+    right_eigenvectors[...,ordinate+5,7] = alpha_s * sound_speed * beta2 * np.sqrt(rhos)
+    right_eigenvectors[...,applicate+5,7] = alpha_s * sound_speed * beta3 * np.sqrt(rhos)
 
     return right_eigenvectors
 
 
 # Make the right eigenvector for adiabatic magnetohydrodynamics in entropy-stable flux (primitive variables)
-def make_ES_right_eigenvectors(grid, gamma):
-    rhos, vs, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
-    vx, vy, vz = grid[...,1], grid[...,2], grid[...,3]
+def make_ES_right_eigenvectors(axis, grid, gamma):
+    abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
+    rhos, vs, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]/np.sqrt(4*np.pi)
+    vx, vy, vz = grid[...,abscissa], grid[...,ordinate], grid[...,applicate]
 
     # Define the right eigenvectors for each cell in each grid
     _right_eigenvectors = np.zeros_like(grid)
@@ -234,18 +267,18 @@ def make_ES_right_eigenvectors(grid, gamma):
     # Define speeds
     sound_speed = np.sqrt(gamma * fv.divide(pressures, rhos))
     alfven_speed = fv.divide(fv.norm(B_fields), np.sqrt(rhos))
-    alfven_speed_x = fv.divide(grid[...,5], np.sqrt(rhos))
+    alfven_speed_x = fv.divide(grid[...,abscissa+5], np.sqrt(rhos))
     fast_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 + np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
     slow_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 - np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
 
     # Define frequently used components
-    S = np.sign(grid[...,5])
+    S = np.sign(grid[...,abscissa+5])
     S[S == 0] = 1
     alpha_f = np.sqrt(fv.divide(sound_speed**2 - slow_magnetosonic_wave**2, fast_magnetosonic_wave**2 - slow_magnetosonic_wave**2))
     alpha_s = np.sqrt(fv.divide(fast_magnetosonic_wave**2 - sound_speed**2, fast_magnetosonic_wave**2 - slow_magnetosonic_wave**2))
-    b_perpend = np.sqrt(fv.divide(grid[...,6]**2 + grid[...,7]**2, rhos))
-    beta2 = fv.divide(grid[...,6], np.sqrt(grid[...,6]**2 + grid[...,7]**2))
-    beta3 = fv.divide(grid[...,7], np.sqrt(grid[...,6]**2 + grid[...,7]**2))
+    b_perpend = np.sqrt(fv.divide(grid[...,ordinate+5]**2 + grid[...,applicate+5]**2, rhos))
+    beta2 = fv.divide(grid[...,ordinate+5], np.sqrt(grid[...,ordinate+5]**2 + grid[...,applicate+5]**2))
+    beta3 = fv.divide(grid[...,applicate+5], np.sqrt(grid[...,ordinate+5]**2 + grid[...,applicate+5]**2))
 
     psi_plus_slow = (
         .5 * alpha_s * rhos * fv.norm(vs)**2
@@ -277,70 +310,70 @@ def make_ES_right_eigenvectors(grid, gamma):
         )
 
     # Generate the right eigenvectors
-    # First column (Fast+ magnetoacoustic wave)
+    # First column (Fast- magnetoacoustic wave)
     right_eigenvectors[...,0,0] = rhos * alpha_f
-    right_eigenvectors[...,1,0] = rhos * alpha_f * (vx + fast_magnetosonic_wave)
-    right_eigenvectors[...,2,0] = rhos * (alpha_f*vy - alpha_s*slow_magnetosonic_wave*beta2*S)
-    right_eigenvectors[...,3,0] = rhos * (alpha_f*vz - alpha_s*slow_magnetosonic_wave*beta3*S)
-    right_eigenvectors[...,4,0] = psi_plus_fast
-    right_eigenvectors[...,6,0] = alpha_s * sound_speed * beta2 * np.sqrt(rhos)
-    right_eigenvectors[...,7,0] = alpha_s * sound_speed * beta3 * np.sqrt(rhos)
-    # Second column (Alfven+ wave)
-    right_eigenvectors[...,2,1] = beta3 * rhos**1.5
-    right_eigenvectors[...,3,1] = -beta2 * rhos**1.5
-    right_eigenvectors[...,4,1] = (beta3*vy - beta2*vz) * rhos**1.5
-    right_eigenvectors[...,6,1] = -rhos * beta3
-    right_eigenvectors[...,7,1] = rhos * beta2
-    # Third column (Slow+ magnetoacoustic wave)
+    right_eigenvectors[...,abscissa+1,0] = rhos * alpha_f * (vx - fast_magnetosonic_wave)
+    right_eigenvectors[...,ordinate+1,0] = rhos * (alpha_f*vy + alpha_s*slow_magnetosonic_wave*beta2*S)
+    right_eigenvectors[...,applicate+1,0] = rhos * (alpha_f*vz + alpha_s*slow_magnetosonic_wave*beta3*S)
+    right_eigenvectors[...,4,0] = psi_minus_fast
+    right_eigenvectors[...,ordinate+5,0] = alpha_s * sound_speed * beta2 * np.sqrt(rhos)
+    right_eigenvectors[...,applicate+5,0] = alpha_s * sound_speed * beta3 * np.sqrt(rhos)
+    # Second column (Alfven- wave)
+    right_eigenvectors[...,ordinate+1,1] = -beta3 * rhos**1.5
+    right_eigenvectors[...,applicate+1,1] = beta2 * rhos**1.5
+    right_eigenvectors[...,4,1] = (beta2*vz - beta3*vy) * rhos**1.5
+    right_eigenvectors[...,ordinate+5,1] = -rhos * beta3
+    right_eigenvectors[...,applicate+5,1] = rhos * beta2
+    # Third column (Slow- magnetoacoustic wave)
     right_eigenvectors[...,0,2] = rhos * alpha_s
-    right_eigenvectors[...,1,2] = rhos * alpha_s * (vx + slow_magnetosonic_wave)
-    right_eigenvectors[...,2,2] = rhos * (alpha_s*vy + alpha_f*fast_magnetosonic_wave*beta2*S)
-    right_eigenvectors[...,3,2] = rhos * (alpha_s*vz + alpha_f*fast_magnetosonic_wave*beta3*S)
-    right_eigenvectors[...,4,2] = psi_plus_slow
-    right_eigenvectors[...,6,2] = -alpha_f * sound_speed * beta2 * np.sqrt(rhos)
-    right_eigenvectors[...,7,2] = -alpha_f * sound_speed * beta3 * np.sqrt(rhos)
+    right_eigenvectors[...,abscissa+1,2] = rhos * alpha_s * (vx - slow_magnetosonic_wave)
+    right_eigenvectors[...,ordinate+1,2] = rhos * (alpha_s*vy - alpha_f*fast_magnetosonic_wave*beta2*S)
+    right_eigenvectors[...,applicate+1,2] = rhos * (alpha_s*vz - alpha_f*fast_magnetosonic_wave*beta3*S)
+    right_eigenvectors[...,4,2] = psi_minus_slow
+    right_eigenvectors[...,ordinate+5,2] = -alpha_f * sound_speed * beta2 * np.sqrt(rhos)
+    right_eigenvectors[...,applicate+5,2] = -alpha_f * sound_speed * beta3 * np.sqrt(rhos)
     # Fourth column (Entropy wave)
     right_eigenvectors[...,0,3] = 1
-    right_eigenvectors[...,1,3] = vx
-    right_eigenvectors[...,2,3] = vy
-    right_eigenvectors[...,3,3] = vz
+    right_eigenvectors[...,abscissa+1,3] = vx
+    right_eigenvectors[...,ordinate+1,3] = vy
+    right_eigenvectors[...,applicate+1,3] = vz
     right_eigenvectors[...,4,3] = .5 * fv.norm(vs)**2
     # Fifth column (Divergence wave)
-    right_eigenvectors[...,4,4] = grid[...,5]
-    right_eigenvectors[...,5,4] = 1
-    # Sixth column (Slow- magnetoacoustic wave)
+    right_eigenvectors[...,4,4] = grid[...,abscissa+5]
+    right_eigenvectors[...,abscissa+5,4] = 1
+    # Sixth column (Slow+ magnetoacoustic wave)
     right_eigenvectors[...,0,5] = rhos * alpha_s
-    right_eigenvectors[...,1,5] = rhos * alpha_s * (vx - slow_magnetosonic_wave)
-    right_eigenvectors[...,2,5] = rhos * (alpha_s*vy - alpha_f*fast_magnetosonic_wave*beta2*S)
-    right_eigenvectors[...,3,5] = rhos * (alpha_s*vz - alpha_f*fast_magnetosonic_wave*beta3*S)
-    right_eigenvectors[...,4,5] = psi_minus_slow
-    right_eigenvectors[...,6,5] = -alpha_f * sound_speed * beta2 * np.sqrt(rhos)
-    right_eigenvectors[...,7,5] = -alpha_f * sound_speed * beta3 * np.sqrt(rhos)
-    # Seventh column (Alfven- wave)
-    right_eigenvectors[...,2,6] = -beta3 * rhos**1.5
-    right_eigenvectors[...,3,6] = beta2 * rhos**1.5
-    right_eigenvectors[...,4,6] = (beta2*vz - beta3*vy) * rhos**1.5
-    right_eigenvectors[...,6,6] = -rhos * beta3
-    right_eigenvectors[...,7,6] = rhos * beta2
-    # Eighth column (Fast- magnetoacoustic wave)
+    right_eigenvectors[...,abscissa+1,5] = rhos * alpha_s * (vx + slow_magnetosonic_wave)
+    right_eigenvectors[...,ordinate+1,5] = rhos * (alpha_s*vy + alpha_f*fast_magnetosonic_wave*beta2*S)
+    right_eigenvectors[...,applicate+1,5] = rhos * (alpha_s*vz + alpha_f*fast_magnetosonic_wave*beta3*S)
+    right_eigenvectors[...,4,5] = psi_plus_slow
+    right_eigenvectors[...,ordinate+5,5] = -alpha_f * sound_speed * beta2 * np.sqrt(rhos)
+    right_eigenvectors[...,applicate+5,5] = -alpha_f * sound_speed * beta3 * np.sqrt(rhos)
+    # Seventh column (Alfven+ wave)
+    right_eigenvectors[...,ordinate+1,6] = beta3 * rhos**1.5
+    right_eigenvectors[...,applicate+1,6] = -beta2 * rhos**1.5
+    right_eigenvectors[...,4,6] = (beta3*vy - beta2*vz) * rhos**1.5
+    right_eigenvectors[...,ordinate+5,6] = -rhos * beta3
+    right_eigenvectors[...,applicate+5,6] = rhos * beta2
+    # Eighth column (Fast+ magnetoacoustic wave)
     right_eigenvectors[...,0,7] = rhos * alpha_f
-    right_eigenvectors[...,1,7] = rhos * alpha_f * (vx - fast_magnetosonic_wave)
-    right_eigenvectors[...,2,7] = rhos * (alpha_f*vy + alpha_s*slow_magnetosonic_wave*beta2*S)
-    right_eigenvectors[...,3,7] = rhos * (alpha_f*vz + alpha_s*slow_magnetosonic_wave*beta3*S)
-    right_eigenvectors[...,4,7] = psi_minus_fast
-    right_eigenvectors[...,6,7] = alpha_s * sound_speed * beta2 * np.sqrt(rhos)
-    right_eigenvectors[...,7,7] = alpha_s * sound_speed * beta3 * np.sqrt(rhos)
+    right_eigenvectors[...,abscissa+1,7] = rhos * alpha_f * (vx + fast_magnetosonic_wave)
+    right_eigenvectors[...,ordinate+1,7] = rhos * (alpha_f*vy - alpha_s*slow_magnetosonic_wave*beta2*S)
+    right_eigenvectors[...,applicate+1,7] = rhos * (alpha_f*vz - alpha_s*slow_magnetosonic_wave*beta3*S)
+    right_eigenvectors[...,4,7] = psi_plus_fast
+    right_eigenvectors[...,ordinate+5,7] = alpha_s * sound_speed * beta2 * np.sqrt(rhos)
+    right_eigenvectors[...,applicate+5,7] = alpha_s * sound_speed * beta3 * np.sqrt(rhos)
 
     # Scale the right eigenvectors with a diagonal scaling matrix, so as to prevent degeneracies [Barth, 1999]
     diag_scaler = np.zeros_like(right_eigenvectors)
     diag_scaler[...,0,0] = 1/(2*gamma*rhos)
-    diag_scaler[...,1,1] = fv.divide(pressures, 2*rhos**2)
-    diag_scaler[...,2,2] = 1/(2*gamma*rhos)
-    diag_scaler[...,3,3] = (rhos*(gamma-1))/gamma
+    diag_scaler[...,abscissa+1,abscissa+1] = fv.divide(pressures, 2*rhos**2)
+    diag_scaler[...,ordinate+1,ordinate+1] = 1/(2*gamma*rhos)
+    diag_scaler[...,applicate+1,applicate+1] = (rhos*(gamma-1))/gamma
     diag_scaler[...,4,4] = fv.divide(pressures, rhos)
-    diag_scaler[...,5,5] = 1/(2*gamma*rhos)
-    diag_scaler[...,6,6] = fv.divide(pressures, 2*rhos**2)
-    diag_scaler[...,7,7] = 1/(2*gamma*rhos)
+    diag_scaler[...,abscissa+5,abscissa+5] = 1/(2*gamma*rhos)
+    diag_scaler[...,ordinate+5,ordinate+5] = fv.divide(pressures, 2*rhos**2)
+    diag_scaler[...,applicate+5,applicate+5] = 1/(2*gamma*rhos)
     R_dot = right_eigenvectors @ np.sqrt(diag_scaler)
 
     return R_dot
