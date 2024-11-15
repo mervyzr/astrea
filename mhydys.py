@@ -40,8 +40,8 @@ def core_run(grp: h5py, sim_variables: namedtuple, *args, **kwargs):
     if sim_variables.live_plot:
         plotting_params = plotting.initiate_live_plot(sim_variables)
     elif sim_variables.take_snaps:
-        tol = sim_variables.t_end/(sim_variables.snapshots*sim_variables.cells)
-        timings = np.linspace(0, sim_variables.t_end, sim_variables.snapshots+1)
+        plot_interval, snap_idx = sim_variables.t_end/sim_variables.snapshots, 0
+        _plot = True
 
     # Define the conversion based on subgrid model
     if sim_variables.subgrid.startswith("w") or sim_variables.subgrid in ["ppm", "parabolic", "p"]:
@@ -62,9 +62,10 @@ def core_run(grp: h5py, sim_variables: namedtuple, *args, **kwargs):
         # Update the live plot, if enabled, or save snapshot
         if sim_variables.live_plot:
             plotting.update_plot(grid_snapshot, t, sim_variables.dimension, *plotting_params)
-        elif sim_variables.take_snaps:
-            if (np.abs(t-timings) <= tol).any():
-                plotting.plot_snapshot(grid_snapshot, t, sim_variables, save_path=f"./savedData/snap{sim_variables.seed}")
+        elif sim_variables.take_snaps and _plot:
+            plotting.plot_snapshot(grid_snapshot, t, sim_variables, save_path=f"./savedData/snap{sim_variables.seed}")
+            _plot = False
+            snap_idx += 1
 
         # Handle the simulation end
         if t == sim_variables.t_end:
@@ -77,9 +78,14 @@ def core_run(grp: h5py, sim_variables: namedtuple, *args, **kwargs):
             eigmaxes = [sim_variables.dx/Riemann_flux.eigmax for Riemann_flux in list(interface_fluxes.values())]
             dt = sim_variables.cfl * min(eigmaxes)
 
-            # Handle dt close to simulation end
+            # Handle dt
             if t+dt > sim_variables.t_end:
                 dt = sim_variables.t_end - t
+
+            if sim_variables.take_snaps:
+                if t+dt >= plot_interval*snap_idx:
+                    dt = plot_interval*snap_idx - t
+                    _plot = True
 
             # Update the solution with the numerical fluxes using iterative methods
             grid = evolvers.evolve_time(grid, interface_fluxes, dt, sim_variables)
