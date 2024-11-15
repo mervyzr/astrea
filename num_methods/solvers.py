@@ -93,7 +93,7 @@ def calculate_LaxWendroff_flux(characteristics, **kwargs):
 def calculate_HLLC_flux(axis, sim_variables, low_mach=False, **kwargs):
     w_plus, w_minus = kwargs["wFs"]
     q_plus, q_minus = kwargs["qFs"]
-    flux_plus, flux_minus = kwargs["fluxFs"]
+    flux_minus, flux_plus = kwargs["fluxFs"]
     gamma = sim_variables.gamma
 
     """The convention here uses L & R states, i.e. L state = w-, R state = w+
@@ -156,7 +156,7 @@ def calculate_HLLD_flux(axis, sim_variables, **kwargs):
     wS = kwargs["wS"]
     w_plus, w_minus = kwargs["wFs"]
     q_plus, q_minus = kwargs["qFs"]
-    flux_plus, flux_minus = kwargs["fluxFs"]
+    flux_minus, flux_plus = kwargs["fluxFs"]
     gamma = sim_variables.gamma
     abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
 
