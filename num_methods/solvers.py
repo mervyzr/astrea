@@ -93,7 +93,7 @@ def calculate_LaxWendroff_flux(characteristics, **kwargs):
 def calculate_HLLC_flux(axis, sim_variables, low_mach=False, **kwargs):
     w_plus, w_minus = kwargs["wFs"]
     q_plus, q_minus = kwargs["qFs"]
-    flux_minus, flux_plus = kwargs["fluxFs"]
+    flux_plus, flux_minus = kwargs["fluxFs"]
     gamma = sim_variables.gamma
 
     """The convention here uses L & R states, i.e. L state = w-, R state = w+
@@ -132,10 +132,10 @@ def calculate_HLLC_flux(axis, sim_variables, low_mach=False, **kwargs):
 
     # Calculate the flux
     flux = np.copy(flux_plus)
-    fLs_star, fRs_star = flux_plus + (QL_star-QL) * sL[...,None], flux_minus + (QR_star-QR) * sR[...,None]
+    fLs_star, fRs_star = flux_minus + (QL_star-QL) * sL[...,None], flux_plus + (QR_star-QR) * sR[...,None]
     flux[(sL <= 0) & (0 < sM)] = fLs_star[(sL <= 0) & (0 < sM)]
     flux[(sM <= 0) & (0 <= sR)] = fRs_star[(sM <= 0) & (0 <= sR)]
-    flux[sR < 0] = flux_minus[sR < 0]
+    flux[sR < 0] = flux_plus[sR < 0]
     return flux
 
 
@@ -156,7 +156,7 @@ def calculate_HLLD_flux(axis, sim_variables, **kwargs):
     wS = kwargs["wS"]
     w_plus, w_minus = kwargs["wFs"]
     q_plus, q_minus = kwargs["qFs"]
-    flux_minus, flux_plus = kwargs["fluxFs"]
+    flux_plus, flux_minus = kwargs["fluxFs"]
     gamma = sim_variables.gamma
     abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
 
@@ -200,7 +200,7 @@ def calculate_HLLD_flux(axis, sim_variables, **kwargs):
     QL_star[...,4] = fv.divide(QL[...,4]*(sL-vecL[...,axis]) - vecL[...,axis]*(pL+.5*fv.norm(BL)**2) + p_star*sM + wS[...,abscissa+5]*(np.sum(vecL*BL, axis=-1) - np.sum(QL_star[...,1:4]*QL_star[...,5:8], axis=-1)), sL-sM)
     QR_star[...,4] = fv.divide(QR[...,4]*(sR-vecR[...,axis]) - vecR[...,axis]*(pR+.5*fv.norm(BR)**2) + p_star*sM + wS[...,abscissa+5]*(np.sum(vecR*BR, axis=-1) - np.sum(QR_star[...,1:4]*QR_star[...,5:8], axis=-1)), sR-sM)
 
-    fLs_star, fRs_star = np.copy(flux_plus), np.copy(flux_minus)
+    fLs_star, fRs_star = np.copy(flux_minus), np.copy(flux_plus)
     fLs_star, fRs_star = fLs_star + (QL_star - QL) * sL[...,None], fRs_star + (QR_star - QR) * sR[...,None]
 
     # Calculate the double-star states
@@ -219,15 +219,15 @@ def calculate_HLLD_flux(axis, sim_variables, **kwargs):
     QL_starstar[...,4] = np.copy(QL_star[...,4] - np.sqrt(rhoL_star)*np.sign(wS[...,abscissa+5])*(np.sum(QL_star[...,1:4]*QL_star[...,5:8], axis=-1) - np.sum(QL_starstar[...,1:4]*QL_starstar[...,5:8], axis=-1)))
     QR_starstar[...,4] = np.copy(QR_star[...,4] - np.sqrt(rhoR_star)*np.sign(wS[...,abscissa+5])*(np.sum(QR_star[...,1:4]*QR_star[...,5:8], axis=-1) - np.sum(QR_starstar[...,1:4]*QR_starstar[...,5:8], axis=-1)))
 
-    fLs_starstar, fRs_starstar = np.copy(flux_plus), np.copy(flux_minus)
+    fLs_starstar, fRs_starstar = np.copy(flux_minus), np.copy(flux_plus)
     fLs_starstar, fRs_starstar = fLs_starstar + (QL_starstar - QL_star) * sL_star[...,None], fRs_starstar + (QR_starstar - QR_star) * sR_star[...,None]
 
-    flux = np.copy(flux_plus)
+    flux = np.copy(flux_minus)
     flux[(sL <= 0) & (0 < sL_star)] = fLs_star[(sL <= 0) & (0 < sL_star)]
     flux[(sL_star <= 0) & (0 < sM)] = fLs_starstar[(sL_star <= 0) & (0 < sM)]
     flux[(sM <= 0) & (0 < sR_star)] = fRs_starstar[(sM <= 0) & (0 < sR_star)]
     flux[(sR_star <= 0) & (0 <= sR)] = fRs_star[(sR_star <= 0) & (0 <= sR)]
-    flux[sR < 0] = flux_minus[sR < 0]
+    flux[sR < 0] = flux_plus[sR < 0]
     return flux
 
 
