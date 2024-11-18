@@ -1,5 +1,6 @@
 import scipy
 import numpy as np
+import scipy.integrate
 
 from functions import constructor, fv
 
@@ -159,3 +160,96 @@ def calculate_Sod_analytical(grid, t, sim_variables):
     arr[boundary_54:boundary_43, 1] = (1-mu) * (cs5+(rarefaction/t))
 
     return arr
+
+
+# Determine the analytical solution for a Sedov blast wave, in 1D [Kamm & Timmes, 2000]
+def calculate_Sedov_analytical(grid, t, sim_variables, omg=0):
+    gamma = sim_variables.gamma
+    j, eps = sim_variables.dimension, 1e-4
+    ex = j + 2 - omg
+
+    # Determine family type
+    V2 = 4/ex
+    Vstar = 2/(j*(gamma-1)+2)
+
+    # Note the singularities
+    omg2 = (2*(gamma-1) + j)/gamma
+    omg3 = j * (2-gamma)
+
+    # Form the exponents and frequently used variables
+    alp0 = 2/ex
+    alp2 = -(gamma-1)/(gamma*(omg2-omg))
+    alp1 = ((ex*gamma)/(2+j*(gamma-1))) * ((2*(j*(2-gamma)-omg))/(gamma*ex**2) - alp2)
+    alp3 = (j-omg)/(gamma*(omg2-omg))
+    alp4 = alp1 * ((ex*(j-omg))/(omg3-omg))
+    alp5 = (omg*(1+gamma)-2*j)/(omg3-omg)
+
+    a = .25 * ex * (gamma+1)
+    b = (gamma+1)/(gamma-1)
+    c = .5 * gamma * ex
+    d = ((gamma+1)*ex)/((gamma+1)*ex - 2*(2+j*(gamma-1)))
+    e = .5 * (2 + j*(gamma-1))
+
+    # Define the auxiliary functions
+    x1 = lambda V: a*V
+    x2 = lambda V: b * (c*V - 1)
+    x3 = lambda V: d * (1 - e*V)
+    x4 = lambda V: b * (1 - (c*V)/gamma)
+
+    if abs(V2-Vstar) <= eps:
+        _pos = lambda r: r/r2
+        _speed = lambda r: r/r2
+        _dens = lambda r: (r/r2)**(j-2)
+        _press = lambda r: (r/r2)**j
+
+        J2 = (gamma+1)/(j*(j*(gamma-1)+2)**2)
+        J1 = (2*J2)/(gamma-1)
+        alpha = J2 * np.pi * 2**(j-1)
+    else:
+        if abs(omg-omg2) <= eps:
+            _pos = lambda V: x1(V)**-alp0 * x2(V)**((gamma-1)/(2*e)) * np.exp(((gamma+1)*(1-x1(V)))/(2*e*(x1(V)-(gamma+1)/(2*gamma))))
+            _speed = lambda V: x1(V) * _pos(V)
+            _dens = lambda V: x1(V)**(alp0*omg) * x2(V)**(4-j-(2*gamma)/(2*e)) * x4(V)**alp5 * np.exp(((gamma+1)*(1-x1(V)))/(e*(x1(V)-(gamma+1)/(2*gamma))))
+            _press = lambda V: x1(V)**(alp0*omg) * x3(V)**(-j*gamma/(2*e)) * x4(V)**(1+alp5)
+            dlambda = lambda V: -_pos(V) * (a*alp0/x1(V) + b*c*(gamma-1)/(2*e*x2(V)) - (a*(gamma+1)/(2*e))*(1/(x1(V)-(gamma+1)/(2*gamma)))*(1+(1-x1(V))/(x1(V)-(gamma+1)/(2*gamma))))
+        elif abs(omg-omg3) <= eps:
+            _pos = lambda V: x1(V)**-alp0 * x2(V)**-alp2 * x4(V)**-alp1
+            _speed = lambda V: x1(V) * _pos(V)
+            _dens = lambda V: x1(V)**(alp0*omg) * x2(V)**(alp3+alp2*omg) * x4(V)**(1-2/e) * np.exp(-(j*gamma*(gamma+1)*(1-x1(V)))/(2*e*(.5*(gamma+1)-x1(V))))
+            _press = lambda V: x1(V)**(alp0*omg) * x4(V)**((j*(gamma-1)-gamma)/e) * np.exp(-(j*gamma*(gamma+1)*(1-x1(V)))/(2*e*(.5*(gamma+1)-x1(V))))
+            dlambda = lambda V: -_pos(V) * (a*alp0/x1(V) + b*c*alp2/x2(V) - b*c*alp1/(gamma*x4(V)))
+        else:
+            _pos = lambda V: x1(V)**-alp0 * x2(V)**-alp2 * x3(V)**-alp1
+            _speed = lambda V: x1(V) * _pos(V)
+            _dens = lambda V: x1(V)**(alp0*omg) * x2(V)**(alp3+alp2*omg) * x3(V)**(alp4+alp1*omg) * x4**alp5
+            _press = lambda V: x1(V)**(alp0*omg) * x3(V)**(alp4+alp1*(omg-2)) * x4(V)**(1+alp5)
+            dlambda = lambda V: -_pos(V) * (a*alp0/x1(V) + b*c*alp2/x2(V) - d*e*alp1/x3(V))
+
+        if V2 < Vstar-eps:
+            Vmin = 2/(gamma*ex)
+            family = "standard"
+        else:
+            Vmin = 2/ex
+            family = "vacuum"
+
+        J1 = lambda V: scipy.integrate.quad(((gamma+1)/(gamma-1)) * _pos(V)**(j+1) * _dens(V) * V**2 * dlambda(V), Vmin, V2)
+        J2 = lambda V: scipy.integrate.quad((8 * _press(V) * dlambda(V) * _pos(V)**(j+1))/((gamma+1) * ex**2), Vmin, V2)
+
+        if j == 1:
+            alpha = lambda V: .5 * J1(V) + J2(V)/(gamma-1)
+        else:
+            alpha = lambda V: (j-1) * np.pi * (J1(V) + (2*J2(V))/(gamma-1))
+
+
+
+        pass
+    if abs(V2-Vstar) <= eps:
+        family = "singular"
+    elif V2 < Vstar-eps:
+        family = "standard"
+    else:
+        family = "vacuum"
+
+    f = lambda x: (((x/P1) - 1) * np.sqrt((1 - mu)/(gamma*(mu + (x/P1))))) - (beta * (cs5/cs1) * (1-((x/P5)**(1/(gamma*beta)))))
+    P2 = P3 = scipy.optimize.fsolve(f, (P5-P1)/2)[0]
+    pass
