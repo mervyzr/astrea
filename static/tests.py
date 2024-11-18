@@ -267,4 +267,16 @@ def generate_test_conditions(config, cells):
         initial_right = np.array([.125,0,0,0,.1,0,0,0])
         misc = None
 
-    return {'start_pos':start_pos, 'end_pos':end_pos, 'shock_pos':shock_pos, 't_end':t_end, 'boundary':boundary.lower(), 'misc':misc, 'initial_left':initial_left, 'initial_right':initial_right, 'dx':abs(end_pos-start_pos)/cells}
+    return {
+        'start_pos':start_pos,
+        'end_pos':end_pos,
+        'shock_pos':shock_pos,
+        't_end':t_end,
+        'boundary':boundary.lower(),
+        'misc':misc,
+        'initial_left':initial_left,
+        'initial_right':initial_right,
+        'dx':abs(end_pos-start_pos)/cells,
+        'dy':abs(end_pos-start_pos)/cells,
+        'magnetic':(initial_left[-3:].any() or initial_right[-3:].any())
+    }
