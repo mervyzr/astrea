@@ -227,10 +227,8 @@ def calculate_Sedov_analytical(grid, t, sim_variables, omg=0):
 
         if V2 < Vstar-eps:
             Vmin = 2/(gamma*ex)
-            family = "standard"
         else:
             Vmin = 2/ex
-            family = "vacuum"
 
         J1 = lambda V: scipy.integrate.quad(((gamma+1)/(gamma-1)) * _pos(V)**(j+1) * _dens(V) * V**2 * dlambda(V), Vmin, V2)
         J2 = lambda V: scipy.integrate.quad((8 * _press(V) * dlambda(V) * _pos(V)**(j+1))/((gamma+1) * ex**2), Vmin, V2)
@@ -240,8 +238,6 @@ def calculate_Sedov_analytical(grid, t, sim_variables, omg=0):
         else:
             alpha = lambda V: (j-1) * np.pi * (J1(V) + (2*J2(V))/(gamma-1))
 
-
-
         pass
     if abs(V2-Vstar) <= eps:
         family = "singular"
@@ -250,6 +246,6 @@ def calculate_Sedov_analytical(grid, t, sim_variables, omg=0):
     else:
         family = "vacuum"
 
-    f = lambda x: (((x/P1) - 1) * np.sqrt((1 - mu)/(gamma*(mu + (x/P1))))) - (beta * (cs5/cs1) * (1-((x/P5)**(1/(gamma*beta)))))
-    P2 = P3 = scipy.optimize.fsolve(f, (P5-P1)/2)[0]
+    #f = lambda x: (((x/P1) - 1) * np.sqrt((1 - mu)/(gamma*(mu + (x/P1))))) - (beta * (cs5/cs1) * (1-((x/P5)**(1/(gamma*beta)))))
+    #P2 = P3 = scipy.optimize.fsolve(f, (P5-P1)/2)[0]
     pass
