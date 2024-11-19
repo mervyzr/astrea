@@ -246,6 +246,10 @@ def calculate_Sedov_analytical(grid, t, sim_variables, omg=0):
     else:
         family = "vacuum"
 
+    dA = lambda eta, A, B, C: ((gamma+1)*(3*B + 5*A*C**2) + 2*C*(3*gamma*B - 13*A*C**2) + (gamma + 5 - 12*C)*((A*C*(gamma*(2*C-1)-1))/(2*(gamma-1))) - (12*A*(gamma+1)*C**2)/eta) * (2*A*(gamma-1))/((eta*(2*C-(gamma+1))*(gamma*(2*C-1)-1) - 10*eta*(gamma-1)*C**2 + 4*C*(gamma+1)*(gamma-1))*(2*C-(gamma+1))*A - 4*eta*gamma*(gamma-1)*(2*C-(gamma+1))*B)
+    dB = lambda eta, A, B, C: (dA(eta,A,B,C)*(2*C-(gamma+1))**2)/(2*(gamma-1)) - A*C*(gamma+5-12*C)/(2*eta*(gamma-1)) - 2*B/eta
+    dC = lambda eta, A, B, C: -(2*C-(gamma+1))*dA(eta,A,B,C)/(2*A) - 3*C/eta
+
     #f = lambda x: (((x/P1) - 1) * np.sqrt((1 - mu)/(gamma*(mu + (x/P1))))) - (beta * (cs5/cs1) * (1-((x/P5)**(1/(gamma*beta)))))
     #P2 = P3 = scipy.optimize.fsolve(f, (P5-P1)/2)[0]
     pass
