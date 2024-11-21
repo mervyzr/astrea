@@ -70,7 +70,7 @@ def print_progress(t, sim_variables):
 
 
 # Print final status to Terminal
-def print_final(grp, sim_variables):
+def print_final(sim_variables, timestep_count):
     _seed = f"{BColours.OKBLUE}{sim_variables.seed}{BColours.ENDC}"
     _config = f"{BColours.OKCYAN}{sim_variables.config.upper()}{BColours.ENDC}"
     _subgrid = f"{BColours.OKCYAN}{sim_variables.subgrid.upper()}{BColours.ENDC}"
@@ -92,7 +92,7 @@ def print_final(grp, sim_variables):
     else:
         _elapsed = f"{BColours.OKGREEN}{str(timedelta(seconds=sim_variables.elapsed))}s{BColours.ENDC}"
 
-    print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SCHEME={_scheme}, TIMESTEP={_timestep} || Elapsed: {_elapsed} ({len(grp)})", flush=True)
+    print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SCHEME={_scheme}, TIMESTEP={_timestep} || Elapsed: {_elapsed} ({timestep_count})", flush=True)
     pass
 
 
