@@ -33,8 +33,8 @@ def gauss_func(x, params):
     return params['y_offset'] + params['ampl']*np.exp(-((x-params['peak_pos'])**2)/params['fwhm'])
 
 
-# Generic sin function
-def sin_func(x, params):
+# Generic sine function
+def sine_func(x, params):
     return params['y_offset'] + params['ampl']*np.sin(params['freq']*np.pi*x)
 
 

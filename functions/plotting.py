@@ -235,7 +235,7 @@ def plot_quantities(f, sim_variables, save_path):
             if sim_variables.config_category == "smooth":
                 analytical = constructor.initialise(sim_variables)
 
-                # Adjust ylim and tolerances for Gaussian and sin-wave tests
+                # Adjust ylim and tolerances for Gaussian and sine-wave tests
                 if config.startswith("gauss"):
                     P_tol = 5e-7
                 else:
@@ -261,7 +261,7 @@ def plot_quantities(f, sim_variables, save_path):
                     ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=2, color=THEO_COLOUR, linestyle="--", label=r"Sod$_{theo}$")
 
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
-            if len(f) != 1 or "sod" in config or config.startswith("gauss") or config.startswith("sin"):
+            if len(f) != 1 or "sod" in config or config.startswith("gauss") or config.startswith("sine"):
                 if len(f) > 5:
                     _ncol = 2
                 else:

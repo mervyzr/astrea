@@ -76,14 +76,14 @@ Several (magneto-)hydrodynamical tests are in place:
   - Kelvin-Helmholtz instability
   - Simple advection wave tests
     - Gaussian
-    - _sin_
+    - sine
     - square
     - isentropic vortex (Yee et al., 1999)
 - Magnetohydrodynamics
   - Ryu-Jones 2a shock test (Ryu & Jones, 1995)
   - Brio-Wu shock test (Brio & Wu, 1998)
 
-Analytical solutions for the Sod shock test (Pfrommer et al., 2006), Gaussian wave test and the _sin_ wave test are overplotted in the saved plots. The solution error norms are also calculated when the smooth advection wave tests are run (Gaussian, _sin_).
+Analytical solutions for the Sod shock test (Pfrommer et al., 2006), Gaussian wave test and the sine wave test are overplotted in the saved plots. The solution error norms are also calculated when the smooth advection wave tests are run (Gaussian & sine waves).
 
 # Installation
 

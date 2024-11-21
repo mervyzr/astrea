@@ -20,7 +20,7 @@ def calculate_entropy_density(grid, gamma):
     return (grid[...,0] * np.log(grid[...,4]*grid[...,0]**-gamma))/(gamma-1)
 
 
-# Function for solution error calculation of sin-wave and Gaussian tests
+# Function for solution error calculation of sine-wave and Gaussian tests
 def calculate_solution_error(simulation, sim_variables, norm):
     dimension = sim_variables.dimension
 

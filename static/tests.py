@@ -38,7 +38,7 @@ def generate_test_conditions(config, cells):
         initial_right = np.array([0,0,0,0,1,0,0,0])
         misc = {'freq':5, 'ampl':.2, 'y_offset':1}
 
-    elif config.startswith("sin"):
+    elif config.startswith("sine"):
         start_pos = 0
         end_pos = 1
         shock_pos = 1
