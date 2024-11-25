@@ -466,7 +466,7 @@ def make_video(f, sim_variables, save_path, vidpath, variable="all"):
         counter, end_count = 0, len(simulation)
 
         for t, grid in simulation.items():
-            print(f"Creating {counter+1}/{end_count}", end='\r')
+            print(f"Creating {counter+1}/{end_count} ...", end='\r')
             x = np.linspace(start_pos, end_pos, N)
 
             if variable == "all":
