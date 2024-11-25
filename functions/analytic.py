@@ -1,6 +1,7 @@
 import scipy
 import numpy as np
 import scipy.integrate
+import scipy.optimize
 
 from functions import constructor, fv
 
@@ -164,9 +165,13 @@ def calculate_Sod_analytical(grid, t, sim_variables):
 
 # Determine the analytical solution for a Sedov blast wave, in 1D [Kamm & Timmes, 2000]
 def calculate_Sedov_analytical(grid, t, sim_variables, omg=0):
-    gamma = sim_variables.gamma
-    j, eps = sim_variables.dimension, 1e-4
+    gamma, j = sim_variables.gamma, sim_variables.dimension
+    rho0, v0, P0, B0 = sim_variables.initial_left[0], sim_variables.initial_left[1:4], sim_variables.initial_left[4], sim_variables.initial_left[5:8]
+    E_blast = (P0/(gamma-1)) + .5*(rho0*fv.norm(v0)**2 + fv.norm(B0)**2)
+    eps = 1e-4
     ex = j + 2 - omg
+
+    arr = np.zeros_like(grid)
 
     # Determine family type
     V2 = 4/ex
@@ -175,6 +180,12 @@ def calculate_Sedov_analytical(grid, t, sim_variables, omg=0):
     # Note the singularities
     omg2 = (2*(gamma-1) + j)/gamma
     omg3 = j * (2-gamma)
+
+    # Define post-shock values from centre of symmetry
+    r2 = lambda _alpha: ((E_blast*t**2)/(_alpha*rho0))**(1/ex)
+    u2 = lambda _alpha: ((4*r2(_alpha))/(ex*t))/(gamma+1)
+    rho2 = rho0 * (gamma+1)/(gamma-1)
+    P2 = lambda _alpha: (2*rho0*((2*r2(_alpha))/(ex*t))**2)/(gamma+1)
 
     # Form the exponents and frequently used variables
     alp0 = 2/ex
@@ -197,59 +208,82 @@ def calculate_Sedov_analytical(grid, t, sim_variables, omg=0):
     x4 = lambda V: b * (1 - (c*V)/gamma)
 
     if abs(V2-Vstar) <= eps:
-        _pos = lambda r: r/r2
-        _speed = lambda r: r/r2
-        _dens = lambda r: (r/r2)**(j-2)
-        _press = lambda r: (r/r2)**j
+        _lambda = lambda r: r/r2
+        _dlambda = 0
+        _f = lambda r: _lambda(r)
+        _g = lambda r: _lambda(r)**(j-2)
+        _h = lambda r: _lambda(r)**j
 
         J2 = (gamma+1)/(j*(j*(gamma-1)+2)**2)
         J1 = (2*J2)/(gamma-1)
         alpha = J2 * np.pi * 2**(j-1)
     else:
         if abs(omg-omg2) <= eps:
-            _pos = lambda V: x1(V)**-alp0 * x2(V)**((gamma-1)/(2*e)) * np.exp(((gamma+1)*(1-x1(V)))/(2*e*(x1(V)-(gamma+1)/(2*gamma))))
-            _speed = lambda V: x1(V) * _pos(V)
-            _dens = lambda V: x1(V)**(alp0*omg) * x2(V)**(4-j-(2*gamma)/(2*e)) * x4(V)**alp5 * np.exp(((gamma+1)*(1-x1(V)))/(e*(x1(V)-(gamma+1)/(2*gamma))))
-            _press = lambda V: x1(V)**(alp0*omg) * x3(V)**(-j*gamma/(2*e)) * x4(V)**(1+alp5)
-            dlambda = lambda V: -_pos(V) * (a*alp0/x1(V) + b*c*(gamma-1)/(2*e*x2(V)) - (a*(gamma+1)/(2*e))*(1/(x1(V)-(gamma+1)/(2*gamma)))*(1+(1-x1(V))/(x1(V)-(gamma+1)/(2*gamma))))
+            factor = lambda V: (1-x1(V))/(x1(V)-(gamma+1)/(2*gamma))
+            _lambda = lambda V: x1(V)**-alp0 * x2(V)**((gamma-1)/(2*e)) * np.exp(factor * (gamma+1)/(2*e))
+            _dlambda = lambda V: -_lambda(V) * (a*alp0/x1(V) + b*c*(gamma-1)/(2*e*x2(V)) - (a*(gamma+1)/(2*e))*(factor/(1-x1(V)))*(1+factor))
+            _f = lambda V: x1(V) * _lambda(V)
+            _g = lambda V: x1(V)**(alp0*omg) * x2(V)**(4-j-(2*gamma)/(2*e)) * x4(V)**alp5 * np.exp(factor * (gamma+1)/e)
+            _h = lambda V: x1(V)**(alp0*omg) * x3(V)**(-j*gamma/(2*e)) * x4(V)**(1+alp5)
         elif abs(omg-omg3) <= eps:
-            _pos = lambda V: x1(V)**-alp0 * x2(V)**-alp2 * x4(V)**-alp1
-            _speed = lambda V: x1(V) * _pos(V)
-            _dens = lambda V: x1(V)**(alp0*omg) * x2(V)**(alp3+alp2*omg) * x4(V)**(1-2/e) * np.exp(-(j*gamma*(gamma+1)*(1-x1(V)))/(2*e*(.5*(gamma+1)-x1(V))))
-            _press = lambda V: x1(V)**(alp0*omg) * x4(V)**((j*(gamma-1)-gamma)/e) * np.exp(-(j*gamma*(gamma+1)*(1-x1(V)))/(2*e*(.5*(gamma+1)-x1(V))))
-            dlambda = lambda V: -_pos(V) * (a*alp0/x1(V) + b*c*alp2/x2(V) - b*c*alp1/(gamma*x4(V)))
+            factor = lambda V: np.exp(-(j*gamma*(gamma+1)*(1-x1(V)))/(2*e*(.5*(gamma+1)-x1(V))))
+            _lambda = lambda V: x1(V)**-alp0 * x2(V)**-alp2 * x4(V)**-alp1
+            _dlambda = lambda V: -_lambda(V) * (a*alp0/x1(V) + b*c*alp2/x2(V) - b*c*alp1/(gamma*x4(V)))
+            _f = lambda V: x1(V) * _lambda(V)
+            _g = lambda V: x1(V)**(alp0*omg) * x2(V)**(alp3+alp2*omg) * x4(V)**(1-2/e) * factor
+            _h = lambda V: x1(V)**(alp0*omg) * x4(V)**((j*(gamma-1)-gamma)/e) * factor
         else:
-            _pos = lambda V: x1(V)**-alp0 * x2(V)**-alp2 * x3(V)**-alp1
-            _speed = lambda V: x1(V) * _pos(V)
-            _dens = lambda V: x1(V)**(alp0*omg) * x2(V)**(alp3+alp2*omg) * x3(V)**(alp4+alp1*omg) * x4**alp5
-            _press = lambda V: x1(V)**(alp0*omg) * x3(V)**(alp4+alp1*(omg-2)) * x4(V)**(1+alp5)
-            dlambda = lambda V: -_pos(V) * (a*alp0/x1(V) + b*c*alp2/x2(V) - d*e*alp1/x3(V))
+            _lambda = lambda V: x1(V)**-alp0 * x2(V)**-alp2 * x3(V)**-alp1
+            _dlambda = lambda V: -_lambda(V) * (a*alp0/x1(V) + b*c*alp2/x2(V) - d*e*alp1/x3(V))
+            _f = lambda V: x1(V) * _lambda(V)
+            _g = lambda V: x1(V)**(alp0*omg) * x2(V)**(alp3+alp2*omg) * x3(V)**(alp4+alp1*omg) * x4(V)**alp5
+            _h = lambda V: x1(V)**(alp0*omg) * x3(V)**(alp4+alp1*(omg-2)) * x4(V)**(1+alp5)
 
         if V2 < Vstar-eps:
             Vmin = 2/(gamma*ex)
         else:
             Vmin = 2/ex
 
-        J1 = lambda V: scipy.integrate.quad(((gamma+1)/(gamma-1)) * _pos(V)**(j+1) * _dens(V) * V**2 * dlambda(V), Vmin, V2)
-        J2 = lambda V: scipy.integrate.quad((8 * _press(V) * dlambda(V) * _pos(V)**(j+1))/((gamma+1) * ex**2), Vmin, V2)
+        J1 = lambda V: scipy.integrate.quad(((gamma+1)/(gamma-1)) * _lambda(V)**(j+1) * _g(V) * V**2 * _dlambda(V), Vmin, V2)
+        J2 = lambda V: scipy.integrate.quad((8 * _h(V) * _dlambda(V) * _lambda(V)**(j+1))/((gamma+1) * ex**2), Vmin, V2)
 
         if j == 1:
             alpha = lambda V: .5 * J1(V) + J2(V)/(gamma-1)
         else:
             alpha = lambda V: (j-1) * np.pi * (J1(V) + (2*J2(V))/(gamma-1))
 
-        pass
-    if abs(V2-Vstar) <= eps:
-        family = "singular"
-    elif V2 < Vstar-eps:
-        family = "standard"
+    # Determine the shock front position
+    pressures = grid[...,4]
+    physical_grid = np.linspace(sim_variables.start_pos-sim_variables.dx/2, sim_variables.end_pos+sim_variables.dx/2, sim_variables.cells+2)[1:-1]
+    left_P, right_P = pressures[:int(sim_variables.cells/2)], pressures[int(sim_variables.cells/2):]
+    if np.max(np.diff(left_P)) > np.max(np.diff(right_P)):
+        index = np.argmax(np.diff(left_P))
     else:
-        family = "vacuum"
+        index = np.argmax(np.diff(right_P))
+    r_want = abs(physical_grid[index])
 
+    # Root-finding for similarity variable V*
+    f = lambda V: r2(alpha(V)) * _lambda(V) - r_want
+    V_star = scipy.optimize.fsolve(f, 1)[0]
+
+    # Update the analytical solution
+    mask = np.abs(physical_grid) > r2
+    arr[...,0][mask] = rho0
+    arr[...,1:4][mask] = v0
+    arr[...,4][mask] = P0
+    arr[...,5:8][mask] = B0
+
+    mask = np.abs(physical_grid) <= r2
+    arr[...,0][mask] = (rho2*_g(V_star))[mask]
+    arr[...,1][mask] = (v0[...,0]*_f(V_star))[mask]
+    arr[...,4][mask] = (P2*_h(V_star))[mask]
+
+    return arr
+
+
+"""def calculate_Sedov_analytical(gamma):
     dA = lambda eta, A, B, C: ((gamma+1)*(3*B + 5*A*C**2) + 2*C*(3*gamma*B - 13*A*C**2) + (gamma + 5 - 12*C)*((A*C*(gamma*(2*C-1)-1))/(2*(gamma-1))) - (12*A*(gamma+1)*C**2)/eta) * (2*A*(gamma-1))/((eta*(2*C-(gamma+1))*(gamma*(2*C-1)-1) - 10*eta*(gamma-1)*C**2 + 4*C*(gamma+1)*(gamma-1))*(2*C-(gamma+1))*A - 4*eta*gamma*(gamma-1)*(2*C-(gamma+1))*B)
     dB = lambda eta, A, B, C: (dA(eta,A,B,C)*(2*C-(gamma+1))**2)/(2*(gamma-1)) - A*C*(gamma+5-12*C)/(2*eta*(gamma-1)) - 2*B/eta
     dC = lambda eta, A, B, C: -(2*C-(gamma+1))*dA(eta,A,B,C)/(2*A) - 3*C/eta
-
-    #f = lambda x: (((x/P1) - 1) * np.sqrt((1 - mu)/(gamma*(mu + (x/P1))))) - (beta * (cs5/cs1) * (1-((x/P5)**(1/(gamma*beta)))))
-    #P2 = P3 = scipy.optimize.fsolve(f, (P5-P1)/2)[0]
     pass
+"""

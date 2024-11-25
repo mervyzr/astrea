@@ -253,12 +253,22 @@ def plot_quantities(f, sim_variables, save_path):
 
             # Add Sod analytical solution, using the highest resolution and timing
             elif "sod" in config:
-                tube, _t = f[str(max(n_list))][str(timings[max(n_list)][time_index])], timings[max(n_list)][time_index]
-                Sod = analytic.calculate_Sod_analytical(tube, _t, sim_variables)
+                grid, _t = f[str(max(n_list))][str(timings[max(n_list)][time_index])], timings[max(n_list)][time_index]
+                Sod = analytic.calculate_Sod_analytical(grid, _t, sim_variables)
 
                 y_theo = [[Sod[...,0], Sod[...,4]], [Sod[...,1], Sod[...,4]/Sod[...,0]]]
                 for _i, _j in PLOT_INDEXES:
                     ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=2, color=THEO_COLOUR, linestyle="--", label=r"Sod$_{theo}$")
+
+            # Add Sedov analytical solution, using the highest resolution and timing
+            elif "sedov" in config:
+                pass
+                """grid, _t = f[str(max(n_list))][str(timings[max(n_list)][time_index])], timings[max(n_list)][time_index]
+                Sedov = analytic.calculate_Sedov_analytical(grid, _t, sim_variables)
+
+                y_theo = [[Sedov[...,0], Sedov[...,4]], [Sedov[...,1], Sedov[...,4]/Sedov[...,0]]]
+                for _i, _j in PLOT_INDEXES:
+                    ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=2, color=THEO_COLOUR, linestyle="--", label=r"Sedov$_{theo}$")"""
 
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
             if len(f) != 1 or "sod" in config or config.startswith("gauss") or config.startswith("sin"):
