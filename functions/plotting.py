@@ -235,7 +235,7 @@ def plot_quantities(f, sim_variables, save_path):
             if sim_variables.config_category == "smooth":
                 analytical = constructor.initialise(sim_variables)
 
-                # Adjust ylim and tolerances for Gaussian and sin-wave tests
+                # Adjust ylim and tolerances for Gaussian and sine-wave tests
                 if config.startswith("gauss"):
                     P_tol = 5e-7
                 else:
@@ -463,9 +463,10 @@ def make_video(f, sim_variables, save_path, vidpath, variable="all"):
 
     for N in n_list:
         simulation = f[str(N)]
-        counter = 0
+        counter, end_count = 0, len(simulation)
 
         for t, grid in simulation.items():
+            print(f"Creating {counter+1}/{end_count} ...", end='\r')
             x = np.linspace(start_pos, end_pos, N)
 
             if variable == "all":

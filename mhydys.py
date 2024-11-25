@@ -31,7 +31,7 @@ LOAD_ENV = False
 
 
 # Finite volume shock function
-def core_run(grp: h5py, sim_variables: namedtuple, *args, **kwargs):
+def core_run(hdf5_file: str, sim_variables: namedtuple, *args, **kwargs):
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables
     grid = constructor.initialise(sim_variables, convert=True)
     plot_axes = sim_variables.permutations[-1]
@@ -52,14 +52,15 @@ def core_run(grp: h5py, sim_variables: namedtuple, *args, **kwargs):
     # Start simulation run
     t = 0.0
     while t <= sim_variables.t_end:
-        # Saves each instance of the system at time t
+        # Saves each instance of the system (primitive variables) at time t
         grid_snapshot = convert(grid, sim_variables).transpose(plot_axes)
-        dataset = grp.create_dataset(str(float(t)), data=grid_snapshot)
-        dataset.attrs['t'] = float(t)
+        with h5py.File(hdf5_file, "a") as f:
+            dataset = f[str(sim_variables.cells)].create_dataset(str(float(t)), data=grid_snapshot)
+            dataset.attrs['t'] = float(t)
+
+        # Miscellaneous media/print options
         if not sim_variables.quiet:
             generic.print_progress(t, sim_variables)
-
-        # Update the live plot, if enabled, or save snapshot
         if sim_variables.live_plot:
             plotting.update_plot(grid_snapshot, t, sim_variables.dimension, *plotting_params)
         elif sim_variables.take_snaps and _plot:
@@ -92,8 +93,6 @@ def core_run(grp: h5py, sim_variables: namedtuple, *args, **kwargs):
 
             # Update time step
             t += dt
-
-    return grp
 
 ##############################################################################
 
@@ -164,20 +163,22 @@ def run() -> None:
     signal.signal(signal.SIGINT, graceful_exit)
 
     try:
-        # Initiate the HDF5 database to store data temporarily
+        # Initiate the HDF5 database to store data
         with h5py.File(file_name, "w") as f:
             f.attrs['datetime'] = script_start
             f.attrs['seed'] = sim_variables.seed
-            for N in n_list:
-                ############################# INDIVIDUAL SIMULATION #############################
-                now = datetime.now()
 
-                # Update cells (and grid width) in simulation variables (namedtuple)
-                sim_variables = sim_variables._replace(now=now)
-                sim_variables = sim_variables._replace(cells=N)
-                sim_variables = sim_variables._replace(dx=abs(sim_variables.end_pos-sim_variables.start_pos)/sim_variables.cells)
+        for N in n_list:
+            ############################# INDIVIDUAL SIMULATION #############################
+            now = datetime.now()
 
-                # Save simulation variables into HDF5 file
+            # Update cells (and grid width) in simulation variables (namedtuple)
+            sim_variables = sim_variables._replace(now=now)
+            sim_variables = sim_variables._replace(cells=N)
+            sim_variables = sim_variables._replace(dx=abs(sim_variables.end_pos-sim_variables.start_pos)/sim_variables.cells)
+
+            # Save simulation variables into HDF5 file
+            with h5py.File(file_name, "a") as f:
                 grp = f.create_group(str(sim_variables.cells))
                 grp.attrs['config'] = sim_variables.config
                 grp.attrs['cells'] = sim_variables.cells
@@ -188,19 +189,23 @@ def run() -> None:
                 grp.attrs['timestep'] = sim_variables.timestep
                 grp.attrs['scheme'] = sim_variables.scheme
 
-                ################### CORE ###################
-                lap = perf_counter()
-                core_run(grp, sim_variables)
-                elapsed = perf_counter() - lap
-                ################### CORE ###################
+            ################### CORE ###################
+            lap = perf_counter()
+            core_run(file_name, sim_variables)
+            elapsed = perf_counter() - lap
+            ################### CORE ###################
 
-                sim_variables = sim_variables._replace(elapsed=elapsed)
-                grp.attrs['elapsed'] = elapsed
-                if not sim_variables.quiet:
-                    generic.print_final(grp, sim_variables)
-                ############################# END INDIVIDUAL SIMULATION #############################
+            # Save attributes after individual run is completed
+            sim_variables = sim_variables._replace(elapsed=elapsed)
+            with h5py.File(file_name, "a") as f:
+                f[str(sim_variables.cells)].attrs['elapsed'] = elapsed
+                timestep_count = len(f[str(sim_variables.cells)])
+            if not sim_variables.quiet:
+                generic.print_final(sim_variables, timestep_count)
+            ############################# END INDIVIDUAL SIMULATION #############################
 
-            # Save plots; primitive quantities, total variation, conservation equation quantities, solution errors (errors only for run_type=multiple)
+        # Save plots; primitive quantities, total variation, conservation equation quantities, solution errors (errors only for run_type=multiple)
+        with h5py.File(file_name, "r") as f:
             if sim_variables.save_plots:
                 plotting.plot_quantities(f, sim_variables, save_path)
                 if sim_variables.run_type.startswith("m"):
