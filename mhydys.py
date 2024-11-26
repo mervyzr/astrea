@@ -134,6 +134,11 @@ def run() -> None:
 
     # Auto-generate the resolutions/grid-sizes for run type
     if _sim_variables['run_type'].startswith('m'):
+        var_type = "cells"
+
+        multi_var_dict = {
+            "cells": 2**np.arange(2,8)
+        }
         if _sim_variables['dimension'] == 2:
             n_list = 2**np.arange(2,8)
         else:
