@@ -75,11 +75,11 @@ def initiate_live_plot(sim_variables):
 
 
 # Update live plot
-def update_plot(grid_snapshot, t, dimension, fig, ax, graphs):
+def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
     # top-left: density, top-right: pressure, bottom-left: velocity_x, bottom-right: specific thermal energy
     plot_data = [grid_snapshot[...,0], grid_snapshot[...,4], grid_snapshot[...,1], fv.divide(grid_snapshot[...,4], grid_snapshot[...,0])]
 
-    if dimension == 2:
+    if sim_variables.dimension == 2:
         for index, graph in enumerate(graphs):
             graph.set_data(plot_data[index])
             graph.set_clim([np.min(plot_data[index]), np.max(plot_data[index])])

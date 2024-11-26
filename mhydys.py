@@ -54,7 +54,7 @@ def core_run(hdf5_file: str, sim_variables: namedtuple, *args, **kwargs):
         if not sim_variables.quiet:
             generic.print_progress(t, sim_variables)
         if sim_variables.live_plot:
-            plotting.update_plot(grid_snapshot, t, sim_variables.dimension, *plotting_params)
+            plotting.update_plot(grid_snapshot, t, sim_variables, *plotting_params)
         elif sim_variables.take_snaps and _plot:
             plotting.plot_snapshot(grid_snapshot, t, sim_variables, save_path=f"./savedData/snap{sim_variables.seed}")
             _plot = False
