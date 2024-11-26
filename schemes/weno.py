@@ -8,6 +8,7 @@ from functions import constructor, fv
 
 def run(grid, sim_variables):
     gamma, subgrid, boundary, permutations = sim_variables.gamma, sim_variables.subgrid, sim_variables.boundary, sim_variables.permutations
+    convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
@@ -151,7 +152,7 @@ def run(grid, sim_variables):
         _grid = grid.transpose(axes)
 
         # Convert to primitive variables
-        wS = fv.high_order_convert_conservative(_grid, sim_variables)
+        wS = convert_conservative(_grid, sim_variables)
 
         # Reconstruct the interface states
         if len(subgrid.split("weno")) == 2:
@@ -170,7 +171,7 @@ def run(grid, sim_variables):
         _intf_avg = fv.add_boundary(intf_avg, boundary)
 
         # Convert the primitive variables
-        q_plus, q_minus = fv.high_order_convert_primitive(w_plus, sim_variables, "face"), fv.high_order_convert_primitive(w_minus, sim_variables, "face")
+        q_plus, q_minus = convert_primitive(w_plus, sim_variables, "face"), convert_primitive(w_minus, sim_variables, "face")
 
         # Compute the fluxes and the Jacobian
         flux_plus, flux_minus = constructor.make_flux(w_plus, gamma, axis), constructor.make_flux(w_minus, gamma, axis)

@@ -41,17 +41,11 @@ def core_run(hdf5_file: str, sim_variables: namedtuple, *args, **kwargs):
         plot_interval, snap_idx = sim_variables.t_end/sim_variables.snapshots, 0
         _plot = True
 
-    # Define the conversion based on subgrid model
-    if sim_variables.subgrid.startswith("w") or sim_variables.subgrid in ["ppm", "parabolic", "p"]:
-        convert = fv.high_order_convert_conservative
-    else:
-        convert = fv.point_convert_conservative
-
     # Start simulation run
     t = 0.0
     while t <= sim_variables.t_end:
         # Saves each instance of the system (primitive variables) at time t
-        grid_snapshot = convert(grid, sim_variables).transpose(plot_axes)
+        grid_snapshot = sim_variables.convert_conservative(grid, sim_variables).transpose(plot_axes)
         with h5py.File(hdf5_file, "a") as f:
             dataset = f[str(sim_variables.cells)].create_dataset(str(float(t)), data=grid_snapshot)
             dataset.attrs['t'] = float(t)

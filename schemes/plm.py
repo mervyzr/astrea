@@ -11,6 +11,7 @@ from num_methods import limiters
 
 def run(grid, sim_variables):
     gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
+    convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
@@ -19,7 +20,7 @@ def run(grid, sim_variables):
         _grid = grid.transpose(axes)
 
         # Convert to primitive variables; able to use pointwise conversion as it is still 2nd-order
-        wS = fv.point_convert_conservative(_grid, sim_variables)
+        wS = convert_conservative(_grid, sim_variables)
 
         # Pad array with boundary & apply (TVD) slope limiters
         w = fv.add_boundary(wS, boundary)
@@ -43,7 +44,7 @@ def run(grid, sim_variables):
 
         # Convert the primitive variables
         # The conversion can be pointwise conversion for face-average values as it is still 2nd-order
-        q_plus, q_minus = fv.point_convert_primitive(w_plus, sim_variables, "face"), fv.point_convert_primitive(w_minus, sim_variables, "face")
+        q_plus, q_minus = convert_primitive(w_plus, sim_variables, "face"), convert_primitive(w_minus, sim_variables, "face")
 
         # Compute the fluxes and the Jacobian
         flux_plus, flux_minus = constructor.make_flux(w_plus, gamma, axis), constructor.make_flux(w_minus, gamma, axis)

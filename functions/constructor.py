@@ -79,7 +79,7 @@ def initialise(sim_variables, convert=False):
             computational_grid[...,0] = fv.gauss_func(x, params)
 
     if convert:
-        grid = fv.point_convert_primitive(computational_grid, sim_variables)
+        grid = sim_variables.convert_primitive(computational_grid, sim_variables)
     else:
         grid = computational_grid
     return fv.high_order_average(grid, sim_variables)

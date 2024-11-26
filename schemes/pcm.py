@@ -8,6 +8,7 @@ from functions import constructor, fv
 
 def run(grid, sim_variables):
     gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
+    convert_conservative = sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
@@ -16,7 +17,7 @@ def run(grid, sim_variables):
         _grid = grid.transpose(axes)
 
         # Convert to primitive variables
-        wS = fv.point_convert_conservative(_grid, sim_variables)
+        wS = convert_conservative(_grid, sim_variables)
         q = fv.add_boundary(_grid, boundary)
 
         # Compute the fluxes and the Jacobian
