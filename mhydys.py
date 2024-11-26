@@ -43,7 +43,7 @@ def core_run(hdf5_file: str, sim_variables: namedtuple, *args, **kwargs):
 
     # Define the conversion based on subgrid model
     if sim_variables.subgrid.startswith("w") or sim_variables.subgrid in ["ppm", "parabolic", "p"]:
-        convert = fv.convert_conservative
+        convert = fv.high_order_convert_conservative
     else:
         convert = fv.point_convert_conservative
 

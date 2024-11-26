@@ -4,6 +4,16 @@ import numpy as np
 # Generic functions used throughout the finite volume code
 ##############################################################################
 
+# Generic Gaussian function
+def gauss_func(x, params):
+    return params['y_offset'] + params['ampl']*np.exp(-((x-params['peak_pos'])**2)/params['fwhm'])
+
+
+# Generic sin function
+def sin_func(x, params):
+    return params['y_offset'] + params['ampl']*np.sin(params['freq']*np.pi*x)
+
+
 # For handling division-by-zero warnings during array divisions
 # !! MONITOR THE PHYSICS WHEN USING THIS; ZEROS IN DIVISOR MIGHT MEAN YOUR CODE IS INCORRECT INSTEAD !!
 def divide(dividend, divisor):
@@ -28,16 +38,6 @@ def norm(arr):
     return np.linalg.norm(arr, axis=-1)
 
 
-# Generic Gaussian function
-def gauss_func(x, params):
-    return params['y_offset'] + params['ampl']*np.exp(-((x-params['peak_pos'])**2)/params['fwhm'])
-
-
-# Generic sine function
-def sine_func(x, params):
-    return params['y_offset'] + params['ampl']*np.sin(params['freq']*np.pi*x)
-
-
 # Finite difference derivative (second order)
 def derivative(grid, ax):
     width = grid.shape[ax]
@@ -50,6 +50,25 @@ def add_boundary(grid, boundary, stencil=1, axis=0):
     padding = [(0,0)] * grid.ndim
     padding[axis] = (stencil,stencil)
     return np.pad(arr, padding, mode=boundary)
+
+
+# Convert centred variables to averaged variables (FD -> FV) (at higher order) with the Laplacian operator and centred difference coefficients (up to 2nd derivative because parabolic function)
+# Attempts to raise the order of accuracy for the Laplacian to 4th-, 6th- and even 8th-order were made, but not too feasible because the averaging function
+# is limited by the time-stepping and the limiting functions (currently max is 4th order)
+def high_order_average(grid, sim_variables, _type="cell"):
+    new_grid = np.copy(grid)
+
+    if "face" in _type:
+        _range = range(1, sim_variables.dimension)
+    else:
+        _range = range(1)
+
+    for axes in sim_variables.permutations:
+        reversed_axes = np.argsort(axes)
+        for ax in _range:
+            _new_grid = add_boundary(grid.transpose(axes), sim_variables.boundary, axis=ax)
+            new_grid -= 1/24 * derivative(_new_grid, ax).transpose(reversed_axes)
+    return new_grid
 
 
 # Pointwise (exact) conversion of primitive variables w to conservative variables q (up to 2nd-order accurate)
@@ -71,27 +90,8 @@ def point_convert_conservative(grid, sim_variables):
     return arr
 
 
-# Conversion between averaged and centred variable "modes" with the Laplacian operator and centred difference coefficients (up to 2nd derivative because parabolic function)
-# Attempts to raise the order of accuracy for the Laplacian to 4th-, 6th- and even 8th-order were made, but not too feasible because the averaging function
-# is limited by the time-stepping and the limiting functions (currently max is 4th order)
-def convert_mode(grid, sim_variables, _type="cell"):
-    new_grid = np.copy(grid)
-
-    if "face" in _type:
-        _range = range(1, sim_variables.dimension)
-    else:
-        _range = range(1)
-
-    for axes in sim_variables.permutations:
-        reversed_axes = np.argsort(axes)
-        for ax in _range:
-            _new_grid = add_boundary(grid.transpose(axes), sim_variables.boundary, axis=ax)
-            new_grid -= 1/24 * derivative(_new_grid, ax).transpose(reversed_axes)
-    return new_grid
-
-
 # Converting (cell-/face-averaged) primitive variables w to (cell-/face-averaged) conservative variables q through a higher-order approx.
-def convert_primitive(grid, sim_variables, _type="cell"):
+def high_order_convert_primitive(grid, sim_variables, _type="cell"):
     w, q = np.copy(grid), np.zeros_like(grid)
 
     if "face" in _type:
@@ -111,7 +111,7 @@ def convert_primitive(grid, sim_variables, _type="cell"):
 
 
 # Converting (cell-/face-averaged) conservative variables q to (cell-/face-averaged) primitive variables q through a higher-order approx.
-def convert_conservative(grid, sim_variables, _type="cell"):
+def high_order_convert_conservative(grid, sim_variables, _type="cell"):
     w, q = np.zeros_like(grid), np.copy(grid)
 
     if "face" in _type:

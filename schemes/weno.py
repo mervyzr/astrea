@@ -151,7 +151,7 @@ def run(grid, sim_variables):
         _grid = grid.transpose(axes)
 
         # Convert to primitive variables
-        wS = fv.convert_conservative(_grid, sim_variables)
+        wS = fv.high_order_convert_conservative(_grid, sim_variables)
 
         # Reconstruct the interface states
         if len(subgrid.split("weno")) == 2:
@@ -170,7 +170,7 @@ def run(grid, sim_variables):
         _intf_avg = fv.add_boundary(intf_avg, boundary)
 
         # Convert the primitive variables
-        q_plus, q_minus = fv.convert_primitive(w_plus, sim_variables, "face"), fv.convert_primitive(w_minus, sim_variables, "face")
+        q_plus, q_minus = fv.high_order_convert_primitive(w_plus, sim_variables, "face"), fv.high_order_convert_primitive(w_minus, sim_variables, "face")
 
         # Compute the fluxes and the Jacobian
         flux_plus, flux_minus = constructor.make_flux(w_plus, gamma, axis), constructor.make_flux(w_minus, gamma, axis)

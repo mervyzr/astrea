@@ -22,7 +22,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         _grid = grid.transpose(axes)
 
         # Convert to primitive variables
-        wS = fv.convert_conservative(_grid, sim_variables)
+        wS = fv.high_order_convert_conservative(_grid, sim_variables)
 
         # Pad array with boundary; PPM requires additional ghost cells
         w2 = fv.add_boundary(wS, boundary, 2)
@@ -84,7 +84,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         _intf_avg = fv.add_boundary(intf_avg, boundary)
 
         # Convert the primitive variables
-        q_plus, q_minus = fv.convert_primitive(w_plus, sim_variables, "face"), fv.convert_primitive(w_minus, sim_variables, "face")
+        q_plus, q_minus = fv.high_order_convert_primitive(w_plus, sim_variables, "face"), fv.high_order_convert_primitive(w_minus, sim_variables, "face")
 
         # Compute the fluxes and the Jacobian
         flux_plus, flux_minus = constructor.make_flux(w_plus, gamma, axis), constructor.make_flux(w_minus, gamma, axis)

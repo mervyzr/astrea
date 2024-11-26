@@ -50,7 +50,7 @@ def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
             higher_order_interface_variables = {}
             for intfs, LR_list in data[axes].items():
                 if intfs != "wS":
-                    higher_order_interface_variables[intfs] = np.copy(fv.convert_mode(LR_list[0], sim_variables, "face")), np.copy(fv.convert_mode(LR_list[1], sim_variables, "face"))
+                    higher_order_interface_variables[intfs] = np.copy(fv.high_order_average(LR_list[0], sim_variables, "face")), np.copy(fv.high_order_average(LR_list[1], sim_variables, "face"))
 
             intf_fluxes_cntr = run_Riemann_solver(axis, sim_variables, characteristics, **higher_order_interface_variables)
 

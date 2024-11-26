@@ -66,7 +66,7 @@ def calculate_conservation(simulation, sim_variables):
     dimension, eq = sim_variables.dimension, {}
 
     if subgrid.startswith("w") or subgrid in ["ppm", "parabolic", "p"]:
-        convert = fv.convert_primitive
+        convert = fv.high_order_convert_primitive
     else:
         convert = fv.point_convert_primitive
 
@@ -86,7 +86,7 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
     dimension, eq = sim_variables.dimension, {}
 
     if subgrid.startswith("w") or subgrid in ["ppm", "parabolic", "p"]:
-        convert = fv.convert_primitive
+        convert = fv.high_order_convert_primitive
     else:
         convert = fv.point_convert_primitive
 
