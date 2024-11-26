@@ -12,8 +12,6 @@ from collections import namedtuple
 import h5py
 import yaml
 import dotenv
-import yaml
-import dotenv
 import numpy as np
 
 from static import tests
