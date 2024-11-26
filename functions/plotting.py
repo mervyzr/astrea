@@ -287,7 +287,7 @@ def plot_quantities(f, sim_variables, save_path):
     return None
 
 
-def plot_solution_errors(f, sim_variables, save_path, coeff, norm=1):
+def plot_solution_errors(f, sim_variables, save_path, norm=1):
     config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
 
     # hdf5 keys are string; need to convert back to int and sort again
@@ -318,7 +318,7 @@ def plot_solution_errors(f, sim_variables, save_path, coeff, norm=1):
             c = np.log10(y_data[_i][_j][idx]) - EOC[idx]*np.log10(x[idx])
 
             for order in [1,2,4,5]:
-                alpha = 10**(c + np.log10(coeff))
+                alpha = 10**c
                 ytheo = alpha*x**(-order)
                 ax[_j].loglog(x, ytheo, linewidth=2, color=THEO_COLOUR, linestyle="--")
                 ax[_j].annotate(rf"$O(N^{order})$", (x[-1], ytheo[-1]), fontsize=12)
