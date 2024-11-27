@@ -62,7 +62,7 @@ def calculate_tv(simulation, sim_variables):
 
 # Function for checking the conservation equations; works with primitive variables but needs to be converted
 def calculate_conservation(simulation, sim_variables):
-    N, subgrid, start_pos, end_pos = sim_variables.cells, sim_variables.subgrid, sim_variables.start_pos, sim_variables.end_pos
+    N, start_pos, end_pos = sim_variables.cells, sim_variables.start_pos, sim_variables.end_pos
     dimension, eq = sim_variables.dimension, {}
 
     for t in list(simulation.keys()):
@@ -77,7 +77,7 @@ def calculate_conservation(simulation, sim_variables):
 # The reason is because at the boundaries, some values are lost to the ghost cells and not counted into the conservation plots
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
 def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
-    N, subgrid, start_pos, end_pos, t_end = sim_variables.cells, sim_variables.subgrid, sim_variables.start_pos, sim_variables.end_pos, sim_variables.t_end
+    N, start_pos, end_pos, t_end = sim_variables.cells, sim_variables.start_pos, sim_variables.end_pos, sim_variables.t_end
     dimension, eq = sim_variables.dimension, {}
 
     intervals = np.array([], dtype=float)
