@@ -200,7 +200,7 @@ def plot_quantities(f, sim_variables, save_path):
             x = np.linspace(start_pos, end_pos, N)
             y_data = [[y1, y2], [y3, y4]]
 
-            # density, pressure, vx, thermal energy
+            # density, pressure, vx, internal energy
             for _i, _j in PLOT_INDEXES:
                 y = y_data[_i][_j]
 
@@ -291,7 +291,7 @@ def plot_solution_errors(f, sim_variables, save_path, norm=1):
 
     # Solution errors plot
     fig, ax = plt.subplots(nrows=1, ncols=2, figsize=[21,10])
-    error_labels = [[r"Density $\log{(\epsilon_\nu(\rho))}$", r"Pressure $\log{(\epsilon_\nu(P))}$"], [r"Velocity $\log{(\epsilon_\nu(v_x))}$", r"Thermal energy $\log{(\epsilon_\nu(\frac{P}{\rho}))}$"]]
+    error_labels = [[r"Density $\log{(\epsilon_\nu(\rho))}$", r"Pressure $\log{(\epsilon_\nu(P))}$"], [r"Velocity $\log{(\epsilon_\nu(v_x))}$", r"Internal energy $\log{(\epsilon_\nu(e))}$"]]
 
     x, y1, y2, y3, y4 = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
     for N in n_list:
@@ -369,7 +369,7 @@ def plot_total_variation(f, sim_variables, save_path):
     n_list.sort()
 
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21,10])
-    tv_labels = [[r"Density TV($\rho$)", r"Pressure TV($P$)"], [r"Velocity TV($v_x$)", r"Thermal energy TV($\frac{P}{\rho}$)"]]
+    tv_labels = [[r"Density TV($\rho$)", r"Pressure TV($P$)"], [r"Velocity TV($v_x$)", r"Internal energy TV($e$)"]]
 
     for _i, _j in PLOT_INDEXES:
         ax[_i,_j].set_ylabel(tv_labels[_i][_j], fontsize=18)
@@ -513,7 +513,7 @@ def make_video(f, sim_variables, save_path, vidpath, variable="all"):
                 plt.axis('off')
 
                 if variable in ["energy", "temperature", "temp", "t"]:
-                    y_data = fv.divide(grid[...,4], grid[...,0])
+                    y_data = fv.divide(grid[...,4], grid[...,0]*(gamma-1))
                     colour, colour2 = "darkviolet", "plasma"
                 elif variable in ["pressure", "p"]:
                     y_data = grid[...,4]
