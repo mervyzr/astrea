@@ -131,7 +131,7 @@ def high_order_convert_conservative(grid, sim_variables, _type="cell"):
 
 
 # Compute the 4th-order interface-averaged fluxes from the interface-averaged fluxes via higher order approximation
-def compute_high_approx_flux(cntr_flux, avg_flux, sim_variables):
+def high_order_compute_flux(cntr_flux, avg_flux, sim_variables):
     arr, _arr = np.copy(cntr_flux), np.copy(avg_flux)
 
     for ax in range(1, sim_variables.dimension):

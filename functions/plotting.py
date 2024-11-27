@@ -284,7 +284,6 @@ def plot_quantities(f, sim_variables, save_path):
         plt.cla()
         plt.clf()
         plt.close()
-    return None
 
 
 def plot_solution_errors(f, sim_variables, save_path, norm=1):
@@ -364,7 +363,6 @@ def plot_solution_errors(f, sim_variables, save_path, norm=1):
     plt.cla()
     plt.clf()
     plt.close()
-    return None
 
 
 def plot_total_variation(f, sim_variables, save_path):
@@ -403,7 +401,6 @@ def plot_total_variation(f, sim_variables, save_path):
         plt.cla()
         plt.clf()
         plt.close()
-    return None
 
 
 def plot_conservation_equations(f, sim_variables, save_path):
@@ -454,7 +451,6 @@ def plot_conservation_equations(f, sim_variables, save_path):
         plt.cla()
         plt.clf()
         plt.close()
-        return None
 
 
 def make_video(f, sim_variables, save_path, vidpath, variable="all"):
@@ -556,7 +552,6 @@ def make_video(f, sim_variables, save_path, vidpath, variable="all"):
             pass
         else:
             shutil.rmtree(vidpath)
-    return None
 
 
 # Gradient fill the plots

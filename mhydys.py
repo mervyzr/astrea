@@ -16,7 +16,7 @@ import numpy as np
 
 from static import tests
 from num_methods import evolvers
-from functions import constructor, fv, generic, plotting
+from functions import constructor, generic, plotting
 
 ##############################################################################
 # Main script

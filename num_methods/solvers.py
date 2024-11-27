@@ -12,7 +12,8 @@ from functions import constructor, fv
 def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
 
     # Select Riemann solver based on scheme
-    def run_Riemann_solver(_axis, _sim_variables, _characteristics, **kwargs):# HLL-type schemes
+    def run_Riemann_solver(_axis, _sim_variables, _characteristics, **kwargs):
+        # HLL-type schemes
         if _sim_variables.scheme_category == "hll":
             if _sim_variables.scheme.endswith("d"):
                 return calculate_HLLD_flux(_axis, _sim_variables, **kwargs)
@@ -43,22 +44,23 @@ def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
         characteristics, eigmax = fv.compute_eigen(arrays['Jacobian'])
 
         # Calculate the interface-averaged fluxes
-        intf_fluxes_avg = run_Riemann_solver(axis, sim_variables, characteristics, **data[axes])
+        intf_fluxes_avgd = run_Riemann_solver(axis, sim_variables, characteristics, **data[axes])
 
         if sim_variables.dimension == 2:
             # Compute the orthogonal L/R Riemann states and fluxes
-            higher_order_interface_variables = {}
-            for intfs, LR_list in data[axes].items():
-                if intfs != "wS":
-                    higher_order_interface_variables[intfs] = np.copy(fv.high_order_average(LR_list[0], sim_variables, "face")), np.copy(fv.high_order_average(LR_list[1], sim_variables, "face"))
+            high_order_intfs = {}
+            for _key, _arrays in data[axes].items():
+                if len(_arrays) == 2:
+                    plus_intf, minus_intf = _arrays
+                    high_order_intfs[_key] = np.copy(fv.high_order_average(plus_intf, sim_variables, "face")), np.copy(fv.high_order_average(minus_intf, sim_variables, "face"))
 
-            intf_fluxes_cntr = run_Riemann_solver(axis, sim_variables, characteristics, **higher_order_interface_variables)
+            intf_fluxes_cntrd = run_Riemann_solver(axis, sim_variables, characteristics, **high_order_intfs)
 
             # Compute the higher-order fluxes
-            _fluxes = fv.compute_high_approx_flux(intf_fluxes_cntr, intf_fluxes_avg, sim_variables)
+            _fluxes = fv.high_order_compute_flux(intf_fluxes_cntrd, intf_fluxes_avgd, sim_variables)
         else:
             # Orthogonal Laplacian in 1D is zero
-            _fluxes = intf_fluxes_avg
+            _fluxes = intf_fluxes_avgd
 
         fluxes[axes] = Riemann_flux(_fluxes, eigmax)
         axis += 1
