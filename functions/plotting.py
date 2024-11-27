@@ -1,11 +1,7 @@
 import shutil
-import platform
 import subprocess
 
 import numpy as np
-if platform.system() == "Darwin":
-    import matplotlib
-    matplotlib.use('MacOSX')
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.patches import Polygon
