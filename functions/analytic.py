@@ -24,7 +24,7 @@ def calculate_entropy_density(grid, gamma):
 
 # Function for solution error calculation of sine-wave and Gaussian tests
 def calculate_solution_error(simulation, sim_variables, norm):
-    dimension = sim_variables.dimension
+    gamma, dimension = sim_variables.gamma, sim_variables.dimension
 
     time_keys = [float(t) for t in simulation.keys()]
     w_num = simulation[str(max(time_keys))]  # Get last instance of the grid with largest time key
@@ -34,7 +34,7 @@ def calculate_solution_error(simulation, sim_variables, norm):
     sim_variables = sim_variables._replace(cells=len(w_num))
     w_theo = constructor.initialise(sim_variables)
 
-    thermal_num, thermal_theo = fv.divide(w_num[...,4], w_num[...,0]), fv.divide(w_theo[...,4], w_theo[...,0])
+    thermal_num, thermal_theo = fv.divide(w_num[...,4], w_num[...,0]*(gamma-1)), fv.divide(w_theo[...,4], w_theo[...,0]*(gamma-1))
     w_num, w_theo = np.concatenate((w_num, thermal_num[...,None]), axis=-1), np.concatenate((w_theo, thermal_theo[...,None]), axis=-1)
 
     if norm > 10:
@@ -47,11 +47,11 @@ def calculate_solution_error(simulation, sim_variables, norm):
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
 def calculate_tv(simulation, sim_variables):
-    dimension, tv = sim_variables.dimension, {}
+    gamma, dimension, tv = sim_variables.gamma, sim_variables.dimension, {}
 
     for t in list(simulation.keys()):
         grid = simulation[t]
-        thermal = fv.divide(grid[...,4], grid[...,0])
+        thermal = fv.divide(grid[...,4], grid[...,0]*(gamma-1))
         for i in range(dimension):
             grid = np.diff(grid, axis=i)
             thermal = np.diff(thermal, axis=i)

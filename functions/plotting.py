@@ -18,7 +18,7 @@ BEAUTIFY = False
 
 
 PLOT_INDEXES = [[0,0], [0,1], [1,0], [1,1]]
-PLOT_LABELS = [[r"Density $\rho$", r"Pressure $P$"], [r"Velocity $v_x$", r"Specific thermal energy $\frac{P}{\rho}$"]]
+PLOT_LABELS = [[r"Density $\rho$", r"Pressure $P$"], [r"Velocity $v_x$", r"Internal energy $e$"]]
 TWOD_COLOURS = [["viridis", "hot"], ["cividis", "plasma"]]
 try:
     plt.style.use(STYLE)
@@ -72,7 +72,7 @@ def initiate_live_plot(sim_variables):
 
 # Update live plot
 def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
-    # top-left: density, top-right: pressure, bottom-left: velocity_x, bottom-right: specific thermal energy
+    # top-left: density, top-right: pressure, bottom-left: velocity_x, bottom-right: internal energy
     plot_data = [grid_snapshot[...,0], grid_snapshot[...,4], grid_snapshot[...,1], fv.divide(grid_snapshot[...,4], grid_snapshot[...,0])]
 
     if sim_variables.dimension == 2:
@@ -99,7 +99,7 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
 
 # Function for plotting a snapshot of the grid
 def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
-    config, N, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
+    config, N, gamma, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
 
     try:
@@ -124,7 +124,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
     y1 = grid_snapshot[...,0]  # density
     y2 = grid_snapshot[...,4]  # pressure
     y3 = grid_snapshot[...,1]  # vx
-    y4 = y2/y1  # specific thermal energy
+    y4 = y2/(y1*(gamma-1))  # internal energy
     y_data = [[y1, y2], [y3, y4]]
 
     for _i, _j in PLOT_INDEXES:
@@ -159,7 +159,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
 
 # Plot snapshots of quantities for multiple runs
 def plot_quantities(f, sim_variables, save_path):
-    config, dimension, subgrid, timestep = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep
+    config, gamma, dimension, subgrid, timestep = sim_variables.config, sim_variables.gamma, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep
     scheme, precision, snapshots = sim_variables.scheme, sim_variables.precision, sim_variables.snapshots
     start_pos, end_pos, initial_left = sim_variables.start_pos, sim_variables.end_pos, sim_variables.initial_left
 
@@ -196,7 +196,7 @@ def plot_quantities(f, sim_variables, save_path):
             y1 = f[str(N)][time_key][...,0]   # density
             y2 = f[str(N)][time_key][...,4]   # pressure
             y3 = f[str(N)][time_key][...,1]   # vx
-            y4 = y2/y1  # specific thermal energy
+            y4 = y2/(y1*(gamma-1))  # internal energy
             x = np.linspace(start_pos, end_pos, N)
             y_data = [[y1, y2], [y3, y4]]
 
@@ -300,7 +300,7 @@ def plot_solution_errors(f, sim_variables, save_path, norm=1):
         y1 = np.append(y1, solution_errors[0])  # density
         y2 = np.append(y2, solution_errors[4])  # pressure
         y3 = np.append(y3, solution_errors[1])  # vx
-        y4 = np.append(y4, solution_errors[-1])  # specific thermal energy
+        y4 = np.append(y4, solution_errors[-1])  # internal energy
     y_data = [[y1, y2], [y3, y4]]
 
     for _i, _j in PLOT_INDEXES:
@@ -382,7 +382,7 @@ def plot_total_variation(f, sim_variables, save_path):
         y1 = y[...,0]  # density
         y2 = y[...,4]  # pressure
         y3 = y[...,1]  # vx
-        y4 = y[...,-1]  # specific thermal energy
+        y4 = y[...,-1]  # internal energy
         y_data = [[y1, y2], [y3, y4]]
         x.sort()
 
@@ -450,7 +450,7 @@ def plot_conservation_equations(f, sim_variables, save_path):
 
 
 def make_video(f, sim_variables, save_path, vidpath, variable="all"):
-    config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
+    config, gamma, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.gamma, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
     variable = variable.lower()
 
@@ -483,7 +483,7 @@ def make_video(f, sim_variables, save_path, vidpath, variable="all"):
                 y1 = grid[...,0]  # density
                 y2 = grid[...,4]  # pressure
                 y3 = grid[...,1]  # vx
-                y4 = y2/y1  # specific thermal energy
+                y4 = y2/(y1*(gamma-1))  # internal energy
                 y_data = [[y1, y2], [y3, y4]]
 
                 for _i, _j in PLOT_INDEXES:
