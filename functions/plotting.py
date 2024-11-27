@@ -37,6 +37,25 @@ else:
         THEO_COLOUR = "black"
 
 
+
+def get_plots(grid, options=["density", "pressure", "vx", "energy"]):
+    lst, axis = [], {"x":0, "y":1, "z":2}
+    for option in options:
+        option = option.lower()
+        if "energy" in option or "temp" in option:
+            quantity = grid[...,4]/grid[...,0]
+        elif "pres" in option:
+            quantity = grid[...,4]
+        elif option.startswith("v"):
+            quantity = grid[...,1+axis[option[-1]]]
+        elif option.startswith("b"):
+            quantity = grid[...,5+axis[option[-1]]]
+        else:
+            quantity = grid[...,0]
+        lst.append(quantity)
+    return lst
+
+
 # Initiate the live plot feature
 def initiate_live_plot(sim_variables):
     N, dimension, start_pos, end_pos = sim_variables.cells, sim_variables.dimension, sim_variables.start_pos, sim_variables.end_pos
