@@ -17,9 +17,10 @@ STYLE = "default"
 BEAUTIFY = False
 
 
+PLOT_OPTIONS = ["DENSITY", "PRESSURE", "VX", "ENERGY"]
 PLOT_INDEXES = [[0,0], [0,1], [1,0], [1,1]]
 PLOT_LABELS = [[r"Density $\rho$", r"Pressure $P$"], [r"Velocity $v_x$", r"Internal energy $e$"]]
-TWOD_COLOURS = [["viridis", "hot"], ["cividis", "plasma"]]
+
 try:
     plt.style.use(STYLE)
 except Exception as e:
@@ -35,6 +36,8 @@ else:
         THEO_COLOUR = "white"
     else:
         THEO_COLOUR = "black"
+finally:
+    TWOD_COLOURS = [["viridis", "hot"], ["cividis", "plasma"]]
 
 
 
@@ -54,6 +57,72 @@ def get_plots(grid, options=["density", "pressure", "vx", "energy"]):
             quantity = grid[...,0]
         lst.append(quantity)
     return lst
+
+"""# Get plotting options; can only plot 2x2 figures
+def get_plots(options, **kwargs):
+    try:
+        grid = kwargs['grid']
+    except Exception as e:
+        grid = None
+
+    quantities, labels, errors, tvs = [], [], [], []
+    axis = {"x":0, "y":1, "z":2}
+
+    for option in options:
+        option = option.lower()
+
+        if "energy" in option or "temp" in option:
+            name = "Internal energy"
+            label = r"$e$"
+            error = r"$\log{(\epsilon_\nu(e))}$"
+            tv = r"TV($e$)"
+            if grid:
+                quantity = grid[...,4]/grid[...,0]
+
+        elif "pres" in option:
+            name = "Pressure"
+            label = r"$P$"
+            error = r"$\log{(\epsilon_\nu(P))}$"
+            tv = r"TV($P$)"
+            if grid:
+                quantity = grid[...,4]
+
+        elif option.startswith("v"):
+            name = "Velocity"
+            label = rf"$v_{option[-1]}$"
+            error = rf"$\log{{(\epsilon_\nu(v_{option[-1]}))}}$"
+            tv = rf"TV($v_{option[-1]}$)"
+            if grid:
+                quantity = grid[...,1+axis[option[-1]]]
+
+        elif option.startswith("b"):
+            name = "Mag. field"
+            label = rf"$B_{option[-1]}$"
+            error = rf"$\log{{(\epsilon_\nu(B_{option[-1]}))}}$"
+            tv = rf"TV($B_{option[-1]}$)"
+            if grid:
+                quantity = grid[...,5+axis[option[-1]]]
+
+        else:
+            name = "Density"
+            label = r"$\rho$"
+            error = r"$\log{(\epsilon_\nu(\rho))}$"
+            tv = r"TV($\rho$)"
+            if grid:
+                quantity = grid[...,0]
+
+        labels.append(rf"{name.capitalize()} {label}")
+        errors.append(rf"{name.capitalize()} {error}")
+        tvs.append(rf"{name.capitalize()} {tv}")
+        if grid:
+            quantities.append(quantity)
+    
+    quantities = [quantities[:int(len(quantities)/2)], quantities[int(len(quantities)/2):]]
+    labels = [labels[:int(len(labels)/2)], labels[int(len(labels)/2):]]
+    errors = [errors[:int(len(errors)/2)], errors[int(len(errors)/2):]]
+    tvs = [tvs[:int(len(tvs)/2)], tvs[int(len(tvs)/2):]]
+
+    return {'quantities':quantities, 'labels':labels, 'errors':errors, 'tvs':tvs}"""
 
 
 # Initiate the live plot feature
