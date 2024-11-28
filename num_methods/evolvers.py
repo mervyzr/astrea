@@ -29,7 +29,7 @@ def evolve_space(grid, sim_variables):
     else:
         data = pcm.run(grid, sim_variables)
 
-    fluxes = solvers.calculate_Riemann_flux(sim_variables, data)
+    fluxes = solvers.calculate_Riemann_flux(data, sim_variables)
     return fluxes
 
 
