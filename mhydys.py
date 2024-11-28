@@ -29,7 +29,7 @@ LOAD_ENV = False
 
 
 # Finite volume shock function
-def core_run(hdf5_file: str, sim_variables: namedtuple, *args, **kwargs):
+def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables
     grid = constructor.initialise(sim_variables, convert=True)
     plot_axes = sim_variables.permutations[-1]
@@ -46,7 +46,7 @@ def core_run(hdf5_file: str, sim_variables: namedtuple, *args, **kwargs):
     while t <= sim_variables.t_end:
         # Saves each instance of the system (primitive variables) at time t
         grid_snapshot = sim_variables.convert_conservative(grid, sim_variables).transpose(plot_axes)
-        with h5py.File(hdf5_file, "a") as f:
+        with h5py.File(hdf5, "a") as f:
             dataset = f[sim_variables.now.strftime('%Y%m%d%H%M%S')].create_dataset(str(float(t)), data=grid_snapshot)
             dataset.attrs['t'] = float(t)
 
