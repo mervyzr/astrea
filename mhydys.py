@@ -29,7 +29,7 @@ LOAD_ENV = False
 
 
 # Finite volume shock function
-def core_run(hdf5_file: str, sim_variables: namedtuple, *args, **kwargs):
+def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables
     grid = constructor.initialise(sim_variables, convert=True)
     plot_axes = sim_variables.permutations[-1]
@@ -46,8 +46,8 @@ def core_run(hdf5_file: str, sim_variables: namedtuple, *args, **kwargs):
     while t <= sim_variables.t_end:
         # Saves each instance of the system (primitive variables) at time t
         grid_snapshot = sim_variables.convert_conservative(grid, sim_variables).transpose(plot_axes)
-        with h5py.File(hdf5_file, "a") as f:
-            dataset = f[str(sim_variables.cells)].create_dataset(str(float(t)), data=grid_snapshot)
+        with h5py.File(hdf5, "a") as f:
+            dataset = f[sim_variables.now.strftime('%Y%m%d%H%M%S')].create_dataset(str(float(t)), data=grid_snapshot)
             dataset.attrs['t'] = float(t)
 
         # Miscellaneous media/print options
@@ -170,7 +170,7 @@ def run() -> None:
 
             # Save simulation variables into HDF5 file
             with h5py.File(file_name, "a") as f:
-                grp = f.create_group(str(sim_variables.cells))
+                grp = f.create_group(now.strftime('%Y%m%d%H%M%S'))
                 grp.attrs['config'] = sim_variables.config
                 grp.attrs['cells'] = sim_variables.cells
                 grp.attrs['cfl'] = sim_variables.cfl
@@ -189,8 +189,8 @@ def run() -> None:
             # Save attributes after individual run is completed
             sim_variables = sim_variables._replace(elapsed=elapsed)
             with h5py.File(file_name, "a") as f:
-                f[str(sim_variables.cells)].attrs['elapsed'] = elapsed
-                timestep_count = len(f[str(sim_variables.cells)])
+                f[now.strftime('%Y%m%d%H%M%S')].attrs['elapsed'] = elapsed
+                timestep_count = len(f[now.strftime('%Y%m%d%H%M%S')])
             if not sim_variables.quiet:
                 generic.print_final(sim_variables, timestep_count)
             ############################# END INDIVIDUAL SIMULATION #############################

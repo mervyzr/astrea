@@ -9,7 +9,7 @@ from functions import constructor, fv
 ##############################################################################
 
 # Intercell numerical fluxes between L and R interfaces based on Riemann solver
-def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
+def calculate_Riemann_flux(data: defaultdict, sim_variables: namedtuple):
 
     # Select Riemann solver based on scheme
     def run_Riemann_solver(_axis, _sim_variables, _characteristics, **kwargs):
