@@ -58,7 +58,8 @@ def get_plots(grid, options=["density", "pressure", "vx", "energy"]):
         lst.append(quantity)
     return lst
 
-"""# Get plotting options; can only plot 2x2 figures
+"""
+# Get plotting options; can only plot 2x2 figures
 def get_plots(options, **kwargs):
     try:
         grid = kwargs['grid']
@@ -122,7 +123,8 @@ def get_plots(options, **kwargs):
     errors = [errors[:int(len(errors)/2)], errors[int(len(errors)/2):]]
     tvs = [tvs[:int(len(tvs)/2)], tvs[int(len(tvs)/2):]]
 
-    return {'quantities':quantities, 'labels':labels, 'errors':errors, 'tvs':tvs}"""
+    return {'quantities':quantities, 'labels':labels, 'errors':errors, 'tvs':tvs}
+"""
 
 
 # Initiate the live plot feature
@@ -348,21 +350,28 @@ def plot_quantities(hdf5, sim_variables, save_path):
             # Add Sod analytical solution, using the highest resolution and timing
             elif "sod" in config:
                 _grid, _t = hdf5[ref_datetime][str(ref_time)], ref_time
-                Sod = analytic.calculate_Sod_analytical(_grid, _t, sim_variables)
-
-                y_theo = [[Sod[...,0], Sod[...,4]], [Sod[...,1], Sod[...,4]/Sod[...,0]]]
-                for _i, _j in PLOT_INDEXES:
-                    ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=2, color=THEO_COLOUR, linestyle="--", label=r"Sod$_{theo}$")
+                try:
+                    Sod = analytic.calculate_Sod_analytical(_grid, _t, sim_variables)
+                except Exception as e:
+                    print(f"Analytic error: {e}")
+                    pass
+                else:
+                    y_theo = [[Sod[...,0], Sod[...,4]], [Sod[...,1], Sod[...,4]/Sod[...,0]]]
+                    for _i, _j in PLOT_INDEXES:
+                        ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=2, color=THEO_COLOUR, linestyle="--", label=r"Sod$_{theo}$")
 
             # Add Sedov analytical solution, using the highest resolution and timing
             elif "sedov" in config:
-                pass
-                """_grid, _t = hdf5[ref_datetime][str(ref_time)], ref_time
-                Sedov = analytic.calculate_Sedov_analytical(_grid, _t, sim_variables)
-
-                y_theo = [[Sedov[...,0], Sedov[...,4]], [Sedov[...,1], Sedov[...,4]/Sedov[...,0]]]
-                for _i, _j in PLOT_INDEXES:
-                    ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=2, color=THEO_COLOUR, linestyle="--", label=r"Sedov$_{theo}$")"""
+                _grid, _t = hdf5[ref_datetime][str(ref_time)], ref_time
+                try:
+                    Sedov = analytic.calculate_Sedov_analytical(_grid, _t, sim_variables)
+                except Exception as e:
+                    print(f"Analytic error: {e}")
+                    pass
+                else:
+                    y_theo = [[Sedov[...,0], Sedov[...,4]], [Sedov[...,1], Sedov[...,4]/Sedov[...,0]]]
+                    for _i, _j in PLOT_INDEXES:
+                        ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=2, color=THEO_COLOUR, linestyle="--", label=r"Sedov$_{theo}$")
 
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
             if len(hdf5) != 1 or "sod" in config or config.startswith("gauss") or config.startswith("sin"):
