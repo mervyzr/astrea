@@ -19,7 +19,7 @@ BEAUTIFY = False
 
 PLOT_OPTIONS = ["DENSITY", "PRESSURE", "VX", "ENERGY"]
 PLOT_INDEXES = [[0,0], [0,1], [1,0], [1,1]]
-PLOT_LABELS = [[r"Density $\rho$", r"Pressure $P$"], [r"Velocity $v_x$", r"Internal energy $e$"]]
+PLOT_LABELS = [[r"Density $\rho$", r"Pressure $P$"], [r"Velocity $v_x$", r"Specific internal energy $e$"]]
 
 try:
     plt.style.use(STYLE)
@@ -58,73 +58,94 @@ def get_plots(grid, options=["density", "pressure", "vx", "energy"]):
         lst.append(quantity)
     return lst
 
-"""
-# Get plotting options; can only plot 2x2 figures
-def get_plots(options, **kwargs):
-    try:
-        grid = kwargs['grid']
-    except Exception as e:
-        grid = None
 
-    quantities, labels, errors, tvs = [], [], [], []
-    axis = {"x":0, "y":1, "z":2}
+
+# Make figures and axes for plotting
+def make_figure(options, sim_variables, variable="normal"):
+    labels, errors, tvs = [], [], []
 
     for option in options:
         option = option.lower()
 
         if "energy" in option or "temp" in option:
-            name = "Internal energy"
-            label = r"$e$"
-            error = r"$\log{(\epsilon_\nu(e))}$"
-            tv = r"TV($e$)"
-            if grid:
-                quantity = grid[...,4]/grid[...,0]
+            if "total" in option:
+                name = "Total energy"
+                label = r"$E$"
+                error = r"$\log{(\epsilon_\nu(E))}$"
+                tv = r"TV($E$)"
+            else:
+                name = "Specific internal energy"
+                label = r"$e$"
+                error = r"$\log{(\epsilon_\nu(e))}$"
+                tv = r"TV($e$)"
+
+        elif "mom" in option:
+            name = "Momentum"
+            label = r"$p_x$"
+            error = r"$\log{(\epsilon_\nu(p_x))}$"
+            tv = r"TV($p_x$)"
+
+        elif "mass" in option:
+            name = "Mass"
+            label = r"$m$"
+            error = r"$\log{(\epsilon_\nu(m))}$"
+            tv = r"TV($m$)"
 
         elif "pres" in option:
             name = "Pressure"
             label = r"$P$"
             error = r"$\log{(\epsilon_\nu(P))}$"
             tv = r"TV($P$)"
-            if grid:
-                quantity = grid[...,4]
 
         elif option.startswith("v"):
             name = "Velocity"
             label = rf"$v_{option[-1]}$"
             error = rf"$\log{{(\epsilon_\nu(v_{option[-1]}))}}$"
             tv = rf"TV($v_{option[-1]}$)"
-            if grid:
-                quantity = grid[...,1+axis[option[-1]]]
 
         elif option.startswith("b"):
             name = "Mag. field"
             label = rf"$B_{option[-1]}$"
             error = rf"$\log{{(\epsilon_\nu(B_{option[-1]}))}}$"
             tv = rf"TV($B_{option[-1]}$)"
-            if grid:
-                quantity = grid[...,5+axis[option[-1]]]
 
         else:
             name = "Density"
             label = r"$\rho$"
             error = r"$\log{(\epsilon_\nu(\rho))}$"
             tv = r"TV($\rho$)"
-            if grid:
-                quantity = grid[...,0]
 
         labels.append(rf"{name.capitalize()} {label}")
         errors.append(rf"{name.capitalize()} {error}")
         tvs.append(rf"{name.capitalize()} {tv}")
-        if grid:
-            quantities.append(quantity)
-    
-    quantities = [quantities[:int(len(quantities)/2)], quantities[int(len(quantities)/2):]]
-    labels = [labels[:int(len(labels)/2)], labels[int(len(labels)/2):]]
-    errors = [errors[:int(len(errors)/2)], errors[int(len(errors)/2):]]
-    tvs = [tvs[:int(len(tvs)/2)], tvs[int(len(tvs)/2):]]
 
-    return {'quantities':quantities, 'labels':labels, 'errors':errors, 'tvs':tvs}
-"""
+    indexes = []
+    if len(options) < 4:
+        rows = 1
+    elif len(options) <= 8:
+        rows = 2
+    else:
+        rows = 3
+    cols = len(options)//rows + len(options)%rows
+    for row in range(rows):
+        for col in range(cols):
+            indexes.append([row,col])
+
+    if sim_variables.dimension == 2:
+        fig, ax = plt.subplots(nrows=rows, ncols=cols, figsize=[15,10])
+    else:
+        fig, ax = plt.subplots(nrows=rows, ncols=cols, figsize=[21,10])
+
+    for i, (_i,_j) in enumerate(indexes):
+        ax[_i,_j].set_ylabel(labels[i], fontsize=18)
+        if sim_variables.dimension < 2:
+            ax[_i,_j].set_xlim([sim_variables.start_pos, sim_variables.end_pos])
+            ax[_i,_j].grid(linestyle="--", linewidth=0.5)
+
+    return fig, ax
+
+
+
 
 
 # Initiate the live plot feature
@@ -198,11 +219,9 @@ def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
         text = ""
 
     if dimension == 2:
-        figsize = [15, 10]
+        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[15,10])
     else:
-        figsize = [21, 10]
-
-    fig, ax = plt.subplots(nrows=2, ncols=2, figsize=figsize)
+        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21,10])
 
     for _i, _j in PLOT_INDEXES:
         ax[_i,_j].set_ylabel(PLOT_LABELS[_i][_j], fontsize=18)
