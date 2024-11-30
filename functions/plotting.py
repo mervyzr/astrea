@@ -183,7 +183,7 @@ def initiate_live_plot(sim_variables):
 
 # Update live plot
 def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
-    # top-left: density, top-right: pressure, bottom-left: velocity_x, bottom-right: internal energy
+    # top-left: density, top-right: pressure, bottom-left: velocity_x, bottom-right: specific internal energy
     plot_data = [grid_snapshot[...,0], grid_snapshot[...,4], grid_snapshot[...,1], fv.divide(grid_snapshot[...,4], grid_snapshot[...,0])]
 
     if sim_variables.dimension == 2:
@@ -233,7 +233,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
     y1 = grid_snapshot[...,0]  # density
     y2 = grid_snapshot[...,4]  # pressure
     y3 = grid_snapshot[...,1]  # vx
-    y4 = y2/(y1*(gamma-1))  # internal energy
+    y4 = y2/(y1*(gamma-1))  # specific internal energy
     y_data = [[y1, y2], [y3, y4]]
 
     for _i, _j in PLOT_INDEXES:
@@ -315,11 +315,11 @@ def plot_quantities(hdf5, sim_variables, save_path):
             y1 = grid[...,0]   # density
             y2 = grid[...,4]   # pressure
             y3 = grid[...,1]   # vx
-            y4 = y2/(y1*(gamma-1))  # internal energy
+            y4 = y2/(y1*(gamma-1))  # specific internal energy
             x = np.linspace(start_pos, end_pos, N)
             y_data = [[y1, y2], [y3, y4]]
 
-            # density, pressure, vx, internal energy
+            # density, pressure, vx, specific internal energy
             for _i, _j in PLOT_INDEXES:
                 y = y_data[_i][_j]
 
@@ -416,7 +416,7 @@ def plot_solution_errors(hdf5, sim_variables, save_path, norm=1):
 
     # Solution errors plot
     fig, ax = plt.subplots(nrows=1, ncols=2, figsize=[21,10])
-    error_labels = [[r"Density $\log{(\epsilon_\nu(\rho))}$", r"Pressure $\log{(\epsilon_\nu(P))}$"], [r"Velocity $\log{(\epsilon_\nu(v_x))}$", r"Internal energy $\log{(\epsilon_\nu(e))}$"]]
+    error_labels = [[r"Density $\log{(\epsilon_\nu(\rho))}$", r"Pressure $\log{(\epsilon_\nu(P))}$"], [r"Velocity $\log{(\epsilon_\nu(v_x))}$", r"Specific internal energy $\log{(\epsilon_\nu(e))}$"]]
 
     x, y1, y2, y3, y4 = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
     for datetime in datetimes:
@@ -425,7 +425,7 @@ def plot_solution_errors(hdf5, sim_variables, save_path, norm=1):
         y1 = np.append(y1, solution_errors[0])  # density
         y2 = np.append(y2, solution_errors[4])  # pressure
         y3 = np.append(y3, solution_errors[1])  # vx
-        y4 = np.append(y4, solution_errors[-1])  # internal energy
+        y4 = np.append(y4, solution_errors[-1])  # specific internal energy
     y_data = [[y1, y2], [y3, y4]]
 
     for _i, _j in PLOT_INDEXES:
@@ -493,7 +493,7 @@ def plot_total_variation(hdf5, sim_variables, save_path):
     datetimes = sorted(hdf5, key=hdf5.get)
 
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21,10])
-    tv_labels = [[r"Density TV($\rho$)", r"Pressure TV($P$)"], [r"Velocity TV($v_x$)", r"Internal energy TV($e$)"]]
+    tv_labels = [[r"Density TV($\rho$)", r"Pressure TV($P$)"], [r"Velocity TV($v_x$)", r"Specific internal energy TV($e$)"]]
 
     for _i, _j in PLOT_INDEXES:
         ax[_i,_j].set_ylabel(tv_labels[_i][_j], fontsize=18)
@@ -510,7 +510,7 @@ def plot_total_variation(hdf5, sim_variables, save_path):
         y1 = y[...,0]  # density
         y2 = y[...,4]  # pressure
         y3 = y[...,1]  # vx
-        y4 = y[...,-1]  # internal energy
+        y4 = y[...,-1]  # specific internal energy
         y_data = [[y1, y2], [y3, y4]]
 
         for _i, _j in PLOT_INDEXES:
@@ -538,7 +538,7 @@ def plot_conservation_equations(hdf5, sim_variables, save_path):
     datetimes = sorted(hdf5, key=hdf5.get)
 
     fig, ax = plt.subplots(nrows=1, ncols=3, figsize=[21,10])
-    eq_labels = [r"Mass ($m$)", r"Momentum ($p_x$)", r"Energy ($E_{tot}$)"]
+    eq_labels = [r"Mass $m$", r"Momentum $p_x$", r"Energy $E$"]
 
     for _j in [0,1,2]:
         ax[_j].set_ylabel(eq_labels[_j], fontsize=18)
@@ -622,7 +622,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                 y1 = grid[...,0]  # density
                 y2 = grid[...,4]  # pressure
                 y3 = grid[...,1]  # vx
-                y4 = y2/(y1*(gamma-1))  # internal energy
+                y4 = y2/(y1*(gamma-1))  # specific internal energy
                 y_data = [[y1, y2], [y3, y4]]
 
                 for _i, _j in PLOT_INDEXES:
