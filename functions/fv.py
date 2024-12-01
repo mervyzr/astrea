@@ -44,6 +44,14 @@ def derivative(grid, ax):
     return np.diff(grid.take(range(1,width), axis=ax), axis=ax) - np.diff(grid.take(range(0,width-1), axis=ax), axis=ax)
 
 
+# Convert between pressure P and total energy density E; P represents the internal energy density
+def convert_variable(variable, grid, gamma):
+    if variable.lower().startswith('p'):
+        return grid[...,4]/(gamma-1) + .5*(grid[...,0]*norm(grid[...,1:4])**2 + norm(grid[...,5:8])**2)
+    elif variable.lower().startswith('e') or 'energy' in variable.lower():
+        return (gamma-1) * (grid[...,4] - .5*(grid[...,0]*norm(divide(grid[...,1:4], grid[...,0][...,None]))**2 + norm(grid[...,5:8])**2))
+
+
 # Add boundary conditions
 def add_boundary(grid, boundary, stencil=1, axis=0):
     arr = np.copy(grid)
@@ -74,19 +82,16 @@ def high_order_average(grid, sim_variables, _type="cell"):
 # Pointwise (exact) conversion of primitive variables w to conservative variables q (up to 2nd-order accurate)
 def point_convert_primitive(grid, sim_variables):
     arr = np.copy(grid)
-    rhos, vels, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
-    arr[...,4] = (pressures/(sim_variables.gamma-1)) + .5*(rhos*norm(vels)**2 + norm(B_fields)**2)
-    arr[...,1:4] = vels * rhos[...,None]
+    arr[...,4] = convert_variable('pressure', grid, sim_variables.gamma)
+    arr[...,1:4] = grid[...,1:4] * grid[...,0][...,None]
     return arr
 
 
 # Pointwise (exact) conversion of conservative variables q to primitive variables w (up to 2nd-order accurate)
 def point_convert_conservative(grid, sim_variables):
     arr = np.copy(grid)
-    rhos, moms, energies, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
-    vels = divide(moms, rhos[...,None])
-    arr[...,4] = (sim_variables.gamma-1) * (energies - .5*(rhos*norm(vels)**2 + norm(B_fields)**2))
-    arr[...,1:4] = vels
+    arr[...,4] = convert_variable('energy', grid, sim_variables.gamma)
+    arr[...,1:4] = divide(grid[...,1:4], grid[...,0][...,None])
     return arr
 
 
