@@ -30,6 +30,12 @@ LOAD_ENV = False
 
 # Finite volume shock function
 def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
+    try:
+        chkpts = kwargs['checkpoints']
+    except KeyError:
+        chkpts = 50
+    chkpt = sim_variables.t_end/chkpts
+
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables
     grid = constructor.initialise(sim_variables, convert=True)
     plot_axes = sim_variables.permutations[-1]
@@ -38,11 +44,11 @@ def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
     if sim_variables.live_plot:
         plotting_params = plotting.initiate_live_plot(sim_variables)
     elif sim_variables.take_snaps:
-        plot_interval, snap_idx = sim_variables.t_end/sim_variables.snapshots, 0
-        _plot = True
+        chkpt = sim_variables.t_end/sim_variables.snapshots
+        take_snapshot = True
 
     # Start simulation run
-    t = 0.0
+    t, idx = 0., 1
     while t <= sim_variables.t_end:
         # Saves each instance of the system (primitive variables) at time t
         grid_snapshot = sim_variables.convert_conservative(grid, sim_variables).transpose(plot_axes)
@@ -53,15 +59,15 @@ def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
         # Miscellaneous media/print options
         if not sim_variables.quiet:
             generic.print_progress(t, sim_variables)
+
         if sim_variables.live_plot:
             plotting.update_plot(grid_snapshot, t, sim_variables, *plotting_params)
-        elif sim_variables.take_snaps and _plot:
+        elif sim_variables.take_snaps and take_snapshot:
             plotting.plot_snapshot(grid_snapshot, t, sim_variables, save_path=f"./savedData/snap{sim_variables.seed}")
-            _plot = False
-            snap_idx += 1
+            take_snapshot = False
 
-        # Handle the simulation end
         if t == sim_variables.t_end:
+            # Reduces one extra computing step
             break
         else:
             # Compute the numerical fluxes at each interface
@@ -72,13 +78,11 @@ def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
             dt = sim_variables.cfl * min(eigmaxes)
 
             # Handle dt
-            if t+dt > sim_variables.t_end:
-                dt = sim_variables.t_end - t
-
-            if sim_variables.take_snaps:
-                if t+dt >= plot_interval*snap_idx:
-                    dt = plot_interval*snap_idx - t
-                    _plot = True
+            if t+dt >= chkpt*idx:
+                dt = chkpt*idx - t
+                if sim_variables.take_snaps:
+                    take_snapshot = True
+                idx += 1
 
             # Update the solution with the numerical fluxes using iterative methods
             grid = evolvers.evolve_time(grid, interface_fluxes, dt, sim_variables)
