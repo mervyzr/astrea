@@ -41,22 +41,9 @@ finally:
 
 
 
-def get_plots(grid, options=["density", "pressure", "vx", "energy"]):
-    lst, axis = [], {"x":0, "y":1, "z":2}
-    for option in options:
-        option = option.lower()
-        if "energy" in option or "temp" in option:
-            quantity = grid[...,4]/grid[...,0]
-        elif "pres" in option:
-            quantity = grid[...,4]
-        elif option.startswith("v"):
-            quantity = grid[...,1+axis[option[-1]]]
-        elif option.startswith("b"):
-            quantity = grid[...,5+axis[option[-1]]]
-        else:
-            quantity = grid[...,0]
-        lst.append(quantity)
-    return lst
+
+
+
 
 
 
@@ -68,16 +55,16 @@ def make_figure(options, sim_variables, variable="normal"):
         option = option.lower()
 
         if "energy" in option or "temp" in option:
-            if "total" in option:
-                name = "Total energy"
-                label = r"$E$"
-                error = r"$\log{(\epsilon_\nu(E))}$"
-                tv = r"TV($E$)"
-            else:
+            if "internal" in option:
                 name = "Specific internal energy"
                 label = r"$e$"
                 error = r"$\log{(\epsilon_\nu(e))}$"
                 tv = r"TV($e$)"
+            else:
+                name = "Total energy"
+                label = r"$E$"
+                error = r"$\log{(\epsilon_\nu(E))}$"
+                tv = r"TV($E$)"
 
         elif "mom" in option:
             name = "Momentum"
@@ -136,13 +123,58 @@ def make_figure(options, sim_variables, variable="normal"):
     else:
         fig, ax = plt.subplots(nrows=rows, ncols=cols, figsize=[21,10])
 
-    for i, (_i,_j) in enumerate(indexes):
-        ax[_i,_j].set_ylabel(labels[i], fontsize=18)
+    for idx, (_i,_j) in enumerate(indexes):
+        if "error" in variable:
+            ax[_i,_j].set_ylabel(errors[idx], fontsize=18)
+        elif "tv" in variable:
+            ax[_i,_j].set_ylabel(tvs[idx], fontsize=18)
+        else:
+            ax[_i,_j].set_ylabel(labels[idx], fontsize=18)
+
         if sim_variables.dimension < 2:
             ax[_i,_j].set_xlim([sim_variables.start_pos, sim_variables.end_pos])
             ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
-    return fig, ax
+    return fig, ax, {'indexes':indexes, 'labels':labels, 'errors':errors, 'tvs':tvs}
+
+
+
+
+
+
+# Create list of data plots; accepts primitive grid
+def make_data(options, grid, sim_variables):
+    axes = {"x":0, "y":1, "z":2}
+    quantities = []
+
+    for option in options:
+        option = option.lower()
+
+        if "energy" in option or "temp" in option:
+            if "internal" in option:
+                quantity = fv.divide(grid[...,4], grid[...,0] * (sim_variables.gamma-1))
+            else:
+                quantity = fv.divide(fv.convert_variable("pressure", grid, sim_variables.gamma), grid[...,0])
+                if "density" in option:
+                    quantity *= grid[...,0]
+        elif "mom" in option:
+            quantity = grid[...,1+axes[option[-1]]] * grid[...,0]
+        elif option.startswith("p"):
+            quantity = grid[...,4]
+        elif option.startswith("v"):
+            quantity = grid[...,1+axes[option[-1]]]
+        elif option.startswith("b"):
+            quantity = grid[...,5+axes[option[-1]]]
+        else:
+            quantity = grid[...,0]
+
+        quantities.append(quantity)
+
+    return quantities
+
+
+
+
 
 
 
@@ -215,7 +247,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
 
     try:
         text = kwargs["text"]
-    except Exception as e:
+    except KeyError:
         text = ""
 
     if dimension == 2:
@@ -420,8 +452,11 @@ def plot_solution_errors(hdf5, sim_variables, save_path, norm=1):
 
     x, y1, y2, y3, y4 = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
     for datetime in datetimes:
+        # Get last instance of the grid with largest time key
+        time_key = max([float(t) for t in hdf5[datetime].keys()])
+        solution_errors = analytic.calculate_solution_error(hdf5[datetime][str(time_key)], sim_variables, norm)
+
         x = np.append(x, hdf5[datetime].attrs['cells']**dimension)
-        solution_errors = analytic.calculate_solution_error(hdf5[datetime], sim_variables, norm)
         y1 = np.append(y1, solution_errors[0])  # density
         y2 = np.append(y2, solution_errors[4])  # pressure
         y3 = np.append(y3, solution_errors[1])  # vx
