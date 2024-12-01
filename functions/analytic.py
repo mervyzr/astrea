@@ -23,11 +23,9 @@ def calculate_entropy_density(grid, gamma):
 
 
 # Function for solution error calculation of sine-wave and Gaussian tests
-def calculate_solution_error(simulation, sim_variables, norm):
+def calculate_solution_error(grid, sim_variables, norm):
     gamma, dimension = sim_variables.gamma, sim_variables.dimension
-
-    time_keys = [float(t) for t in simulation.keys()]
-    w_num = simulation[str(max(time_keys))]  # Get last instance of the grid with largest time key
+    w_num = np.copy(grid)
 
     # Create theoretical array
     normalising_factor = 1/(len(w_num) ** dimension)
