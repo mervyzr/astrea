@@ -32,8 +32,11 @@ def calculate_solution_error(grid, sim_variables, norm):
     sim_variables = sim_variables._replace(cells=len(w_num))
     w_theo = constructor.initialise(sim_variables)
 
-    thermal_num, thermal_theo = fv.divide(w_num[...,4], w_num[...,0]*(gamma-1)), fv.divide(w_theo[...,4], w_theo[...,0]*(gamma-1))
-    w_num, w_theo = np.concatenate((w_num, thermal_num[...,None]), axis=-1), np.concatenate((w_theo, thermal_theo[...,None]), axis=-1)
+    E_tot_num, E_tot_theo = fv.convert_variable('pressure', w_num[...,4], gamma)/w_num[...,0], fv.convert_variable('pressure', w_theo[...,4], gamma)/w_theo[...,0]
+    E_int_num, E_int_theo = fv.divide(w_num[...,4], w_num[...,0]*(gamma-1)), fv.divide(w_theo[...,4], w_theo[...,0]*(gamma-1))
+
+    w_num, w_theo = np.concatenate((w_num, E_tot_num[...,None]), axis=-1), np.concatenate((w_theo, E_tot_theo[...,None]), axis=-1)
+    w_num, w_theo = np.concatenate((w_num, E_int_num[...,None]), axis=-1), np.concatenate((w_theo, E_int_theo[...,None]), axis=-1)
 
     if norm > 10:
         return np.max(np.abs(w_num-w_theo), axis=tuple(range(dimension)))

@@ -403,21 +403,56 @@ def plot_solution_errors(hdf5, sim_variables, save_path, norm=1):
     datetimes = sorted(hdf5, key=hdf5.get)
 
     # Solution errors plot
-    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=[21,10])
-    error_labels = [[r"Density $\log{(\epsilon_\nu(\rho))}$", r"Pressure $\log{(\epsilon_\nu(P))}$"], [r"Velocity $\log{(\epsilon_\nu(v_x))}$", r"Specific internal energy $\log{(\epsilon_\nu(e))}$"]]
+    fig, ax, plot_ = make_figure(["density", "pressure", "vx", "internal energy"], sim_variables, "errors")
+    #fig, ax = plt.subplots(nrows=1, ncols=2, figsize=[21,10])
+    #error_labels = [[r"Density $\log{(\epsilon_\nu(\rho))}$", r"Pressure $\log{(\epsilon_\nu(P))}$"], [r"Velocity $\log{(\epsilon_\nu(v_x))}$", r"Specific internal energy $\log{(\epsilon_\nu(e))}$"]]
 
+    array = np.full((len(PLOT_OPTIONS)+1, 1), None)
     x, y1, y2, y3, y4 = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
     for datetime in datetimes:
         # Get last instance of the grid with largest time key
         time_key = max([float(t) for t in hdf5[datetime].keys()])
         solution_errors = analytic.calculate_solution_error(hdf5[datetime][str(time_key)], sim_variables, norm)
 
+        for option in PLOT_OPTIONS:
+            if 
+
+
+def make_data(options, grid, sim_variables):
+    axes = {"x":0, "y":1, "z":2}
+    quantities = []
+
+    for option in options:
+        option = option.lower()
+
+        if "energy" in option or "temp" in option:
+            if "internal" in option:
+                quantity = fv.divide(grid[...,4], grid[...,0] * (sim_variables.gamma-1))
+            else:
+                quantity = fv.divide(fv.convert_variable("pressure", grid, sim_variables.gamma), grid[...,0])
+            if "density" in option:
+                quantity *= grid[...,0]
+        elif "mom" in option:
+            quantity = grid[...,1+axes[option[-1]]] * grid[...,0]
+        elif option.startswith("p"):
+            quantity = grid[...,4]
+        elif option.startswith("v"):
+            quantity = grid[...,1+axes[option[-1]]]
+        elif option.startswith("b") or "magnetic" in option:
+            quantity = grid[...,5+axes[option[-1]]]
+        else:
+            quantity = grid[...,0]
+
+        quantities.append(quantity)
+
+    return quantities
+
         x = np.append(x, hdf5[datetime].attrs['cells']**dimension)
         y1 = np.append(y1, solution_errors[0])  # density
         y2 = np.append(y2, solution_errors[4])  # pressure
         y3 = np.append(y3, solution_errors[1])  # vx
         y4 = np.append(y4, solution_errors[-1])  # specific internal energy
-    y_data = [[y1, y2], [y3, y4]]
+    y_data = [y1, y2, y3, y4]
 
     for _i, _j in PLOT_INDEXES:
         if _i == _j:
