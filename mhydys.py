@@ -168,8 +168,8 @@ def run() -> None:
             now = datetime.now()
 
             # Update cells (and grid width) in simulation variables (namedtuple)
-            sim_variables = sim_variables._replace(now=now)
             sim_variables = sim_variables._replace(access_key=now.strftime('%Y%m%d%H%M%S')+str(now.microsecond))
+            sim_variables = sim_variables._replace(now=now)
             sim_variables = sim_variables._replace(cells=N)
             sim_variables = sim_variables._replace(dx=abs(sim_variables.end_pos-sim_variables.start_pos)/sim_variables.cells)
 
@@ -206,7 +206,7 @@ def run() -> None:
                 plotting.plot_quantities(f, sim_variables, save_path)
                 if sim_variables.run_type.startswith("m"):
                     if sim_variables.config_category == "smooth":
-                        plotting.plot_solution_errors(f, sim_variables, save_path)
+                        plotting.plot_solution_errors(f, sim_variables, save_path, error_norm=1)
                 else:
                     plotting.plot_total_variation(f, sim_variables, save_path)
                     plotting.plot_conservation_equations(f, sim_variables, save_path)

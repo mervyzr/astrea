@@ -32,7 +32,7 @@ def calculate_solution_error(grid, sim_variables, norm):
     sim_variables = sim_variables._replace(cells=len(w_num))
     w_theo = constructor.initialise(sim_variables)
 
-    E_tot_num, E_tot_theo = fv.convert_variable('pressure', w_num[...,4], gamma)/w_num[...,0], fv.convert_variable('pressure', w_theo[...,4], gamma)/w_theo[...,0]
+    E_tot_num, E_tot_theo = fv.divide(fv.convert_variable('pressure', w_num, gamma), w_num[...,0]), fv.divide(fv.convert_variable('pressure', w_theo, gamma), w_theo[...,0])
     E_int_num, E_int_theo = fv.divide(w_num[...,4], w_num[...,0]*(gamma-1)), fv.divide(w_theo[...,4], w_theo[...,0]*(gamma-1))
 
     w_num, w_theo = np.concatenate((w_num, E_tot_num[...,None]), axis=-1), np.concatenate((w_theo, E_tot_theo[...,None]), axis=-1)
@@ -47,52 +47,55 @@ def calculate_solution_error(grid, sim_variables, norm):
 
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
-def calculate_tv(simulation, sim_variables):
-    gamma, dimension, tv = sim_variables.gamma, sim_variables.dimension, {}
+def calculate_TV(simulation, sim_variables):
+    gamma, dimension, tot_vary = sim_variables.gamma, sim_variables.dimension, {}
 
     for t in list(simulation.keys()):
         grid = simulation[t]
-        thermal = fv.divide(grid[...,4], grid[...,0]*(gamma-1))
+        E_tot = fv.divide(fv.convert_variable('pressure', grid, gamma), grid[...,0])
+        E_int = fv.divide(grid[...,4], grid[...,0]*(gamma-1))
         for i in range(dimension):
             grid = np.diff(grid, axis=i)
-            thermal = np.diff(thermal, axis=i)
-        tv[float(t)] = np.sum(np.abs(grid), axis=tuple(range(dimension)))
-        tv[float(t)] = np.append(tv[float(t)], np.sum(np.abs(thermal)))
-    return tv
+            E_tot = np.diff(E_tot, axis=i)
+            E_int = np.diff(E_int, axis=i)
+        tot_vary[float(t)] = np.sum(np.abs(grid), axis=tuple(range(dimension)))
+        tot_vary[float(t)] = np.append(tot_vary[float(t)], np.sum(np.abs(E_tot)))
+        tot_vary[float(t)] = np.append(tot_vary[float(t)], np.sum(np.abs(E_int)))
+    return tot_vary
 
 
 # Function for checking the conservation equations; works with primitive variables but needs to be converted
 def calculate_conservation(simulation, sim_variables):
-    N, start_pos, end_pos = sim_variables.cells, sim_variables.start_pos, sim_variables.end_pos
-    dimension, eq = sim_variables.dimension, {}
+    dx, dimension, conservation = sim_variables.dx, sim_variables.dimension, {}
+    box_width = sim_variables.end_pos - sim_variables.start_pos
 
     for t in list(simulation.keys()):
-        grid = sim_variables.convert_primitive(simulation[t][:], sim_variables)
+        _grid = simulation[t][:]  # Needs the '[:]' to access the array
+        grid = sim_variables.convert_primitive(_grid, sim_variables)
         for i in range(dimension)[::-1]:
-            grid = scipy.integrate.simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
-        eq[float(t)] = grid
-    return eq
+            grid = scipy.integrate.simpson(grid, dx=dx, axis=i)
+        conservation[float(t)] = grid * (box_width)**dimension
+    return conservation
 
 
 # Function for checking the conservation equations at specific intervals; works with primitive variables but needs to be converted
 # The reason is because at the boundaries, some values are lost to the ghost cells and not counted into the conservation plots
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
 def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
-    N, start_pos, end_pos, t_end = sim_variables.cells, sim_variables.start_pos, sim_variables.end_pos, sim_variables.t_end
-    dimension, eq = sim_variables.dimension, {}
+    dx, dimension, conservation = sim_variables.dx, sim_variables.dimension, {}
+    box_width = sim_variables.end_pos - sim_variables.start_pos
 
-    intervals = np.array([], dtype=float)
-    periods = np.linspace(0, t_end, interval)
-    timings = np.asarray(list(simulation.keys()), dtype=float)
-    for period in periods:
-        intervals = np.append(intervals, timings[np.argmin(abs(timings-period))])
+    simulation_timings = list(simulation.keys())
+    simulation_timings.sort()
+    intervals = [timing[-1] for timing in np.array_split(simulation_timings, abs(interval))]
 
     for t in intervals:
-        grid = sim_variables.convert_primitive(simulation[str(t)][:], sim_variables)
+        _grid = simulation[t][:]  # Needs the '[:]' to access the array
+        grid = sim_variables.convert_primitive(_grid, sim_variables)
         for i in range(dimension)[::-1]:
-            grid = scipy.integrate.simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
-        eq[t] = grid
-    return eq
+            grid = scipy.integrate.simpson(grid, dx=dx, axis=i)
+        conservation[t] = grid * (box_width)**dimension
+    return conservation
 
 
 # Determine the analytical solution for a Sod shock test, in 1D

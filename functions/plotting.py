@@ -16,32 +16,7 @@ from functions import analytic, constructor, fv, generic
 
 STYLE = "default"
 BEAUTIFY = False
-
-
-PLOT_OPTIONS = ["DENSITY", "PRESSURE", "VX", "ENERGY"]
-PLOT_INDEXES = [[0,0], [0,1], [1,0], [1,1]]
-PLOT_LABELS = [[r"Density $\rho$", r"Pressure $P$"], [r"Velocity $v_x$", r"Specific internal energy $e$"]]
-
-try:
-    plt.style.use(STYLE)
-except Exception as e:
-    plt.style.use("default")
-    COLOURS = [["blue", "red"], ["green", "darkviolet"]]
-else:
-    if STYLE != "default":
-        _color = plt.rcParams['axes.prop_cycle'].by_key()['color']
-        COLOURS = [_color[:2], _color[2:4]]
-    else:
-        COLOURS = [["blue", "red"], ["green", "darkviolet"]]
-    if STYLE == "dark_background":
-        THEO_COLOUR = "white"
-    else:
-        THEO_COLOUR = "black"
-finally:
-    TWOD_COLOURS = [["viridis", "hot"], ["cividis", "plasma"]]
-
-
-
+PLOT_OPTIONS = ["DENSITY", "PRESSURE", "VX", "TOTAL ENERGY"]
 
 
 
@@ -83,9 +58,9 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE):
 
             elif "mom" in option:
                 name = "Momentum"
-                label = r"$p_x$"
-                error = r"$\log{(\epsilon_\nu(p_x))}$"
-                tv = r"TV($p_x$)"
+                label = rf"$p_{option[-1]}$"
+                error = rf"$\log{{(\epsilon_\nu(p_{option[-1]}))}}$"
+                tv = rf"TV($p_{option[-1]}$)"
 
             elif "mass" in option:
                 name = "Mass"
@@ -166,7 +141,6 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE):
 
 # Create list of data plots; accepts primitive grid
 def make_data(options, grid, sim_variables):
-    axes = {"x":0, "y":1, "z":2}
     quantities = []
 
     for option in options:
@@ -179,28 +153,29 @@ def make_data(options, grid, sim_variables):
                 quantity = fv.divide(fv.convert_variable("pressure", grid, sim_variables.gamma), grid[...,0])
             if "density" in option:
                 quantity *= grid[...,0]
-        elif "mom" in option:
-            quantity = grid[...,1+axes[option[-1]]] * grid[...,0]
         elif option.startswith("p"):
             quantity = grid[...,4]
-        elif option.startswith("v"):
-            quantity = grid[...,1+axes[option[-1]]]
-        elif option.startswith("b") or "magnetic" in option:
-            quantity = grid[...,5+axes[option[-1]]]
+        elif option.startswith("v") or (option.startswith("b") or "mag" in option) or "mom" in option:
+            axis = {"x":0, "y":1, "z":2}[option[-1]]
+            if option.startswith("v") or "mom" in option:
+                quantity = grid[...,1+axis]
+                if "mom" in option:
+                    quantity *= grid[...,0]
+            else:
+                quantity = grid[...,5+axis]
         else:
             quantity = grid[...,0]
 
         quantities.append(quantity)
-
     return quantities
 
 
 # Initiate the live plot feature
-def initiate_live_plot(sim_variables):
+def initiate_live_plot(sim_variables, options=PLOT_OPTIONS):
     N, dimension, start_pos, end_pos = sim_variables.cells, sim_variables.dimension, sim_variables.start_pos, sim_variables.end_pos
     plt.ion()
 
-    fig, ax, plot_ = make_figure(PLOT_OPTIONS, sim_variables)
+    fig, ax, plot_ = make_figure(options, sim_variables)
 
     graphs = []
     for idx, (_i,_j) in enumerate(plot_['indexes']):
@@ -221,8 +196,8 @@ def initiate_live_plot(sim_variables):
 
 
 # Update live plot
-def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
-    plot_data = make_data(PLOT_OPTIONS, grid_snapshot, sim_variables)
+def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs, options=PLOT_OPTIONS):
+    plot_data = make_data(options, grid_snapshot, sim_variables)
 
     if sim_variables.dimension == 2:
         for index, graph in enumerate(graphs):
@@ -235,7 +210,7 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
             graph.set_ydata(plot_data[index])
             #graphBR.set_ydata(analytic.calculateEntropyDensity(grid_snapshot, 1.4))  # scaled entropy density
 
-        for _ in ax.ravel()[:len(PLOT_OPTIONS)]:
+        for _ in ax.ravel()[:len(options)]:
             _.relim()
             _.autoscale_view()
 
@@ -247,7 +222,7 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
 
 
 # Function for plotting a snapshot of the grid
-def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
+def plot_snapshot(grid_snapshot, t, sim_variables, options=PLOT_OPTIONS, **kwargs):
     config, N, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
 
@@ -256,8 +231,8 @@ def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
     except KeyError:
         text = ""
 
-    fig, ax, plot_ = make_figure(PLOT_OPTIONS, sim_variables)
-    y_data = make_data(PLOT_OPTIONS, grid_snapshot, sim_variables)
+    fig, ax, plot_ = make_figure(options, sim_variables)
+    y_data = make_data(options, grid_snapshot, sim_variables)
 
     for idx, (_i,_j) in enumerate(plot_['indexes']):
         y = y_data[idx]
@@ -291,13 +266,14 @@ def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
 
 
 # Plot snapshots of quantities for multiple runs
-def plot_quantities(hdf5, sim_variables, save_path):
+def plot_quantities(hdf5, sim_variables, save_path, options=PLOT_OPTIONS):
     config, dimension, subgrid, timestep = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep
     scheme, precision, snapshots = sim_variables.scheme, sim_variables.precision, sim_variables.snapshots
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
 
     # hdf5 keys are datetime strings
-    datetimes = sorted(hdf5, key=hdf5.get)
+    datetimes = [datetime for datetime in hdf5.keys()]
+    datetimes.sort()
 
     # Separate the timings based on the number of snapshots; returns a dict of lists with the timing intervals for each N
     plot_timings_for_each_grp = {}
@@ -315,7 +291,7 @@ def plot_quantities(hdf5, sim_variables, save_path):
 
     # Iterate through the list of timings generated by the number of snapshots
     for snap_index in range(snapshots):
-        fig, ax, plot_ = make_figure(PLOT_OPTIONS, sim_variables)
+        fig, ax, plot_ = make_figure(options, sim_variables)
 
         # Plot each simulation at the specific timing
         ref_time = ref_timings[snap_index]
@@ -325,7 +301,7 @@ def plot_quantities(hdf5, sim_variables, save_path):
             timing = str(plot_timings_for_each_grp[datetime][snap_index])
 
             x = np.linspace(start_pos, end_pos, N)
-            y_data = make_data(PLOT_OPTIONS, simulation[timing], sim_variables)
+            y_data = make_data(options, simulation[timing], sim_variables)
 
             # density, pressure, vx, specific internal energy
             for idx, (_i,_j) in enumerate(plot_['indexes']):
@@ -358,9 +334,9 @@ def plot_quantities(hdf5, sim_variables, save_path):
             if sim_variables.config_category == "smooth":
                 analytical = constructor.initialise(sim_variables)
 
-                y_theo = make_data(PLOT_OPTIONS, analytical, sim_variables)
+                y_theo = make_data(options, analytical, sim_variables)
                 for idx, (_i,_j) in enumerate(plot_['indexes']):
-                    ax[_i,_j].plot(x, y_theo[idx], linewidth=2, color=plot_['colours']['theo'], linestyle="--", label=rf"{config.title()}$_{{theo}}$")
+                    ax[_i,_j].plot(x, y_theo[idx], linewidth=1, color=plot_['colours']['theo'], linestyle="--", label=rf"{config.title()}$_{{theo}}$")
 
             # Add Sod or Sedov analytical solution, using the highest resolution and timing
             elif "sod" in config or "sedov" in config:
@@ -376,9 +352,9 @@ def plot_quantities(hdf5, sim_variables, save_path):
                     print(f"Analytic error: {e}")
                     pass
                 else:
-                    y_theo = make_data(PLOT_OPTIONS, soln, sim_variables)
+                    y_theo = make_data(options, soln, sim_variables)
                     for idx, (_i,_j) in enumerate(plot_['indexes']):
-                        ax[_i,_j].plot(x, y_theo[idx], linewidth=2, color=plot_['colours']['theo'], linestyle="--", label=plot_label)
+                        ax[_i,_j].plot(x, y_theo[idx], linewidth=1, color=plot_['colours']['theo'], linestyle="--", label=plot_label)
 
             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
             if len(hdf5) != 1 or "sod" in config or "sedov" in config or sim_variables.config_category == "smooth":
@@ -396,86 +372,68 @@ def plot_quantities(hdf5, sim_variables, save_path):
         plt.close()
 
 
-def plot_solution_errors(hdf5, sim_variables, save_path, norm=1):
+# Plot solution errors to determine order of convergence of numerical scheme
+def plot_solution_errors(hdf5, sim_variables, save_path, error_norm, options=["density", "total energy"]):
     config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
 
     # hdf5 keys are datetime strings
-    datetimes = sorted(hdf5, key=hdf5.get)
+    datetimes = [datetime for datetime in hdf5.keys()]
+    datetimes.sort()
 
     # Solution errors plot
-    fig, ax, plot_ = make_figure(["density", "pressure", "vx", "internal energy"], sim_variables, "errors")
-    #fig, ax = plt.subplots(nrows=1, ncols=2, figsize=[21,10])
-    #error_labels = [[r"Density $\log{(\epsilon_\nu(\rho))}$", r"Pressure $\log{(\epsilon_\nu(P))}$"], [r"Velocity $\log{(\epsilon_\nu(v_x))}$", r"Specific internal energy $\log{(\epsilon_\nu(e))}$"]]
+    fig, ax, plot_ = make_figure(options, sim_variables, "errors")
 
-    array = np.full((len(PLOT_OPTIONS)+1, 1), None)
-    x, y1, y2, y3, y4 = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
-    for datetime in datetimes:
+    array = np.full((1+len(options), len(datetimes)), 0., dtype=sim_variables.precision)
+    for idx, datetime in enumerate(datetimes):
+        _arr = [hdf5[datetime].attrs['cells']**dimension]
+
         # Get last instance of the grid with largest time key
         time_key = max([float(t) for t in hdf5[datetime].keys()])
-        solution_errors = analytic.calculate_solution_error(hdf5[datetime][str(time_key)], sim_variables, norm)
+        solution_errors: np.array = analytic.calculate_solution_error(hdf5[datetime][str(time_key)], sim_variables, error_norm)
 
-        for option in PLOT_OPTIONS:
-            if 
-
-
-def make_data(options, grid, sim_variables):
-    axes = {"x":0, "y":1, "z":2}
-    quantities = []
-
-    for option in options:
-        option = option.lower()
-
-        if "energy" in option or "temp" in option:
-            if "internal" in option:
-                quantity = fv.divide(grid[...,4], grid[...,0] * (sim_variables.gamma-1))
+        for option in options:
+            option = option.lower()
+            if "energy" in option or "temp" in option:
+                if "internal" in option:
+                    _arr.append(solution_errors[-1])
+                else:
+                    _arr.append(solution_errors[-2])
+            elif option.startswith("p"):
+                _arr.append(solution_errors[4])
+            elif option.startswith("v") or (option.startswith("b") or "mag" in option):
+                axis = {'x':0, 'y':1, 'z':2}[option[-1]]
+                if option.startswith("v"):
+                    _arr.append(solution_errors[1+axis])
+                else:
+                    _arr.append(solution_errors[5+axis])
             else:
-                quantity = fv.divide(fv.convert_variable("pressure", grid, sim_variables.gamma), grid[...,0])
-            if "density" in option:
-                quantity *= grid[...,0]
-        elif "mom" in option:
-            quantity = grid[...,1+axes[option[-1]]] * grid[...,0]
-        elif option.startswith("p"):
-            quantity = grid[...,4]
-        elif option.startswith("v"):
-            quantity = grid[...,1+axes[option[-1]]]
-        elif option.startswith("b") or "magnetic" in option:
-            quantity = grid[...,5+axes[option[-1]]]
-        else:
-            quantity = grid[...,0]
+                _arr.append(solution_errors[0])
 
-        quantities.append(quantity)
+        array[...,idx] = np.asarray(_arr, dtype=sim_variables.precision)
+    x, y_data = array[:1].ravel(), array[1:]
+    x.sort()
 
-    return quantities
+    for idx, (_i,_j) in enumerate(plot_['indexes']):
+        y = y_data[idx]
 
-        x = np.append(x, hdf5[datetime].attrs['cells']**dimension)
-        y1 = np.append(y1, solution_errors[0])  # density
-        y2 = np.append(y2, solution_errors[4])  # pressure
-        y3 = np.append(y3, solution_errors[1])  # vx
-        y4 = np.append(y4, solution_errors[-1])  # specific internal energy
-    y_data = [y1, y2, y3, y4]
+        EOC = np.diff(np.log(y))/np.diff(np.log(x))
+        _idx = np.argmin(np.abs(np.average(EOC)-EOC))
+        c = np.log10(y[_idx]) - EOC[_idx]*np.log10(x[_idx])
 
-    for _i, _j in PLOT_INDEXES:
-        if _i == _j:
-            ax[_i].set_ylabel(error_labels[_i][_j], fontsize=18)
-            ax[_i].grid(linestyle="--", linewidth=0.5)
+        for order in [1,2,4,5]:
+            alpha = 10**c
+            ytheo = alpha*x**(-order)
+            ax[_i,_j].loglog(x, ytheo, linewidth=2, color=plot_['colours']['theo'], linestyle="--")
+            ax[_i,_j].annotate(rf"$O(N^{order})$", (x[-1], ytheo[-1]), fontsize=12)
+        ax[_i,_j].loglog(x, y, linewidth=2, linestyle="--", marker="o", color=plot_['colours']['1d'][idx])
+        ax[_i,_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|\text{{EOC}}_{{max}}|$ = {round(max(np.abs(EOC)), 4)}")
+        ax[_i,_j].legend(prop={'size': 14})
+        ax[_i,_j].set_xlim([min(x)/1.5,max(x)*1.5])
 
-            EOC = np.diff(np.log(y_data[_i][_j]))/np.diff(np.log(x))
-            idx = np.argmin(np.abs(np.average(EOC)-EOC))
-            c = np.log10(y_data[_i][_j][idx]) - EOC[idx]*np.log10(x[idx])
-
-            for order in [1,2,4,5]:
-                alpha = 10**c
-                ytheo = alpha*x**(-order)
-                ax[_j].loglog(x, ytheo, linewidth=2, color=THEO_COLOUR, linestyle="--")
-                ax[_j].annotate(rf"$O(N^{order})$", (x[-1], ytheo[-1]), fontsize=12)
-            ax[_j].loglog(x, y_data[_i][_j], linewidth=2, linestyle="--", marker="o", color=COLOURS[_i][_j])
-            ax[_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|\text{{EOC}}_{{max}}|$ = {round(max(np.abs(EOC)), 4)}")
-            ax[_j].legend(prop={'size': 14})
-
-    plt.suptitle(rf"$L_{norm}$ solution error norm $\epsilon_\nu(\vec{{w}})$ against resolution $N_\nu$ for {config.title()} test", fontsize=24)
+    plt.suptitle(rf"$L_{error_norm}$ solution error norm $\epsilon_\nu(\vec{{w}})$ against resolution $N_\nu$ for {config.title()} test", fontsize=24)
     fig.text(0.5, 0.04, r"Resolution $\log{(N_\nu)}$", fontsize=18, ha='center')
 
-    plt.savefig(f"{save_path}/solErr_L{norm}_{subgrid}_{timestep}_{scheme}.png", dpi=330)
+    plt.savefig(f"{save_path}/solErr_L{error_norm}_{subgrid}_{timestep}_{scheme}.png", dpi=330)
 
     plt.cla()
     plt.clf()
@@ -488,14 +446,13 @@ def make_data(options, grid, sim_variables):
     ax.grid(linestyle="--", linewidth=0.5)
 
     x_diff = x[1:]
-    y_diff = np.array([[np.log2(y1[:-1]/y1[1:]), np.log2(y2[:-1]/y2[1:])], [np.log2(y3[:-1]/y3[1:]), np.log2(y4[:-1]/y4[1:])]])
+    y_diff = np.log2(y_data[...,:-1]/y_data[...,1:])
 
     if dimension == 2:
         y_diff /= np.log2(4)
 
-    for _i, _j in PLOT_INDEXES:
-        if _i == _j:
-            ax.plot(x_diff, y_diff[_i][_j], linewidth=2, linestyle="--", marker="o", color=COLOURS[_i][_j], label=PLOT_LABELS[_i][_j])
+    for idx in range(len(plot_['indexes'])):
+        ax.plot(x_diff, y_diff[idx], linewidth=2, linestyle="--", marker="o", color=plot_['colours']['1d'][idx], label=plot_['labels'][idx])
 
     plt.suptitle(rf"Order of convergence against resolution $N_\nu$ for {config.title()} test", fontsize=24)
     fig.text(0.5, 0.04, r"Resolution $N$", fontsize=18, ha='center')
@@ -512,30 +469,46 @@ def make_data(options, grid, sim_variables):
     plt.close()
 
 
-def plot_total_variation(hdf5, sim_variables, save_path):
+# Total variation to determine if numerical scheme prevents oscillation
+def plot_total_variation(hdf5, sim_variables, save_path, options=PLOT_OPTIONS):
     config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
 
     # hdf5 keys are datetime strings
-    datetimes = sorted(hdf5, key=hdf5.get)
+    datetimes = [datetime for datetime in hdf5.keys()]
+    datetimes.sort()
 
-    fig, ax, plot_ = make_figure(PLOT_OPTIONS, sim_variables, "tv")
+    fig, ax, plot_ = make_figure(options, sim_variables, "tv")
 
     for datetime in datetimes:
         N = hdf5[datetime].attrs['cells']
-        tv_dict = analytic.calculate_tv(hdf5[datetime], sim_variables)
+        total_variations: dict = analytic.calculate_TV(hdf5[datetime], sim_variables)
 
-        x = np.asarray(list(tv_dict.keys()))
+        x = np.asarray(list(total_variations.keys()))
         x.sort()
+        ys = np.asarray(list(total_variations.values()))
 
-        y = np.asarray(list(tv_dict.values()))
-        y1 = y[...,0]  # density
-        y2 = y[...,4]  # pressure
-        y3 = y[...,1]  # vx
-        y4 = y[...,-1]  # specific internal energy
-        y_data = [y1, y2, y3, y4]
+        y_data = np.full((len(options), len(x)), 0., dtype=sim_variables.precision)
+        for idx, option in enumerate(options):
+            option = option.lower()
+            if "energy" in option or "temp" in option:
+                if "internal" in option:
+                    y_data[idx] = ys[...,-1]
+                else:
+                    y_data[idx] = ys[...,-2]
+            elif option.startswith("p"):
+                y_data[idx] = ys[...,4]
+            elif option.startswith("v") or (option.startswith("b") or "mag" in option):
+                axis = {'x':0, 'y':1, 'z':2}[option[-1]]
+                if option.startswith("v"):
+                    y_data[idx] = ys[...,1+axis]
+                else:
+                    y_data[idx] = ys[...,5+axis]
+            else:
+                y_data[idx] = ys[...,0]
 
         for idx, (_i,_j) in enumerate(plot_['indexes']):
             ax[_i,_j].plot(x, y_data[idx], linewidth=2, color=plot_['colours']['1d'][idx])
+            ax[_i,_j].set_xlim([min(x), max(x)])
 
         if dimension >= 2:
             grid_size = rf"${N}^{dimension}$"
@@ -552,47 +525,51 @@ def plot_total_variation(hdf5, sim_variables, save_path):
         plt.close()
 
 
-def plot_conservation_equations(hdf5, sim_variables, save_path):
+# Determines if numerical scheme is conservative to machine precision
+def plot_conservation_equations(hdf5, sim_variables, save_path, options=["mass", "momentum_x", "energy"]):
     config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
 
     # hdf5 keys are datetime strings
-    datetimes = sorted(hdf5, key=hdf5.get)
+    datetimes = [datetime for datetime in hdf5.keys()]
+    datetimes.sort()
 
-    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=[21,10])
-    eq_labels = [r"Mass $m$", r"Momentum $p_x$", r"Energy $E$"]
-
-    for _j in [0,1,2]:
-        ax[_j].set_ylabel(eq_labels[_j], fontsize=18)
-        ax[_j].grid(linestyle="--", linewidth=0.5)
+    fig, ax, plot_ = make_figure(options, sim_variables)
 
     for datetime in datetimes:
         N = hdf5[datetime].attrs['cells']
-        eq_dict = analytic.calculate_conservation(hdf5[datetime], sim_variables)
+        conservation: dict = analytic.calculate_conservation(hdf5[datetime], sim_variables)
 
-        x = np.asarray(list(eq_dict.keys()))
+        x = np.asarray(list(conservation.keys()))
         x.sort()
+        ys = np.asarray(list(conservation.values()))
 
-        y = np.asarray(list(eq_dict.values()))
-        y1 = y[...,0]  # mass
-        y2 = y[...,4]  # total energy
-        y3 = y[...,1]  # momentum_x
-        y4 = y[...,5]  # B*vol_x
-        y_data = [[y1, y2], [y3, y4]]
+        y_data = np.full((len(options), len(x)), 0., dtype=sim_variables.precision)
+        for idx, option in enumerate(options):
+            option = option.lower()
+            if "energy" in option or "temp" in option:
+                y_data[idx] = ys[...,4]
+            elif "mom" in option or (option.startswith("b") or "mag" in option):
+                axis = {'x':0, 'y':1, 'z':2}[option[-1]]
+                if "mom" in option:
+                    y_data[idx] = ys[...,1+axis]
+                else:
+                    y_data[idx] = ys[...,5+axis]
+            else:
+                y_data[idx] = ys[...,0]
 
-        for _i, _j in PLOT_INDEXES:
-            y_i, y_f = y_data[_i][_j][0], y_data[_i][_j][-1]
+        for idx, (_i,_j) in enumerate(plot_['indexes']):
+            y = y_data[idx]
+            ax[_i,_j].plot(x, y_data[idx], linewidth=2, color=plot_['colours']['1d'][idx])
+            ax[_i,_j].set_xlim([min(x), max(x)])
+
+            # For plot annotation purposes
+            y_init, y_final = y[0], y[-1]
             try:
-                decimal_point = int(('%e' % abs(y_f-y_i)).split('-')[1])
+                decimal_point = int(('%e' % abs(y_final-y_init)).split('-')[1])
             except IndexError:
-                decimal_point = int(('%e' % abs(y_f-y_i)).split('+')[1])
-            if _i == 0:
-                ax[_j].plot(x, y_data[_i][_j], linewidth=2, color=COLOURS[_i][_j])
-                ax[_j].annotate(round(y_i, decimal_point), (x[0], y_i), fontsize=12)
-                ax[_j].annotate(round(y_f, decimal_point), (x[-1], y_f), fontsize=12)
-            elif _i == 1 and _j == 0:
-                ax[2].plot(x, y_data[_i][_j], linewidth=2, color=COLOURS[_i][_j])
-                ax[2].annotate(round(y_i, decimal_point), (x[0], y_i), fontsize=12)
-                ax[2].annotate(round(y_f, decimal_point), (x[-1], y_f), fontsize=12)
+                decimal_point = int(('%e' % abs(y_final-y_init)).split('+')[1])
+            ax[_i,_j].annotate(round(y_init, decimal_point), (x[0], y_init), fontsize=12)
+            ax[_i,_j].annotate(round(y_final, decimal_point), (x[-1], y_final), fontsize=12)
 
         if dimension >= 2:
             grid_size = rf"${N}^{dimension}$"
@@ -609,14 +586,15 @@ def plot_conservation_equations(hdf5, sim_variables, save_path):
         plt.close()
 
 
-#DONE,NOT CHECKED
-def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
+# Make a video of entire simulation; video of all plot options or specific variable
+def make_video(hdf5, sim_variables, save_path, vidpath, variable="all", options=PLOT_OPTIONS):
     config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
     variable = variable.lower()
 
     # hdf5 keys are datetime strings
-    datetimes = sorted(hdf5, key=hdf5.get)
+    datetimes = [datetime for datetime in hdf5.keys()]
+    datetimes.sort()
 
     for datetime in datetimes:
         simulation = hdf5[datetime]
@@ -627,8 +605,8 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
             print(f"Creating {counter+1}/{end_count} ...", end='\r')
 
             if variable == "all":
-                fig, ax, plot_ = make_figure(PLOT_OPTIONS, sim_variables)
-                y_data = make_data(PLOT_OPTIONS, grid, sim_variables)
+                fig, ax, plot_ = make_figure(options, sim_variables)
+                y_data = make_data(options, grid, sim_variables)
 
                 for idx, (_i,_j) in enumerate(plot_['indexes']):
                     y = y_data[idx]
