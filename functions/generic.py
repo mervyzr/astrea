@@ -193,6 +193,7 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     final_dict['seed'] = int(seed)
     final_dict['now'] = None
     final_dict['elapsed'] = None
+    final_dict['access_key'] = None
     final_dict['permutations'] = [axes for axes in list(itertools.permutations(list(range(final_dict['dimension']+1)))) if axes[-1] == final_dict['dimension']]
     final_dict['config_category'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
     final_dict['timestep_category'] = DB.get(PARAMS.accepted.any([final_dict['timestep']]))['category']

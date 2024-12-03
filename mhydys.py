@@ -53,7 +53,7 @@ def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
         # Saves each instance of the system (primitive variables) at time t
         grid_snapshot = sim_variables.convert_conservative(grid, sim_variables).transpose(plot_axes)
         with h5py.File(hdf5, "a") as f:
-            dataset = f[sim_variables.now.strftime('%Y%m%d%H%M%S')].create_dataset(str(float(t)), data=grid_snapshot)
+            dataset = f[sim_variables.access_key].create_dataset(str(float(t)), data=grid_snapshot)
             dataset.attrs['t'] = float(t)
 
         # Miscellaneous media/print options
@@ -169,12 +169,13 @@ def run() -> None:
 
             # Update cells (and grid width) in simulation variables (namedtuple)
             sim_variables = sim_variables._replace(now=now)
+            sim_variables = sim_variables._replace(access_key=now.strftime('%Y%m%d%H%M%S')+str(now.microsecond))
             sim_variables = sim_variables._replace(cells=N)
             sim_variables = sim_variables._replace(dx=abs(sim_variables.end_pos-sim_variables.start_pos)/sim_variables.cells)
 
             # Save simulation variables into HDF5 file
             with h5py.File(file_name, "a") as f:
-                grp = f.create_group(now.strftime('%Y%m%d%H%M%S'))
+                grp = f.create_group(sim_variables.access_key)
                 grp.attrs['config'] = sim_variables.config
                 grp.attrs['cells'] = sim_variables.cells
                 grp.attrs['cfl'] = sim_variables.cfl
@@ -193,8 +194,8 @@ def run() -> None:
             # Save attributes after individual run is completed
             sim_variables = sim_variables._replace(elapsed=elapsed)
             with h5py.File(file_name, "a") as f:
-                f[now.strftime('%Y%m%d%H%M%S')].attrs['elapsed'] = elapsed
-                timestep_count = len(f[now.strftime('%Y%m%d%H%M%S')])
+                f[sim_variables.access_key].attrs['elapsed'] = elapsed
+                timestep_count = len(f[sim_variables.access_key])
             if not sim_variables.quiet:
                 generic.print_final(sim_variables, timestep_count)
             ############################# END INDIVIDUAL SIMULATION #############################
