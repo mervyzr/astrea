@@ -47,7 +47,7 @@ def evolve_time(grid, interface_fluxes, dt, sim_variables):
                 # Evolve system by SSP-RK (10,4) method (4th-order); effective SSP coeff = 0.6 [Ketcheson, 2008]
                 # Computation of i-th registers (i = 1,2,3,4)
                 k = np.copy(grid)
-                for i in range(4):
+                for _ in range(4):
                     k += 1/6*dt*compute_H(interface_fluxes, sim_variables)
                     interface_fluxes = evolve_space(k, sim_variables)
 
@@ -57,7 +57,7 @@ def evolve_time(grid, interface_fluxes, dt, sim_variables):
 
                 # Computation of i-th registers (i = 6,7,8,9)
                 _k = np.copy(k5)
-                for i in range(4):
+                for _ in range(4):
                     _k += 1/6*dt*compute_H(interface_fluxes, sim_variables)
                     interface_fluxes = evolve_space(_k, sim_variables)
 
