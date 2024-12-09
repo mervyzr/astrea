@@ -14,6 +14,7 @@ def generate_test_conditions(config, cells):
         boundary = "edge"  # outflow
         initial_left = np.array([1,0,0,0,1,0,0,0])  # primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
         initial_right = np.array([.125,0,0,0,.1,0,0,0])  # primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
+        magnetic = False
         misc = None
 
     # [Sedov, 1959]
@@ -23,6 +24,7 @@ def generate_test_conditions(config, cells):
         shock_pos = .5  # blast boundary
         t_end = .6
         boundary = "wrap"  # periodic
+        magnetic = False
         initial_left = np.array([1,0,0,0,100,0,0,0])
         initial_right = np.array([1,0,0,0,1,0,0,0])
         misc = None
@@ -33,7 +35,8 @@ def generate_test_conditions(config, cells):
         end_pos = 1
         shock_pos = -.8
         t_end = .47
-        boundary = "edge"  # outflow
+        boundary = "edge"
+        magnetic = False
         initial_left = np.array([3.857143,2.629369,0,0,10.3333,0,0,0])
         initial_right = np.array([0,0,0,0,1,0,0,0])
         misc = {'freq':5, 'ampl':.2, 'y_offset':1}
@@ -43,7 +46,8 @@ def generate_test_conditions(config, cells):
         end_pos = 1
         shock_pos = 1
         t_end = 1
-        boundary = "wrap"  # periodic
+        boundary = "wrap"
+        magnetic = False
         initial_left = np.array([0,1,1,0,1,0,0,0])
         initial_right = np.array([0,1,1,0,1,0,0,0])
         misc = {'freq':2, 'ampl':.1, 'y_offset':2}
@@ -53,7 +57,8 @@ def generate_test_conditions(config, cells):
         end_pos = 1
         shock_pos = 1
         t_end = 2
-        boundary = "wrap"  # periodic
+        boundary = "wrap"
+        magnetic = False
         initial_left = np.array([0,1,1,0,1e-6,0,0,0])
         initial_right = np.array([0,1,1,0,1e-6,0,0,0])
         misc = {'peak_pos':0, 'ampl':.75, 'fwhm':.08, 'y_offset':1}
@@ -63,7 +68,8 @@ def generate_test_conditions(config, cells):
         end_pos = 1
         shock_pos = .5
         t_end = .08
-        boundary = "edge"  # outflow
+        boundary = "edge"
+        magnetic = False
         initial_left = np.array([5.6698,-1.5336,0,0,100,0,0,0])
         initial_right = np.array([1,-10.5636,0,0,1,0,0,0])
         misc = None
@@ -73,7 +79,8 @@ def generate_test_conditions(config, cells):
         end_pos = 1
         shock_pos = 1/3
         t_end = .05
-        boundary = "wrap"  # periodic
+        boundary = "wrap"
+        magnetic = False
         initial_left = np.array([1,1,0,0,1,0,0,0])
         initial_right = np.array([.01,1,0,0,1,0,0,0])
         misc = None
@@ -84,7 +91,8 @@ def generate_test_conditions(config, cells):
         end_pos = .5
         shock_pos = 0
         t_end = .15
-        boundary = "edge"  # outflow
+        boundary = "edge"
+        magnetic = True
         initial_left = np.array([1.08,1.2,.01,.5,.95,.5641895835477562,1.0155412503859613,.5641895835477562])
         initial_right = np.array([1,0,0,0,1,.5641895835477562,1.1283791670955125,.5641895835477562])
         misc = None
@@ -95,7 +103,8 @@ def generate_test_conditions(config, cells):
         end_pos = .5
         shock_pos = 0
         t_end = .1
-        boundary = "edge"  # outflow
+        boundary = "edge"
+        magnetic = True
         initial_left = np.array([1,0,0,0,1,.75,1,0])
         initial_right = np.array([.125,0,0,0,.1,.75,-1,0])
         misc = None
@@ -105,7 +114,8 @@ def generate_test_conditions(config, cells):
         end_pos = 1
         shock_pos = .5
         t_end = 2
-        boundary = "wrap"  # periodic
+        boundary = "wrap"
+        magnetic = False
         initial_left = np.array([2,-.5,0,0,2.5,0,0,0])
         initial_right = np.array([1,.5,0,0,2.5,0,0,0])
         misc = {'perturb_ampl':.5, 'freq':4}
@@ -116,7 +126,8 @@ def generate_test_conditions(config, cells):
         end_pos = 10
         shock_pos = 5
         t_end = 1
-        boundary = "wrap"  # periodic
+        boundary = "wrap"
+        magnetic = False
         initial_left = np.array([1,0,0,0,1,0,0,0])
         initial_right = np.array([1,0,0,0,1,0,0,0])
         misc = {'vortex_str':5, 'freq':2}
@@ -125,7 +136,8 @@ def generate_test_conditions(config, cells):
     elif "toro" in config:
         start_pos = 0
         end_pos = 1
-        boundary = "edge"  # outflow
+        boundary = "edge"
+        magnetic = False
         misc = None
 
         # Double rarefaction wave
@@ -165,7 +177,8 @@ def generate_test_conditions(config, cells):
         end_pos = 1
         shock_pos = .5
         t_end = 2
-        boundary = "wrap"  # periodic
+        boundary = "wrap"
+        magnetic = False
 
         if "ll" in config:
             index = int(config.replace(' ','').split('ll')[-1])
@@ -278,5 +291,5 @@ def generate_test_conditions(config, cells):
         'initial_right':initial_right,
         'dx':abs(end_pos-start_pos)/cells,
         'dy':abs(end_pos-start_pos)/cells,
-        'magnetic':(initial_left[-3:].any() or initial_right[-3:].any())
+        'magnetic':magnetic,
     }
