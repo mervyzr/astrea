@@ -516,7 +516,7 @@ def plot_total_variation(hdf5, sim_variables, save_path, options=PLOT_OPTIONS):
             ax[_i,_j].set_xlim([min(x), max(x)])
 
         if dimension >= 2:
-            grid_size = rf"${N}^{dimension}$"
+            grid_size = f"{N}^{dimension}"
         else:
             grid_size = N
 
