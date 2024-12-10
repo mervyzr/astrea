@@ -33,7 +33,7 @@ def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
     try:
         chkpts = kwargs['checkpoints']
     except KeyError:
-        chkpts = 50
+        chkpts = 10
     chkpt = sim_variables.t_end/chkpts
 
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables
