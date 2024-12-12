@@ -57,16 +57,16 @@ def reconstruct_corner(_wF, next_ax, boundary, method="ppm", **kwargs):
             wU_pad2 = fv.add_boundary(wU, boundary, 2)
             limited_wUs = np.copy(wU_pad2[1:-3]), np.copy(wU_pad2[2:-2])
 
-        """Reconstruct the limited interpolants from the interface values. Returns the face averages in the form of L2 & R2 when considering x-axis, and L1 & R1 when considering y-axis
+        """Reconstruct the limited interpolants from the interface values. Returns the face averages in the form of w+(y) & w-(y) when considering x-axis, and w+(x) & w-(x) when considering y-axis
         |                w(i-1/2)            w(i+1/2)               |
         |  o (i-1,j+1)      |  o (i,j+1)        |  o (i+1,j+1)      |
         |                   |                   |                   |
         |                   |                   |                   |
-        |                 L2|                 L2|                 L2|
-        |                  ^|                  ^|                  ^|
+        |                 w+(y)               w+(y)               w+(y)
+        |                   ^                   ^                   ^
         |-------------------|-------------------|-------------------|
-        |                  v|                  v|                  v|
-        |                 R2|                 R2|                 R2|
+        |                   v                   v                   v
+        |                 w-(y)               w-(y)               w-(y)
         |                   |                   |                   |
         |                   |                   |                   |
         |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
