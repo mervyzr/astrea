@@ -79,7 +79,7 @@ def interface_limiter(w_face, w_minus_one, w_cell, w_plus_one, w_plus_two):
     
 
 # Parabolic interpolant limiter for PPM [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
-def interpolant_limiter(wS, w, w2, author, *args, **kwargs):
+def interpolant_limiter(wS, w, w2, wF_pad2, author, boundary, *args):
     wF_L, wF_R = args
     C = 5/4
 
@@ -88,7 +88,6 @@ def interpolant_limiter(wS, w, w2, author, *args, **kwargs):
 
     if author == "mc" or "mccorquodale" in author:
         # Define functions
-        boundary = kwargs['boundary']
         wL, wR = np.copy(wF_L), np.copy(wF_R)
         d2w = 6 * (wF_L - 2*wS + wF_R)
         d2w_C = w[:-2] - 2*wS + w[2:]
@@ -153,7 +152,7 @@ def interpolant_limiter(wS, w, w2, author, *args, **kwargs):
             overshoot = (np.abs(dw_minus) > 2*np.abs(dw_plus)) | (np.abs(dw_plus) > 2*np.abs(dw_minus))
 
             # Check for extrema in interpolants [Colella et al., 2011, eq. 91-94]
-            d_wF_minmod_L, d_wF_minmod_R = wF_L - np.copy(kwargs['wF_pad2'][:-4]), np.copy(kwargs['wF_pad2'][4:]) - wF_R
+            d_wF_minmod_L, d_wF_minmod_R = wF_L - np.copy(wF_pad2[:-4]), np.copy(wF_pad2[4:]) - wF_R
             d_wS_minmod_L, d_wS_minmod_R = wS - w[:-2], w[2:] - wS
 
             d_wF_minmod = np.minimum(np.abs(d_wF_minmod_L), np.abs(d_wF_minmod_R))

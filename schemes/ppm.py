@@ -44,8 +44,8 @@ def run(grid, sim_variables, author="mc", dissipate=False):
 
             # Limit interface values [Peterson & Hammett, 2008, eq. 3.33-3.34]
             limited_wFs = limiters.interface_limiter(wF_L, w2[:-4], w[:-2], wS, w[2:]), limiters.interface_limiter(wF_R, w[:-2], wS, w[2:], w2[4:])
+            wF_pad2 = np.zeros_like(fv.add_boundary(wF_R, boundary, 2))
 
-            kwargs = {}
         else:
             """Extrapolate the cell averages to face averages (forward/upwind)
             |               w(i-1/2)            w(i+1/2)                |
@@ -67,15 +67,13 @@ def run(grid, sim_variables, author="mc", dissipate=False):
             wF_pad2 = fv.add_boundary(wF, boundary, 2)
             limited_wFs = np.copy(wF_pad2[1:-3]), np.copy(wF_pad2[2:-2])
 
-            kwargs = {"wF_pad2": wF_pad2, "boundary": boundary}
-
         """Reconstruct the limited parabolic interpolants from the interface values [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
         |                        w(i-1/2)                    w(i+1/2)                       |
         |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
         |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
         |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
         """
-        wL, wR = limiters.interpolant_limiter(wS, w, w2, author, *limited_wFs, **kwargs)
+        wL, wR = limiters.interpolant_limiter(wS, w, w2, wF_pad2, author, boundary, *limited_wFs)
 
         # Re-align the interfaces so that cell wall is in between interfaces
         w_plus, w_minus = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
