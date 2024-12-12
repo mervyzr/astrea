@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from functions import constructor, fv
+from num_methods import magnetic_field
 
 ##############################################################################
 # WENO reconstruction method [Shu, 2009]
@@ -8,6 +9,7 @@ from functions import constructor, fv
 
 def run(grid, sim_variables):
     gamma, subgrid, boundary, permutations = sim_variables.gamma, sim_variables.subgrid, sim_variables.boundary, sim_variables.permutations
+    magnetic, dimension = sim_variables.magnetic, sim_variables.dimension
     convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
@@ -162,6 +164,10 @@ def run(grid, sim_variables):
                 wL, wR = reconstruct(wS, boundary)
         else:
             wL, wR = reconstruct(wS, boundary)
+
+        if magnetic and dimension > 1:
+            next_axes = permutations[(axis+1) % len(permutations)]
+            data[axes]['wUDs'] = magnetic_field.reconstruct_corner(wR, next_axes, boundary)
 
         # Re-align the interfaces so that cell wall is in between interfaces
         w_plus, w_minus = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]

@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 
 from functions import constructor, fv
-from num_methods import limiters
+from num_methods import limiters, magnetic_field
 
 ##############################################################################
 # Piecewise parabolic reconstruction method (PPM) [Colella & Woodward, 1984]
@@ -12,6 +12,7 @@ from num_methods import limiters
 # [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
 def run(grid, sim_variables, author="mc", dissipate=False):
     gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
+    magnetic, dimension = sim_variables.magnetic, sim_variables.dimension
     convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
@@ -29,6 +30,18 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         w2 = fv.add_boundary(wS, boundary, 2)
         w = np.copy(w2[1:-1])
 
+        """Extrapolate the cell averages to face averages (forward/upwind)
+        |               w(i-1/2)            w(i+1/2)                |
+        |  i-1           -->|   i            -->|  i+1           -->|
+        |        w_R(i-1)   |          w_R(i)   |        w_R(i+1)   |
+        """
+        # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
+        wF = 7/12 * (wS + w[2:]) - 1/12 * (w[:-2] + w2[4:])
+
+        if magnetic and dimension > 1:
+            next_axes = permutations[(axis+1) % len(permutations)]
+            data[axes]['wUDs'] = magnetic_field.reconstruct_corner(wF, next_axes, boundary)
+
         if "x" in author or "ph" in author or author in ["peterson", "hammett"]:
             """Extrapolate the cell averages to face averages (both sides)
             |                        w(i-1/2)                    w(i+1/2)                       |
@@ -37,7 +50,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
             """
             # Face i+1/2 (4th-order) (eq. 3.26-3.27)
             wF_L = 7/12 * (w[:-2] + wS) - 1/12 * (w2[:-4] + w[2:])
-            wF_R = 7/12 * (wS + w[2:]) - 1/12 * (w[:-2] + w2[4:])
+            wF_R = wF
 
             # Face i+1/2 (5th-order) [Peterson & Hammett, 2008, eq. 3.40]
             #wF_R = 1/60 * (2*w2[:-4] - 13*w[:-2] + 47*wS + 27*w[2:] - 2*w2[4:])
@@ -47,14 +60,6 @@ def run(grid, sim_variables, author="mc", dissipate=False):
             wF_pad2 = np.zeros_like(fv.add_boundary(wF_R, boundary, 2))
 
         else:
-            """Extrapolate the cell averages to face averages (forward/upwind)
-            |               w(i-1/2)            w(i+1/2)                |
-            |  i-1           -->|   i            -->|  i+1           -->|
-            |        w_R(i-1)   |          w_R(i)   |        w_R(i+1)   |
-            """
-            # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
-            wF = 7/12 * (wS + w[2:]) - 1/12 * (w[:-2] + w2[4:])
-
             if author == "c" or author == "colella":
                 # Limit interface values [Colella et al., 2011, p. 25-26]
                 wF = limiters.interface_limiter(wF, w[:-2], wS, w[2:], w2[4:])

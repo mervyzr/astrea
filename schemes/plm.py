@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 
 from functions import constructor, fv
-from num_methods import limiters
+from num_methods import limiters, magnetic_field
 
 ##############################################################################
 # Piecewise linear reconstruction method (PLM) [van Leer, 1979]
@@ -11,6 +11,7 @@ from num_methods import limiters
 
 def run(grid, sim_variables):
     gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
+    magnetic, dimension = sim_variables.magnetic, sim_variables.dimension
     convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
@@ -34,6 +35,10 @@ def run(grid, sim_variables):
         """
         gradients = .5 * limited_values
         wL, wR = np.copy(wS-gradients), np.copy(wS+gradients)  # (eq. 4.13)
+
+        if magnetic and dimension > 1:
+            next_axes = permutations[(axis+1) % len(permutations)]
+            data[axes]['wUDs'] = magnetic_field.reconstruct_corner(wR, next_axes, boundary)
 
         # Re-align the interfaces so that cell wall is in between interfaces
         w_plus, w_minus = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
