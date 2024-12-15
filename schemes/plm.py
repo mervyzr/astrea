@@ -38,7 +38,7 @@ def run(grid, sim_variables):
 
         if magnetic and dimension > 1:
             next_axes = permutations[(axis+1) % len(permutations)]
-            data[axes]['wUDs'] = magnetic_field.reconstruct_corner(wR, next_axes, boundary)
+            data[axes]['wUDs'] = magnetic_field.reconstruct_transverse(wR, next_axes, boundary)
 
         # Re-align the interfaces so that cell wall is in between interfaces
         w_plus, w_minus = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]

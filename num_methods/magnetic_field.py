@@ -7,8 +7,8 @@ from num_methods import limiters
 # Fourth-order upwind constrained transport algorithm for MHD [Felker & Stone, 2018]
 ##############################################################################
 
-# Compute the corner electric fields wrt to cell centre; gives 4-fold values for each corner
-def reconstruct_corner(_wF, next_ax, boundary, method="ppm", **kwargs):
+# Reconstruct the transverse values for each face average
+def reconstruct_transverse(_wF, next_ax, boundary, method="ppm", **kwargs):
     wF = np.copy(_wF.transpose(next_ax))
 
     wF_pad2 = fv.add_boundary(wF, boundary, 2)
@@ -74,6 +74,10 @@ def reconstruct_corner(_wF, next_ax, boundary, method="ppm", **kwargs):
         return limiters.interpolant_limiter(wF, wF_pad1, wF_pad2, wU_pad2, author, boundary, *limited_wUs)
 
 
+# Compute the corner electric fields wrt to corner; gives 4-fold values for each corner
+def compute_corner(data_axes_1, data_axes_2, sim_variables):
+    
+    pass
 
 
 

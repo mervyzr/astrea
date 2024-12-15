@@ -40,7 +40,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
 
         if magnetic and dimension > 1:
             next_axes = permutations[(axis+1) % len(permutations)]
-            data[axes]['wUDs'] = magnetic_field.reconstruct_corner(wF, next_axes, boundary)
+            data[axes]['wUDs'] = magnetic_field.reconstruct_transverse(wF, next_axes, boundary)
 
         if "x" in author or "ph" in author or author in ["peterson", "hammett"]:
             """Extrapolate the cell averages to face averages (both sides)
