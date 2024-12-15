@@ -24,7 +24,7 @@ def run(grid, sim_variables):
 
         if magnetic and dimension > 1:
             next_axes = permutations[(axis+1) % len(permutations)]
-            data[axes]['wUDs'] = magnetic_field.reconstruct_transverse(wS, next_axes, boundary)
+            data[axes]['wTs'] = magnetic_field.reconstruct_transverse(wS, next_axes, boundary)
 
         # Compute the fluxes and the Jacobian
         w = fv.add_boundary(wS, boundary)
