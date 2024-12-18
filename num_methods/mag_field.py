@@ -117,4 +117,4 @@ def compute_corner(magnetic_components: list, sim_variables):
 
     [ap2,am2], [ap1,am1] = alphas
 
-    return fv.divide(ap1*ap2*SW + am1*ap2*SE + ap1*am2*NW + am1*am2*NE, (ap1+am1)*(ap2+am2)) - fv.divide(ap2*am2*np.diff(magnetic_components[0], axis=0), ap2+am2) + fv.divide(ap1*am1*np.diff(magnetic_components[1], axis=0), ap1+am1)
+    return fv.divide(ap1*ap2*SW + am1*ap2*SE + ap1*am2*NW + am1*am2*NE, (ap1+am1)*(ap2+am2)) - fv.divide(ap2*am2*np.diff(magnetic_components[0,...,5], axis=0)[0], ap2+am2) + fv.divide(ap1*am1*np.diff(magnetic_components[1,...,6], axis=0)[0], ap1+am1)

@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 
 from functions import constructor, fv
-from num_methods import limiters, magnetic_field
+from num_methods import limiters, mag_field
 
 ##############################################################################
 # Piecewise parabolic reconstruction method (PPM) [Colella & Woodward, 1984]
@@ -40,7 +40,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
 
         if magnetic and dimension > 1:
             next_axes = permutations[(axis+1) % len(permutations)]
-            data[axes]['wTs'] = magnetic_field.reconstruct_transverse(wF, next_axes, boundary)
+            data[axes]['wTs'] = mag_field.reconstruct_transverse(wF, next_axes, boundary)
 
         if "x" in author or "ph" in author or author in ["peterson", "hammett"]:
             """Extrapolate the cell averages to face averages (both sides)
