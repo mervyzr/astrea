@@ -43,6 +43,15 @@ def initialise(sim_variables, convert=False):
             computational_grid[np.where(y <= shock_pos)] = initial_left
             computational_grid[...,2] = params['perturb_ampl'] * np.sin(params['freq']*np.pi*x/(end_pos-start_pos))
 
+        elif config in ["orszag-tang", "orszag", "tang", "ot"]:
+            computational_grid[np.where(y <= shock_pos)] = initial_left
+            computational_grid[...,0] = gamma**2
+            computational_grid[...,1] = -np.sin(y)
+            computational_grid[...,2] = np.sin(x)
+            computational_grid[...,4] = gamma
+            computational_grid[...,5] = -np.sin(y)
+            computational_grid[...,6] = np.sin(2*x)
+
         elif config in ["ivc", "vortex", "isentropic vortex"]:
             x_centre, y_centre = (np.min(x)+np.max(x))/2, (np.min(y)+np.max(y))/2
 

@@ -82,6 +82,7 @@ Several (magneto-)hydrodynamical tests are in place:
 - Magnetohydrodynamics
   - Ryu-Jones 2a shock test (Ryu & Jones, 1995)
   - Brio-Wu shock test (Brio & Wu, 1998)
+  - Orszag-Tang test (Orszag & Tang, 1998)
 
 Analytical solutions for the Sod shock test (Pfrommer et al., 2006), Gaussian wave test and the sine wave test are overplotted in the saved plots. The solution error norms are also calculated when the smooth advection wave tests are run (Gaussian & sine waves).
 

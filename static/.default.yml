@@ -1,8 +1,8 @@
 ---
 simulation_parameters:
   # List of available configurations to run
-  # : Sod, Sedov, Shu-Osher, Ryu-Jones, Brio-Wu, Gaussian, sine wave, square wave,
-  # : slow-moving shock, isentropic vortex, Kelvin-Helmholtz instability, Toro 1-5, Lax-Liu 1-19
+  # : Sod, Sedov, Shu-Osher, Ryu-Jones, Brio-Wu, Gaussian, sine wave, square wave, slow-moving shock,
+  # : isentropic vortex, Kelvin-Helmholtz instability, Orzag-Tang, Toro 1-5, Lax-Liu 1-19
   config      : Sod
   cells       : 128
   cfl         : .5
