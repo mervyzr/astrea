@@ -110,7 +110,7 @@ def calculate_HLLC_flux(axis, sim_variables, low_mach=False, **kwargs):
     """The convention here uses L & R states, i.e. L state = w-, R state = w+
         |                        w(i-1/2)                    w(i+1/2)                       |
         |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
-        |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
+        |   w_R(i-1)     w_L(i-1)   |   w_R(i)         w_L(i)   |   w_R(i+1)     w_L(i+1)   |
     --> |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
     """
     rhoL, uL, pL, QL = w_minus[...,0], w_minus[...,axis+1], w_minus[...,4], q_minus
@@ -174,7 +174,7 @@ def calculate_HLLD_flux(axis, sim_variables, **kwargs):
     """The convention here uses L & R states, i.e. L state = w-, R state = w+
         |                        w(i-1/2)                    w(i+1/2)                       |
         |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
-        |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
+        |   w_R(i-1)     w_L(i-1)   |   w_R(i)         w_L(i)   |   w_R(i+1)     w_L(i+1)   |
     --> |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
     """
     wS = fv.add_boundary(wS, sim_variables.boundary)[1:]
