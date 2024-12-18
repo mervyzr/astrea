@@ -75,10 +75,40 @@ def reconstruct_transverse(_wF, next_ax, boundary, method="ppm", **kwargs):
 
 
 # Compute the corner electric fields wrt to corner; gives 4-fold values for each corner
-def compute_corner(data_axes_1, data_axes_2, sim_variables):
-    
-    pass
+def compute_corner(magnetic_components: list, sim_variables):
+    data = np.asarray(magnetic_components)
 
+    NE = np.average(data[:,0,...,2], axis=0)*data[0,0,...,5] - np.average(data[:,0,...,1], axis=0)*data[1,0,...,6]
+    NW = np.average(data[[0,1],[0,1],...,2], axis=0)*data[0,0,...,5] - np.average(data[[0,1],[0,1],...,1], axis=0)*data[1,1,...,6]
+    SW = np.average(data[:,1,...,2], axis=0)*data[0,1,...,5] - np.average(data[:,1,...,1], axis=0)*data[1,1,...,6]
+    SE = np.average(data[[0,1],[1,0],...,2], axis=0)*data[0,1,...,5] - np.average(data[[0,1],[1,0],...,1], axis=0)*data[1,0,...,6]
+
+
+
+
+
+
+
+
+    #data = np.asarray(list(i for ii in magnetic_components for i in ii))
+
+
+
+    abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
+    rhos, vels, pressures, B_fields = grids[...,0], grids[...,1:4], grids[...,4], grids[...,5:8]/np.sqrt(4*np.pi)
+    vx, vy, vz = vels[...,abscissa], vels[...,ordinate], vels[...,applicate]
+    Bx, By, Bz = B_fields[...,abscissa], B_fields[...,ordinate], B_fields[...,applicate]
+
+    # Define the right eigenvectors for each cell in each grid
+    _right_eigenvectors = np.zeros_like(grids)
+    right_eigenvectors = np.repeat(_right_eigenvectors[...,None], _right_eigenvectors.shape[-1], axis=-1)
+
+    # Define speed
+    sound_speed = np.sqrt(gamma * fv.divide(pressures, rhos))
+    alfven_speed = fv.divide(fv.norm(B_fields), np.sqrt(rhos))
+    alfven_speed_x = fv.divide(Bx, np.sqrt(rhos))
+    fast_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 + np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
+    slow_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 - np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
 
 
 
