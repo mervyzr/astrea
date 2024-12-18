@@ -1,6 +1,6 @@
 import numpy as np
 
-from functions import fv
+from functions import fv, constructor
 from num_methods import limiters
 
 ##############################################################################
@@ -74,82 +74,47 @@ def reconstruct_transverse(_wF, next_ax, boundary, method="ppm", **kwargs):
         return limiters.interpolant_limiter(wF, wF_pad1, wF_pad2, wU_pad2, author, boundary, *limited_wUs)
 
 
-# Compute the corner electric fields wrt to corner; gives 4-fold values for each corner
+# Compute the corner electric fields wrt to corner; gives 4-fold values for each corner for now
 def compute_corner(magnetic_components: list, sim_variables):
-    data = np.asarray(magnetic_components)
+    gamma, boundary = sim_variables.gamma, sim_variables.boundary
+    magnetic_components = np.asarray(magnetic_components)
 
-    NE = np.average(data[:,0,...,2], axis=0)*data[0,0,...,5] - np.average(data[:,0,...,1], axis=0)*data[1,0,...,6]
-    NW = np.average(data[[0,1],[0,1],...,2], axis=0)*data[0,0,...,5] - np.average(data[[0,1],[0,1],...,1], axis=0)*data[1,1,...,6]
-    SW = np.average(data[:,1,...,2], axis=0)*data[0,1,...,5] - np.average(data[:,1,...,1], axis=0)*data[1,1,...,6]
-    SE = np.average(data[[0,1],[1,0],...,2], axis=0)*data[0,1,...,5] - np.average(data[[0,1],[1,0],...,1], axis=0)*data[1,0,...,6]
+    def compute_corners(_data):
+        _NE = np.average(_data[:,0,...,2], axis=0)*_data[0,0,...,5] - np.average(_data[:,0,...,1], axis=0)*_data[1,0,...,6]
+        _NW = np.average(_data[[0,1],[0,1],...,2], axis=0)*_data[0,0,...,5] - np.average(_data[[0,1],[0,1],...,1], axis=0)*_data[1,1,...,6]
+        _SW = np.average(_data[:,1,...,2], axis=0)*_data[0,1,...,5] - np.average(_data[:,1,...,1], axis=0)*_data[1,1,...,6]
+        _SE = np.average(_data[[0,1],[1,0],...,2], axis=0)*_data[0,1,...,5] - np.average(_data[[0,1],[1,0],...,1], axis=0)*_data[1,0,...,6]
+        return _NE, _NW, _SW, _SE
 
+    NE, NW, SW, SE = compute_corners(magnetic_components)
 
+    alphas = []
+    for ax, wTs in enumerate(magnetic_components):
+        # Re-align the interfaces and calculate Roe average between the interfaces
+        plus, minus = wTs
+        w_plus, w_minus = fv.add_boundary(plus, boundary)[1:], fv.add_boundary(minus, boundary)[:-1]
+        grid_intf = constructor.make_Roe_average(w_plus, w_minus)[1:]
 
+        # Define the variables
+        rhos, vels, pressures, B_fields = grid_intf[...,0], grid_intf[...,1:4], grid_intf[...,4], grid_intf[...,5:8]/np.sqrt(4*np.pi)
+        vx, Bx = vels[...,ax%3], B_fields[...,ax%3]
 
+        # Define speeds
+        sound_speed = np.sqrt(gamma * fv.divide(pressures, rhos))
+        alfven_speed = fv.divide(fv.norm(B_fields), np.sqrt(rhos))
+        alfven_speed_x = fv.divide(Bx, np.sqrt(rhos))
+        fast_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 + np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
 
+        """Determine the alphas. The convention here uses L & R states, i.e. L state = w-, R state = w+
+            |                        w(i-1/2)                    w(i+1/2)                       |
+            |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
+            |   w_R1(i-1)   w_L1(i-1)   |   w_R1(i)       w_L1(i)   |  w_R1(i+1)    w_L1(i+1)   |
+        --> |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
+        """
+        alpha_minus = -np.minimum(np.zeros_like(vx), vx-fast_magnetosonic_wave)
+        alpha_plus = np.maximum(np.zeros_like(vx), vx+fast_magnetosonic_wave)
+        alphas.append([alpha_plus, alpha_minus])
 
+    [ap2,am2], [ap1,am1] = alphas
 
-
-    #data = np.asarray(list(i for ii in magnetic_components for i in ii))
-
-
-
-    abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
-    rhos, vels, pressures, B_fields = grids[...,0], grids[...,1:4], grids[...,4], grids[...,5:8]/np.sqrt(4*np.pi)
-    vx, vy, vz = vels[...,abscissa], vels[...,ordinate], vels[...,applicate]
-    Bx, By, Bz = B_fields[...,abscissa], B_fields[...,ordinate], B_fields[...,applicate]
-
-    # Define the right eigenvectors for each cell in each grid
-    _right_eigenvectors = np.zeros_like(grids)
-    right_eigenvectors = np.repeat(_right_eigenvectors[...,None], _right_eigenvectors.shape[-1], axis=-1)
-
-    # Define speed
-    sound_speed = np.sqrt(gamma * fv.divide(pressures, rhos))
-    alfven_speed = fv.divide(fv.norm(B_fields), np.sqrt(rhos))
-    alfven_speed_x = fv.divide(Bx, np.sqrt(rhos))
-    fast_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 + np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
-    slow_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 - np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
-
-
-
-
-
-
-
-
-    """wL, wR = np.copy(LR[0].transpose(next_ax)), np.copy(LR[1].transpose(next_ax))
-
-    wL2, wR2 = fv.add_boundary(wL, boundary, 2), fv.add_boundary(wR, boundary, 2)
-    wL1, wR1 = np.copy(wL2[1:-1]), np.copy(wR2[1:-1])
-
-    # Extrapolate the face-averages to the top (up) and bottom (down) corners
-    if method == "ppm":
-        author = "mc"
-
-        wL_U, wR_U = 7/12 * (wL + wL1[2:]) - 1/12 * (wL1[:-2] + wL2[4:]), 7/12 * (wR + wR1[2:]) - 1/12 * (wR1[:-2] + wR2[4:])
-
-        if "c" in author:
-            # Collela method
-            if author == "c" or author == "collela":
-                wL_U, wR_U = limiters.interface_limiter(wL_U, wL1[:-2], wL, wL1[2:], wL2[4:]), limiters.interface_limiter(wR_U, wR1[:-2], wR, wR1[2:], wR2[4:])
-
-            wL_U_pad2, wR_U_pad2 = fv.add_boundary(wL_U, boundary, 2), fv.add_boundary(wR_U, boundary, 2)
-
-            limited_wLs = np.copy(wL_U_pad2[1:-3]), np.copy(wL_U_pad2[2:-2])
-            limited_wRs = np.copy(wR_U_pad2[1:-3]), np.copy(wR_U_pad2[2:-2])
-
-        # Peterson & Hammett method
-        else:
-            wL_D, wR_D = 7/12 * (wL1[:-2] + wL) - 1/12 * (wL2[:-4] + wL1[2:]), 7/12 * (wR1[:-2] + wR) - 1/12 * (wR2[:-4] + wR1[2:])
-
-            wL_U_pad2, wR_U_pad2 = np.zeros_like(fv.add_boundary(wL_U, boundary, 2)), np.zeros_like(fv.add_boundary(wR_U, boundary, 2))
-
-            limited_wLs = limiters.interface_limiter(wL_D, wL2[:-4], wL1[:-2], wL, wL1[2:]), limiters.interface_limiter(wL_U, wL1[:-2], wL, wL1[2:], wL2[4:])
-            limited_wRs = limiters.interface_limiter(wR_D, wR2[:-4], wR1[:-2], wR, wR1[2:]), limiters.interface_limiter(wR_U, wR1[:-2], wR, wR1[2:], wR2[4:])
-
-        SW, NW = limiters.interpolant_limiter(wL, wL1, wL2, wL_U_pad2, author, boundary, *limited_wLs)
-        SE, NE = limiters.interpolant_limiter(wR, wR1, wR2, wR_U_pad2, author, boundary, *limited_wRs)
-
-
-
-    return [wL_D, wL_U], [wR_D, wR_U]"""
+    return fv.divide(ap1*ap2*SW + am1*ap2*SE + ap1*am2*NW + am1*am2*NE, (ap1+am1)*(ap2+am2)) - fv.divide(ap2*am2*np.diff(magnetic_components[0], axis=0), ap2+am2) + fv.divide(ap1*am1*np.diff(magnetic_components[1], axis=0), ap1+am1)

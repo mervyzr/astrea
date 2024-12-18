@@ -71,8 +71,8 @@ def calculate_Riemann_flux(data: defaultdict, sim_variables: namedtuple):
         axis += 1
 
     # Compute the corner emf
-    if sim_variables.magnetic:
-        magnetic_field.compute_corner(magnetic_components, sim_variables)
+    if sim_variables.magnetic and sim_variables.dimension == 2:
+        e3U = magnetic_field.compute_corner(magnetic_components, sim_variables)
     return fluxes
 
 
