@@ -134,24 +134,24 @@ def generate_test_conditions(config, cells):
 
     # [Balsara & Spicer, 1999]
     elif "rotor" in config:
-        start_pos = 0
-        end_pos = 2*np.pi
-        shock_pos = 2*np.pi
-        t_end = 2*np.pi
+        start_pos = -.5
+        end_pos = .5
+        shock_pos = .1
+        t_end = .15
         boundary = "wrap"
-        initial_left = np.array([1,0,0,0,1,0,0,0])
+        initial_left = np.array([10,0,0,0,1,0,0,0])
         initial_right = np.array([1,0,0,0,1,0,0,0])
-        misc = None
+        misc = {'omega':20}
 
     # [Felker & Stone, 2018]
     elif "blast" in config and config.startswith("mhd"):
-        start_pos = 0
-        end_pos = 2*np.pi
-        shock_pos = 2*np.pi
-        t_end = 2*np.pi
+        start_pos = -.5
+        end_pos = .5
+        shock_pos = .1
+        t_end = .2
         boundary = "wrap"
-        initial_left = np.array([1,0,0,0,1,0,0,0])
-        initial_right = np.array([1,0,0,0,1,0,0,0])
+        initial_left = np.array([1,0,0,0,10,1/np.sqrt(2),1/np.sqrt(2),0])
+        initial_right = np.array([1,0,0,0,.1,1/np.sqrt(2),1/np.sqrt(2),0])
         misc = None
 
     # [Toro, 1999, p.225]

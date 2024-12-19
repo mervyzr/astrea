@@ -30,8 +30,8 @@ def initialise(sim_variables, convert=False):
         x, y = np.meshgrid(physical_grid, physical_grid, indexing='ij')
         centre = (end_pos+start_pos)/2
 
-        if config == "sedov":
-            mask = np.where(((x-centre)**2 + (y-centre)**2) <= shock_pos**2)
+        if config == "sedov" or ("blast" in config and config.startswith("mhd")):
+            mask = np.where(((x-centre)**2 + (y-centre)**2) <= (shock_pos-centre)**2)
             computational_grid[mask] = initial_left
 
         elif config.startswith("gauss"):
@@ -53,10 +53,10 @@ def initialise(sim_variables, convert=False):
             computational_grid[...,6] = np.sin(2*x)
 
         elif "rotor" in config:
-            pass
-
-        elif "blast" in config and config.startswith("mhd"):
-            pass
+            mask = np.where(((x-centre)**2 + (y-centre)**2) <= (shock_pos-centre)**2)
+            computational_grid[mask] = initial_left
+            computational_grid[mask][...,1] = (-params['omega']*(y-centre)/shock_pos)[mask]
+            computational_grid[mask][...,2] = (params['omega']*(x-centre)/shock_pos)[mask]
 
         elif config in ["ivc", "vortex", "isentropic vortex"]:
             x_centre, y_centre = (np.min(x)+np.max(x))/2, (np.min(y)+np.max(y))/2
