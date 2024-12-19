@@ -20,8 +20,16 @@ BEAUTIFY = False
 
 
 # Make figures and axes for plotting
-def make_figure(options, sim_variables, variable="normal", style=STYLE):
+def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs):
     if 0 < len(options) < 11:
+        try:
+            _figsize = kwargs['figsize']
+        except KeyError:
+            _figsize = [21,10]
+        else:
+            if not isinstance(_figsize, list) or not all(isinstance(_, int) for _ in _figsize):
+                _figsize = [21,10]
+
         # Set up colours
         try:
             plt.style.use(style)
@@ -116,7 +124,7 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE):
         indexes = indexes[:len(options)]
 
         # Set up figure
-        fig, ax = plt.figure(figsize=[21,10]), np.full((rows, cols), None)
+        fig, ax = plt.figure(figsize=_figsize), np.full((rows, cols), None)
         spec = gridspec.GridSpec(rows, cols*2, figure=fig)
         for _i in range(len(options)):
             row, col = divmod(_i, cols)
@@ -184,7 +192,7 @@ def initiate_live_plot(sim_variables):
     options = sim_variables.plot_options
     plt.ion()
 
-    fig, ax, plot_ = make_figure(options, sim_variables)
+    fig, ax, plot_ = make_figure(options, sim_variables, figsize=[12,7])
 
     graphs = []
     for idx, (_i,_j) in enumerate(plot_['indexes']):
