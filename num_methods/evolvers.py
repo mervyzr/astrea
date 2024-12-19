@@ -28,9 +28,7 @@ def evolve_space(grid, sim_variables):
         data = plm.run(grid, sim_variables)
     else:
         data = pcm.run(grid, sim_variables)
-
-    fluxes = solvers.calculate_Riemann_flux(data, sim_variables)
-    return fluxes
+    return solvers.calculate_Riemann_flux(data, sim_variables)
 
 
 # Evolve the system in time by a standardised workflow
