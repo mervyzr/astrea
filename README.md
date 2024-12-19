@@ -32,7 +32,7 @@ Some experimentation was done to parallelise the code with `Open MPI` and `MPICH
 
 The space in the simulation is discretised into a uniform Cartesian grid, and thus the computational domain is assumed to be identically mapped to the physical domain.
 
-The code employs various reconstruction methods with _primitive variables_ as part of the subgrid modelling: the piecewise constant method (PCM) (Godunov, 1959), the piecewise linear method (PLM) (Derigs et al., 2018), the piecewise parabolic method (PPM) (Felker & Stone, 2017), and the WENO method (Shu, 2009; San & Kara, 2015).
+The code employs various reconstruction methods with _primitive variables_ as part of the subgrid modelling: the piecewise constant method (PCM) (Godunov, 1959), the piecewise linear method (PLM) (Derigs et al., 2018), the piecewise parabolic method (PPM) (Felker & Stone, 2018), and the WENO method (Shu, 2009; San & Kara, 2015).
 
 In order to fulfil the Total Variation Diminishing (TVD) condition (Harten, 1983), which ensures that the reconstruction scheme is monotonicity-preserving, limiters have to be after the spatial reconstructions. The PCM does not require any limiters. The PLM employs the "minmod" slope limiter (Derigs et al., 2018). The PPM employs several limiters: when extrapolating from the cell centres to the interfaces (Colella et al., 2011) and when interpolating to the left and right of each cell interface (Colella et al., 2011; McCorquodale & Colella, 2011). The WENO method currently does not employ any limiters. There are other TVD slope limiters available in the code (e.g., superbee).
 
@@ -83,6 +83,8 @@ Several (magneto-)hydrodynamical tests are in place:
   - Ryu-Jones 2a shock test (Ryu & Jones, 1995)
   - Brio-Wu shock test (Brio & Wu, 1998)
   - Orszag-Tang test (Orszag & Tang, 1998)
+  - 2D MHD rotor (Balsara & Spicer, 1999)
+  - 2D MHD blast wave (Felker & Stone, 2018)
 
 Analytical solutions for the Sod shock test (Pfrommer et al., 2006), Gaussian wave test and the sine wave test are overplotted in the saved plots. The solution error norms are also calculated when the smooth advection wave tests are run (Gaussian & sine waves).
 

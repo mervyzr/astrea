@@ -52,6 +52,12 @@ def initialise(sim_variables, convert=False):
             computational_grid[...,5] = -np.sin(y)
             computational_grid[...,6] = np.sin(2*x)
 
+        elif "rotor" in config:
+            pass
+
+        elif "blast" in config and config.startswith("mhd"):
+            pass
+
         elif config in ["ivc", "vortex", "isentropic vortex"]:
             x_centre, y_centre = (np.min(x)+np.max(x))/2, (np.min(y)+np.max(y))/2
 
