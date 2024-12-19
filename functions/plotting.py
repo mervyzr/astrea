@@ -16,7 +16,6 @@ from functions import analytic, constructor, fv, generic
 
 STYLE = "default"
 BEAUTIFY = False
-PLOT_OPTIONS = ["DENSITY", "PRESSURE", "VX", "TOTAL ENERGY"]
 
 
 
@@ -43,7 +42,7 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE):
             option = option.lower()
 
             if "energy" in option or "temp" in option:
-                if "internal" in option:
+                if "int" in option:
                     name = "Internal energy"
                     label = r"$e$"
                     error = r"$\log{(\epsilon_\nu(e))}$"
@@ -53,7 +52,7 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE):
                     label = r"$E$"
                     error = r"$\log{(\epsilon_\nu(E))}$"
                     tv = r"TV($E$)"
-                if "density" in option:
+                if "dens" in option:
                     name += ' density'
 
             elif "mom" in option:
@@ -153,11 +152,11 @@ def make_data(options, grid, sim_variables):
         option = option.lower()
 
         if "energy" in option or "temp" in option:
-            if "internal" in option:
+            if "int" in option:
                 quantity = fv.divide(grid[...,4], grid[...,0] * (sim_variables.gamma-1))
             else:
                 quantity = fv.divide(fv.convert_variable("pressure", grid, sim_variables.gamma), grid[...,0])
-            if "density" in option:
+            if "dens" in option:
                 quantity *= grid[...,0]
         elif "pres" in option:
             if "mag" in option:
@@ -180,8 +179,9 @@ def make_data(options, grid, sim_variables):
 
 
 # Initiate the live plot feature
-def initiate_live_plot(sim_variables, options=PLOT_OPTIONS):
+def initiate_live_plot(sim_variables):
     N, dimension, start_pos, end_pos = sim_variables.cells, sim_variables.dimension, sim_variables.start_pos, sim_variables.end_pos
+    options = sim_variables.plot_options
     plt.ion()
 
     fig, ax, plot_ = make_figure(options, sim_variables)
@@ -205,7 +205,8 @@ def initiate_live_plot(sim_variables, options=PLOT_OPTIONS):
 
 
 # Update live plot
-def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs, options=PLOT_OPTIONS):
+def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
+    options = sim_variables.plot_options
     plot_data = make_data(options, grid_snapshot, sim_variables)
 
     if sim_variables.dimension == 2:
@@ -231,9 +232,10 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs, options=PLOT_O
 
 
 # Function for plotting a snapshot of the grid
-def plot_snapshot(grid_snapshot, t, sim_variables, options=PLOT_OPTIONS, **kwargs):
+def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
     config, N, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
+    options = sim_variables.plot_options
 
     try:
         text = kwargs["text"]
@@ -275,10 +277,11 @@ def plot_snapshot(grid_snapshot, t, sim_variables, options=PLOT_OPTIONS, **kwarg
 
 
 # Plot snapshots of quantities for multiple runs
-def plot_quantities(hdf5, sim_variables, save_path, options=PLOT_OPTIONS):
+def plot_quantities(hdf5, sim_variables, save_path):
     config, dimension, subgrid, timestep = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep
     scheme, precision, snapshots = sim_variables.scheme, sim_variables.precision, sim_variables.snapshots
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
+    options = sim_variables.plot_options
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -313,7 +316,6 @@ def plot_quantities(hdf5, sim_variables, save_path, options=PLOT_OPTIONS):
             x = np.linspace(start_pos, end_pos, N)
             y_data = make_data(options, simulation[timing], sim_variables)
 
-            # density, pressure, vx, specific internal energy
             for idx, (_i,_j) in enumerate(plot_['indexes']):
                 y = y_data[idx]
 
@@ -387,7 +389,8 @@ def plot_quantities(hdf5, sim_variables, save_path, options=PLOT_OPTIONS):
 
 
 # Plot solution errors to determine order of convergence of numerical scheme
-def plot_solution_errors(hdf5, sim_variables, save_path, error_norm, options=["density", "total energy"]):
+def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
+    options = ["density", "total energy"]
     config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
 
     # hdf5 keys are datetime strings
@@ -408,7 +411,7 @@ def plot_solution_errors(hdf5, sim_variables, save_path, error_norm, options=["d
         for option in options:
             option = option.lower()
             if "energy" in option or "temp" in option:
-                if "internal" in option:
+                if "int" in option:
                     _arr.append(solution_errors[-1])
                 else:
                     _arr.append(solution_errors[-2])
@@ -484,8 +487,9 @@ def plot_solution_errors(hdf5, sim_variables, save_path, error_norm, options=["d
 
 
 # Total variation to determine if numerical scheme prevents oscillation
-def plot_total_variation(hdf5, sim_variables, save_path, options=PLOT_OPTIONS):
+def plot_total_variation(hdf5, sim_variables, save_path):
     config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
+    options = sim_variables.plot_options
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -505,7 +509,7 @@ def plot_total_variation(hdf5, sim_variables, save_path, options=PLOT_OPTIONS):
         for idx, option in enumerate(options):
             option = option.lower()
             if "energy" in option or "temp" in option:
-                if "internal" in option:
+                if "int" in option:
                     y_data[idx] = ys[...,-1]
                 else:
                     y_data[idx] = ys[...,-2]
@@ -540,9 +544,10 @@ def plot_total_variation(hdf5, sim_variables, save_path, options=PLOT_OPTIONS):
 
 
 # Determines if numerical scheme is conservative to machine precision
-def plot_conservation_equations(hdf5, sim_variables, save_path, options=["mass", "momentum_x", "energy"]):
+def plot_conservation_equations(hdf5, sim_variables, save_path):
+    options = ["mass", "momentum_x", "energy"]
     config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
-
+    
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
     datetimes.sort()
@@ -601,9 +606,10 @@ def plot_conservation_equations(hdf5, sim_variables, save_path, options=["mass",
 
 
 # Make a video of entire simulation; video of all plot options or specific variable
-def make_video(hdf5, sim_variables, save_path, vidpath, variable="all", options=PLOT_OPTIONS):
+def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
     config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
+    options = sim_variables.plot_options
     variable = variable.lower()
 
     # hdf5 keys are datetime strings

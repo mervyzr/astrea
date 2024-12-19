@@ -123,6 +123,7 @@ def handle_CLI():
     parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='run a single run or multiple runs for each simulation', choices=DB.get(PARAMS.type == 'run_type')['accepted'])
 
     parser.add_argument('--snapshots', metavar='', type=int, default=argparse.SUPPRESS, help='number of snapshots to save')
+    parser.add_argument('--plot_options', '--plot-options', dest='plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot', choices=DB.get(PARAMS.type == 'plot_options')['accepted'])
     parser.add_argument('--live_plot', '--live-plot', '--live', dest='live_plot', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
     parser.add_argument('--take_snaps', '--take-snaps', dest='take_snaps', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
     parser.add_argument('--save_plots', '--save-plots', dest='save_plots', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving final plots of the simulation', choices=bool_choices)
@@ -173,6 +174,23 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
                     v = .5
             if k == "gamma" and v == 1:
                 v += np.finfo(_config_variables['precision']).eps
+        elif k == "plot_options":
+            accepted_plot_options, invalid = DB.get(PARAMS.type == k)['accepted'], []
+            try:
+                if isinstance(v, str):
+                    v = v.replace(' ','').replace(',','-').replace('/','-').replace('|','-').split('-')
+                for option in v:
+                    if option.lower() not in accepted_plot_options:
+                        invalid.append(option)
+                        v.remove(option)
+                v = [i.lower() for i in v]
+                _ = v[0]
+            except (IndexError, TypeError):
+                v = DB.get(PARAMS.type == 'default')[k]
+                print(f"{BColours.WARNING}No valid plot options; reverting to default values..{BColours.ENDC}")
+            finally:
+                if invalid != []:
+                    print(f"{BColours.WARNING}Invalid plot options: {invalid}..{BColours.ENDC}")
         else:
             if isinstance(v, str):
                 v = v.lower()
@@ -206,7 +224,7 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
         final_dict['convert_conservative'] = fv.point_convert_conservative
     try:
         final_dict['quiet'] = cli_variables["quiet"]
-    except Exception as e:
+    except KeyError:
         final_dict['quiet'] = False
 
     if final_dict['scheme'] in DB.get(PARAMS.type == 'scheme' and PARAMS.category == 'complete')['accepted']:
