@@ -36,7 +36,7 @@ def run(grid, sim_variables):
         gradients = .5 * limited_values
         wL, wR = np.copy(wS-gradients), np.copy(wS+gradients)  # (eq. 4.13)
 
-        if magnetic and dimension > 1:
+        if magnetic and dimension == 2:
             next_axes = permutations[(axis+1) % len(permutations)]
             data[axes]['wTs'] = mag_field.reconstruct_transverse(wR, next_axes, boundary)
 

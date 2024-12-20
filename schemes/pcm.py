@@ -22,7 +22,7 @@ def run(grid, sim_variables):
         wS = convert_conservative(_grid, sim_variables)
         q = fv.add_boundary(_grid, boundary)
 
-        if magnetic and dimension > 1:
+        if magnetic and dimension == 2:
             next_axes = permutations[(axis+1) % len(permutations)]
             data[axes]['wTs'] = mag_field.reconstruct_transverse(wS, next_axes, boundary)
 

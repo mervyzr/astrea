@@ -3,7 +3,6 @@ from collections import namedtuple, defaultdict
 import numpy as np
 
 from functions import constructor, fv
-from num_methods import mag_field
 
 ##############################################################################
 # Approximate linearised and non-linearised Riemann solvers
@@ -37,13 +36,9 @@ def calculate_Riemann_flux(data: defaultdict, sim_variables: namedtuple):
     fluxes = {}
 
     # Rotate grid and apply algorithm for each axis/dimension for interfaces
-    axis, magnetic_components = 0, []
+    axis = 0
     for axes, arrays in data.items():
         axis %= 3
-
-        # Collate the magnetic field components, if enabled
-        if sim_variables.magnetic:
-            magnetic_components.append(data[axes]['wTs'])
 
         # Determine the eigenvalues for the computation of time stepping in each direction
         characteristics, eigmax = fv.compute_eigen(arrays['Jacobian'])
@@ -70,9 +65,6 @@ def calculate_Riemann_flux(data: defaultdict, sim_variables: namedtuple):
         fluxes[axes] = Riemann_flux(_fluxes, eigmax)
         axis += 1
 
-    # Compute the corner emf
-    if sim_variables.magnetic and sim_variables.dimension == 2:
-        e3U = mag_field.compute_corner(magnetic_components, sim_variables)
     return fluxes
 
 

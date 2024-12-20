@@ -38,7 +38,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
         wF = 7/12 * (wS + w[2:]) - 1/12 * (w[:-2] + w2[4:])
 
-        if magnetic and dimension > 1:
+        if magnetic and dimension == 2:
             next_axes = permutations[(axis+1) % len(permutations)]
             data[axes]['wTs'] = mag_field.reconstruct_transverse(wF, next_axes, boundary)
 

@@ -1,7 +1,7 @@
 import numpy as np
 
 from schemes import pcm, plm, ppm, weno
-from num_methods import solvers
+from num_methods import solvers, mag_field
 
 ##############################################################################
 # Collates and controls space and time evolution
@@ -28,7 +28,16 @@ def evolve_space(grid, sim_variables):
         data = plm.run(grid, sim_variables)
     else:
         data = pcm.run(grid, sim_variables)
-    return solvers.calculate_Riemann_flux(data, sim_variables)
+
+    fluxes = solvers.calculate_Riemann_flux(data, sim_variables)
+
+    if sim_variables.magnetic and sim_variables.dimension == 2:
+        magnetic_components = []
+        for axes in data.keys():
+            magnetic_components.append(data[axes]['wTs'])
+        e3U = mag_field.compute_corner(magnetic_components, sim_variables)
+
+    return fluxes
 
 
 # Evolve the system in time by a standardised workflow
