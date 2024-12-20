@@ -8,21 +8,17 @@ from num_methods import limiters
 ##############################################################################
 
 # Reconstruct the transverse values for each face average
-def reconstruct_transverse(_wF, next_ax, boundary, method="ppm", **kwargs):
+def reconstruct_transverse(_wF, next_ax, boundary, method="ppm", author="mc"):
     wF = np.copy(_wF.transpose(next_ax))
 
     wF_pad2 = fv.add_boundary(wF, boundary, 2)
     wF_pad1 = np.copy(wF_pad2[1:-1])
 
     if method == "ppm":
-        try:
-            author = kwargs['author']
-        except KeyError:
-            author = "mc"
-
         """Extrapolate the face averages to the top corners (upwards) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
         |                w(i-1/2)            w(i+1/2)               |
         |-------------------|-------------------|-------------------|
+        |           w_U(i-1/2,j+1/2)    w_U(i+1/2,j+1/2)            |
         |                  ^|                  ^|                  ^|
         |                  ||                  ||                  ||
         |                  ||                  ||                  ||
@@ -34,6 +30,7 @@ def reconstruct_transverse(_wF, next_ax, boundary, method="ppm", **kwargs):
             """Extrapolate the face averages to both corners (upwards & downwards)
             |                w(i-1/2)            w(i+1/2)               |
             |-------------------|-------------------|-------------------|
+            |           w_U(i-1/2,j+1/2)    w_U(i+1/2,j+1/2)            |
             |                  ^|                  ^|                  ^|
             |                  ||                  ||                  ||
             |                  ||                  ||                  ||
@@ -41,6 +38,7 @@ def reconstruct_transverse(_wF, next_ax, boundary, method="ppm", **kwargs):
             |                  ||                  ||                  ||
             |                  ||                  ||                  ||
             |                  v|                  v|                  v|
+            |           w_D(i-1/2,j-1/2)    w_D(i+1/2,j-1/2)            |
             |-------------------|-------------------|-------------------|
             """
             wD = 7/12 * (wF_pad1[:-2] + wF) - 1/12 * (wF_pad2[:-4] + wF_pad1[2:])
@@ -62,16 +60,63 @@ def reconstruct_transverse(_wF, next_ax, boundary, method="ppm", **kwargs):
         |  o (i-1,j+1)      |  o (i,j+1)        |  o (i+1,j+1)      |
         |                   |                   |                   |
         |                   |                   |                   |
+        |           w_D(i-1/2,j+1/2)    w_D(i+1/2,j+1/2)            |
         |                 w+(y)               w+(y)               w+(y)
         |                   ^                   ^                   ^
         |-------------------|-------------------|-------------------|
         |                   v                   v                   v
         |                 w-(y)               w-(y)               w-(y)
+        |           w_U(i-1/2,j+1/2)    w_U(i+1/2,j+1/2)            |
         |                   |                   |                   |
         |                   |                   |                   |
         |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
         """
-        return limiters.interpolant_limiter(wF, wF_pad1, wF_pad2, wU_pad2, author, boundary, *limited_wUs)
+        wD, wU = limiters.interpolant_limiter(wF, wF_pad1, wF_pad2, wU_pad2, author, boundary, *limited_wUs)
+    
+    # 5th-order
+    elif method == "weno":
+        """Extrapolate the face averages to both corners (upwards & downwards)
+        |                w(i-1/2)            w(i+1/2)               |
+        |-------------------|-------------------|-------------------|
+        |           w_U(i-1/2,j+1/2)    w_U(i+1/2,j+1/2)            |
+        |                  ^|                  ^|                  ^|
+        |                  ||                  ||                  ||
+        |                  ||                  ||                  ||
+        |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
+        |                  ||                  ||                  ||
+        |                  ||                  ||                  ||
+        |                  v|                  v|                  v|
+        |           w_D(i-1/2,j-1/2)    w_D(i+1/2,j-1/2)            |
+        |-------------------|-------------------|-------------------|
+        """
+        eps = 1e-6
+
+        zeroth = np.copy(wF_pad1[1:-1])
+        minus_one, minus_two = wF_pad1[:-2], wF_pad2[:-4]
+        plus_one, plus_two = wF_pad1[2:], wF_pad2[4:]
+
+        g0, g1, g2 = 1/10, 3/5, 3/10
+
+        b0 = (13/12 * (minus_two - 2*minus_one + zeroth)**2 + 1/4 * (minus_two - 4*minus_one + 3*zeroth)**2)
+        b1 = (13/12 * (minus_one - 2*zeroth + plus_one)**2 + 1/4 * (minus_one - plus_one)**2)
+        b2 = (13/12 * (zeroth - 2*plus_one + plus_two)**2 + 1/4 * (3*zeroth - 4*plus_one + plus_two)**2)
+
+        a0 = lambda d0: d0/(b0 + eps)**2
+        a1 = lambda d1: d1/(b1 + eps)**2
+        a2 = lambda d2: d2/(b2 + eps)**2
+
+        wD = (
+            (a0(g2)/(a0(g2)+a1(g1)+a2(g0))) * (1/3*zeroth + 5/6*minus_one - 1/6*minus_two)
+            + (a1(g1)/(a0(g2)+a1(g1)+a2(g0))) * (-1/6*plus_one + 5/6*zeroth + 1/3*minus_one)
+            + (a2(g0)/(a0(g2)+a1(g1)+a2(g0))) * (1/3*plus_two - 7/6*plus_one + 11/6*zeroth)
+        )
+        wU = (
+            (a0(g0)/(a0(g0)+a1(g1)+a2(g2))) * (1/3*minus_two - 7/6*minus_one + 11/6*zeroth)
+            + (a1(g1)/(a0(g0)+a1(g1)+a2(g2))) * (-1/6*minus_one + 5/6*zeroth + 1/3*plus_one)
+            + (a2(g2)/(a0(g0)+a1(g1)+a2(g2))) * (1/3*zeroth + 5/6*plus_one - 1/6*plus_two)
+        )
+
+    return wD, wU
 
 
 # Compute the corner electric fields wrt to corner; gives 4-fold values for each corner for now
