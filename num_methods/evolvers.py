@@ -1,5 +1,6 @@
 import numpy as np
 
+from functions import fv
 from schemes import pcm, plm, ppm, weno
 from num_methods import solvers, mag_field
 
@@ -35,7 +36,15 @@ def evolve_space(grid, sim_variables):
         magnetic_components = []
         for axes in data.keys():
             magnetic_components.append(data[axes]['wTs'])
+
         e3U = mag_field.compute_corner(magnetic_components, sim_variables)
+
+        """for axis, axes in enumerate(sim_variables.permutations):
+            axis %= 3
+            corners = e3U.transpose(axes)
+            corners = fv.add_boundary(corners, sim_variables.boundary)[1:]
+            fluxes[axes].flux[...,5+axis] = corners
+        """
 
     return fluxes
 
