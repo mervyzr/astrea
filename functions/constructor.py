@@ -116,7 +116,7 @@ def make_flux(grid, gamma, axis):
 
 # Jacobian matrix based on primitive variables
 def make_Jacobian(grid, gamma, axis):
-    rhos, v, pressures, B_fields = grid[...,0], grid[...,axis+1], grid[...,4], grid[...,5:8]
+    rhos, v, pressures, B_fields = grid[...,0], grid[...,axis+1], grid[...,4], grid[...,5:8]/np.sqrt(4*np.pi)
     abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
     
     # Create empty square arrays for each cell
