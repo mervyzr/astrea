@@ -121,16 +121,16 @@ def generate_test_conditions(config, cells):
         initial_right = np.array([1,0,0,0,1,0,0,0])
         misc = {'vortex_str':5, 'freq':2}
 
-    # [Orszag & Tang, 1998; Fuchs et al., 2009]
+    # [Orszag & Tang, 1998; Stone et al., 2008]
     elif "orszag" in config or "tang" in config or config == "ot":
-        start_pos = 0
-        end_pos = 2*np.pi
-        shock_pos = 2*np.pi
-        t_end = 2*np.pi
+        start_pos = -.5
+        end_pos = .5
+        shock_pos = .5
+        t_end = np.pi
         boundary = "wrap"
-        initial_left = np.array([1,0,0,0,1,0,0,0])
-        initial_right = np.array([1,0,0,0,1,0,0,0])
-        misc = None
+        initial_left = np.array([25/(36*np.pi),0,0,0,5/(12*np.pi),0,0,0])
+        initial_right = np.array([25/(36*np.pi),0,0,0,5/(12*np.pi),0,0,0])
+        misc = {'ampl':1/np.sqrt(4*np.pi)}
 
     # [Balsara & Spicer, 1999]
     elif "rotor" in config:

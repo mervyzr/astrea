@@ -45,12 +45,10 @@ def initialise(sim_variables, convert=False):
 
         elif config in ["orszag-tang", "orszag", "tang", "ot"]:
             computational_grid[np.where(y <= shock_pos)] = initial_left
-            computational_grid[...,0] = gamma**2
-            computational_grid[...,1] = -np.sin(y)
-            computational_grid[...,2] = np.sin(x)
-            computational_grid[...,4] = gamma
-            computational_grid[...,5] = -np.sin(y)
-            computational_grid[...,6] = np.sin(2*x)
+            computational_grid[...,1] = -np.sin(2*np.pi*y)
+            computational_grid[...,2] = np.sin(2*np.pi*x)
+            computational_grid[...,5] = -params['ampl'] * np.sin(2*np.pi*y)
+            computational_grid[...,6] = params['ampl'] * np.sin(4*np.pi*x)
 
         elif "rotor" in config:
             mask = np.where(((x-centre)**2 + (y-centre)**2) <= (shock_pos-centre)**2)
