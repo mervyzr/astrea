@@ -21,6 +21,7 @@ def compute_H(interface_fluxes, sim_variables):
 
 # Evolve the system in space by a standardised workflow
 def evolve_space(grid, sim_variables):
+    # Hydro-component reconstruction
     if sim_variables.subgrid.startswith("w"):
         data = weno.run(grid, sim_variables)
     elif sim_variables.subgrid in ["ppm", "parabolic", "p"]:
@@ -32,6 +33,7 @@ def evolve_space(grid, sim_variables):
 
     fluxes = solvers.calculate_Riemann_flux(data, sim_variables)
 
+    # Magneto-component reconstruction
     if sim_variables.magnetic and sim_variables.dimension == 2:
         magnetic_components = []
         for axes in data.keys():
@@ -39,12 +41,9 @@ def evolve_space(grid, sim_variables):
 
         e3U = mag_field.compute_corner(magnetic_components, sim_variables)
 
-        """for axis, axes in enumerate(sim_variables.permutations):
-            axis %= 3
-            corners = e3U.transpose(axes)
-            corners = fv.add_boundary(corners, sim_variables.boundary)[1:]
-            fluxes[axes].flux[...,5+axis] = corners
-        """
+        for axis, axes in enumerate(sim_variables.permutations):
+            flux = fluxes[axes].flux
+            flux[...,5+axis] = fv.add_boundary(e3U.transpose(axes), sim_variables.boundary)[1:]
 
     return fluxes
 
