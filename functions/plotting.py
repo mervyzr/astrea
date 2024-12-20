@@ -49,7 +49,7 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs
         for option in options:
             option = option.lower()
 
-            if "energy" in option or "temp" in option:
+            if "energy" in option or "temp" in option or option.startswith("e"):
                 if "int" in option:
                     name = "Internal energy"
                     label = r"$e$"
@@ -60,7 +60,7 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs
                     label = r"$E$"
                     error = r"$\log{(\epsilon_\nu(E))}$"
                     tv = r"TV($E$)"
-                if "dens" in option:
+                if "density" in option:
                     name += ' density'
 
             elif "mom" in option:
@@ -75,17 +75,11 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs
                 error = r"$\log{(\epsilon_\nu(m))}$"
                 tv = r"TV($m$)"
 
-            elif "pres" in option:
-                if "mag" in option:
-                    name = "Mag. pressure"
-                    label = r"$P_B$"
-                    error = r"$\log{(\epsilon_\nu(P_B))}$"
-                    tv = r"TV($P_B$)"
-                else:
-                    name = "Pressure"
-                    label = r"$P$"
-                    error = r"$\log{(\epsilon_\nu(P))}$"
-                    tv = r"TV($P$)"
+            elif option.startswith("p"):
+                name = "Pressure"
+                label = r"$P$"
+                error = r"$\log{(\epsilon_\nu(P))}$"
+                tv = r"TV($P$)"
 
             elif option.startswith("v"):
                 name = "Velocity"
@@ -93,11 +87,17 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs
                 error = rf"$\log{{(\epsilon_\nu(v_{option[-1]}))}}$"
                 tv = rf"TV($v_{option[-1]}$)"
 
-            elif option.startswith("b") or "field" in option:
-                name = "Mag. field"
-                label = rf"$B_{option[-1]}$"
-                error = rf"$\log{{(\epsilon_\nu(B_{option[-1]}))}}$"
-                tv = rf"TV($B_{option[-1]}$)"
+            elif option.startswith("b") or option.startswith("mag"):
+                if "p" in option:
+                    name = "Mag. pressure"
+                    label = r"$P_B$"
+                    error = r"$\log{(\epsilon_\nu(P_B))}$"
+                    tv = r"TV($P_B$)"
+                else:
+                    name = "Mag. field"
+                    label = rf"$B_{option[-1]}$"
+                    error = rf"$\log{{(\epsilon_\nu(B_{option[-1]}))}}$"
+                    tv = rf"TV($B_{option[-1]}$)"
 
             else:
                 name = "Density"
@@ -159,25 +159,25 @@ def make_data(options, grid, sim_variables):
     for option in options:
         option = option.lower()
 
-        if "energy" in option or "temp" in option:
+        if "energy" in option or "temp" in option or option.startswith("e"):
             if "int" in option:
                 quantity = fv.divide(grid[...,4], grid[...,0] * (sim_variables.gamma-1))
             else:
                 quantity = fv.divide(fv.convert_variable("pressure", grid, sim_variables.gamma), grid[...,0])
-            if "dens" in option:
+            if "density" in option:
                 quantity *= grid[...,0]
-        elif "pres" in option:
-            if "mag" in option:
+        elif option.startswith("p"):
+            quantity = grid[...,4]
+        elif option.startswith("v") or "mom" in option:
+            axis = {"x":0, "y":1, "z":2}[option[-1]]
+            quantity = grid[...,1+axis]
+            if "mom" in option:
+                quantity *= grid[...,0]
+        elif option.startswith("b") or option.startswith("mag"):
+            if "p" in option:
                 quantity = .5 * fv.norm(grid[...,5:8])**2
             else:
-                quantity = grid[...,4]
-        elif option.startswith("v") or (option.startswith("b") or "field" in option) or "mom" in option:
-            axis = {"x":0, "y":1, "z":2}[option[-1]]
-            if option.startswith("v") or "mom" in option:
-                quantity = grid[...,1+axis]
-                if "mom" in option:
-                    quantity *= grid[...,0]
-            else:
+                axis = {"x":0, "y":1, "z":2}[option[-1]]
                 quantity = grid[...,5+axis]
         else:
             quantity = grid[...,0]
@@ -192,7 +192,7 @@ def initiate_live_plot(sim_variables):
     options = sim_variables.plot_options
     plt.ion()
 
-    fig, ax, plot_ = make_figure(options, sim_variables, figsize=[12,7])
+    fig, ax, plot_ = make_figure(options, sim_variables, figsize=[16,8])
 
     graphs = []
     for idx, (_i,_j) in enumerate(plot_['indexes']):
@@ -418,7 +418,7 @@ def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
 
         for option in options:
             option = option.lower()
-            if "energy" in option or "temp" in option:
+            if "energy" in option or "temp" in option or option.startswith("e"):
                 if "int" in option:
                     _arr.append(solution_errors[-1])
                 else:
@@ -515,8 +515,8 @@ def plot_total_variation(hdf5, sim_variables, save_path):
 
         y_data = np.full((len(options), len(x)), 0., dtype=sim_variables.precision)
         for idx, option in enumerate(options):
-            option = option.lower()
-            if "energy" in option or "temp" in option:
+            option = option.lower()            
+            if "energy" in option or "temp" in option or option.startswith("e"):
                 if "int" in option:
                     y_data[idx] = ys[...,-1]
                 else:

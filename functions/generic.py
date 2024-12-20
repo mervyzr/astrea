@@ -123,7 +123,7 @@ def handle_CLI():
     parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='run a single run or multiple runs for each simulation', choices=DB.get(PARAMS.type == 'run_type')['accepted'])
 
     parser.add_argument('--snapshots', metavar='', type=int, default=argparse.SUPPRESS, help='number of snapshots to save')
-    parser.add_argument('--plot_options', '--plot-options', dest='plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot', choices=DB.get(PARAMS.type == 'plot_options')['accepted'])
+    parser.add_argument('--plot_options', '--plot-options', dest='plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot')
     parser.add_argument('--live_plot', '--live-plot', '--live', dest='live_plot', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
     parser.add_argument('--take_snaps', '--take-snaps', dest='take_snaps', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
     parser.add_argument('--save_plots', '--save-plots', dest='save_plots', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving final plots of the simulation', choices=bool_choices)
@@ -150,6 +150,8 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     # Replace the relevant configuration variables with the CLI variables
     for k,v in cli_variables.items():
         if k in _config_variables:
+            if k == 'plot_options':
+                v = v.replace('-',' ').replace('/',',').replace('|',',')
             _config_variables[k] = v
 
     # Check validity of variables; revert to default values if not valid
@@ -164,7 +166,7 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
         elif k == "cells":
             try:
                 v = int(v) - int(v)%2
-            except Exception as e:
+            except ValueError:
                 v = 128
         elif k in ['gamma', 'cfl']:
             if not isinstance(v, float):
@@ -178,8 +180,9 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
             accepted_plot_options, invalid = DB.get(PARAMS.type == k)['accepted'], []
             try:
                 if isinstance(v, str):
-                    v = v.replace(' ','').replace(',','-').replace('/','-').replace('|','-').split('-')
+                    v = v.replace(' ','').replace('-',',').replace('/',',').replace('|',',').split(',')
                 for option in v:
+                    option = option.replace(' ','').replace('-','')
                     if option.lower() not in accepted_plot_options:
                         invalid.append(option)
                         v.remove(option)
@@ -190,7 +193,7 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
                 print(f"{BColours.WARNING}No valid plot options; reverting to default values..{BColours.ENDC}")
             finally:
                 if invalid != []:
-                    print(f"{BColours.WARNING}Invalid plot options: {invalid}..{BColours.ENDC}")
+                    print(f"{BColours.WARNING}Invalid plot options: {invalid}{BColours.ENDC}")
         else:
             if isinstance(v, str):
                 v = v.lower()
