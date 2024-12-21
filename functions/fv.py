@@ -63,7 +63,7 @@ def add_boundary(grid, boundary, stencil=1, axis=0):
 # Convert centred variables to averaged variables (FD -> FV) (at higher order) with the Laplacian operator and centred difference coefficients (up to 2nd derivative because parabolic function)
 # Attempts to raise the order of accuracy for the Laplacian to 4th-, 6th- and even 8th-order were made, but not too feasible because the averaging function
 # is limited by the time-stepping and the limiting functions (currently max is 4th order)
-def high_order_average(grid, sim_variables, _type="cell"):
+def high_order_convert_avg_cntr(grid, sim_variables, _type="cell"):
     new_grid = np.copy(grid)
 
     if "face" in _type:
