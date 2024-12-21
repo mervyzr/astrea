@@ -1,15 +1,14 @@
-from collections import namedtuple, defaultdict
-
 import numpy as np
 
 from functions import constructor, fv
+from num_methods import mag_field
 
 ##############################################################################
 # Approximate linearised and non-linearised Riemann solvers
 ##############################################################################
 
 # Intercell numerical fluxes between L and R interfaces based on Riemann solver
-def calculate_Riemann_flux(data: defaultdict, sim_variables: namedtuple):
+def calculate_Riemann_flux(data, sim_variables):
 
     # Select Riemann solver based on scheme
     def run_Riemann_solver(_axis, _sim_variables, _characteristics, **kwargs):
@@ -32,11 +31,8 @@ def calculate_Riemann_flux(data: defaultdict, sim_variables: namedtuple):
             else:
                 return calculate_LaxFriedrich_flux(_characteristics, **kwargs)
 
-    Riemann_flux = namedtuple('Riemann_flux', ['flux', 'eigmax'])
-    fluxes = {}
-
     # Rotate grid and apply algorithm for each axis/dimension for interfaces
-    axis = 0
+    axis, fluxes, magnetic_components = 0, {}, []
     for axes, arrays in data.items():
         axis %= 3
 
@@ -47,6 +43,10 @@ def calculate_Riemann_flux(data: defaultdict, sim_variables: namedtuple):
         intf_fluxes_avgd = run_Riemann_solver(axis, sim_variables, characteristics, **data[axes])
 
         if sim_variables.dimension == 2:
+            # Collate the magnetic components, if enabled
+            if sim_variables.magnetic:
+                magnetic_components.append(arrays['wTs'])
+
             # Compute the orthogonal L/R Riemann states and fluxes
             high_order_intfs = {}
             for _key, _arrays in data[axes].items():
@@ -62,8 +62,17 @@ def calculate_Riemann_flux(data: defaultdict, sim_variables: namedtuple):
             # Orthogonal Laplacian in 1D is zero
             _fluxes = intf_fluxes_avgd
 
-        fluxes[axes] = Riemann_flux(_fluxes, eigmax)
+        fluxes[axes] = {'flux':_fluxes, 'eigmax':eigmax}
         axis += 1
+
+    # Compute magnetic flux from the magnetic components
+    if sim_variables.magnetic and sim_variables.dimension == 2:
+        e3U = mag_field.compute_corner(magnetic_components, sim_variables)
+
+        reversed_permutations = sim_variables.permutations[::-1]
+        for axis, axes in enumerate(sim_variables.permutations):
+            _axes = reversed_permutations[axis][:-1]
+            fluxes[axes]['mag_flux'] = (-1)**axis * fv.add_boundary(e3U.transpose(_axes), sim_variables.boundary)[1:]
 
     return fluxes
 

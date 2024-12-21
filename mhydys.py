@@ -74,7 +74,7 @@ def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
             interface_fluxes = evolvers.evolve_space(grid, sim_variables)
 
             # Compute the maximum eigenvalues for determining the full time step
-            eigmaxes = [sim_variables.dx/Riemann_flux.eigmax for Riemann_flux in list(interface_fluxes.values())]
+            eigmaxes = [sim_variables.dx/Riemann_flux['eigmax'] for Riemann_flux in list(interface_fluxes.values())]
             dt = sim_variables.cfl * min(eigmaxes)
 
             # Handle dt
