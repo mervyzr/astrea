@@ -1,6 +1,5 @@
 import numpy as np
 
-from functions import fv
 from schemes import pcm, plm, ppm, weno
 from num_methods import solvers
 
