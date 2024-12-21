@@ -41,9 +41,9 @@ def evolve_space(grid, sim_variables):
 
         e3U = mag_field.compute_corner(magnetic_components, sim_variables)
 
-        for axis, axes in enumerate(sim_variables.permutations):
+        for axis, axes in enumerate(sim_variables.permutations[::-1]):
             flux = fluxes[axes].flux
-            flux[...,5+axis] = fv.add_boundary(e3U.transpose(axes[:-1]), sim_variables.boundary)[1:]
+            flux[...,5+axis] = (-1)**axis * fv.add_boundary(e3U.transpose(axes[:-1]), sim_variables.boundary)[1:]
 
     return fluxes
 
