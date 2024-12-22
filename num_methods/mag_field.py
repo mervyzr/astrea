@@ -8,8 +8,11 @@ from num_methods import limiters
 ##############################################################################
 
 # Reconstruct the transverse values for each face average
-def reconstruct_transverse(_wF, next_ax, boundary, method="ppm", author="mc"):
-    wF = np.copy(_wF.transpose(next_ax))
+def reconstruct_transverse(_wF, sim_variables, method="ppm", author="mc"):
+    alt_axes, boundary = sim_variables.permutations[-1], sim_variables.boundary
+
+    # Compute with orthogonal axes
+    wF = np.copy(_wF.transpose(alt_axes))
 
     wF_pad2 = fv.add_boundary(wF, boundary, 2)
     wF_pad1 = np.copy(wF_pad2[1:-1])
@@ -116,12 +119,13 @@ def reconstruct_transverse(_wF, next_ax, boundary, method="ppm", author="mc"):
             + (a2(g2)/(a0(g0)+a1(g1)+a2(g2))) * (1/3*zeroth + 5/6*plus_one - 1/6*plus_two)
         )
 
-    return wD, wU
+    return np.copy(_wF), wD, wU
 
 
+##### !!!!!! Currently the axes are not aligned. The axes need to be re-transposed before the corner calculations can begin !!!!!!! #####
 # Compute the corner electric fields wrt to corner; gives 4-fold values for each corner for now
 def compute_corner(magnetic_components: list, sim_variables):
-    gamma, boundary = sim_variables.gamma, sim_variables.boundary
+    gamma, boundary, reversed_axes = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations[::-1]
     magnetic_components = np.asarray(magnetic_components)
 
     def compute_corners(_data):
@@ -136,8 +140,7 @@ def compute_corner(magnetic_components: list, sim_variables):
     alphas = []
     for ax, wTs in enumerate(magnetic_components):
         # Re-align the interfaces and calculate Roe average between the interfaces
-        plus, minus = wTs
-        w_plus, w_minus = fv.add_boundary(plus, boundary)[1:], fv.add_boundary(minus, boundary)[:-1]
+        w_plus, w_minus = fv.add_boundary(wTs[0], boundary)[1:], fv.add_boundary(wTs[1], boundary)[:-1]
         grid_intf = constructor.make_Roe_average(w_plus, w_minus)[1:]
 
         # Define the variables

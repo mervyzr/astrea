@@ -37,8 +37,7 @@ def run(grid, sim_variables):
         wL, wR = np.copy(wS-gradients), np.copy(wS+gradients)  # (eq. 4.13)
 
         if magnetic and dimension == 2:
-            next_axes = permutations[(axis+1) % len(permutations)]
-            data[axes]['wTs'] = mag_field.reconstruct_transverse(wR, next_axes, boundary)
+            data[axes]['wTs'] = mag_field.reconstruct_transverse(wR, sim_variables)
 
         # Re-align the interfaces so that cell wall is in between interfaces
         w_plus, w_minus = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]

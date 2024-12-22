@@ -36,8 +36,10 @@ def evolve_space(grid, sim_variables):
     # Magneto-component reconstruction
     if sim_variables.magnetic and sim_variables.dimension == 2:
         magnetic_components = []
-        for arrays in data.values():
-            magnetic_components.append(arrays['wTs'])
+        for axes, arrays in data.items():
+            wF, wD, wU = arrays['wTs']  # Not returned to original axes
+            magnetic_components.append([wD, wU])
+            fluxes[axes]['mag_interface'] = fv.add_boundary(wF, sim_variables.boundary)[1:]
 
         e3U = mag_field.compute_corner(magnetic_components, sim_variables)
 
