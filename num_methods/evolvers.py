@@ -1,7 +1,8 @@
 import numpy as np
 
+from functions import fv
 from schemes import pcm, plm, ppm, weno
-from num_methods import solvers
+from num_methods import solvers, mag_field
 
 ##############################################################################
 # Collates and controls space and time evolution
@@ -20,6 +21,7 @@ def compute_L(interface_fluxes, sim_variables):
 
 # Evolve the system in space by a standardised workflow
 def evolve_space(grid, sim_variables):
+    # Hydro-component reconstruction
     if sim_variables.subgrid.startswith("w"):
         data = weno.run(grid, sim_variables)
     elif sim_variables.subgrid in ["ppm", "parabolic", "p"]:
@@ -28,7 +30,23 @@ def evolve_space(grid, sim_variables):
         data = plm.run(grid, sim_variables)
     else:
         data = pcm.run(grid, sim_variables)
-    return solvers.calculate_Riemann_flux(data, sim_variables)
+
+    fluxes = solvers.calculate_Riemann_flux(data, sim_variables)
+
+    # Magneto-component reconstruction
+    if sim_variables.magnetic and sim_variables.dimension == 2:
+        magnetic_components = []
+        for arrays in data.values():
+            magnetic_components.append(arrays['wTs'])
+
+        e3U = mag_field.compute_corner(magnetic_components, sim_variables)
+
+        alt_axes = sim_variables.permutations[-1][:-1]
+        for axis, axes in enumerate(sim_variables.permutations):
+            fluxes[axes]['mag_flux'] = (-1)**axis * fv.add_boundary(e3U.transpose(alt_axes), sim_variables.boundary)[1:]
+            #fluxes[axes]['flux'][...,5+axis] = (-1)**axis * fv.add_boundary(e3U.transpose(alt_axes), sim_variables.boundary)[1:]
+
+    return fluxes
 
 
 # Evolve the system in time by a standardised workflow
