@@ -69,10 +69,9 @@ def calculate_Riemann_flux(data, sim_variables):
     if sim_variables.magnetic and sim_variables.dimension == 2:
         e3U = mag_field.compute_corner(magnetic_components, sim_variables)
 
-        reversed_permutations = sim_variables.permutations[::-1]
+        alt_axes = sim_variables.permutations[-1][:-1]
         for axis, axes in enumerate(sim_variables.permutations):
-            _axes = reversed_permutations[axis][:-1]
-            fluxes[axes]['mag_flux'] = (-1)**axis * fv.add_boundary(e3U.transpose(_axes), sim_variables.boundary)[1:]
+            fluxes[axes]['mag_flux'] = (-1)**axis * fv.add_boundary(e3U.transpose(alt_axes), sim_variables.boundary)[1:]
 
     return fluxes
 
