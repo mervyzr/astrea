@@ -67,7 +67,7 @@ def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
             take_snapshot = False
 
         if t == sim_variables.t_end:
-            # Reduces one extra computing step
+            # Exact stop for the simulation; prevents adding an additional computation step
             break
         else:
             # Compute the numerical fluxes at each interface
