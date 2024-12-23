@@ -37,7 +37,7 @@ def evolve_space(grid, sim_variables):
     if sim_variables.magnetic and sim_variables.dimension == 2:
         magnetic_components = []
         for axes, arrays in data.items():
-            wF, wD, wU = arrays['wTs']  # Not returned to original axes
+            wF, wD, wU = arrays['wTs']
             magnetic_components.append([wD, wU])
             fluxes[axes]['mag_interface'] = fv.add_boundary(wF, sim_variables.boundary)[1:]
 

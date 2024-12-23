@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 
 from functions import fv, constructor
@@ -122,30 +124,40 @@ def reconstruct_transverse(_wF, sim_variables, method="ppm", author="mc"):
     return np.copy(_wF), wD, wU
 
 
-##### !!!!!! Currently the axes are not aligned. The axes need to be re-transposed before the corner calculations can begin !!!!!!! #####
 # Compute the corner electric fields wrt to corner; gives 4-fold values for each corner for now
-def compute_corner(magnetic_components: list, sim_variables):
+def compute_corner(magnetic_components: List[list], sim_variables):
     gamma, boundary, reversed_axes = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations[::-1]
     magnetic_components = np.asarray(magnetic_components)
 
-    def compute_corners(_data):
+    def compute_corners(_magnetic_components, _reversed_axes):
+        # Transpose the magnetic components back into the original arrangement (always using the x-axis as reference axis)
+        _data = []
+        for _axis, _axes in enumerate(_reversed_axes):
+            _wD, _wU = _magnetic_components[_axis]
+            _data.append([_wD.transpose(_axes), _wU.transpose(_axes)])
+        _data = np.asarray(_data)
+
+        # Compute the corner B-fields wrt to corner
         _NE = np.average(_data[:,0,...,2], axis=0)*_data[0,0,...,5] - np.average(_data[:,0,...,1], axis=0)*_data[1,0,...,6]
         _NW = np.average(_data[[0,1],[0,1],...,2], axis=0)*_data[0,0,...,5] - np.average(_data[[0,1],[0,1],...,1], axis=0)*_data[1,1,...,6]
         _SW = np.average(_data[:,1,...,2], axis=0)*_data[0,1,...,5] - np.average(_data[:,1,...,1], axis=0)*_data[1,1,...,6]
         _SE = np.average(_data[[0,1],[1,0],...,2], axis=0)*_data[0,1,...,5] - np.average(_data[[0,1],[1,0],...,1], axis=0)*_data[1,0,...,6]
+
         return _NE, _NW, _SW, _SE
 
-    NE, NW, SW, SE = compute_corners(magnetic_components)
+    NE, NW, SW, SE = compute_corners(magnetic_components, reversed_axes)
 
     alphas = []
-    for ax, wTs in enumerate(magnetic_components):
+    for axis, axes in enumerate(reversed_axes):
+        _w_plus, _w_minus = magnetic_components[axis][0], magnetic_components[axis][1]
+
         # Re-align the interfaces and calculate Roe average between the interfaces
-        w_plus, w_minus = fv.add_boundary(wTs[0], boundary)[1:], fv.add_boundary(wTs[1], boundary)[:-1]
+        w_plus, w_minus = fv.add_boundary(_w_plus, boundary)[1:], fv.add_boundary(_w_minus, boundary)[:-1]
         grid_intf = constructor.make_Roe_average(w_plus, w_minus)[1:]
 
         # Define the variables
         rhos, vels, pressures, B_fields = grid_intf[...,0], grid_intf[...,1:4], grid_intf[...,4], grid_intf[...,5:8]/np.sqrt(4*np.pi)
-        vx, Bx = vels[...,ax%3], B_fields[...,ax%3]
+        vx, Bx = vels[...,axis%3], B_fields[...,axis%3]
 
         # Define speeds
         sound_speed = np.sqrt(gamma * fv.divide(pressures, rhos))
@@ -161,7 +173,7 @@ def compute_corner(magnetic_components: list, sim_variables):
         """
         alpha_minus = -np.minimum(np.zeros_like(vx), vx-fast_magnetosonic_wave)
         alpha_plus = np.maximum(np.zeros_like(vx), vx+fast_magnetosonic_wave)
-        alphas.append([alpha_plus, alpha_minus])
+        alphas.append([alpha_plus.transpose(axes), alpha_minus.transpose(axes)])
 
     [ap2,am2], [ap1,am1] = alphas
 
