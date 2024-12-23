@@ -150,6 +150,7 @@ def compute_corner(magnetic_components: List[list], sim_variables):
     alphas = []
     for axis, axes in enumerate(reversed_axes):
         _w_plus, _w_minus = magnetic_components[axis][0], magnetic_components[axis][1]
+        _axes = axes[:-1]
 
         # Re-align the interfaces and calculate Roe average between the interfaces
         w_plus, w_minus = fv.add_boundary(_w_plus, boundary)[1:], fv.add_boundary(_w_minus, boundary)[:-1]
@@ -173,7 +174,7 @@ def compute_corner(magnetic_components: List[list], sim_variables):
         """
         alpha_minus = -np.minimum(np.zeros_like(vx), vx-fast_magnetosonic_wave)
         alpha_plus = np.maximum(np.zeros_like(vx), vx+fast_magnetosonic_wave)
-        alphas.append([alpha_plus.transpose(axes), alpha_minus.transpose(axes)])
+        alphas.append([alpha_plus.transpose(_axes), alpha_minus.transpose(_axes)])
 
     [ap2,am2], [ap1,am1] = alphas
 
