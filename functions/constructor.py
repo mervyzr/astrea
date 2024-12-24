@@ -30,7 +30,7 @@ def initialise(sim_variables, convert=False):
         x, y = np.meshgrid(physical_grid, physical_grid, indexing='ij')
         centre = (end_pos+start_pos)/2
 
-        if config == "sedov" or ("blast" in config and config.startswith("mhd")):
+        if config == "sedov" or "blast" in config:
             mask = np.where(((x-centre)**2 + (y-centre)**2) <= (shock_pos-centre)**2)
             computational_grid[mask] = initial_left
 
