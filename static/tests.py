@@ -17,7 +17,7 @@ def generate_test_conditions(config, cells):
         misc = None
 
     # [Sedov, 1959]
-    elif "sedov" in config:
+    elif "sedov" in config or config == "blast":
         start_pos = -10
         end_pos = 10
         shock_pos = .5  # blast boundary
