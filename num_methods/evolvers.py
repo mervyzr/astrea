@@ -23,18 +23,19 @@ def evolve_space(grid, sim_variables):
     fluxes = solvers.calculate_Riemann_flux(data, sim_variables)
 
     # Magneto-component reconstruction
-    if sim_variables.magnetic and sim_variables.dimension == 2:
+    if sim_variables.magnetic_2d:
         magnetic_components = []
         for axes, arrays in data.items():
-            wF, wD, wU = arrays['wTs']
+            _wF, wD, wU = arrays['wTs']
             magnetic_components.append([wD, wU])
-            fluxes[axes]['mag_interface'] = fv.add_boundary(wF, sim_variables.boundary)[1:]
+            fluxes[axes]['mag_interface'] = _wF
 
         e3U = mag_field.compute_corner(magnetic_components, sim_variables)
 
-        alt_axes = sim_variables.permutations[-1][:-1]
+        reversed_axes = sim_variables.permutations[::-1]
         for axis, axes in enumerate(sim_variables.permutations):
-            fluxes[axes]['mag_flux'] = (-1)**axis * fv.add_boundary(e3U.transpose(alt_axes), sim_variables.boundary)[1:]
+            ortho_axis = reversed_axes[axis][:-1]
+            fluxes[axes]['mag_flux'] = (-1)**axis * fv.add_boundary(e3U.transpose(ortho_axis), sim_variables.boundary)[1:]
 
     return fluxes
 
@@ -42,17 +43,40 @@ def evolve_space(grid, sim_variables):
 # Evolve the system in time by a standardised workflow
 def evolve_time(grid, fluxes, dt, sim_variables):
 
-    # Operator L as a function of the reconstruction values; calculate the flux through the surface [F(i+1/2) - F(i-1/2)]/dx
+    # Operator L as a function of the reconstruction values; calculate the flux (and magnetic flux) through the surface [F(i+1/2) - F(i-1/2)]/dx
     def compute_L(_fluxes, _sim_variables):
         total_flux = 0
-        for _axes in _sim_variables.permutations:
+
+        for _axis, _axes in enumerate(_sim_variables.permutations):
             reversed_axes = np.argsort(_axes)
             Riemann_flux = _fluxes[_axes]['flux']
             flux_diff = np.diff(Riemann_flux, axis=0)/_sim_variables.dx
             total_flux += flux_diff.transpose(reversed_axes)
-        return -total_flux
 
-    h_zero = compute_L(fluxes, sim_variables)
+        if _sim_variables.magnetic_2d:
+            ortho_axis = _sim_variables.permutations[-1][:-1]
+            for _axis, _axes in enumerate(_sim_variables.permutations):
+                mag_flux = _fluxes[_axes]['mag_flux']
+                mag_flux_diff = np.diff(mag_flux, axis=0)/_sim_variables.dx
+                #total_flux[...,5+_axis] = mag_flux_diff.transpose(ortho_axis)
+
+        return -total_flux
+    
+    # Perform any refinement to the grid after the update step
+    def refine_grid(_grid, _sim_variables):
+        # 'Inverse reconstruct' the cell-average values from the face-average values if there are magnetic fields (for 2D)
+        if _sim_variables.magnetic_2d:
+            return mag_field.inverse_reconstruct(_grid, _sim_variables)
+        # No need to do any changes to the grid
+        else:
+            return _grid
+
+    L_zero = compute_L(fluxes, sim_variables)
+
+    # Re-assign the B-field variables to the face-average values; the induction difference is wrt to face-averages, not cell-averages
+    if sim_variables.magnetic_2d:
+        #grid[...,5:7] = fluxes[sim_variables.permutations[0]]['mag_interface'][...,5:7]
+        pass
 
     # Methods for linear and non-linear systems [Shu & Osher, 1988]
     if sim_variables.timestep_category == "ssprk":
@@ -84,7 +108,7 @@ def evolve_time(grid, fluxes, dt, sim_variables):
             else:
                 # Evolve system by SSP-RK (5,4) method (4th-order); effective SSP coeff = 0.302 [Kraaijevanger, 1991; Spiteri & Ruuth, 2002; Gottlieb et al., 2008]
                 # Computation of 1st register
-                k1 = grid + .39175222657189*dt*h_zero
+                k1 = grid + .39175222657189*dt*L_zero
                 fluxes1 = evolve_space(k1, sim_variables)
 
                 # Computation of 2nd register
@@ -106,7 +130,7 @@ def evolve_time(grid, fluxes, dt, sim_variables):
             if register == 5:
                 # Evolve system by SSP-RK (5,3) method (3rd-order); effective SSP coeff = 0.53 [Spiteri & Ruuth, 2002; Gottlieb et al., 2008]
                 # Computation of 1st register
-                k1 = grid + .3772689151171*dt*h_zero
+                k1 = grid + .3772689151171*dt*L_zero
                 fluxes1 = evolve_space(k1, sim_variables)
 
                 # Computation of 2nd register
@@ -118,16 +142,16 @@ def evolve_time(grid, fluxes, dt, sim_variables):
                 fluxes3 = evolve_space(k3, sim_variables)
 
                 # Computation of 4th register
-                k4 = .09299483444413*grid + .0000209036962*k1 + .90698426185967*k3 + .00071997378654*dt*h_zero + .34217696850008*dt*compute_L(fluxes3, sim_variables)
+                k4 = .09299483444413*grid + .0000209036962*k1 + .90698426185967*k3 + .00071997378654*dt*L_zero + .34217696850008*dt*compute_L(fluxes3, sim_variables)
                 fluxes4 = evolve_space(k4, sim_variables)
 
                 # Computation of 5th register
-                return .0073613226092*grid + .20127980325145*k1 + .00182955389682*k2 + .78952932024253*k4 + (dt * (.0027771981946*h_zero + .00001567934613*compute_L(fluxes1, sim_variables) + .29786487010104*compute_L(fluxes4, sim_variables)))
+                return .0073613226092*grid + .20127980325145*k1 + .00182955389682*k2 + .78952932024253*k4 + (dt * (.0027771981946*L_zero + .00001567934613*compute_L(fluxes1, sim_variables) + .29786487010104*compute_L(fluxes4, sim_variables)))
 
             elif register == 4:
                 # Evolve system by SSP-RK (4,3) method (3rd-order); effective SSP coeff = 0.5 [Spiteri & Ruuth, 2002; Gottlieb et al., 2008]
                 # Computation of 1st register
-                k1 = grid + .5*dt*h_zero
+                k1 = grid + .5*dt*L_zero
                 fluxes1 = evolve_space(k1, sim_variables)
 
                 # Computation of 2nd register
@@ -144,7 +168,7 @@ def evolve_time(grid, fluxes, dt, sim_variables):
             else:
                 # Evolve system by SSP-RK (3,3) method (3rd-order); effective SSP coeff = 0.333 [Shu & Osher, 1988; Gottlieb et al., 2008]
                 # Computation of 1st register
-                k1 = grid + dt*h_zero
+                k1 = grid + dt*L_zero
                 fluxes1 = evolve_space(k1, sim_variables)
 
                 # Computation of 2nd register
@@ -157,7 +181,7 @@ def evolve_time(grid, fluxes, dt, sim_variables):
         else:
             # Evolve system by SSP-RK (2,2) method (2nd-order); effective SSP coeff = 0.5 [Gottlieb et al., 2008]
             # Computation of 1st register
-            k1 = grid + dt*h_zero
+            k1 = grid + dt*L_zero
             fluxes1 = evolve_space(k1, sim_variables)
 
             # Computation of 2nd register
@@ -166,7 +190,7 @@ def evolve_time(grid, fluxes, dt, sim_variables):
     elif sim_variables.timestep_category == "rk4":
         # Evolve the system by RK4 method (4th-order); effective SSP coeff = 0.25
         # Computation of 1st register
-        k1 = grid + .5*dt*h_zero
+        k1 = grid + .5*dt*L_zero
         fluxes1 = evolve_space(k1, sim_variables)
 
         # Computation of 2nd register
@@ -178,8 +202,8 @@ def evolve_time(grid, fluxes, dt, sim_variables):
         fluxes3 = evolve_space(k3, sim_variables)
 
         # Computation of the final update
-        return grid + 1/6 * (dt * (h_zero + 2*compute_L(fluxes1, sim_variables) + 2*compute_L(fluxes2, sim_variables) + compute_L(fluxes3, sim_variables)))
+        return grid + 1/6 * (dt * (L_zero + 2*compute_L(fluxes1, sim_variables) + 2*compute_L(fluxes2, sim_variables) + compute_L(fluxes3, sim_variables)))
 
     else:
         # Evolve system by a full timestep (1st-order)
-        return grid + dt*h_zero
+        return grid + dt*L_zero

@@ -95,7 +95,7 @@ def initialise(sim_variables, convert=False):
         grid = sim_variables.convert_primitive(computational_grid, sim_variables)
     else:
         grid = computational_grid
-    return fv.high_order_convert_avg_cntr(grid, sim_variables)
+    return fv.high_order_convert('cntr', grid, sim_variables)
 
 
 # Make flux as a function of cell-averaged (primitive) variables

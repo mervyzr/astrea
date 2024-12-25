@@ -175,7 +175,7 @@ def run(grid, sim_variables):
         _intf_avg = fv.add_boundary(intf_avg, boundary)
 
         # Convert the primitive variables
-        q_plus, q_minus = convert_primitive(w_plus, sim_variables, "face"), convert_primitive(w_minus, sim_variables, "face")
+        q_plus, q_minus = convert_primitive(w_plus, sim_variables, 'face'), convert_primitive(w_minus, sim_variables, 'face')
 
         # Compute the fluxes and the Jacobian
         flux_plus, flux_minus = constructor.make_flux(w_plus, gamma, axis), constructor.make_flux(w_minus, gamma, axis)

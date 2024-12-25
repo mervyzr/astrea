@@ -47,7 +47,7 @@ def calculate_Riemann_flux(data, sim_variables):
             for _key, _arrays in data[axes].items():
                 if len(_arrays) == 2:
                     plus_intf, minus_intf = _arrays
-                    high_order_intfs[_key] = fv.high_order_convert_avg_cntr(plus_intf, sim_variables, "face"), fv.high_order_convert_avg_cntr(minus_intf, sim_variables, "face")
+                    high_order_intfs[_key] = fv.high_order_convert('avg', plus_intf, sim_variables, 'face'), fv.high_order_convert('avg', minus_intf, sim_variables, 'face')
 
             intf_fluxes_cntrd = run_Riemann_solver(axis, sim_variables, characteristics, **high_order_intfs)
 

@@ -11,10 +11,10 @@ from num_methods import limiters
 
 # Reconstruct the transverse values for each face average
 def reconstruct_transverse(_wF, sim_variables, method="ppm", author="mc"):
-    alt_axes, boundary = sim_variables.permutations[-1], sim_variables.boundary
+    ortho_axis, boundary = sim_variables.permutations[-1], sim_variables.boundary
 
     # Compute with orthogonal axes
-    wF = np.copy(_wF.transpose(alt_axes))
+    wF = np.copy(_wF.transpose(ortho_axis))
 
     wF_pad2 = fv.add_boundary(wF, boundary, 2)
     wF_pad1 = np.copy(wF_pad2[1:-1])
@@ -129,24 +129,20 @@ def compute_corner(magnetic_components: List[list], sim_variables):
     gamma, boundary, reversed_axes = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations[::-1]
     magnetic_components = np.asarray(magnetic_components)
 
-    def compute_corners(_magnetic_components, _reversed_axes):
-        # Transpose the magnetic components back into the original arrangement (always using the x-axis as reference axis)
-        _data = []
-        for _axis, _axes in enumerate(_reversed_axes):
-            _wD, _wU = _magnetic_components[_axis]
-            _data.append([_wD.transpose(_axes), _wU.transpose(_axes)])
-        _data = np.asarray(_data)
+    # Transpose the magnetic components back into the original arrangement (use the x-axis as 'reference axis')
+    data = []
+    for axis, axes in enumerate(reversed_axes):
+        wD, wU = magnetic_components[axis]
+        data.append([wD.transpose(axes), wU.transpose(axes)])
+    data = np.asarray(data)
 
-        # Compute the corner B-fields wrt to corner
-        _NE = np.average(_data[:,0,...,2], axis=0)*_data[0,0,...,5] - np.average(_data[:,0,...,1], axis=0)*_data[1,0,...,6]
-        _NW = np.average(_data[[0,1],[0,1],...,2], axis=0)*_data[0,0,...,5] - np.average(_data[[0,1],[0,1],...,1], axis=0)*_data[1,1,...,6]
-        _SW = np.average(_data[:,1,...,2], axis=0)*_data[0,1,...,5] - np.average(_data[:,1,...,1], axis=0)*_data[1,1,...,6]
-        _SE = np.average(_data[[0,1],[1,0],...,2], axis=0)*_data[0,1,...,5] - np.average(_data[[0,1],[1,0],...,1], axis=0)*_data[1,0,...,6]
+    # Compute the corner B-fields wrt to corner
+    NE = np.average(data[:,0,...,2], axis=0)*data[0,0,...,5] - np.average(data[:,0,...,1], axis=0)*data[1,0,...,6]
+    NW = np.average(data[[0,1],[0,1],...,2], axis=0)*data[0,0,...,5] - np.average(data[[0,1],[0,1],...,1], axis=0)*data[1,1,...,6]
+    SW = np.average(data[:,1,...,2], axis=0)*data[0,1,...,5] - np.average(data[:,1,...,1], axis=0)*data[1,1,...,6]
+    SE = np.average(data[[0,1],[1,0],...,2], axis=0)*data[0,1,...,5] - np.average(data[[0,1],[1,0],...,1], axis=0)*data[1,0,...,6]
 
-        return _NE, _NW, _SW, _SE
-
-    NE, NW, SW, SE = compute_corners(magnetic_components, reversed_axes)
-
+    # Calculate the eigenvalues for the Riemann problem at the corner; crucial for selecting the corner
     alphas = []
     for axis, axes in enumerate(reversed_axes):
         _w_plus, _w_minus = magnetic_components[axis][0], magnetic_components[axis][1]
@@ -178,11 +174,27 @@ def compute_corner(magnetic_components: List[list], sim_variables):
 
     [ap2,am2], [ap1,am1] = alphas
 
-    return fv.divide(ap1*ap2*SW + am1*ap2*SE + ap1*am2*NW + am1*am2*NE, (ap1+am1)*(ap2+am2)) - fv.divide(ap2*am2*np.squeeze(np.diff(magnetic_components[0,...,5], axis=0)), ap2+am2) + fv.divide(ap1*am1*np.squeeze(np.diff(magnetic_components[1,...,6], axis=0)), ap1+am1)
+    return fv.divide(ap1*ap2*SW + am1*ap2*SE + ap1*am2*NW + am1*am2*NE, (ap1+am1)*(ap2+am2)) - fv.divide(ap2*am2*np.squeeze(np.diff(data[0,...,5], axis=0)), ap2+am2) + fv.divide(ap1*am1*np.squeeze(np.diff(data[1,...,6], axis=0)), ap1+am1)
 
 
-# Compute the induction difference
-def compute_induction_diff(fluxes, sim_variables):
-    for axis, axes in enumerate(sim_variables.permutations[::-1]):
-        pass
-    pass
+# 'Inverse reconstruct' the cell-average values from the face-average values with the induction difference [Felker & Stone, 2018]
+def inverse_reconstruct(grid, sim_variables):
+    _grid = np.copy(grid)
+
+    for axis, axes in enumerate(sim_variables.permutations):
+        reversed_axes = np.argsort(axes)
+
+        # Approximate the face-averaged values to face-centred values (eq. 38)
+        face_cntrd = fv.high_order_convert('avg', grid.transpose(axes), sim_variables, 'face')
+
+        # Interpolate the face-centred values to cell-centred values (eq. 39)
+        face_cntrd_pad2 = fv.add_boundary(face_cntrd, sim_variables.boundary, 2)
+        face_cntrd_pad1 = np.copy(face_cntrd_pad2[1:-1])
+        cell_cntrd = -1/16*(face_cntrd_pad1[:-2] + face_cntrd_pad2[4:]) + 9/16*(face_cntrd + face_cntrd_pad1[2:])
+
+        # Apply Laplacian operator to convert cell-centred values to cell-averaged values (eq. 40)
+        cell_avgd = fv.high_order_convert('cntr', cell_cntrd, sim_variables, 'cell')
+
+        # Update the grid values with the updated B-field values
+        _grid[...,5+axis] = cell_avgd.transpose(reversed_axes)[...,5+axis]
+    return _grid
