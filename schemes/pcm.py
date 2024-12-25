@@ -8,8 +8,7 @@ from num_methods import mag_field
 ##############################################################################
 
 def run(grid, sim_variables):
-    gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
-    magnetic, dimension = sim_variables.magnetic, sim_variables.dimension
+    gamma, boundary, permutations, magnetic_2d = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations, sim_variables.magnetic_2d
     convert_conservative = sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
@@ -22,7 +21,7 @@ def run(grid, sim_variables):
         wS = convert_conservative(_grid, sim_variables)
         q = fv.add_boundary(_grid, boundary)
 
-        if magnetic and dimension == 2:
+        if magnetic_2d:
             data[axes]['wTs'] = mag_field.reconstruct_transverse(wS, sim_variables)
 
         # Compute the fluxes and the Jacobian

@@ -219,7 +219,7 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     final_dict['config_category'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
     final_dict['timestep_category'] = DB.get(PARAMS.accepted.any([final_dict['timestep']]))['category']
     final_dict['scheme_category'] = DB.get(PARAMS.accepted.any([final_dict['scheme']]))['category']
-    final_dict['magnetic'] = final_dict['config_category'] == 'magnetic'
+    final_dict['magnetic_2d'] = (final_dict['config_category'] == 'magnetic' and final_dict['dimension'] == 2)
     if final_dict['subgrid'].startswith("w") or final_dict['subgrid'] in ["ppm", "parabolic", "p"]:
         final_dict['convert_primitive'] = fv.high_order_convert_primitive
         final_dict['convert_conservative'] = fv.high_order_convert_conservative
