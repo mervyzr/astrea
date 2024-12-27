@@ -6,7 +6,7 @@
 
 # m-hydys
 
-m-hydys (pronounced _"Hades"_; the _"m"_ is silent 😀) is a (one-)/two-dimensional (**M**agneto-)**HY**dro**DY**namics **S**imulation code for the purpose of simulating shocks with a chemical network of ions and neutrals, and possible implementation of radiative heating and cooling.
+m-hydys (pronounced _"Hades"_; the _"m"_ is silent 😀) is a one-/two-dimensional **M**agneto**HY**dro**DY**namics **S**imulation code for the purpose of modelling shocks in the interstellar medium, with possible implementation of a chemical network of ions and neutrals, and radiative cooling.
 
 **_This code is created as part of the Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner._**
 
@@ -26,7 +26,7 @@ The code is written entirely in Python 3, and uses the `numpy` and `h5py` module
 
 Some experimentation was done to parallelise the code with `Open MPI` and `MPICH`, or to enable multithreading. However, this is generally not recommended because of the global-interpreter-lock (GIL) in Python and the sequential nature of the simulation. Futhermore, `numpy` should already use multi-threading _wherever possible_, and 'parallelised Python' with `numpy` does not show a substantial increase in speed anyway over 'fully-parallel' code in Fortran or C (Ross, 2016).
 
-^There are some issues with building the wheels for `h5py` and `scipy` in Python 3.13 with the GIL disabled and experimental JIT compiler enabled (see [here](https://github.com/h5py/h5py/issues/2475) and [here](https://docs.scipy.org/doc/scipy/dev/toolchain.html)). Therefore, the code can only run with Python 3.13 built without those two options.
+^_There are some issues with building the wheels for `h5py` and `scipy` in Python 3.13 with the GIL disabled and experimental JIT compiler enabled (see [here](https://github.com/h5py/h5py/issues/2475) and [here](https://docs.scipy.org/doc/scipy/dev/toolchain.html)). Therefore, the code can only run with Python 3.13 built **without** those two options._
 
 ### Spatial discretisation
 
@@ -116,7 +116,7 @@ python3 mhydys.py --config==sedov --cells=256
 
 See _`--help`_ for a list of available options.
 
-Running the code in a Python interactive shell is also possible, although this is generally not recommended:
+_Running the code in a Python interactive shell is also possible, although this is generally not recommended:_
 
 ```python
 import mhydys
@@ -140,6 +140,7 @@ mhydys.run()
 │   ├── __init__.py
 │   ├── evolvers.py      : Collates the schemes for space and time evolution
 │   ├── limiters.py      : Implements flux/slope limiters in the reconstructed states
+│   ├── mag_field.py     : Functions for magnetic componenets computation
 │   ├── solvers.py       : Contains the Riemann solvers
 ├── parameters.yml       : Parameters for the simulation
 ├── schemes
@@ -154,6 +155,7 @@ mhydys.run()
 │   ├── __init__.py
 │   ├── .db.json         : Database for parameters
 │   ├── .default.yml     : Default parameters file
-│   ├── requirements.txt
+│   ├── .env             : Environment file
+│   ├── requirements.txt : Full Python package requirements
 │   ├── tests.py         : Hydrodynamics test configurations
 ```
