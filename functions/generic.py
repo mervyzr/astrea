@@ -3,9 +3,9 @@ import random
 import argparse
 import itertools
 from datetime import timedelta
-from tinydb import TinyDB, Query
 
 import numpy as np
+from tinydb import TinyDB, Query
 
 from functions import fv
 

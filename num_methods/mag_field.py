@@ -1,5 +1,3 @@
-from typing import List
-
 import numpy as np
 
 from functions import fv, constructor
@@ -125,7 +123,7 @@ def reconstruct_transverse(_wF, sim_variables, method="ppm", author="mc"):
 
 
 # Compute the corner electric fields wrt to corner; gives 4-fold values for each corner for now
-def compute_corner(magnetic_components: List[list], sim_variables):
+def compute_corner(magnetic_components, sim_variables):
     gamma, boundary, reversed_axes = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations[::-1]
     magnetic_components = np.asarray(magnetic_components)
 

@@ -1,7 +1,5 @@
-import scipy
+import scipy as sp
 import numpy as np
-import scipy.integrate
-import scipy.optimize
 
 from functions import constructor, fv
 
@@ -73,7 +71,7 @@ def calculate_conservation(simulation, sim_variables):
         _grid = simulation[t][:]  # Needs the '[:]' to access the array
         grid = sim_variables.convert_primitive(_grid, sim_variables)
         for i in range(dimension)[::-1]:
-            grid = scipy.integrate.simpson(grid, dx=dx, axis=i)
+            grid = sp.integrate.simpson(grid, dx=dx, axis=i)
         conservation[float(t)] = grid * (box_width)**dimension
     return conservation
 
@@ -93,7 +91,7 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
         _grid = simulation[t][:]  # Needs the '[:]' to access the array
         grid = sim_variables.convert_primitive(_grid, sim_variables)
         for i in range(dimension)[::-1]:
-            grid = scipy.integrate.simpson(grid, dx=dx, axis=i)
+            grid = sp.integrate.simpson(grid, dx=dx, axis=i)
         conservation[t] = grid * (box_width)**dimension
     return conservation
 
@@ -115,7 +113,7 @@ def calculate_Sod_analytical(grid, t, sim_variables):
 
     # Root-finding value for pressure in region 2 (post-shock)
     f = lambda x: (((x/P1) - 1) * np.sqrt((1 - mu)/(gamma*(mu + (x/P1))))) - (beta * (cs5/cs1) * (1-((x/P5)**(1/(gamma*beta)))))
-    P2 = P3 = scipy.optimize.fsolve(f, (P5-P1)/2)[0]
+    P2 = P3 = sp.optimize.fsolve(f, (P5-P1)/2)[0]
 
     # Define variables in other regions
     rho2, rho3 = rho1 * ((P2 + (mu*P1))/(P1 + (mu*P2))), rho5 * (P2/P5)**(1/gamma)
@@ -264,8 +262,8 @@ def calculate_Sedov_analytical(grid, t, sim_variables, w=0):
             Vmin = 2/_exp
 
         # Compute the energy integrals
-        J1 = scipy.integrate.quad(lambda V: ((gamma+1)/(gamma-1)) * _lambda(V)**(j+1) * _g(V) * V**2 * _dlambda(V), Vmin, V2, epsabs=1e-12)[0]
-        J2 = scipy.integrate.quad(lambda V: 8/((gamma+1)*_exp**2) * _lambda(V)**(j+1) * _h(V) * _dlambda(V), Vmin, V2, epsabs=1e-12)[0]
+        J1 = sp.integrate.quad(lambda V: ((gamma+1)/(gamma-1)) * _lambda(V)**(j+1) * _g(V) * V**2 * _dlambda(V), Vmin, V2, epsabs=1e-12)[0]
+        J2 = sp.integrate.quad(lambda V: 8/((gamma+1)*_exp**2) * _lambda(V)**(j+1) * _h(V) * _dlambda(V), Vmin, V2, epsabs=1e-12)[0]
 
         # Compute alpha with the integrated energies
         if j == 1:
@@ -294,7 +292,7 @@ def calculate_Sedov_analytical(grid, t, sim_variables, w=0):
 
     for index, r in enumerate(radii):
         f = lambda V: r2*_lambda(V) - r
-        _V = scipy.optimize.fsolve(f, 1)[0]
+        _V = sp.optimize.fsolve(f, 1)[0]
 
         density[index] = rho2 * _g(_V)
         pressure[index] = P2 * _h(_V)
