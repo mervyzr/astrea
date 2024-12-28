@@ -20,10 +20,10 @@ class CustomInstallCommand(install):
 
 setup(
     name="mhydys",
-    version="1.1.1",
+    version="1.2.0",
     author="Mervin Yap",
     author_email="myap@ph1.uni-koeln.de",
-    description="(Magneto-)hydrodynamics code for simulating shocks in the ISM",
+    description="Magnetohydrodynamics code for simulating shocks in the ISM",
     url="<https://github.com/mervyzr/mHydyS>",
     packages=find_packages(
         exclude=['savedData','.vidplots'],
@@ -41,10 +41,11 @@ setup(
     keywords=[
         'astrophysics',
         'computational astrophysics',
+        'interstellar medium',
         'fluid dynamics',
         'computational fluid dynamics',
-        'finite volume',
-        'cfd',
+        'finite volume method',
+        'Riemann solver',
         'numerical simulation'
     ],
     classifiers=[
