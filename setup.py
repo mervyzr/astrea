@@ -20,7 +20,7 @@ class CustomInstallCommand(install):
 
 setup(
     name="mhydys",
-    version="1.2.0",
+    version="1.2.1",
     author="Mervin Yap",
     author_email="myap@ph1.uni-koeln.de",
     description="Magnetohydrodynamics code for simulating shocks in the ISM",
