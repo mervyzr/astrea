@@ -617,8 +617,6 @@ def plot_conservation_equations(hdf5, sim_variables, save_path):
 def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
     config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
-    options = sim_variables.plot_options
-    variable = variable.lower()
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -626,66 +624,105 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
 
     for datetime in datetimes:
         simulation = hdf5[datetime]
-        counter, end_count = 0, len(simulation)
         N = simulation.attrs['cells']
 
-        for t, grid in simulation.items():
-            print(f"Creating {counter+1}/{end_count} ...", end='\r')
+        if isinstance(variable, str):
+            variable = variable.lower()
+            counter, end_count = 0, len(simulation)
 
             if variable == "all":
+                options = sim_variables.plot_options
+            else:
+                options = [variable]
+
+            for t, grid in simulation.items():
+                print(f"Creating {counter+1}/{end_count} ...", end='\r')
+
                 fig, ax, plot_ = make_figure(options, sim_variables)
                 y_data = make_data(options, grid, sim_variables)
 
-                for idx, (_i,_j) in enumerate(plot_['indexes']):
-                    y = y_data[idx]
+                if variable == "all":
+                    for idx, (_i,_j) in enumerate(plot_['indexes']):
+                        y = y_data[idx]
+
+                        if dimension == 2:
+                            fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
+                            fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
+                            graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
+                            divider = make_axes_locatable(ax[_i,_j])
+                            cax = divider.append_axes('right', size='5%', pad=0.05)
+                            fig.colorbar(graph, cax=cax, orientation='vertical')
+                            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}^{dimension}$)", fontsize=24)
+
+                        else:
+                            x = np.linspace(start_pos, end_pos, N)
+                            fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
+                            if BEAUTIFY:
+                                gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=plot_['colours']['1d'][idx])
+                            else:
+                                ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
+                            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=24)
+
+                    plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330)
+
+                else:
+                    plt.axis('off')
 
                     if dimension == 2:
-                        fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
-                        fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
-                        graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
-                        divider = make_axes_locatable(ax[_i,_j])
-                        cax = divider.append_axes('right', size='5%', pad=0.05)
-                        fig.colorbar(graph, cax=cax, orientation='vertical')
-                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}^{dimension}$)", fontsize=24)
-                        
+                        ax.imshow(y_data, interpolation="nearest", cmap=plot_['colours']['2d'][0], origin="lower")
                     else:
-                        x = np.linspace(start_pos, end_pos, N)
-                        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
-                        if BEAUTIFY:
-                            gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=plot_['colours']['1d'][idx])
-                        else:
-                            ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
-                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=24)
+                        ax.plot(x, y_data, linewidth=2, color=plot_['colours']['1d'][0])
 
-                plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330)
+                    plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330, bbox_inches='tight', pad_inches=0, transparent=True)
 
+                plt.cla()
+                plt.clf()
+                plt.close()
+
+                counter += 1
+
+            try:
+                subprocess.call(["ffmpeg", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{save_path}/vid_{config}_{subgrid}_{timestep}_{scheme}.mp4"])
+            except Exception as e:
+                print(f"{generic.BColours.FAIL}Video creation failed{generic.BColours.ENDC}")
+                pass
             else:
-                plot_option = [variable]
-                fig, ax, plot_ = make_figure(plot_option, sim_variables)
-                plt.axis('off')
+                shutil.rmtree(vidpath)
 
-                y_data = make_data(plot_option, grid, sim_variables)
+        elif isinstance(variable, list) and all(isinstance(_, str) for _ in variable):
+            variables = [_.lower() for _ in variable]
 
-                if dimension == 2:
-                    ax.imshow(y_data, interpolation="nearest", cmap=plot_['colours']['2d'][0], origin="lower")
+            for _variable in variables:
+                counter, end_count = 0, len(simulation)
+
+                for t, grid in simulation.items():
+                    print(f"Creating {counter+1}/{end_count} ... [{_variable}]", end='\r')
+
+                    fig, ax, plot_ = make_figure([_variable], sim_variables)
+                    y_data = make_data([_variable], grid, sim_variables)
+
+                    plt.axis('off')
+
+                    if dimension == 2:
+                        ax.imshow(y_data, interpolation="nearest", cmap=plot_['colours']['2d'][0], origin="lower")
+                    else:
+                        ax.plot(x, y_data, linewidth=2, color=plot_['colours']['1d'][0])
+
+                    plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330, bbox_inches='tight', pad_inches=0, transparent=True)
+
+                    plt.cla()
+                    plt.clf()
+                    plt.close()
+
+                    counter += 1
+
+                try:
+                    subprocess.call(["ffmpeg", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{save_path}/vid_{config}_{subgrid}_{timestep}_{scheme}.mp4"])
+                except Exception as e:
+                    print(f"{generic.BColours.FAIL}Video creation failed{generic.BColours.ENDC}")
+                    pass
                 else:
-                    ax.plot(x, y_data, linewidth=2, color=plot_['colours']['1d'][0])
-
-                plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330, bbox_inches='tight', pad_inches=0, transparent=True)
-
-            plt.cla()
-            plt.clf()
-            plt.close()
-
-            counter += 1
-
-        try:
-            subprocess.call(["ffmpeg", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{save_path}/vid_{config}_{subgrid}_{timestep}_{scheme}.mp4"])
-        except Exception as e:
-            print(f"{generic.BColours.FAIL}Video creation failed{generic.BColours.ENDC}")
-            pass
-        else:
-            shutil.rmtree(vidpath)
+                    shutil.rmtree(vidpath)
 
 
 # Gradient fill the plots
