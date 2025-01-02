@@ -599,7 +599,7 @@ def plot_conservation_equations(hdf5, sim_variables, save_path):
             ax[_i,_j].annotate(round(y_final, decimal_point), (x[-1], y_final), fontsize=12)
 
         if dimension >= 2:
-            grid_size = rf"${N}^{dimension}$"
+            grid_size = f"{N}^{dimension}"
         else:
             grid_size = N
 
