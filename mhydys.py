@@ -226,18 +226,16 @@ def run() -> None:
             print(traceback.format_exc())
         else:
             print(f"{generic.BColours.FAIL}-- Error: {e}{generic.BColours.ENDC} (use --debug option for more details)")
-        os.remove(file_name)
 
-    # If no errors;
-    else:
+    finally:
         # Save the temporary HDF5 database (!! Possibly large file sizes > 100GB !!)
         if sim_variables.save_file:
             shutil.move(file_name, f"{save_path}/mhydys_{sim_variables.config}_{sim_variables.subgrid}_{sim_variables.timestep}_{SEED}.hdf5")
         else:
             os.remove(file_name)
 
-    finally:
         signal.signal(signal.SIGINT, original_sigint_handler)
+
     ###################################### SCRIPT END ######################################
 
 if __name__ == "__main__":
