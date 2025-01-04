@@ -102,8 +102,7 @@ def run() -> None:
     # Signal handler for Ctrl+C
     def graceful_exit(sig, frame):
         sys.stdout.write('\033[2K\033[1G')
-        print(f"Received SIGINT; exiting gracefully...")
-        os.remove(file_name)
+        print(f"{generic.BColours.WARNING}Simulation end by SIGINT; exiting gracefully..{generic.BColours.ENDC}")
         sys.exit(0)
 
     # Load env variables
