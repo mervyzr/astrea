@@ -100,7 +100,7 @@ def point_convert_conservative(grid, sim_variables):
     return arr
 
 
-# Converting (cell-/face-)averaged primitive variables w to (cell-/face-)averaged conservative variables q through a higher-order approx.
+# Converting (cell-/face-)averaged primitive variables w to (cell-/face-)averaged conservative variables q through a Laplacian (2nd-deriv, 2nd-order) approx.
 def high_order_convert_primitive(grid, sim_variables, _type="cell"):
     w, q = np.copy(grid), np.zeros_like(grid)
 
@@ -121,7 +121,7 @@ def high_order_convert_primitive(grid, sim_variables, _type="cell"):
     return point_convert_primitive(w, sim_variables) + q
 
 
-# Converting (cell-/face-averaged) conservative variables q to (cell-/face-averaged) primitive variables q through a higher-order approx.
+# Converting (cell-/face-averaged) conservative variables q to (cell-/face-averaged) primitive variables q through a Laplacian (2nd-deriv, 2nd-order) approx.
 def high_order_convert_conservative(grid, sim_variables, _type="cell"):
     w, q = np.zeros_like(grid), np.copy(grid)
 
@@ -142,7 +142,7 @@ def high_order_convert_conservative(grid, sim_variables, _type="cell"):
     return point_convert_conservative(q, sim_variables) + w
 
 
-# Compute the 4th-order interface-averaged fluxes from the interface-averaged fluxes via higher order approximation
+# Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation
 def high_order_compute_flux(cntr_flux, avg_flux, sim_variables):
     _cntr_flux, _avg_flux = np.copy(cntr_flux), np.copy(avg_flux)
 

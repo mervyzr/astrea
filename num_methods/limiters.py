@@ -95,7 +95,7 @@ def interpolant_limiter(wS, w, w2, wF_pad2, author, boundary, *args):
         # Approximation to the third derivative [McCorquodale & Colella, 2011, eq. 23]
         d3w = np.diff(fv.add_boundary(d2w_C, boundary), axis=0)[1:]
 
-        # Check for cell extreme in cells [McCorquodale & Colella, 2011, eq. 24-25]
+        # Check for cell extrema in cells [McCorquodale & Colella, 2011, eq. 24-25]
         cell_extrema = (dw_minus*dw_plus <= 0) | ((wS-w2[:-4])*(w2[4:]-wS) <= 0)
 
         # If there are extrema in the cells
