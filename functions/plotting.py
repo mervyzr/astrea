@@ -1,3 +1,4 @@
+import os
 import shutil
 import subprocess
 
@@ -639,6 +640,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                 print(f"Creating {counter+1}/{end_count} ...", end='\r')
 
                 fig, ax, plot_ = make_figure(options, sim_variables)
+                x = np.linspace(start_pos, end_pos, N)
                 y_data = make_data(options, grid, sim_variables)
 
                 if variable == "all":
@@ -655,7 +657,6 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                             plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}^{dimension}$)", fontsize=24)
 
                         else:
-                            x = np.linspace(start_pos, end_pos, N)
                             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
                             if BEAUTIFY:
                                 gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=plot_['colours']['1d'][idx])
@@ -666,12 +667,13 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                     plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330)
 
                 else:
+                    idx = 0
                     plt.axis('off')
 
                     if dimension == 2:
-                        ax.imshow(y_data, interpolation="nearest", cmap=plot_['colours']['2d'][0], origin="lower")
+                        ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
                     else:
-                        ax.plot(x, y_data, linewidth=2, color=plot_['colours']['1d'][0])
+                        ax[idx,idx].plot(x, y_data[idx], linewidth=2, color=plot_['colours']['1d'][idx])
 
                     plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330, bbox_inches='tight', pad_inches=0, transparent=True)
 
@@ -682,7 +684,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                 counter += 1
 
             try:
-                subprocess.call(["ffmpeg", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{save_path}/vid_{config}_{subgrid}_{timestep}_{scheme}.mp4"])
+                subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "error", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{save_path}/vid_{config}_{subgrid}_{timestep}_{scheme}_{variable}.mp4"])
             except Exception as e:
                 print(f"{generic.BColours.FAIL}Video creation failed{generic.BColours.ENDC}")
                 pass
@@ -691,6 +693,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
 
         elif isinstance(variable, list) and all(isinstance(_, str) for _ in variable):
             variables = [_.lower() for _ in variable]
+            style_counter = 0
 
             for _variable in variables:
                 counter, end_count = 0, len(simulation)
@@ -701,12 +704,13 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                     fig, ax, plot_ = make_figure([_variable], sim_variables)
                     y_data = make_data([_variable], grid, sim_variables)
 
+                    idx = 0
                     plt.axis('off')
 
                     if dimension == 2:
-                        ax.imshow(y_data, interpolation="nearest", cmap=plot_['colours']['2d'][0], origin="lower")
+                        ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][style_counter], origin="lower")
                     else:
-                        ax.plot(x, y_data, linewidth=2, color=plot_['colours']['1d'][0])
+                        ax[idx,idx].plot(x, y_data[idx], linewidth=2, color=plot_['colours']['1d'][style_counter])
 
                     plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330, bbox_inches='tight', pad_inches=0, transparent=True)
 
@@ -716,13 +720,18 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
 
                     counter += 1
 
+                style_counter += 1
+
                 try:
-                    subprocess.call(["ffmpeg", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{save_path}/vid_{config}_{subgrid}_{timestep}_{scheme}.mp4"])
+                    subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "error", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{save_path}/vid_{config}_{subgrid}_{timestep}_{scheme}_{_variable}.mp4"])
                 except Exception as e:
                     print(f"{generic.BColours.FAIL}Video creation failed{generic.BColours.ENDC}")
                     pass
                 else:
-                    shutil.rmtree(vidpath)
+                    for filename in os.listdir(vidpath):
+                        filepath = os.path.join(vidpath, filename)
+                        if os.path.isfile(filepath) or os.path.islink(filepath):
+                            os.remove(filepath)
 
 
 # Gradient fill the plots
