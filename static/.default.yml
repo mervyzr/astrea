@@ -30,7 +30,7 @@ media_options:
   save_plots    : false
   save_video    : false
   save_file     : false
-  # Options: density, pressure, magnetic pressure, velocities, magnetic fields, energies
+  # Options: density, pressure, velocity Vx/Vy/Vz, total/internal energy, magnetic field Bx/By/Bz, magnetic pressure
   plot_options  :
     - density
     - pressure
