@@ -34,19 +34,19 @@ The space in the simulation is discretised into a uniform Cartesian grid, and th
 
 The code employs various reconstruction methods with _primitive variables_ as part of the subgrid modelling: the piecewise constant method (PCM) (Godunov, 1959), the piecewise linear method (PLM) (Derigs et al., 2018), the piecewise parabolic method (PPM) (Felker & Stone, 2018), and the WENO method (Shu, 2009; San & Kara, 2015).
 
-In order to fulfil the Total Variation Diminishing (TVD) condition (Harten, 1983), which ensures that the reconstruction scheme is monotonicity-preserving, limiters have to be after the spatial reconstructions. The PCM does not require any limiters. The PLM employs the "minmod" slope limiter (Derigs et al., 2018). The PPM employs several limiters: when extrapolating from the cell centres to the interfaces (Colella et al., 2011) and when interpolating to the left and right of each cell interface (Colella et al., 2011; McCorquodale & Colella, 2011). The WENO method currently does not employ any limiters. There are other TVD slope limiters available in the code (e.g., superbee).
+In order to fulfil the Total Variation Diminishing (TVD) condition (Harten, 1983), which ensures that the reconstruction scheme is monotonicity-preserving, limiters have to be used after the spatial reconstructions. The PCM does not require any limiters. The PLM employs the "minmod" slope limiter (Derigs et al., 2018). The PPM employs several limiters: when _extrapolating_ from the cell centres to the interfaces (Colella et al., 2011) and when _interpolating_ to the left and right of each cell interface (Colella et al., 2011; McCorquodale & Colella, 2011). The WENO method currently does not employ any limiters. There are other TVD slope limiters available in the code too (e.g., superbee).
 
-The parabolic reconstruction method by McCorquodale & Colella also includes a slope flattener (Colella, 1990) and artificial viscosity as additional dissipation mechanisms to suppress oscillations at strong shocks.
+The parabolic reconstruction method by McCorquodale & Colella (2011) also allows for a slope flattener (Colella, 1990) and artificial viscosity as additional dissipation mechanisms to suppress oscillations at strong shocks.
 
 ### Riemann solver and flux update
 
 Due to the nature of the finite volume method and the discretisation of space in the grid, a Riemann problem is created at each interface between consecutive cells, with each cell containing the subgrid profile. In this code, approximate Riemann solvers are used (linear and non-linear) in order to compute the flux across interfaces.
 
-The Local Lax-Friedrichs (LLF) scheme (LeVeque, 1992) is an approximate linearised Riemann solver (i.e. the method aims to find an _exact_ solution to the _linearised_ or _approximate_ version of the (magneto-)hydrodynamic equations). This scheme is very stable and robust, however it is highly dissipative and only first-order accurate. The code also allows for the Lax-Wendroff scheme (Lax & Wendroff, 1960), which is another approximate linearised Riemann solver and is second-order accurate.
+The Local Lax-Friedrichs (LLF) scheme (LeVeque, 1992) is an approximate linearised Riemann solver (i.e. the method aims to find an exact solution to the _linearised_ or _approximate_ version of the (magneto-)hydrodynamic equations). This scheme is very stable and robust, however it is highly dissipative and only first-order accurate. The code also allows for the Lax-Wendroff scheme (Lax & Wendroff, 1960), which is another approximate linearised Riemann solver and is second-order accurate.
 
 The fluxes are calculated from the interpolated interfaces, and the Jacobian matrices are calculated from the Roe average (Roe & Pike, 1984) of these interfaces (Cargo & Gallice, 1997).
 
-An issue that arises when linear schemes are made to be monotonicity-preserving (i.e. do not produce spurrious oscillations), then the scheme can be at most first-order accurate. This is known as Godunov's Theorem (Godunov, 1954). Since the main focus of this project is simulating shocks, where large discontinuities and possible spurrious oscillations are present (similar to Gibbs phenomenon), non-linear Riemann solvers, that attempt to restore some form of the eigenstructure of the characteristic waves, are therefore implemented into the code.
+An issue that arises when linear schemes are made to be monotonicity-preserving (i.e. do not produce spurrious oscillations), then the scheme can be at most first-order accurate. This is known as Godunov's Theorem (Godunov, 1954). Since the main focus of this project is simulating shocks, where large discontinuities and possible spurrious oscillations are present (similar to Gibbs phenomenon), non-linear approximate Riemann solvers, that attempt to restore some form of the eigenstructure of the characteristic waves, are therefore implemented into the code too.
 
 The Harten-Lax-van Leer-Contact (HLLC) Riemann solver (Toro et al., 1994; Fleischmann et. al., 2020) attempts to restore the contact discontinuity wave while tracing the rarefaction and shock wave (Riemann invariants), thus it provides a better resolution albeit with some dissipation. The HLLC Riemann solver crashes when magnetic fields are present. For that, the Harten-Lax-van Leer-discontinuities (HLLD) solver (Miyoshi & Kusano, 2005) should be used. The HLLD Riemann solver restores the magnetosonic and Alfvén waves, although this is not a complete Riemann solver; this implementation of the Riemann solver ignores the slow magnetosonic wave.
 
@@ -111,7 +111,7 @@ OR
 Alternatively, the code can be run with CLI options:
 
 ```bash
-python3 mhydys.py --config==sedov --cells=256
+python3 mhydys.py --config=sedov --cells=256
 ```
 
 See _`--help`_ for a list of available options.
