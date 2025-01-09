@@ -688,8 +688,6 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
             except Exception as e:
                 print(f"{generic.BColours.FAIL}Video creation failed{generic.BColours.ENDC}")
                 pass
-            else:
-                shutil.rmtree(vidpath)
 
         elif isinstance(variable, list) and all(isinstance(_, str) for _ in variable):
             variables = [_.lower() for _ in variable]
@@ -732,6 +730,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                         filepath = os.path.join(vidpath, filename)
                         if os.path.isfile(filepath) or os.path.islink(filepath):
                             os.remove(filepath)
+        shutil.rmtree(vidpath)
 
 
 # Gradient fill the plots
