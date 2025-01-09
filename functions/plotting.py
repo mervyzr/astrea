@@ -664,7 +664,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                                 ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
                             plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=24)
 
-                    plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330)
+                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", dpi=330)
 
                 else:
                     idx = 0
@@ -675,7 +675,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                     else:
                         ax[idx,idx].plot(x, y_data[idx], linewidth=2, color=plot_['colours']['1d'][idx])
 
-                    plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330, bbox_inches='tight', pad_inches=0, transparent=True)
+                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", dpi=330, bbox_inches='tight', pad_inches=0, transparent=True)
 
                 plt.cla()
                 plt.clf()
@@ -712,7 +712,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                     else:
                         ax[idx,idx].plot(x, y_data[idx], linewidth=2, color=plot_['colours']['1d'][style_counter])
 
-                    plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330, bbox_inches='tight', pad_inches=0, transparent=True)
+                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", dpi=330, bbox_inches='tight', pad_inches=0, transparent=True)
 
                     plt.cla()
                     plt.clf()
