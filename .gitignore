@@ -56,5 +56,6 @@ docs/_build/
 parameters.yml
 savedData
 *.hdf5
+*.sh
 .vidplots
 .venv
