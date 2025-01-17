@@ -61,7 +61,7 @@ def evolve_time(grid, fluxes, dt, sim_variables):
                 #total_flux[...,5+_axis] = mag_flux_diff.transpose(ortho_axis)
 
         return -total_flux
-    
+
     # Perform any refinement to the grid after the update step
     def refine_grid(_grid, _sim_variables):
         # 'Inverse reconstruct' the cell-average values from the face-average values if there are magnetic fields (for 2D)
