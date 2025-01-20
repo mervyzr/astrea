@@ -84,7 +84,6 @@ def calculate_LaxWendroff_flux(characteristics, **kwargs):
     max_normalised_eigvals = np.max([normalised_eigvals[:-1], normalised_eigvals[1:]], axis=0)
 
     return .5*(flux_minus+flux_plus) - .5*((q_plus-q_minus) * max_normalised_eigvals[...,None])
-    #return .5 * ((q_plus+q_minus) - fv.divide(flux_plus-flux_minus, max_eigvals[:,None]))
 
 
 # HLLC Riemann solver [Fleischmann et al., 2020]
