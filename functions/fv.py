@@ -10,7 +10,7 @@ def gauss_func(x, params):
 
 
 # Generic sin function
-def sin_func(x, params):
+def sine_func(x, params):
     return params['y_offset'] + params['ampl']*np.sin(params['freq']*np.pi*x)
 
 
