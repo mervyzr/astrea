@@ -137,12 +137,14 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs
         fig.subplots_adjust(wspace=0.75)
 
         for idx, (_i,_j) in enumerate(indexes):
+            ax[_i,_j].tick_params(axis='both', which='major', labelsize=16)
+            ax[_i,_j].tick_params(axis='both', which='minor', labelsize=14)
             if "error" in variable:
-                ax[_i,_j].set_ylabel(errors[idx], fontsize=18)
+                ax[_i,_j].set_ylabel(errors[idx], fontsize=24)
             elif "tv" in variable:
-                ax[_i,_j].set_ylabel(tvs[idx], fontsize=18)
+                ax[_i,_j].set_ylabel(tvs[idx], fontsize=24)
             else:
-                ax[_i,_j].set_ylabel(labels[idx], fontsize=18)
+                ax[_i,_j].set_ylabel(labels[idx], fontsize=24)
 
             if sim_variables.dimension < 2:
                 ax[_i,_j].set_xlim([sim_variables.start_pos, sim_variables.end_pos])
@@ -270,12 +272,12 @@ def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
                 ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
 
     if dimension == 2:
-        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t \approx {round(t,3)}$ ($N = {N}^{dimension}$) {text}", fontsize=24)
-        fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
-        fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
+        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t \approx {round(t,3)}$ ($N = {N}^{dimension}$) {text}", fontsize=30)
+        fig.text(0.5, 0.04, r"Cell index $x$", fontsize=24, ha='center')
+        fig.text(0.04, 0.4, r"Cell index $y$", fontsize=24, ha='center', rotation='vertical')
     else:
-        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}", fontsize=24)
-        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
+        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}", fontsize=30)
+        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
 
     plt.savefig(f"{kwargs['save_path']}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{scheme}_{'%.3f' % round(t,3)}.png", dpi=330)
 
@@ -331,8 +333,8 @@ def plot_quantities(hdf5, sim_variables, save_path):
                 if len(hdf5) != 1:
                     if dimension < 2:
                         ax[_i,_j].plot(x, y, linewidth=2, label=f"N = {N}")
-                        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
-                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(ref_time,3)}$", fontsize=24)
+                        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
+                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(ref_time,3)}$", fontsize=30)
                         legends_on = True
                 else:
                     if dimension == 2:
@@ -340,16 +342,16 @@ def plot_quantities(hdf5, sim_variables, save_path):
                         divider = make_axes_locatable(ax[_i,_j])
                         cax = divider.append_axes('right', size='5%', pad=0.05)
                         fig.colorbar(graph, cax=cax, orientation='vertical')
-                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t \approx {round(ref_time,3)}$ ($N = {N}^{dimension}$)", fontsize=24)
-                        fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
-                        fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
+                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t \approx {round(ref_time,3)}$ ($N = {N}^{dimension}$)", fontsize=30)
+                        fig.text(0.5, 0.04, r"Cell index $x$", fontsize=24, ha='center')
+                        fig.text(0.04, 0.4, r"Cell index $y$", fontsize=24, ha='center', rotation='vertical')
                     else:
                         if BEAUTIFY:
                             gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=plot_['colours']['1d'][idx])
                         else:
                             #ax[_i,_j].plot(x, y, linewidth=2, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=plot_['colours']['1d'], color=plot_['colours']['1d'])
                             ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
-                        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
+                        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
                         plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(ref_time,3)}$ ($N = {N}$)", fontsize=24)
 
         # Add analytical solutions only for 1D
@@ -388,7 +390,7 @@ def plot_quantities(hdf5, sim_variables, save_path):
             else:
                 _ncol = 1
             handles, labels = plt.gca().get_legend_handles_labels()
-            fig.legend(handles, labels, prop={'size': 16}, loc='upper right', ncol=_ncol)
+            fig.legend(handles, labels, prop={'size': 24}, loc='upper right', ncol=_ncol)
 
         plt.savefig(f"{save_path}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{scheme}_{'%.3f' % round(ref_time,3)}.png", dpi=330)
 
@@ -450,7 +452,7 @@ def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
             alpha = 10**c
             ytheo = alpha*x**(-order)
             ax[_i,_j].loglog(x, ytheo, linewidth=2, color=plot_['colours']['theo'], linestyle="--")
-            ax[_i,_j].annotate(rf"$O(N^{order})$", (x[-1], ytheo[-1]), fontsize=12)
+            ax[_i,_j].annotate(rf"$O(N^{order})$", (x[-1], ytheo[-1]), fontsize=18)
         ax[_i,_j].loglog(x, y, linewidth=2, linestyle="--", marker="o", color=plot_['colours']['1d'][idx])
         ax[_i,_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|\text{{EOC}}_{{max}}|$ = {round(max(np.abs(EOC)), 4)}")
         ax[_i,_j].legend(prop={'size': 14})
@@ -480,12 +482,12 @@ def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
     for idx in range(len(plot_['indexes'])):
         ax.plot(x_diff, y_diff[idx], linewidth=2, linestyle="--", marker="o", color=plot_['colours']['1d'][idx], label=plot_['labels'][idx])
 
-    plt.suptitle(rf"Order of convergence against resolution $N_\nu$ for {config.title()} test", fontsize=24)
-    fig.text(0.5, 0.04, r"Resolution $N$", fontsize=18, ha='center')
+    plt.suptitle(rf"Order of convergence against resolution $N_\nu$ for {config.title()} test", fontsize=30)
+    fig.text(0.5, 0.04, r"Resolution $N$", fontsize=24, ha='center')
     _xticklabels = [item.get_text() for item in ax.get_xticklabels()]
     _xticklabels = [rf"${int(v)}\rightarrow{int(x[i+1])}$" for i,v in enumerate(x[:-1])]
     ax.set_xticks(x_diff)
-    ax.set_xticklabels(_xticklabels, rotation=45, fontsize=12, ha="right")
+    ax.set_xticklabels(_xticklabels, rotation=45, fontsize=18, ha="right")
     ax.legend(prop={'size': 18})
 
     plt.savefig(f"{save_path}/convergenceOrder_{subgrid}_{timestep}_{scheme}.png", dpi=330)
@@ -542,8 +544,8 @@ def plot_total_variation(hdf5, sim_variables, save_path):
         else:
             grid_size = N
 
-        plt.suptitle(rf"Total variation of primitive variables TV($\vec{{w}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=24)
-        fig.text(0.5, 0.04, r"Time $t$", fontsize=18, ha='center')
+        plt.suptitle(rf"Total variation of primitive variables TV($\vec{{w}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=30)
+        fig.text(0.5, 0.04, r"Time $t$", fontsize=24, ha='center')
 
         plt.savefig(f"{save_path}/TV_{config}_{subgrid}_{timestep}_{scheme}_{N}.png", dpi=330)
 
@@ -596,16 +598,16 @@ def plot_conservation_equations(hdf5, sim_variables, save_path):
                 decimal_point = int(('%e' % abs(y_final-y_init)).split('-')[1])
             except IndexError:
                 decimal_point = int(('%e' % abs(y_final-y_init)).split('+')[1])
-            ax[_i,_j].annotate(round(y_init, decimal_point), (x[0], y_init), fontsize=12)
-            ax[_i,_j].annotate(round(y_final, decimal_point), (x[-1], y_final), fontsize=12)
+            ax[_i,_j].annotate(round(y_init, decimal_point), (x[0], y_init), fontsize=18)
+            ax[_i,_j].annotate(round(y_final, decimal_point), (x[-1], y_final), fontsize=18)
 
         if dimension >= 2:
             grid_size = f"{N}^{dimension}"
         else:
             grid_size = N
 
-        plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=24)
-        fig.text(0.5, 0.04, r"Time $t$", fontsize=18, ha='center')
+        plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=30)
+        fig.text(0.5, 0.04, r"Time $t$", fontsize=24, ha='center')
 
         plt.savefig(f"{save_path}/conserveEq_{config}_{subgrid}_{timestep}_{scheme}_{N}.png", dpi=330)
 
@@ -648,21 +650,21 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                         y = y_data[idx]
 
                         if dimension == 2:
-                            fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
-                            fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
+                            fig.text(0.5, 0.04, r"Cell index $x$", fontsize=24, ha='center')
+                            fig.text(0.04, 0.4, r"Cell index $y$", fontsize=24, ha='center', rotation='vertical')
                             graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
                             divider = make_axes_locatable(ax[_i,_j])
                             cax = divider.append_axes('right', size='5%', pad=0.05)
                             fig.colorbar(graph, cax=cax, orientation='vertical')
-                            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}^{dimension}$)", fontsize=24)
+                            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}^{dimension}$)", fontsize=30)
 
                         else:
-                            fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
+                            fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
                             if BEAUTIFY:
                                 gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=plot_['colours']['1d'][idx])
                             else:
                                 ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
-                            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=24)
+                            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=30)
 
                     plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", dpi=330)
 
