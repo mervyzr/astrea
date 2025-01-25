@@ -6,7 +6,7 @@
 
 # m-hydys
 
-m-hydys (pronounced _"Hades"_; the _"m"_ is silent 😀) is a one-/two-dimensional **M**agneto**HY**dro**DY**namics **S**imulation code for the purpose of modelling shocks in the interstellar medium, with possible implementation of a chemical network of ions and neutrals, and radiative cooling.
+m-hydys (pronounced _"Hades"_; the _"m"_ is silent 😀) is a one-/two-dimensional **M**agneto**HY**dro**DY**namics **S**imulation code for the purpose of modelling shockwaves in the interstellar medium, with possible implementation of a chemical network of ions and neutrals, and radiative cooling.
 
 **_This code is created as part of the Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner._**
 
