@@ -20,10 +20,10 @@ class CustomInstallCommand(install):
 
 setup(
     name="mhydys",
-    version="1.2.1",
+    version="1.2.2",
     author="Mervin Yap",
     author_email="myap@ph1.uni-koeln.de",
-    description="Magnetohydrodynamics code for simulating shocks in the ISM",
+    description="Magnetohydrodynamics code for modelling shockwaves in the interstellar medium",
     url="<https://github.com/mervyzr/mHydyS>",
     packages=find_packages(
         exclude=['savedData','.vidplots'],
