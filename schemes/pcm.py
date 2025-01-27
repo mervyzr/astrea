@@ -1,13 +1,15 @@
 from collections import defaultdict
 
 from functions import constructor, fv
+from num_methods import mag_field
 
 ##############################################################################
 # Piecewise constant reconstruction method (PCM) [Godunov, 1959]
 ##############################################################################
 
 def run(grid, sim_variables):
-    gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
+    gamma, boundary, permutations, magnetic_2d = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations, sim_variables.magnetic_2d
+    convert_conservative = sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
@@ -16,8 +18,11 @@ def run(grid, sim_variables):
         _grid = grid.transpose(axes)
 
         # Convert to primitive variables
-        wS = fv.point_convert_conservative(_grid, sim_variables)
+        wS = convert_conservative(_grid, sim_variables)
         q = fv.add_boundary(_grid, boundary)
+
+        if magnetic_2d:
+            data[axes]['wTs'] = mag_field.reconstruct_transverse(wS, sim_variables)
 
         # Compute the fluxes and the Jacobian
         w = fv.add_boundary(wS, boundary)

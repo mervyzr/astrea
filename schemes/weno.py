@@ -1,13 +1,15 @@
 from collections import defaultdict
 
 from functions import constructor, fv
+from num_methods import mag_field
 
 ##############################################################################
 # WENO reconstruction method [Shu, 2009]
 ##############################################################################
 
 def run(grid, sim_variables):
-    gamma, subgrid, boundary, permutations = sim_variables.gamma, sim_variables.subgrid, sim_variables.boundary, sim_variables.permutations
+    gamma, subgrid, boundary, permutations, magnetic_2d = sim_variables.gamma, sim_variables.subgrid, sim_variables.boundary, sim_variables.permutations, sim_variables.magnetic_2d
+    convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
@@ -151,7 +153,7 @@ def run(grid, sim_variables):
         _grid = grid.transpose(axes)
 
         # Convert to primitive variables
-        wS = fv.convert_conservative(_grid, sim_variables)
+        wS = convert_conservative(_grid, sim_variables)
 
         # Reconstruct the interface states
         if len(subgrid.split("weno")) == 2:
@@ -162,6 +164,9 @@ def run(grid, sim_variables):
         else:
             wL, wR = reconstruct(wS, boundary)
 
+        if magnetic_2d:
+            data[axes]['wTs'] = mag_field.reconstruct_transverse(wR, sim_variables)
+
         # Re-align the interfaces so that cell wall is in between interfaces
         w_plus, w_minus = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
 
@@ -170,7 +175,7 @@ def run(grid, sim_variables):
         _intf_avg = fv.add_boundary(intf_avg, boundary)
 
         # Convert the primitive variables
-        q_plus, q_minus = fv.convert_primitive(w_plus, sim_variables, "face"), fv.convert_primitive(w_minus, sim_variables, "face")
+        q_plus, q_minus = convert_primitive(w_plus, sim_variables, 'face'), convert_primitive(w_minus, sim_variables, 'face')
 
         # Compute the fluxes and the Jacobian
         flux_plus, flux_minus = constructor.make_flux(w_plus, gamma, axis), constructor.make_flux(w_minus, gamma, axis)

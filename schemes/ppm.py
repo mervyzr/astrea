@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 
 from functions import constructor, fv
-from num_methods import limiters
+from num_methods import limiters, mag_field
 
 ##############################################################################
 # Piecewise parabolic reconstruction method (PPM) [Colella & Woodward, 1984]
@@ -11,7 +11,8 @@ from num_methods import limiters
 
 # [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
 def run(grid, sim_variables, author="mc", dissipate=False):
-    gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
+    gamma, boundary, permutations, magnetic_2d = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations, sim_variables.magnetic_2d
+    convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
@@ -22,11 +23,22 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         _grid = grid.transpose(axes)
 
         # Convert to primitive variables
-        wS = fv.convert_conservative(_grid, sim_variables)
+        wS = convert_conservative(_grid, sim_variables)
 
         # Pad array with boundary; PPM requires additional ghost cells
         w2 = fv.add_boundary(wS, boundary, 2)
         w = np.copy(w2[1:-1])
+
+        """Extrapolate the cell averages to face averages (forward/upwind)
+        |               w(i-1/2)            w(i+1/2)                |
+        |  i-1           -->|   i            -->|  i+1           -->|
+        |        w_R(i-1)   |          w_R(i)   |        w_R(i+1)   |
+        """
+        # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
+        wF = 7/12 * (wS + w[2:]) - 1/12 * (w[:-2] + w2[4:])
+
+        if magnetic_2d:
+            data[axes]['wTs'] = mag_field.reconstruct_transverse(wF, sim_variables)
 
         if "x" in author or "ph" in author or author in ["peterson", "hammett"]:
             """Extrapolate the cell averages to face averages (both sides)
@@ -36,24 +48,16 @@ def run(grid, sim_variables, author="mc", dissipate=False):
             """
             # Face i+1/2 (4th-order) (eq. 3.26-3.27)
             wF_L = 7/12 * (w[:-2] + wS) - 1/12 * (w2[:-4] + w[2:])
-            wF_R = 7/12 * (wS + w[2:]) - 1/12 * (w[:-2] + w2[4:])
+            wF_R = wF
 
             # Face i+1/2 (5th-order) [Peterson & Hammett, 2008, eq. 3.40]
             #wF_R = 1/60 * (2*w2[:-4] - 13*w[:-2] + 47*wS + 27*w[2:] - 2*w2[4:])
 
             # Limit interface values [Peterson & Hammett, 2008, eq. 3.33-3.34]
             limited_wFs = limiters.interface_limiter(wF_L, w2[:-4], w[:-2], wS, w[2:]), limiters.interface_limiter(wF_R, w[:-2], wS, w[2:], w2[4:])
+            wF_pad2 = np.zeros_like(fv.add_boundary(wF_R, boundary, 2))
 
-            kwargs = {}
         else:
-            """Extrapolate the cell averages to face averages (forward/upwind)
-            |               w(i-1/2)            w(i+1/2)                |
-            |  i-1           -->|   i            -->|  i+1           -->|
-            |        w_R(i-1)   |          w_R(i)   |        w_R(i+1)   |
-            """
-            # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
-            wF = 7/12 * (wS + w[2:]) - 1/12 * (w[:-2] + w2[4:])
-
             if author == "c" or author == "colella":
                 # Limit interface values [Colella et al., 2011, p. 25-26]
                 wF = limiters.interface_limiter(wF, w[:-2], wS, w[2:], w2[4:])
@@ -66,15 +70,13 @@ def run(grid, sim_variables, author="mc", dissipate=False):
             wF_pad2 = fv.add_boundary(wF, boundary, 2)
             limited_wFs = np.copy(wF_pad2[1:-3]), np.copy(wF_pad2[2:-2])
 
-            kwargs = {"wF_pad2": wF_pad2, "boundary": boundary}
-
         """Reconstruct the limited parabolic interpolants from the interface values [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
         |                        w(i-1/2)                    w(i+1/2)                       |
         |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
         |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
         |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
         """
-        wL, wR = limiters.interpolant_limiter(wS, w, w2, author, *limited_wFs, **kwargs)
+        wL, wR = limiters.interpolant_limiter(wS, w, w2, wF_pad2, author, boundary, *limited_wFs)
 
         # Re-align the interfaces so that cell wall is in between interfaces
         w_plus, w_minus = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
@@ -84,7 +86,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         _intf_avg = fv.add_boundary(intf_avg, boundary)
 
         # Convert the primitive variables
-        q_plus, q_minus = fv.convert_primitive(w_plus, sim_variables, "face"), fv.convert_primitive(w_minus, sim_variables, "face")
+        q_plus, q_minus = convert_primitive(w_plus, sim_variables, 'face'), convert_primitive(w_minus, sim_variables, 'face')
 
         # Compute the fluxes and the Jacobian
         flux_plus, flux_minus = constructor.make_flux(w_plus, gamma, axis), constructor.make_flux(w_minus, gamma, axis)

@@ -1,5 +1,3 @@
-from collections import namedtuple, defaultdict
-
 import numpy as np
 
 from functions import constructor, fv
@@ -9,10 +7,11 @@ from functions import constructor, fv
 ##############################################################################
 
 # Intercell numerical fluxes between L and R interfaces based on Riemann solver
-def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
+def calculate_Riemann_flux(data, sim_variables):
 
     # Select Riemann solver based on scheme
-    def run_Riemann_solver(_axis, _sim_variables, _characteristics, **kwargs):# HLL-type schemes
+    def run_Riemann_solver(_axis, _sim_variables, _characteristics, **kwargs):
+        # HLL-type schemes
         if _sim_variables.scheme_category == "hll":
             if _sim_variables.scheme.endswith("d"):
                 return calculate_HLLD_flux(_axis, _sim_variables, **kwargs)
@@ -31,11 +30,8 @@ def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
             else:
                 return calculate_LaxFriedrich_flux(_characteristics, **kwargs)
 
-    Riemann_flux = namedtuple('Riemann_flux', ['flux', 'eigmax'])
-    fluxes = {}
-
     # Rotate grid and apply algorithm for each axis/dimension for interfaces
-    axis = 0
+    axis, fluxes = 0, {}
     for axes, arrays in data.items():
         axis %= 3
 
@@ -43,25 +39,27 @@ def calculate_Riemann_flux(sim_variables: namedtuple, data: defaultdict):
         characteristics, eigmax = fv.compute_eigen(arrays['Jacobian'])
 
         # Calculate the interface-averaged fluxes
-        intf_fluxes_avg = run_Riemann_solver(axis, sim_variables, characteristics, **data[axes])
+        intf_fluxes_avgd = run_Riemann_solver(axis, sim_variables, characteristics, **data[axes])
 
         if sim_variables.dimension == 2:
             # Compute the orthogonal L/R Riemann states and fluxes
-            higher_order_interface_variables = {}
-            for intfs, LR_list in data[axes].items():
-                if intfs != "wS":
-                    higher_order_interface_variables[intfs] = np.copy(fv.convert_mode(LR_list[0], sim_variables, "face")), np.copy(fv.convert_mode(LR_list[1], sim_variables, "face"))
+            high_order_intfs = {}
+            for _key, _arrays in data[axes].items():
+                if len(_arrays) == 2:
+                    plus_intf, minus_intf = _arrays
+                    high_order_intfs[_key] = fv.high_order_convert('avg', plus_intf, sim_variables, 'face'), fv.high_order_convert('avg', minus_intf, sim_variables, 'face')
 
-            intf_fluxes_cntr = run_Riemann_solver(axis, sim_variables, characteristics, **higher_order_interface_variables)
+            intf_fluxes_cntrd = run_Riemann_solver(axis, sim_variables, characteristics, **high_order_intfs)
 
             # Compute the higher-order fluxes
-            _fluxes = fv.compute_high_approx_flux(intf_fluxes_cntr, intf_fluxes_avg, sim_variables)
+            _fluxes = fv.high_order_compute_flux(intf_fluxes_cntrd, intf_fluxes_avgd, sim_variables)
         else:
             # Orthogonal Laplacian in 1D is zero
-            _fluxes = intf_fluxes_avg
+            _fluxes = intf_fluxes_avgd
 
-        fluxes[axes] = Riemann_flux(_fluxes, eigmax)
+        fluxes[axes] = {'flux':_fluxes, 'eigmax':eigmax}
         axis += 1
+
     return fluxes
 
 
@@ -86,7 +84,6 @@ def calculate_LaxWendroff_flux(characteristics, **kwargs):
     max_normalised_eigvals = np.max([normalised_eigvals[:-1], normalised_eigvals[1:]], axis=0)
 
     return .5*(flux_minus+flux_plus) - .5*((q_plus-q_minus) * max_normalised_eigvals[...,None])
-    #return .5 * ((q_plus+q_minus) - fv.divide(flux_plus-flux_minus, max_eigvals[:,None]))
 
 
 # HLLC Riemann solver [Fleischmann et al., 2020]
@@ -99,7 +96,7 @@ def calculate_HLLC_flux(axis, sim_variables, low_mach=False, **kwargs):
     """The convention here uses L & R states, i.e. L state = w-, R state = w+
         |                        w(i-1/2)                    w(i+1/2)                       |
         |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
-        |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
+        |   w_R(i-1)     w_L(i-1)   |   w_R(i)         w_L(i)   |   w_R(i+1)     w_L(i+1)   |
     --> |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
     """
     rhoL, uL, pL, QL = w_minus[...,0], w_minus[...,axis+1], w_minus[...,4], q_minus
@@ -163,7 +160,7 @@ def calculate_HLLD_flux(axis, sim_variables, **kwargs):
     """The convention here uses L & R states, i.e. L state = w-, R state = w+
         |                        w(i-1/2)                    w(i+1/2)                       |
         |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
-        |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
+        |   w_R(i-1)     w_L(i-1)   |   w_R(i)         w_L(i)   |   w_R(i+1)     w_L(i+1)   |
     --> |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
     """
     wS = fv.add_boundary(wS, sim_variables.boundary)[1:]

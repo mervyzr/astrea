@@ -3,14 +3,15 @@ from collections import defaultdict
 import numpy as np
 
 from functions import constructor, fv
-from num_methods import limiters
+from num_methods import limiters, mag_field
 
 ##############################################################################
 # Piecewise linear reconstruction method (PLM) [van Leer, 1979]
 ##############################################################################
 
 def run(grid, sim_variables):
-    gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
+    gamma, boundary, permutations, magnetic_2d = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations, sim_variables.magnetic_2d
+    convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
@@ -19,7 +20,7 @@ def run(grid, sim_variables):
         _grid = grid.transpose(axes)
 
         # Convert to primitive variables; able to use pointwise conversion as it is still 2nd-order
-        wS = fv.point_convert_conservative(_grid, sim_variables)
+        wS = convert_conservative(_grid, sim_variables)
 
         # Pad array with boundary & apply (TVD) slope limiters
         w = fv.add_boundary(wS, boundary)
@@ -34,6 +35,9 @@ def run(grid, sim_variables):
         gradients = .5 * limited_values
         wL, wR = np.copy(wS-gradients), np.copy(wS+gradients)  # (eq. 4.13)
 
+        if magnetic_2d:
+            data[axes]['wTs'] = mag_field.reconstruct_transverse(wR, sim_variables)
+
         # Re-align the interfaces so that cell wall is in between interfaces
         w_plus, w_minus = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
 
@@ -43,7 +47,7 @@ def run(grid, sim_variables):
 
         # Convert the primitive variables
         # The conversion can be pointwise conversion for face-average values as it is still 2nd-order
-        q_plus, q_minus = fv.convert_primitive(w_plus, sim_variables, "face"), fv.convert_primitive(w_minus, sim_variables, "face")
+        q_plus, q_minus = convert_primitive(w_plus, sim_variables), convert_primitive(w_minus, sim_variables)
 
         # Compute the fluxes and the Jacobian
         flux_plus, flux_minus = constructor.make_flux(w_plus, gamma, axis), constructor.make_flux(w_minus, gamma, axis)

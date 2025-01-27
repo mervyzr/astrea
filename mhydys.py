@@ -16,7 +16,7 @@ import numpy as np
 
 from static import tests
 from num_methods import evolvers
-from functions import constructor, fv, generic, plotting
+from functions import constructor, generic, plotting
 
 ##############################################################################
 # Main script
@@ -29,7 +29,13 @@ LOAD_ENV = False
 
 
 # Finite volume shock function
-def core_run(hdf5_file: str, sim_variables: namedtuple, *args, **kwargs):
+def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
+    try:
+        chkpts = kwargs['checkpoints']
+    except KeyError:
+        chkpts = 10
+    chkpt = sim_variables.t_end/chkpts
+
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables
     grid = constructor.initialise(sim_variables, convert=True)
     plot_axes = sim_variables.permutations[-1]
@@ -38,56 +44,48 @@ def core_run(hdf5_file: str, sim_variables: namedtuple, *args, **kwargs):
     if sim_variables.live_plot:
         plotting_params = plotting.initiate_live_plot(sim_variables)
     elif sim_variables.take_snaps:
-        plot_interval, snap_idx = sim_variables.t_end/sim_variables.snapshots, 0
-        _plot = True
-
-    # Define the conversion based on subgrid model
-    if sim_variables.subgrid.startswith("w") or sim_variables.subgrid in ["ppm", "parabolic", "p"]:
-        convert = fv.convert_conservative
-    else:
-        convert = fv.point_convert_conservative
+        chkpt = sim_variables.t_end/sim_variables.snapshots
+        take_snapshot = True
 
     # Start simulation run
-    t = 0.0
+    t, idx = 0., 1
     while t <= sim_variables.t_end:
         # Saves each instance of the system (primitive variables) at time t
-        grid_snapshot = convert(grid, sim_variables).transpose(plot_axes)
-        with h5py.File(hdf5_file, "a") as f:
-            dataset = f[str(sim_variables.cells)].create_dataset(str(float(t)), data=grid_snapshot)
+        grid_snapshot = sim_variables.convert_conservative(grid, sim_variables).transpose(plot_axes)
+        with h5py.File(hdf5, "a") as f:
+            dataset = f[sim_variables.access_key].create_dataset(str(float(t)), data=grid_snapshot)
             dataset.attrs['t'] = float(t)
 
         # Miscellaneous media/print options
         if not sim_variables.quiet:
             generic.print_progress(t, sim_variables)
-        if sim_variables.live_plot:
-            plotting.update_plot(grid_snapshot, t, sim_variables.dimension, *plotting_params)
-        elif sim_variables.take_snaps and _plot:
-            plotting.plot_snapshot(grid_snapshot, t, sim_variables, save_path=f"./savedData/snap{sim_variables.seed}")
-            _plot = False
-            snap_idx += 1
 
-        # Handle the simulation end
+        if sim_variables.live_plot:
+            plotting.update_plot(grid_snapshot, t, sim_variables, *plotting_params)
+        elif sim_variables.take_snaps and take_snapshot:
+            plotting.plot_snapshot(grid_snapshot, t, sim_variables, save_path=f"./savedData/snap{sim_variables.seed}")
+            take_snapshot = False
+
         if t == sim_variables.t_end:
+            # Exact stop for the simulation; prevents adding an additional computation step
             break
         else:
             # Compute the numerical fluxes at each interface
-            interface_fluxes = evolvers.evolve_space(grid, sim_variables)
+            fluxes = evolvers.evolve_space(grid, sim_variables)
 
             # Compute the maximum eigenvalues for determining the full time step
-            eigmaxes = [sim_variables.dx/Riemann_flux.eigmax for Riemann_flux in list(interface_fluxes.values())]
+            eigmaxes = [sim_variables.dx/Riemann_values['eigmax'] for Riemann_values in list(fluxes.values())]
             dt = sim_variables.cfl * min(eigmaxes)
 
             # Handle dt
-            if t+dt > sim_variables.t_end:
-                dt = sim_variables.t_end - t
-
-            if sim_variables.take_snaps:
-                if t+dt >= plot_interval*snap_idx:
-                    dt = plot_interval*snap_idx - t
-                    _plot = True
+            if t+dt >= chkpt*idx:
+                dt = chkpt*idx - t
+                if sim_variables.take_snaps:
+                    take_snapshot = True
+                idx += 1
 
             # Update the solution with the numerical fluxes using iterative methods
-            grid = evolvers.evolve_time(grid, interface_fluxes, dt, sim_variables)
+            grid = evolvers.evolve_time(grid, fluxes, dt, sim_variables)
 
             # Update time step
             t += dt
@@ -104,8 +102,7 @@ def run() -> None:
     # Signal handler for Ctrl+C
     def graceful_exit(sig, frame):
         sys.stdout.write('\033[2K\033[1G')
-        print(f"Received SIGINT; exiting gracefully...")
-        os.remove(file_name)
+        print(f"{generic.BColours.WARNING}Simulation end by SIGINT; exiting gracefully..{generic.BColours.ENDC}")
         sys.exit(0)
 
     # Load env variables
@@ -134,11 +131,6 @@ def run() -> None:
 
     # Auto-generate the resolutions/grid-sizes for run type
     if _sim_variables['run_type'].startswith('m'):
-        var_type = "cells"
-
-        multi_var_dict = {
-            "cells": 2**np.arange(2,8)
-        }
         if _sim_variables['dimension'] == 2:
             n_list = 2**np.arange(2,8)
         else:
@@ -175,13 +167,14 @@ def run() -> None:
             now = datetime.now()
 
             # Update cells (and grid width) in simulation variables (namedtuple)
+            sim_variables = sim_variables._replace(access_key=now.strftime('%Y%m%d%H%M%S')+str(now.microsecond))
             sim_variables = sim_variables._replace(now=now)
             sim_variables = sim_variables._replace(cells=N)
             sim_variables = sim_variables._replace(dx=abs(sim_variables.end_pos-sim_variables.start_pos)/sim_variables.cells)
 
             # Save simulation variables into HDF5 file
             with h5py.File(file_name, "a") as f:
-                grp = f.create_group(str(sim_variables.cells))
+                grp = f.create_group(sim_variables.access_key)
                 grp.attrs['config'] = sim_variables.config
                 grp.attrs['cells'] = sim_variables.cells
                 grp.attrs['cfl'] = sim_variables.cfl
@@ -200,8 +193,8 @@ def run() -> None:
             # Save attributes after individual run is completed
             sim_variables = sim_variables._replace(elapsed=elapsed)
             with h5py.File(file_name, "a") as f:
-                f[str(sim_variables.cells)].attrs['elapsed'] = elapsed
-                timestep_count = len(f[str(sim_variables.cells)])
+                f[sim_variables.access_key].attrs['elapsed'] = elapsed
+                timestep_count = len(f[sim_variables.access_key])
             if not sim_variables.quiet:
                 generic.print_final(sim_variables, timestep_count)
             ############################# END INDIVIDUAL SIMULATION #############################
@@ -212,7 +205,7 @@ def run() -> None:
                 plotting.plot_quantities(f, sim_variables, save_path)
                 if sim_variables.run_type.startswith("m"):
                     if sim_variables.config_category == "smooth":
-                        plotting.plot_solution_errors(f, sim_variables, save_path)
+                        plotting.plot_solution_errors(f, sim_variables, save_path, error_norm=1)
                 else:
                     plotting.plot_total_variation(f, sim_variables, save_path)
                     plotting.plot_conservation_equations(f, sim_variables, save_path)
@@ -232,18 +225,16 @@ def run() -> None:
             print(traceback.format_exc())
         else:
             print(f"{generic.BColours.FAIL}-- Error: {e}{generic.BColours.ENDC} (use --debug option for more details)")
-        os.remove(file_name)
 
-    # If no errors;
-    else:
+    finally:
         # Save the temporary HDF5 database (!! Possibly large file sizes > 100GB !!)
         if sim_variables.save_file:
             shutil.move(file_name, f"{save_path}/mhydys_{sim_variables.config}_{sim_variables.subgrid}_{sim_variables.timestep}_{SEED}.hdf5")
         else:
             os.remove(file_name)
 
-    finally:
         signal.signal(signal.SIGINT, original_sigint_handler)
+
     ###################################### SCRIPT END ######################################
 
 if __name__ == "__main__":

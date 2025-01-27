@@ -1,13 +1,11 @@
+import os
 import shutil
-import platform
 import subprocess
 
 import numpy as np
-if platform.system() == "Darwin":
-    import matplotlib
-    matplotlib.use('MacOSX')
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import matplotlib.gridspec as gridspec
 from matplotlib.patches import Polygon
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -21,80 +19,223 @@ STYLE = "default"
 BEAUTIFY = False
 
 
-PLOT_INDEXES = [[0,0], [0,1], [1,0], [1,1]]
-PLOT_LABELS = [[r"Density $\rho$", r"Pressure $P$"], [r"Velocity $v_x$", r"Specific thermal energy $\frac{P}{\rho}$"]]
-TWOD_COLOURS = [["viridis", "hot"], ["cividis", "plasma"]]
-try:
-    plt.style.use(STYLE)
-except Exception as e:
-    plt.style.use("default")
-    COLOURS = [["blue", "red"], ["green", "darkviolet"]]
-else:
-    if STYLE != "default":
-        _color = plt.rcParams['axes.prop_cycle'].by_key()['color']
-        COLOURS = [_color[:2], _color[2:4]]
+
+# Make figures and axes for plotting
+def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs):
+    if 0 < len(options) < 11:
+        try:
+            _figsize = kwargs['figsize']
+        except KeyError:
+            _figsize = [21,10]
+        else:
+            if not isinstance(_figsize, list) or not all(isinstance(_, int) for _ in _figsize):
+                _figsize = [21,10]
+
+        # Set up colours
+        try:
+            plt.style.use(style)
+        except Exception as e:
+            plt.style.use('default')
+        else:
+            if style == "dark_background":
+                theo_colour = "white"
+            else:
+                theo_colour = "black"
+        finally:
+            colours = plt.rcParams['axes.prop_cycle'].by_key()['color']
+            twod_colours = ["viridis", "hot", "cividis", "plasma", "inferno", "ocean", "terrain", "cubehelix", "magma", "gist_earth"]
+
+        # Set up labels and axes names
+        labels, errors, tvs = [], [], []
+        for option in options:
+            option = option.lower()
+
+            if "energy" in option or "temp" in option or option.startswith("e"):
+                if "int" in option:
+                    name = "Internal energy"
+                    label = r"$e$"
+                    error = r"$\log{(\epsilon_\nu(e))}$"
+                    tv = r"TV($e$)"
+                else:
+                    name = "Total energy"
+                    label = r"$E$"
+                    error = r"$\log{(\epsilon_\nu(E))}$"
+                    tv = r"TV($E$)"
+                if "density" in option:
+                    name += ' density'
+
+            elif "mom" in option:
+                name = "Momentum"
+                label = rf"$p_{option[-1]}$"
+                error = rf"$\log{{(\epsilon_\nu(p_{option[-1]}))}}$"
+                tv = rf"TV($p_{option[-1]}$)"
+
+            elif "mass" in option:
+                name = "Mass"
+                label = r"$m$"
+                error = r"$\log{(\epsilon_\nu(m))}$"
+                tv = r"TV($m$)"
+
+            elif option.startswith("p"):
+                name = "Pressure"
+                label = r"$P$"
+                error = r"$\log{(\epsilon_\nu(P))}$"
+                tv = r"TV($P$)"
+
+            elif option.startswith("v"):
+                name = "Velocity"
+                label = rf"$v_{option[-1]}$"
+                error = rf"$\log{{(\epsilon_\nu(v_{option[-1]}))}}$"
+                tv = rf"TV($v_{option[-1]}$)"
+
+            elif option.startswith("b") or option.startswith("mag"):
+                if "p" in option:
+                    name = "Mag. pressure"
+                    label = r"$P_B$"
+                    error = r"$\log{(\epsilon_\nu(P_B))}$"
+                    tv = r"TV($P_B$)"
+                else:
+                    name = "Mag. field"
+                    label = rf"$B_{option[-1]}$"
+                    error = rf"$\log{{(\epsilon_\nu(B_{option[-1]}))}}$"
+                    tv = rf"TV($B_{option[-1]}$)"
+
+            else:
+                name = "Density"
+                label = r"$\rho$"
+                error = r"$\log{(\epsilon_\nu(\rho))}$"
+                tv = r"TV($\rho$)"
+
+            labels.append(rf"{name.capitalize()} {label}")
+            errors.append(rf"{name.capitalize()} {error}")
+            tvs.append(rf"{name.capitalize()} {tv}")
+
+        # Set up rows and columns
+        indexes = []
+        if len(options) < 4:
+            rows = 1
+        elif len(options) <= 8:
+            rows = 2
+        else:
+            rows = 3
+        cols = len(options)//rows + len(options)%rows
+        for row in range(rows):
+            for col in range(cols):
+                indexes.append([row,col])
+        indexes = indexes[:len(options)]
+
+        # Set up figure
+        fig, ax = plt.figure(figsize=_figsize), np.full((rows, cols), None)
+        spec = gridspec.GridSpec(rows, cols*2, figure=fig)
+        for _i in range(len(options)):
+            row, col = divmod(_i, cols)
+            if row < len(options)//cols:
+                ax[row,col] = fig.add_subplot(spec[row, 2*col:2*(col+1)])
+            else:
+                extra = cols - len(options) % cols
+                ax[row,col] = fig.add_subplot(spec[row, 2*col+extra:2*(col+1)+extra])
+        fig.subplots_adjust(wspace=0.75)
+
+        for idx, (_i,_j) in enumerate(indexes):
+            ax[_i,_j].tick_params(axis='both', which='major', labelsize=16)
+            ax[_i,_j].tick_params(axis='both', which='minor', labelsize=14)
+            if "error" in variable:
+                ax[_i,_j].set_ylabel(errors[idx], fontsize=24)
+            elif "tv" in variable:
+                ax[_i,_j].set_ylabel(tvs[idx], fontsize=24)
+            else:
+                ax[_i,_j].set_ylabel(labels[idx], fontsize=24)
+
+            if sim_variables.dimension < 2:
+                ax[_i,_j].set_xlim([sim_variables.start_pos, sim_variables.end_pos])
+                ax[_i,_j].grid(linestyle="--", linewidth=0.5)
+
+        return fig, ax, {'indexes':indexes, 'labels':labels, 'errors':errors, 'tvs':tvs, 'colours': {'theo':theo_colour, '1d':colours, '2d':twod_colours}}
     else:
-        COLOURS = [["blue", "red"], ["green", "darkviolet"]]
-    if STYLE == "dark_background":
-        THEO_COLOUR = "white"
-    else:
-        THEO_COLOUR = "black"
+        raise IndexError('Plot options should be < 11')
+
+
+# Create list of data plots; accepts primitive grid
+def make_data(options, grid, sim_variables):
+    quantities = []
+
+    for option in options:
+        option = option.lower()
+
+        if "energy" in option or "temp" in option or option.startswith("e"):
+            if "int" in option:
+                quantity = fv.divide(grid[...,4], grid[...,0] * (sim_variables.gamma-1))
+            else:
+                quantity = fv.divide(fv.convert_variable("pressure", grid, sim_variables.gamma), grid[...,0])
+            if "density" in option:
+                quantity *= grid[...,0]
+        elif option.startswith("p"):
+            quantity = grid[...,4]
+        elif option.startswith("v") or "mom" in option:
+            axis = {"x":0, "y":1, "z":2}[option[-1]]
+            quantity = grid[...,1+axis]
+            if "mom" in option:
+                quantity *= grid[...,0]
+        elif option.startswith("b") or option.startswith("mag"):
+            if "p" in option:
+                quantity = .5 * fv.norm(grid[...,5:8])**2
+            else:
+                axis = {"x":0, "y":1, "z":2}[option[-1]]
+                quantity = grid[...,5+axis]
+        else:
+            quantity = grid[...,0]
+
+        quantities.append(quantity)
+    return quantities
 
 
 # Initiate the live plot feature
 def initiate_live_plot(sim_variables):
     N, dimension, start_pos, end_pos = sim_variables.cells, sim_variables.dimension, sim_variables.start_pos, sim_variables.end_pos
+    options = sim_variables.plot_options
     plt.ion()
 
-    fig, ax = plt.subplots(nrows=2, ncols=2)
-    plt.subplots_adjust(wspace=.2)
+    fig, ax, plot_ = make_figure(options, sim_variables, figsize=[16,8])
 
     graphs = []
-    for _i, _j in PLOT_INDEXES:
-        ax[_i,_j].set_ylabel(PLOT_LABELS[_i][_j])
+    for idx, (_i,_j) in enumerate(plot_['indexes']):
         if dimension == 2:
-            fig.text(0.5, 0.04, r"Cell index $x$", ha='center')
-            fig.text(0.04, 0.4, r"Cell index $y$", ha='center', rotation='vertical')
-            if _j == 1:
-                ax[_i,_j].yaxis.set_label_position("right")
-                ax[_i,_j].yaxis.labelpad = 55
-            graph = ax[_i,_j].imshow(np.zeros((N,N)), interpolation="nearest", cmap=TWOD_COLOURS[_i][_j], origin="lower")
+            fig.text(0.5, 0.04, r"Cell index $x$", ha='center', fontsize=18)
+            fig.text(0.04, 0.4, r"Cell index $y$", ha='center', fontsize=18, rotation='vertical')
+            graph = ax[_i,_j].imshow(np.zeros((N,N)), interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes('right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
-            fig.text(0.5, 0.04, r"Cell position $x$", ha='center')
-            if _j == 1:
-                ax[_i,_j].yaxis.tick_right()
-                ax[_i,_j].yaxis.set_label_position("right")
+            fig.text(0.5, 0.04, r"Cell position $x$", ha='center', fontsize=18)
             ax[_i,_j].set_xlim([start_pos, end_pos])
             ax[_i,_j].grid(linestyle='--', linewidth=0.5)
-            graph, = ax[_i,_j].plot(np.linspace(start_pos, end_pos, N), np.linspace(start_pos, end_pos, N), linewidth=2, color=COLOURS[_i][_j])
+            graph, = ax[_i,_j].plot(np.linspace(start_pos, end_pos, N), np.linspace(start_pos, end_pos, N), linewidth=2, color=plot_['colours']['1d'][idx])
         graphs.append(graph)
     return fig, ax, graphs
 
 
 # Update live plot
-def update_plot(grid_snapshot, t, dimension, fig, ax, graphs):
-    # top-left: density, top-right: pressure, bottom-left: velocity_x, bottom-right: specific thermal energy
-    plot_data = [grid_snapshot[...,0], grid_snapshot[...,4], grid_snapshot[...,1], fv.divide(grid_snapshot[...,4], grid_snapshot[...,0])]
+def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
+    options = sim_variables.plot_options
+    plot_data = make_data(options, grid_snapshot, sim_variables)
 
-    if dimension == 2:
+    if sim_variables.dimension == 2:
         for index, graph in enumerate(graphs):
             graph.set_data(plot_data[index])
             graph.set_clim([np.min(plot_data[index]), np.max(plot_data[index])])
 
-        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t = {round(t,4)}$")
+        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t = {round(t,4)}$", fontsize=24)
     else:
         for index, graph in enumerate(graphs):
             graph.set_ydata(plot_data[index])
             #graphBR.set_ydata(analytic.calculateEntropyDensity(grid_snapshot, 1.4))  # scaled entropy density
 
-        for _i, _j in PLOT_INDEXES:
-            ax[_i,_j].relim()
-            ax[_i,_j].autoscale_view()
+        for _ in ax.ravel()[:len(options)]:
+            _.relim()
+            _.autoscale_view()
 
-        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(t,4)}$")
+        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(t,4)}$", fontsize=24)
 
     fig.canvas.draw()
     fig.canvas.flush_events()
@@ -105,53 +246,38 @@ def update_plot(grid_snapshot, t, dimension, fig, ax, graphs):
 def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
     config, N, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
+    options = sim_variables.plot_options
 
     try:
         text = kwargs["text"]
-    except Exception as e:
+    except KeyError:
         text = ""
 
-    if dimension == 2:
-        figsize = [15, 10]
-    else:
-        figsize = [21, 10]
+    fig, ax, plot_ = make_figure(options, sim_variables)
+    y_data = make_data(options, grid_snapshot, sim_variables)
 
-    fig, ax = plt.subplots(nrows=2, ncols=2, figsize=figsize)
-
-    for _i, _j in PLOT_INDEXES:
-        ax[_i,_j].set_ylabel(PLOT_LABELS[_i][_j], fontsize=18)
-        if dimension < 2:
-            ax[_i,_j].set_xlim([start_pos, end_pos])
-            ax[_i,_j].grid(linestyle="--", linewidth=0.5)
-
-    x = np.linspace(start_pos, end_pos, N)
-    y1 = grid_snapshot[...,0]  # density
-    y2 = grid_snapshot[...,4]  # pressure
-    y3 = grid_snapshot[...,1]  # vx
-    y4 = y2/y1  # specific thermal energy
-    y_data = [[y1, y2], [y3, y4]]
-
-    for _i, _j in PLOT_INDEXES:
-        y = y_data[_i][_j]
+    for idx, (_i,_j) in enumerate(plot_['indexes']):
+        y = y_data[idx]
 
         if dimension == 2:
-            graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=TWOD_COLOURS[_i][_j], origin="lower")
+            graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes('right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
+            x = np.linspace(start_pos, end_pos, N)
             if BEAUTIFY:
-                gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
+                gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=plot_['colours']['1d'][idx])
             else:
-                ax[_i,_j].plot(x, y, linewidth=2, color=COLOURS[_i][_j])
+                ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
 
     if dimension == 2:
-        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t \approx {round(t,3)}$ ($N = {N}^{dimension}$) {text}", fontsize=24)
-        fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
-        fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
+        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t \approx {round(t,3)}$ ($N = {N}^{dimension}$) {text}", fontsize=30)
+        fig.text(0.5, 0.04, r"Cell index $x$", fontsize=24, ha='center')
+        fig.text(0.04, 0.4, r"Cell index $y$", fontsize=24, ha='center', rotation='vertical')
     else:
-        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}", fontsize=24)
-        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
+        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}", fontsize=30)
+        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
 
     plt.savefig(f"{kwargs['save_path']}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{scheme}_{'%.3f' % round(t,3)}.png", dpi=330)
 
@@ -162,72 +288,71 @@ def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
 
 
 # Plot snapshots of quantities for multiple runs
-def plot_quantities(f, sim_variables, save_path):
+def plot_quantities(hdf5, sim_variables, save_path):
     config, dimension, subgrid, timestep = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep
     scheme, precision, snapshots = sim_variables.scheme, sim_variables.precision, sim_variables.snapshots
-    start_pos, end_pos, initial_left = sim_variables.start_pos, sim_variables.end_pos, sim_variables.initial_left
+    start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
+    options = sim_variables.plot_options
 
-    # hdf5 keys are string; need to convert back to int and sort again
-    n_list = [int(n) for n in f.keys()]
-    n_list.sort()
-
-    if dimension == 2:
-        figsize = [15, 10]
-    else:
-        figsize = [21, 10]
+    # hdf5 keys are datetime strings
+    datetimes = [datetime for datetime in hdf5.keys()]
+    datetimes.sort()
 
     # Separate the timings based on the number of snapshots; returns a dict of lists with the timing intervals for each N
-    timings = {}
-    for N in n_list:
-        _timings = np.fromiter(f[str(N)].keys(), dtype=precision)
-        _timings.sort()
-        timings[N] = [timing[-1] for timing in np.array_split(_timings, abs(snapshots))]
+    plot_timings_for_each_grp = {}
+    for datetime in datetimes:
+        all_timings = np.fromiter(hdf5[datetime].keys(), dtype=precision)
+        all_timings.sort()
+        plot_timings_for_each_grp[datetime] = [timing[-1] for timing in np.array_split(all_timings, abs(snapshots))]
+
+    # Get the reference timing for plots; uses the highest resolution for better accuracy
+    ref_N = 0
+    for datetime, grp in hdf5.items():
+        ref_datetime = datetime if grp.attrs['cells'] > ref_N else ref_datetime
+        ref_N = grp.attrs['cells'] if grp.attrs['cells'] > ref_N else ref_N
+    ref_timings = plot_timings_for_each_grp[ref_datetime]
 
     # Iterate through the list of timings generated by the number of snapshots
-    for time_index in range(snapshots):
-        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=figsize)
-
-        # Set up figure
-        for _i, _j in PLOT_INDEXES:
-            ax[_i,_j].set_ylabel(PLOT_LABELS[_i][_j], fontsize=18)
-            if dimension < 2:
-                ax[_i,_j].set_xlim([start_pos, end_pos])
-                ax[_i,_j].grid(linestyle="--", linewidth=0.5)
+    for snap_index in range(snapshots):
+        fig, ax, plot_ = make_figure(options, sim_variables)
+        legends_on = False
 
         # Plot each simulation at the specific timing
-        for N in n_list:
-            time_key = str(timings[N][time_index])
-            y1 = f[str(N)][time_key][...,0]   # density
-            y2 = f[str(N)][time_key][...,4]   # pressure
-            y3 = f[str(N)][time_key][...,1]   # vx
-            y4 = y2/y1  # specific thermal energy
+        ref_time = ref_timings[snap_index]
+        for datetime in datetimes:
+            simulation = hdf5[datetime]
+            N = simulation.attrs['cells']
+            timing = str(plot_timings_for_each_grp[datetime][snap_index])
+
             x = np.linspace(start_pos, end_pos, N)
-            y_data = [[y1, y2], [y3, y4]]
+            y_data = make_data(options, simulation[timing], sim_variables)
 
-            # density, pressure, vx, thermal energy
-            for _i, _j in PLOT_INDEXES:
-                y = y_data[_i][_j]
+            for idx, (_i,_j) in enumerate(plot_['indexes']):
+                y = y_data[idx]
 
-                if len(f) != 1:
+                if len(hdf5) != 1:
                     if dimension < 2:
                         ax[_i,_j].plot(x, y, linewidth=2, label=f"N = {N}")
-                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(timings[max(n_list)][time_index],3)}$", fontsize=24)
+                        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
+                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(ref_time,3)}$", fontsize=30)
+                        legends_on = True
                 else:
                     if dimension == 2:
-                        graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=TWOD_COLOURS[_i][_j], origin="lower")
+                        graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
                         divider = make_axes_locatable(ax[_i,_j])
                         cax = divider.append_axes('right', size='5%', pad=0.05)
                         fig.colorbar(graph, cax=cax, orientation='vertical')
-                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t \approx {round(timings[max(n_list)][time_index],3)}$ ($N = {N}^{dimension}$)", fontsize=24)
-                        fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
-                        fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
+                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t \approx {round(ref_time,3)}$ ($N = {N}^{dimension}$)", fontsize=30)
+                        fig.text(0.5, 0.04, r"Cell index $x$", fontsize=24, ha='center')
+                        fig.text(0.04, 0.4, r"Cell index $y$", fontsize=24, ha='center', rotation='vertical')
                     else:
                         if BEAUTIFY:
-                            gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
+                            gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=plot_['colours']['1d'][idx])
                         else:
-                            #ax[_i,_j].plot(x, y, linewidth=2, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=COLOURS[_i][_j], color=COLOURS[_i][_j])
-                            ax[_i,_j].plot(x, y, linewidth=2, color=COLOURS[_i][_j])
-                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(timings[max(n_list)][time_index],3)}$ ($N = {N}$)", fontsize=24)
+                            #ax[_i,_j].plot(x, y, linewidth=2, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=plot_['colours']['1d'], color=plot_['colours']['1d'])
+                            ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
+                        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
+                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(ref_time,3)}$ ($N = {N}$)", fontsize=24)
 
         # Add analytical solutions only for 1D
         if dimension < 2:
@@ -235,101 +360,108 @@ def plot_quantities(f, sim_variables, save_path):
             if sim_variables.config_category == "smooth":
                 analytical = constructor.initialise(sim_variables)
 
-                # Adjust ylim and tolerances for Gaussian and sine-wave tests
-                if config.startswith("gauss"):
-                    P_tol = 5e-7
+                y_theo = make_data(options, analytical, sim_variables)
+                for idx, (_i,_j) in enumerate(plot_['indexes']):
+                    ax[_i,_j].plot(x, y_theo[idx], linewidth=1, color=plot_['colours']['theo'], linestyle="--", label=rf"{config.title()}$_{{theo}}$")
+                legends_on = True
+
+            # Add Sod or Sedov analytical solution, using the highest resolution and timing
+            elif "sod" in config or "sedov" in config:
+                _grid, _t = hdf5[ref_datetime][str(ref_time)], ref_time
+                try:
+                    if "sod" in config:
+                        soln = analytic.calculate_Sod_analytical(_grid, _t, sim_variables)
+                        plot_label = r"Sod$_{theo}$"
+                    elif "sedov" in config:
+                        soln = analytic.calculate_Sedov_analytical(_grid, _t, sim_variables)
+                        plot_label = r"Sedov$_{theo}$"
+                except Exception as e:
+                    print(f"{generic.BColours.WARNING}Analytic plot error: {e}{generic.BColours.ENDC}")
+                    pass
                 else:
-                    P_tol = .005
-                P_range = np.linspace(initial_left[4]-P_tol, initial_left[4]+P_tol, 9)
-                v_range = np.linspace(initial_left[1]-.005, initial_left[1]+.005, 9)
-                ax[0,1].set_yticks(P_range)
-                ax[1,0].set_yticks(v_range)
-                ax[0,1].set_ylim([initial_left[4]-P_tol, initial_left[4]+P_tol])
-                ax[1,0].set_ylim([initial_left[1]-.005, initial_left[1]+.005])
+                    y_theo = make_data(options, soln, sim_variables)
+                    for idx, (_i,_j) in enumerate(plot_['indexes']):
+                        ax[_i,_j].plot(x, y_theo[idx], linewidth=1, color=plot_['colours']['theo'], linestyle="--", label=plot_label)
+                    legends_on = True
 
-                y_theo = [[analytical[...,0], analytical[...,4]], [analytical[...,1], analytical[...,4]/analytical[...,0]]]
-                for _i, _j in PLOT_INDEXES:
-                    ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=2, color=THEO_COLOUR, linestyle="--", label=rf"{config.title()}$_{{theo}}$")
+        if legends_on:
+            if len(hdf5) > 5:
+                _ncol = 2
+            else:
+                _ncol = 1
+            handles, labels = plt.gca().get_legend_handles_labels()
+            fig.legend(handles, labels, prop={'size': 24}, loc='upper right', ncol=_ncol)
 
-            # Add Sod analytical solution, using the highest resolution and timing
-            elif "sod" in config:
-                grid, _t = f[str(max(n_list))][str(timings[max(n_list)][time_index])], timings[max(n_list)][time_index]
-                Sod = analytic.calculate_Sod_analytical(grid, _t, sim_variables)
-
-                y_theo = [[Sod[...,0], Sod[...,4]], [Sod[...,1], Sod[...,4]/Sod[...,0]]]
-                for _i, _j in PLOT_INDEXES:
-                    ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=2, color=THEO_COLOUR, linestyle="--", label=r"Sod$_{theo}$")
-
-            # Add Sedov analytical solution, using the highest resolution and timing
-            elif "sedov" in config:
-                pass
-                """grid, _t = f[str(max(n_list))][str(timings[max(n_list)][time_index])], timings[max(n_list)][time_index]
-                Sedov = analytic.calculate_Sedov_analytical(grid, _t, sim_variables)
-
-                y_theo = [[Sedov[...,0], Sedov[...,4]], [Sedov[...,1], Sedov[...,4]/Sedov[...,0]]]
-                for _i, _j in PLOT_INDEXES:
-                    ax[_i,_j].plot(x, y_theo[_i][_j], linewidth=2, color=THEO_COLOUR, linestyle="--", label=r"Sedov$_{theo}$")"""
-
-            fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
-            if len(f) != 1 or "sod" in config or config.startswith("gauss") or config.startswith("sin"):
-                if len(f) > 5:
-                    _ncol = 2
-                else:
-                    _ncol = 1
-                handles, labels = plt.gca().get_legend_handles_labels()
-                fig.legend(handles, labels, prop={'size': 16}, loc='upper right', ncol=_ncol)
-
-        plt.savefig(f"{save_path}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{scheme}_{'%.3f' % round(timings[max(n_list)][time_index],3)}.png", dpi=330)
+        plt.savefig(f"{save_path}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{scheme}_{'%.3f' % round(ref_time,3)}.png", dpi=330)
 
         plt.cla()
         plt.clf()
         plt.close()
-    return None
 
 
-def plot_solution_errors(f, sim_variables, save_path, norm=1):
+# Plot solution errors to determine order of convergence of numerical scheme
+def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
+    options = ["density", "total energy"]
     config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
 
-    # hdf5 keys are string; need to convert back to int and sort again
-    n_list = [int(n) for n in f.keys()]
-    n_list.sort()
+    # hdf5 keys are datetime strings
+    datetimes = [datetime for datetime in hdf5.keys()]
+    datetimes.sort()
 
     # Solution errors plot
-    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=[21,10])
-    error_labels = [[r"Density $\log{(\epsilon_\nu(\rho))}$", r"Pressure $\log{(\epsilon_\nu(P))}$"], [r"Velocity $\log{(\epsilon_\nu(v_x))}$", r"Thermal energy $\log{(\epsilon_\nu(\frac{P}{\rho}))}$"]]
+    fig, ax, plot_ = make_figure(options, sim_variables, "errors")
 
-    x, y1, y2, y3, y4 = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
-    for N in n_list:
-        x = np.append(x, f[str(N)].attrs['cells']**dimension)
-        solution_errors = analytic.calculate_solution_error(f[str(N)], sim_variables, norm)
-        y1 = np.append(y1, solution_errors[0])  # density
-        y2 = np.append(y2, solution_errors[4])  # pressure
-        y3 = np.append(y3, solution_errors[1])  # vx
-        y4 = np.append(y4, solution_errors[-1])  # specific thermal energy
-    y_data = [[y1, y2], [y3, y4]]
+    array = np.full((1+len(options), len(datetimes)), 0., dtype=sim_variables.precision)
+    for idx, datetime in enumerate(datetimes):
+        _arr = [hdf5[datetime].attrs['cells']**dimension]
 
-    for _i, _j in PLOT_INDEXES:
-        if _i == _j:
-            ax[_i].set_ylabel(error_labels[_i][_j], fontsize=18)
-            ax[_i].grid(linestyle="--", linewidth=0.5)
+        # Get last instance of the grid with largest time key
+        time_key = max([float(t) for t in hdf5[datetime].keys()])
+        solution_errors: np.array = analytic.calculate_solution_error(hdf5[datetime][str(time_key)], sim_variables, error_norm)
 
-            EOC = np.diff(np.log(y_data[_i][_j]))/np.diff(np.log(x))
-            idx = np.argmin(np.abs(np.average(EOC)-EOC))
-            c = np.log10(y_data[_i][_j][idx]) - EOC[idx]*np.log10(x[idx])
+        for option in options:
+            option = option.lower()
+            if "energy" in option or "temp" in option or option.startswith("e"):
+                if "int" in option:
+                    _arr.append(solution_errors[-1])
+                else:
+                    _arr.append(solution_errors[-2])
+            elif option.startswith("p"):
+                _arr.append(solution_errors[4])
+            elif option.startswith("v") or (option.startswith("b") or "field" in option):
+                axis = {'x':0, 'y':1, 'z':2}[option[-1]]
+                if option.startswith("v"):
+                    _arr.append(solution_errors[1+axis])
+                else:
+                    _arr.append(solution_errors[5+axis])
+            else:
+                _arr.append(solution_errors[0])
 
-            for order in [1,2,4,5]:
-                alpha = 10**c
-                ytheo = alpha*x**(-order)
-                ax[_j].loglog(x, ytheo, linewidth=2, color=THEO_COLOUR, linestyle="--")
-                ax[_j].annotate(rf"$O(N^{order})$", (x[-1], ytheo[-1]), fontsize=12)
-            ax[_j].loglog(x, y_data[_i][_j], linewidth=2, linestyle="--", marker="o", color=COLOURS[_i][_j])
-            ax[_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|\text{{EOC}}_{{max}}|$ = {round(max(np.abs(EOC)), 4)}")
-            ax[_j].legend(prop={'size': 14})
+        array[...,idx] = np.asarray(_arr, dtype=sim_variables.precision)
+    x, y_data = array[:1].ravel(), array[1:]
+    x.sort()
 
-    plt.suptitle(rf"$L_{norm}$ solution error norm $\epsilon_\nu(\vec{{w}})$ against resolution $N_\nu$ for {config.title()} test", fontsize=24)
+    for idx, (_i,_j) in enumerate(plot_['indexes']):
+        y = y_data[idx]
+
+        EOC = np.diff(np.log(y))/np.diff(np.log(x))
+        _idx = np.argmin(np.abs(np.average(EOC)-EOC))
+        c = np.log10(y[_idx]) - EOC[_idx]*np.log10(x[_idx])
+
+        for order in [1,2,4,5]:
+            alpha = 10**c
+            ytheo = alpha*x**(-order)
+            ax[_i,_j].loglog(x, ytheo, linewidth=2, color=plot_['colours']['theo'], linestyle="--")
+            ax[_i,_j].annotate(rf"$O(N^{order})$", (x[-1], ytheo[-1]), fontsize=18)
+        ax[_i,_j].loglog(x, y, linewidth=2, linestyle="--", marker="o", color=plot_['colours']['1d'][idx])
+        ax[_i,_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|\text{{EOC}}_{{max}}|$ = {round(max(np.abs(EOC)), 4)}")
+        ax[_i,_j].legend(prop={'size': 14})
+        ax[_i,_j].set_xlim([min(x)/1.5,max(x)*1.5])
+
+    plt.suptitle(rf"$L_{error_norm}$ solution error norm $\epsilon_\nu(\vec{{w}})$ against resolution $N_\nu$ for {config.title()} test", fontsize=24)
     fig.text(0.5, 0.04, r"Resolution $\log{(N_\nu)}$", fontsize=18, ha='center')
 
-    plt.savefig(f"{save_path}/solErr_L{norm}_{subgrid}_{timestep}_{scheme}.png", dpi=330)
+    plt.savefig(f"{save_path}/solErr_L{error_norm}_{subgrid}_{timestep}_{scheme}.png", dpi=330)
 
     plt.cla()
     plt.clf()
@@ -342,21 +474,20 @@ def plot_solution_errors(f, sim_variables, save_path, norm=1):
     ax.grid(linestyle="--", linewidth=0.5)
 
     x_diff = x[1:]
-    y_diff = np.array([[np.log2(y1[:-1]/y1[1:]), np.log2(y2[:-1]/y2[1:])], [np.log2(y3[:-1]/y3[1:]), np.log2(y4[:-1]/y4[1:])]])
+    y_diff = np.log2(y_data[...,:-1]/y_data[...,1:])
 
     if dimension == 2:
         y_diff /= np.log2(4)
 
-    for _i, _j in PLOT_INDEXES:
-        if _i == _j:
-            ax.plot(x_diff, y_diff[_i][_j], linewidth=2, linestyle="--", marker="o", color=COLOURS[_i][_j], label=PLOT_LABELS[_i][_j])
+    for idx in range(len(plot_['indexes'])):
+        ax.plot(x_diff, y_diff[idx], linewidth=2, linestyle="--", marker="o", color=plot_['colours']['1d'][idx], label=plot_['labels'][idx])
 
-    plt.suptitle(rf"Order of convergence against resolution $N_\nu$ for {config.title()} test", fontsize=24)
-    fig.text(0.5, 0.04, r"Resolution $N$", fontsize=18, ha='center')
+    plt.suptitle(rf"Order of convergence against resolution $N_\nu$ for {config.title()} test", fontsize=30)
+    fig.text(0.5, 0.04, r"Resolution $N$", fontsize=24, ha='center')
     _xticklabels = [item.get_text() for item in ax.get_xticklabels()]
     _xticklabels = [rf"${int(v)}\rightarrow{int(x[i+1])}$" for i,v in enumerate(x[:-1])]
     ax.set_xticks(x_diff)
-    ax.set_xticklabels(_xticklabels, rotation=45, fontsize=12, ha="right")
+    ax.set_xticklabels(_xticklabels, rotation=45, fontsize=18, ha="right")
     ax.legend(prop={'size': 18})
 
     plt.savefig(f"{save_path}/convergenceOrder_{subgrid}_{timestep}_{scheme}.png", dpi=330)
@@ -364,199 +495,244 @@ def plot_solution_errors(f, sim_variables, save_path, norm=1):
     plt.cla()
     plt.clf()
     plt.close()
-    return None
 
 
-def plot_total_variation(f, sim_variables, save_path):
+# Total variation to determine if numerical scheme prevents oscillation
+def plot_total_variation(hdf5, sim_variables, save_path):
     config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
+    options = sim_variables.plot_options
 
-    # hdf5 keys are string; need to convert back to int and sort again
-    n_list = [int(n) for n in f.keys()]
-    n_list.sort()
+    # hdf5 keys are datetime strings
+    datetimes = [datetime for datetime in hdf5.keys()]
+    datetimes.sort()
 
-    fig, ax = plt.subplots(nrows=2, ncols=2, figsize=[21,10])
-    tv_labels = [[r"Density TV($\rho$)", r"Pressure TV($P$)"], [r"Velocity TV($v_x$)", r"Thermal energy TV($\frac{P}{\rho}$)"]]
+    fig, ax, plot_ = make_figure(options, sim_variables, "tv")
 
-    for _i, _j in PLOT_INDEXES:
-        ax[_i,_j].set_ylabel(tv_labels[_i][_j], fontsize=18)
-        ax[_i,_j].grid(linestyle="--", linewidth=0.5)
+    for datetime in datetimes:
+        N = hdf5[datetime].attrs['cells']
+        total_variations: dict = analytic.calculate_TV(hdf5[datetime], sim_variables)
 
-    for N in n_list:
-        tv_dict = analytic.calculate_tv(f[str(N)], sim_variables)
-        x = np.asarray(list(tv_dict.keys()))
-        y = np.asarray(list(tv_dict.values()))
-        y1 = y[...,0]  # density
-        y2 = y[...,4]  # pressure
-        y3 = y[...,1]  # vx
-        y4 = y[...,-1]  # specific thermal energy
-        y_data = [[y1, y2], [y3, y4]]
+        x = np.asarray(list(total_variations.keys()))
         x.sort()
+        ys = np.asarray(list(total_variations.values()))
 
-        for _i, _j in PLOT_INDEXES:
-            ax[_i,_j].plot(x, y_data[_i][_j], linewidth=2, color=COLOURS[_i][_j])
+        y_data = np.full((len(options), len(x)), 0., dtype=sim_variables.precision)
+        for idx, option in enumerate(options):
+            option = option.lower()            
+            if "energy" in option or "temp" in option or option.startswith("e"):
+                if "int" in option:
+                    y_data[idx] = ys[...,-1]
+                else:
+                    y_data[idx] = ys[...,-2]
+            elif option.startswith("p"):
+                y_data[idx] = ys[...,4]
+            elif option.startswith("v") or (option.startswith("b") or "field" in option):
+                axis = {'x':0, 'y':1, 'z':2}[option[-1]]
+                if option.startswith("v"):
+                    y_data[idx] = ys[...,1+axis]
+                else:
+                    y_data[idx] = ys[...,5+axis]
+            else:
+                y_data[idx] = ys[...,0]
 
-        plt.suptitle(rf"Total variation of primitive variables TV($\vec{{w}}$) against time $t$ for {config.title()} test ($N = {N}^{dimension}$)", fontsize=24)
-        fig.text(0.5, 0.04, r"Time $t$", fontsize=18, ha='center')
+        for idx, (_i,_j) in enumerate(plot_['indexes']):
+            ax[_i,_j].plot(x, y_data[idx], linewidth=2, color=plot_['colours']['1d'][idx])
+            ax[_i,_j].set_xlim([min(x), max(x)])
+
+        if dimension >= 2:
+            grid_size = f"{N}^{dimension}"
+        else:
+            grid_size = N
+
+        plt.suptitle(rf"Total variation of primitive variables TV($\vec{{w}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=30)
+        fig.text(0.5, 0.04, r"Time $t$", fontsize=24, ha='center')
 
         plt.savefig(f"{save_path}/TV_{config}_{subgrid}_{timestep}_{scheme}_{N}.png", dpi=330)
 
         plt.cla()
         plt.clf()
         plt.close()
-    return None
 
 
-def plot_conservation_equations(f, sim_variables, save_path):
+# Determines if numerical scheme is conservative to machine precision
+def plot_conservation_equations(hdf5, sim_variables, save_path):
+    options = ["mass", "momentum_x", "energy"]
     config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
+    
+    # hdf5 keys are datetime strings
+    datetimes = [datetime for datetime in hdf5.keys()]
+    datetimes.sort()
 
-    # hdf5 keys are string; need to convert back to int and sort again
-    n_list = [int(n) for n in f.keys()]
-    n_list.sort()
+    fig, ax, plot_ = make_figure(options, sim_variables)
 
-    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=[21,10])
-    eq_labels = [r"Mass ($m$)", r"Momentum ($p_x$)", r"Energy ($E_{tot}$)"]
+    for datetime in datetimes:
+        N = hdf5[datetime].attrs['cells']
+        conservation: dict = analytic.calculate_conservation(hdf5[datetime], sim_variables)
 
-    for _j in [0,1,2]:
-        ax[_j].set_ylabel(eq_labels[_j], fontsize=18)
-        ax[_j].grid(linestyle="--", linewidth=0.5)
-
-    for N in n_list:
-        eq_dict = analytic.calculate_conservation(f[str(N)], sim_variables)
-        x = np.asarray(list(eq_dict.keys()))
-        y = np.asarray(list(eq_dict.values()))
-        y1 = y[...,0]  # mass
-        y2 = y[...,4]  # total energy
-        y3 = y[...,1]  # momentum_x
-        y4 = y[...,5]  # B*vol_x
-        y_data = [[y1, y2], [y3, y4]]
+        x = np.asarray(list(conservation.keys()))
         x.sort()
+        ys = np.asarray(list(conservation.values()))
 
-        for _i, _j in PLOT_INDEXES:
-            y_i, y_f = y_data[_i][_j][0], y_data[_i][_j][-1]
+        y_data = np.full((len(options), len(x)), 0., dtype=sim_variables.precision)
+        for idx, option in enumerate(options):
+            option = option.lower()
+            if "energy" in option or "temp" in option:
+                y_data[idx] = ys[...,4]
+            elif "mom" in option or (option.startswith("b") or "field" in option):
+                axis = {'x':0, 'y':1, 'z':2}[option[-1]]
+                if "mom" in option:
+                    y_data[idx] = ys[...,1+axis]
+                else:
+                    y_data[idx] = ys[...,5+axis]
+            else:
+                y_data[idx] = ys[...,0]
+
+        for idx, (_i,_j) in enumerate(plot_['indexes']):
+            y = y_data[idx]
+            ax[_i,_j].plot(x, y_data[idx], linewidth=2, color=plot_['colours']['1d'][idx])
+            ax[_i,_j].set_xlim([min(x), max(x)])
+
+            # For plot annotation purposes
+            y_init, y_final = y[0], y[-1]
             try:
-                decimal_point = int(('%e' % abs(y_f-y_i)).split('-')[1])
+                decimal_point = int(('%e' % abs(y_final-y_init)).split('-')[1])
             except IndexError:
-                decimal_point = int(('%e' % abs(y_f-y_i)).split('+')[1])
-            if _i == 0:
-                ax[_j].plot(x, y_data[_i][_j], linewidth=2, color=COLOURS[_i][_j])
-                ax[_j].annotate(round(y_i, decimal_point), (x[0], y_i), fontsize=12)
-                ax[_j].annotate(round(y_f, decimal_point), (x[-1], y_f), fontsize=12)
-            elif _i == 1 and _j == 0:
-                ax[2].plot(x, y_data[_i][_j], linewidth=2, color=COLOURS[_i][_j])
-                ax[2].annotate(round(y_i, decimal_point), (x[0], y_i), fontsize=12)
-                ax[2].annotate(round(y_f, decimal_point), (x[-1], y_f), fontsize=12)
+                decimal_point = int(('%e' % abs(y_final-y_init)).split('+')[1])
+            ax[_i,_j].annotate(round(y_init, decimal_point), (x[0], y_init), fontsize=18)
+            ax[_i,_j].annotate(round(y_final, decimal_point), (x[-1], y_final), fontsize=18)
 
-        plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ for {config.title()} test ($N = {N}^{dimension}$)", fontsize=24)
-        fig.text(0.5, 0.04, r"Time $t$", fontsize=18, ha='center')
+        if dimension >= 2:
+            grid_size = f"{N}^{dimension}"
+        else:
+            grid_size = N
+
+        plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=30)
+        fig.text(0.5, 0.04, r"Time $t$", fontsize=24, ha='center')
 
         plt.savefig(f"{save_path}/conserveEq_{config}_{subgrid}_{timestep}_{scheme}_{N}.png", dpi=330)
 
         plt.cla()
         plt.clf()
         plt.close()
-        return None
 
 
-def make_video(f, sim_variables, save_path, vidpath, variable="all"):
+# Make a video of entire simulation; video of all plot options or specific variable
+def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
     config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
-    variable = variable.lower()
 
-    # hdf5 keys are string; need to convert back to int and sort again
-    n_list = [int(n) for n in f.keys()]
-    n_list.sort()
+    # hdf5 keys are datetime strings
+    datetimes = [datetime for datetime in hdf5.keys()]
+    datetimes.sort()
 
-    if dimension == 2:
-        figsize = [15, 10]
-    else:
-        figsize = [21, 10]
+    for datetime in datetimes:
+        simulation = hdf5[datetime]
+        N = simulation.attrs['cells']
 
-    for N in n_list:
-        simulation = f[str(N)]
-        counter, end_count = 0, len(simulation)
-
-        for t, grid in simulation.items():
-            print(f"Creating {counter+1}/{end_count} ...", end='\r')
-            x = np.linspace(start_pos, end_pos, N)
+        if isinstance(variable, str):
+            variable = variable.lower()
+            counter, end_count = 0, len(simulation)
 
             if variable == "all":
-                fig, ax = plt.subplots(nrows=2, ncols=2, figsize=figsize)
+                options = sim_variables.plot_options
+            else:
+                options = [variable]
 
-                for _i, _j in PLOT_INDEXES:
-                    ax[_i,_j].set_ylabel(PLOT_LABELS[_i][_j], fontsize=18)
-                    if dimension < 2:
-                        ax[_i,_j].set_xlim([start_pos, end_pos])
-                        ax[_i,_j].grid(linestyle="--", linewidth=0.5)
+            for t, grid in simulation.items():
+                print(f"Creating {counter+1}/{end_count} ...", end='\r')
 
-                y1 = grid[...,0]  # density
-                y2 = grid[...,4]  # pressure
-                y3 = grid[...,1]  # vx
-                y4 = y2/y1  # specific thermal energy
-                y_data = [[y1, y2], [y3, y4]]
+                fig, ax, plot_ = make_figure(options, sim_variables)
+                x = np.linspace(start_pos, end_pos, N)
+                y_data = make_data(options, grid, sim_variables)
 
-                for _i, _j in PLOT_INDEXES:
-                    y = y_data[_i][_j]
+                if variable == "all":
+                    for idx, (_i,_j) in enumerate(plot_['indexes']):
+                        y = y_data[idx]
+
+                        if dimension == 2:
+                            fig.text(0.5, 0.04, r"Cell index $x$", fontsize=24, ha='center')
+                            fig.text(0.04, 0.4, r"Cell index $y$", fontsize=24, ha='center', rotation='vertical')
+                            graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
+                            divider = make_axes_locatable(ax[_i,_j])
+                            cax = divider.append_axes('right', size='5%', pad=0.05)
+                            fig.colorbar(graph, cax=cax, orientation='vertical')
+                            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}^{dimension}$)", fontsize=30)
+
+                        else:
+                            fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
+                            if BEAUTIFY:
+                                gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=plot_['colours']['1d'][idx])
+                            else:
+                                ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
+                            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=30)
+
+                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", dpi=330)
+
+                else:
+                    idx = 0
+                    plt.axis('off')
 
                     if dimension == 2:
-                        fig.text(0.5, 0.04, r"Cell index $x$", fontsize=18, ha='center')
-                        fig.text(0.04, 0.4, r"Cell index $y$", fontsize=18, ha='center', rotation='vertical')
-                        graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=TWOD_COLOURS[_i][_j], origin="lower")
-                        divider = make_axes_locatable(ax[_i,_j])
-                        cax = divider.append_axes('right', size='5%', pad=0.05)
-                        fig.colorbar(graph, cax=cax, orientation='vertical')
-                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}^{dimension}$)", fontsize=24)
-                        
+                        ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
                     else:
-                        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=18, ha='center')
-                        if BEAUTIFY:
-                            gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=COLOURS[_i][_j])
-                        else:
-                            ax[_i,_j].plot(x, y, linewidth=2, color=COLOURS[_i][_j])
-                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=24)
+                        ax[idx,idx].plot(x, y_data[idx], linewidth=2, color=plot_['colours']['1d'][idx])
 
-                plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330)
+                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", dpi=330, bbox_inches='tight', pad_inches=0, transparent=True)
 
-            else:
-                fig, ax = plt.subplots(figsize=figsize)
-                plt.axis('off')
+                plt.cla()
+                plt.clf()
+                plt.close()
 
-                if variable in ["energy", "temperature", "temp", "t"]:
-                    y_data = fv.divide(grid[...,4], grid[...,0])
-                    colour, colour2 = "darkviolet", "plasma"
-                elif variable in ["pressure", "p"]:
-                    y_data = grid[...,4]
-                    colour, colour2 = "red", "hot"
-                elif variable in ["vx", "x"]:
-                    y_data = grid[...,1]
-                    colour, colour2 = "green", "cividis"
-                elif variable in ["vy", "y"]:
-                    y_data = grid[...,2]
-                    colour, colour2 = "yellow", "magma"
+                counter += 1
+
+            try:
+                subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "error", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{save_path}/vid_{config}_{subgrid}_{timestep}_{scheme}_{variable}.mp4"])
+            except Exception as e:
+                print(f"{generic.BColours.FAIL}Video creation failed{generic.BColours.ENDC}")
+                pass
+
+        elif isinstance(variable, list) and all(isinstance(_, str) for _ in variable):
+            variables = [_.lower() for _ in variable]
+            style_counter = 0
+
+            for _variable in variables:
+                counter, end_count = 0, len(simulation)
+
+                for t, grid in simulation.items():
+                    print(f"Creating {counter+1}/{end_count} ... [{_variable}]", end='\r')
+
+                    fig, ax, plot_ = make_figure([_variable], sim_variables)
+                    y_data = make_data([_variable], grid, sim_variables)
+
+                    idx = 0
+                    plt.axis('off')
+
+                    if dimension == 2:
+                        ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][style_counter], origin="lower")
+                    else:
+                        ax[idx,idx].plot(x, y_data[idx], linewidth=2, color=plot_['colours']['1d'][style_counter])
+
+                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", dpi=330, bbox_inches='tight', pad_inches=0, transparent=True)
+
+                    plt.cla()
+                    plt.clf()
+                    plt.close()
+
+                    counter += 1
+
+                style_counter += 1
+
+                try:
+                    subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "error", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{save_path}/vid_{config}_{subgrid}_{timestep}_{scheme}_{_variable}.mp4"])
+                except Exception as e:
+                    print(f"{generic.BColours.FAIL}Video creation failed{generic.BColours.ENDC}")
+                    pass
                 else:
-                    y_data = grid[...,0]
-                    colour, colour2 = "blue", "viridis"
-
-                if dimension == 2:
-                    ax.imshow(y_data, interpolation="nearest", cmap=colour2, origin="lower")
-                else:
-                    ax.plot(x, y_data, linewidth=2, color=colour)
-
-                plt.savefig(f"{vidpath}/{str(counter).zfill(4)}.png", dpi=330, bbox_inches='tight', pad_inches=0, transparent=True)
-
-            plt.cla()
-            plt.clf()
-            plt.close()
-
-            counter += 1
-
-        try:
-            subprocess.call(["ffmpeg", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{save_path}/vid_{config}_{subgrid}_{timestep}_{scheme}.mp4"])
-        except Exception as e:
-            print(f"{generic.BColours.FAIL}Video creation failed{generic.BColours.ENDC}")
-            pass
-        else:
-            shutil.rmtree(vidpath)
-    return None
+                    for filename in os.listdir(vidpath):
+                        filepath = os.path.join(vidpath, filename)
+                        if os.path.isfile(filepath) or os.path.islink(filepath):
+                            os.remove(filepath)
+        shutil.rmtree(vidpath)
 
 
 # Gradient fill the plots

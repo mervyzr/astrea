@@ -1,33 +1,39 @@
 ---
 simulation_parameters:
   # List of available configurations to run
-  # : Sod, Sedov, Shu-Osher, Ryu-Jones, Brio-Wu, Gaussian, sine wave, square wave,
-  # : slow-moving shock, isentropic vortex, Kelvin-Helmholtz instability, Toro 1-5, Lax-Liu 1-19
-  config      : Sod
-  cells       : 128
-  cfl         : .5
-  gamma       : 1.4
-  dimension   : 1
+  # : Sod, Sedov, Shu-Osher, Ryu-Jones, Brio-Wu, Gaussian, sine wave, square wave, slow-moving shock,
+  # : isentropic vortex, Kelvin-Helmholtz instability, Orszag-Tang, MHD-rotor, MHD-blast, Toro 1-5, Lax-Liu 1-19
+  config        : Sod
+  cells         : 128
+  cfl           : .5
+  gamma         : 1.4
+  dimension     : 1
 
 numerical_parameters:
   # Floating-point precision : float16, float32, float64, float128
-  precision   : float64
+  precision     : float64
   # Subgrid models : PCM, PLM, PPM, WENO-3/5/7
-  subgrid     : PPM
+  subgrid       : PPM
   # Iteration methods : Euler, RK4, SSPRK(2,2), SSPRK(3,3), SSPRK(4,3), SSPRK(5,3), SSPRK(5,4), SSPRK(10,4)
-  timestep    : SSPRK(5,4)
+  timestep      : SSPRK(5,4)
   # Update schemes : Lax-Friedrich (LF), Lax-Wendroff (LW), HLLC (C), HLLD (D), Osher-Solomon (OS)
-  scheme      : LF
+  scheme        : LF
 
 runtime_parameters:
   # Run types : single, multiple
-  run_type    : single
+  run_type      : single
 
 media_options:
-  live_plot   : false
-  take_snaps  : false
-  snapshots   : 1
-  save_plots  : false
-  save_video  : false
-  save_file   : false
+  live_plot     : false
+  take_snaps    : false
+  snapshots     : 1
+  save_plots    : false
+  save_video    : false
+  save_file     : false
+  # Options: density, pressure, velocity Vx/Vy/Vz, total/internal energy, magnetic field Bx/By/Bz, magnetic pressure
+  plot_options  :
+    - density
+    - pressure
+    - vx
+    - total energy
 ...

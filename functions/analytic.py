@@ -1,7 +1,5 @@
-import scipy
+import scipy as sp
 import numpy as np
-import scipy.integrate
-import scipy.optimize
 
 from functions import constructor, fv
 
@@ -23,19 +21,20 @@ def calculate_entropy_density(grid, gamma):
 
 
 # Function for solution error calculation of sine-wave and Gaussian tests
-def calculate_solution_error(simulation, sim_variables, norm):
-    dimension = sim_variables.dimension
-
-    time_keys = [float(t) for t in simulation.keys()]
-    w_num = simulation[str(max(time_keys))]  # Get last instance of the grid with largest time key
+def calculate_solution_error(grid, sim_variables, norm):
+    gamma, dimension = sim_variables.gamma, sim_variables.dimension
+    w_num = np.copy(grid)
 
     # Create theoretical array
     normalising_factor = 1/(len(w_num) ** dimension)
     sim_variables = sim_variables._replace(cells=len(w_num))
     w_theo = constructor.initialise(sim_variables)
 
-    thermal_num, thermal_theo = fv.divide(w_num[...,4], w_num[...,0]), fv.divide(w_theo[...,4], w_theo[...,0])
-    w_num, w_theo = np.concatenate((w_num, thermal_num[...,None]), axis=-1), np.concatenate((w_theo, thermal_theo[...,None]), axis=-1)
+    E_tot_num, E_tot_theo = fv.divide(fv.convert_variable('pressure', w_num, gamma), w_num[...,0]), fv.divide(fv.convert_variable('pressure', w_theo, gamma), w_theo[...,0])
+    E_int_num, E_int_theo = fv.divide(w_num[...,4], w_num[...,0]*(gamma-1)), fv.divide(w_theo[...,4], w_theo[...,0]*(gamma-1))
+
+    w_num, w_theo = np.concatenate((w_num, E_tot_num[...,None]), axis=-1), np.concatenate((w_theo, E_tot_theo[...,None]), axis=-1)
+    w_num, w_theo = np.concatenate((w_num, E_int_num[...,None]), axis=-1), np.concatenate((w_theo, E_int_theo[...,None]), axis=-1)
 
     if norm > 10:
         return np.max(np.abs(w_num-w_theo), axis=tuple(range(dimension)))
@@ -46,62 +45,55 @@ def calculate_solution_error(simulation, sim_variables, norm):
 
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
-def calculate_tv(simulation, sim_variables):
-    dimension, tv = sim_variables.dimension, {}
+def calculate_TV(simulation, sim_variables):
+    gamma, dimension, tot_vary = sim_variables.gamma, sim_variables.dimension, {}
 
     for t in list(simulation.keys()):
         grid = simulation[t]
-        thermal = fv.divide(grid[...,4], grid[...,0])
+        E_tot = fv.divide(fv.convert_variable('pressure', grid, gamma), grid[...,0])
+        E_int = fv.divide(grid[...,4], grid[...,0]*(gamma-1))
         for i in range(dimension):
             grid = np.diff(grid, axis=i)
-            thermal = np.diff(thermal, axis=i)
-        tv[float(t)] = np.sum(np.abs(grid), axis=tuple(range(dimension)))
-        tv[float(t)] = np.append(tv[float(t)], np.sum(np.abs(thermal)))
-    return tv
+            E_tot = np.diff(E_tot, axis=i)
+            E_int = np.diff(E_int, axis=i)
+        tot_vary[float(t)] = np.sum(np.abs(grid), axis=tuple(range(dimension)))
+        tot_vary[float(t)] = np.append(tot_vary[float(t)], np.sum(np.abs(E_tot)))
+        tot_vary[float(t)] = np.append(tot_vary[float(t)], np.sum(np.abs(E_int)))
+    return tot_vary
 
 
 # Function for checking the conservation equations; works with primitive variables but needs to be converted
 def calculate_conservation(simulation, sim_variables):
-    N, subgrid, start_pos, end_pos = sim_variables.cells, sim_variables.subgrid, sim_variables.start_pos, sim_variables.end_pos
-    dimension, eq = sim_variables.dimension, {}
-
-    if subgrid.startswith("w") or subgrid in ["ppm", "parabolic", "p"]:
-        convert = fv.convert_primitive
-    else:
-        convert = fv.point_convert_primitive
+    dx, dimension, conservation = sim_variables.dx, sim_variables.dimension, {}
+    box_width = sim_variables.end_pos - sim_variables.start_pos
 
     for t in list(simulation.keys()):
-        grid = convert(simulation[t][:], sim_variables)
+        _grid = simulation[t][:]  # Needs the '[:]' to access the array
+        grid = sim_variables.convert_primitive(_grid, sim_variables)
         for i in range(dimension)[::-1]:
-            grid = scipy.integrate.simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
-        eq[float(t)] = grid
-    return eq
+            grid = sp.integrate.simpson(grid, dx=dx, axis=i)
+        conservation[float(t)] = grid * (box_width)**dimension
+    return conservation
 
 
 # Function for checking the conservation equations at specific intervals; works with primitive variables but needs to be converted
 # The reason is because at the boundaries, some values are lost to the ghost cells and not counted into the conservation plots
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
 def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
-    N, subgrid, start_pos, end_pos, t_end = sim_variables.cells, sim_variables.subgrid, sim_variables.start_pos, sim_variables.end_pos, sim_variables.t_end
-    dimension, eq = sim_variables.dimension, {}
+    dx, dimension, conservation = sim_variables.dx, sim_variables.dimension, {}
+    box_width = sim_variables.end_pos - sim_variables.start_pos
 
-    if subgrid.startswith("w") or subgrid in ["ppm", "parabolic", "p"]:
-        convert = fv.convert_primitive
-    else:
-        convert = fv.point_convert_primitive
-
-    intervals = np.array([], dtype=float)
-    periods = np.linspace(0, t_end, interval)
-    timings = np.asarray(list(simulation.keys()), dtype=float)
-    for period in periods:
-        intervals = np.append(intervals, timings[np.argmin(abs(timings-period))])
+    simulation_timings = list(simulation.keys())
+    simulation_timings.sort()
+    intervals = [timing[-1] for timing in np.array_split(simulation_timings, abs(interval))]
 
     for t in intervals:
-        grid = convert(simulation[str(t)][:], sim_variables)
+        _grid = simulation[t][:]  # Needs the '[:]' to access the array
+        grid = sim_variables.convert_primitive(_grid, sim_variables)
         for i in range(dimension)[::-1]:
-            grid = scipy.integrate.simpson(grid, dx=(end_pos-start_pos)/N, axis=i) * (end_pos-start_pos)
-        eq[t] = grid
-    return eq
+            grid = sp.integrate.simpson(grid, dx=dx, axis=i)
+        conservation[t] = grid * (box_width)**dimension
+    return conservation
 
 
 # Determine the analytical solution for a Sod shock test, in 1D
@@ -121,7 +113,7 @@ def calculate_Sod_analytical(grid, t, sim_variables):
 
     # Root-finding value for pressure in region 2 (post-shock)
     f = lambda x: (((x/P1) - 1) * np.sqrt((1 - mu)/(gamma*(mu + (x/P1))))) - (beta * (cs5/cs1) * (1-((x/P5)**(1/(gamma*beta)))))
-    P2 = P3 = scipy.optimize.fsolve(f, (P5-P1)/2)[0]
+    P2 = P3 = sp.optimize.fsolve(f, (P5-P1)/2)[0]
 
     # Define variables in other regions
     rho2, rho3 = rho1 * ((P2 + (mu*P1))/(P1 + (mu*P2))), rho5 * (P2/P5)**(1/gamma)
@@ -164,126 +156,153 @@ def calculate_Sod_analytical(grid, t, sim_variables):
 
 
 # Determine the analytical solution for a Sedov blast wave, in 1D [Kamm & Timmes, 2000]
-def calculate_Sedov_analytical(grid, t, sim_variables, omg=0):
+def calculate_Sedov_analytical(grid, t, sim_variables, w=0):
+    # Initialise initial conditions and variables
     gamma, j = sim_variables.gamma, sim_variables.dimension
-    rho0, v0, P0, B0 = sim_variables.initial_left[0], sim_variables.initial_left[1:4], sim_variables.initial_left[4], sim_variables.initial_left[5:8]
-    E_blast = (P0/(gamma-1)) + .5*(rho0*fv.norm(v0)**2 + fv.norm(B0)**2)
+    rho0, vx0, vy0, vz0, P0, Bx0, By0, Bz0 = sim_variables.initial_right
     eps = 1e-4
-    ex = j + 2 - omg
+    E_blast = sim_variables.initial_left[4]/(rho0 *(gamma-1))
 
-    arr = np.zeros_like(grid)
+    _exp = j + 2 - w
 
     # Determine family type
-    V2 = 4/ex
+    V2 = 4/_exp
     Vstar = 2/(j*(gamma-1)+2)
 
     # Note the singularities
-    omg2 = (2*(gamma-1) + j)/gamma
-    omg3 = j * (2-gamma)
+    w2 = (2*(gamma-1) + j)/gamma
+    w3 = j * (2-gamma)
+    if abs(w-w2) <= eps:
+        w2 = 1e-8
+    elif abs(w-w3) <= eps:
+        w3 = 1e-8
 
-    # Define post-shock values from centre of symmetry
-    r2 = lambda _alpha: ((E_blast*t**2)/(_alpha*rho0))**(1/ex)
-    u2 = lambda _alpha: ((4*r2(_alpha))/(ex*t))/(gamma+1)
-    rho2 = rho0 * (gamma+1)/(gamma-1)
-    P2 = lambda _alpha: (2*rho0*((2*r2(_alpha))/(ex*t))**2)/(gamma+1)
+    # Form the exponents
+    alpha0 = 2/_exp
+    alpha2 = -(gamma-1)/(gamma*(w2-w))
+    alpha1 = ((_exp*gamma)/(2+j*(gamma-1))) * ((2*(j*(2-gamma)-w))/(gamma*_exp**2) - alpha2)
+    alpha3 = (j-w)/(gamma*(w2-w))
+    alpha4 = alpha1 * ((_exp*(j-w))/(w3-w))
+    alpha5 = (w*(1+gamma)-2*j)/(w3-w)
 
-    # Form the exponents and frequently used variables
-    alp0 = 2/ex
-    alp2 = -(gamma-1)/(gamma*(omg2-omg))
-    alp1 = ((ex*gamma)/(2+j*(gamma-1))) * ((2*(j*(2-gamma)-omg))/(gamma*ex**2) - alp2)
-    alp3 = (j-omg)/(gamma*(omg2-omg))
-    alp4 = alp1 * ((ex*(j-omg))/(omg3-omg))
-    alp5 = (omg*(1+gamma)-2*j)/(omg3-omg)
-
-    a = .25 * ex * (gamma+1)
+    # Form frequently used variables
+    a = .25 * _exp * (gamma+1)
     b = (gamma+1)/(gamma-1)
-    c = .5 * gamma * ex
-    d = ((gamma+1)*ex)/((gamma+1)*ex - 2*(2+j*(gamma-1)))
+    c = .5 * gamma * _exp
+    d = ((gamma+1)*_exp)/((gamma+1)*_exp - 2*(2+j*(gamma-1)))
     e = .5 * (2 + j*(gamma-1))
 
-    # Define the auxiliary functions
-    x1 = lambda V: a*V
-    x2 = lambda V: b * (c*V - 1)
+    # Define the auxiliary functions and their derivatives
+    x1 = lambda V: a * V
+    x2 = lambda V: b * max(1e-30, c*V - 1)
     x3 = lambda V: d * (1 - e*V)
-    x4 = lambda V: b * (1 - (c*V)/gamma)
+    x4 = lambda V: max(1e-12, b * (1 - (c*V)/gamma))
+    dx1 = a
+    dx2 = b * c
+    dx3 = -d * e
+    dx4 = -b * c / gamma
 
+    # Singular
     if abs(V2-Vstar) <= eps:
-        _lambda = lambda r: r/r2
-        _dlambda = 0
-        _f = lambda r: _lambda(r)
-        _g = lambda r: _lambda(r)**(j-2)
-        _h = lambda r: _lambda(r)**j
-
+        # Calculate the energy integrals (trivial)
         J2 = (gamma+1)/(j*(j*(gamma-1)+2)**2)
         J1 = (2*J2)/(gamma-1)
         alpha = J2 * np.pi * 2**(j-1)
+
+        # Define the shock position
+        r2 = (E_blast*t**2/(alpha*rho0))**(1/(_exp))
+
+        # Compute the Sedov functions
+        _lambda = lambda V: V/r2
+        _dlambda = 0
+        _f = lambda V: _lambda(V)
+        _g = lambda V: _lambda(V)**(j-2)
+        _h = lambda V: _lambda(V)**j
+
     else:
-        if abs(omg-omg2) <= eps:
-            factor = lambda V: (1-x1(V))/(x1(V)-(gamma+1)/(2*gamma))
-            _lambda = lambda V: x1(V)**-alp0 * x2(V)**((gamma-1)/(2*e)) * np.exp(factor * (gamma+1)/(2*e))
-            _dlambda = lambda V: -_lambda(V) * (a*alp0/x1(V) + b*c*(gamma-1)/(2*e*x2(V)) - (a*(gamma+1)/(2*e))*(factor/(1-x1(V)))*(1+factor))
-            _f = lambda V: x1(V) * _lambda(V)
-            _g = lambda V: x1(V)**(alp0*omg) * x2(V)**(4-j-(2*gamma)/(2*e)) * x4(V)**alp5 * np.exp(factor * (gamma+1)/e)
-            _h = lambda V: x1(V)**(alp0*omg) * x3(V)**(-j*gamma/(2*e)) * x4(V)**(1+alp5)
-        elif abs(omg-omg3) <= eps:
-            factor = lambda V: np.exp(-(j*gamma*(gamma+1)*(1-x1(V)))/(2*e*(.5*(gamma+1)-x1(V))))
-            _lambda = lambda V: x1(V)**-alp0 * x2(V)**-alp2 * x4(V)**-alp1
-            _dlambda = lambda V: -_lambda(V) * (a*alp0/x1(V) + b*c*alp2/x2(V) - b*c*alp1/(gamma*x4(V)))
-            _f = lambda V: x1(V) * _lambda(V)
-            _g = lambda V: x1(V)**(alp0*omg) * x2(V)**(alp3+alp2*omg) * x4(V)**(1-2/e) * factor
-            _h = lambda V: x1(V)**(alp0*omg) * x4(V)**((j*(gamma-1)-gamma)/e) * factor
+        # Compute the Sedov functions
+        # Vacuum
+        if V2 > Vstar + eps:
+            _lambda = _dlambda =_f = _g = _h = 0
+
         else:
-            _lambda = lambda V: x1(V)**-alp0 * x2(V)**-alp2 * x3(V)**-alp1
-            _dlambda = lambda V: -_lambda(V) * (a*alp0/x1(V) + b*c*alp2/x2(V) - d*e*alp1/x3(V))
-            _f = lambda V: x1(V) * _lambda(V)
-            _g = lambda V: x1(V)**(alp0*omg) * x2(V)**(alp3+alp2*omg) * x3(V)**(alp4+alp1*omg) * x4(V)**alp5
-            _h = lambda V: x1(V)**(alp0*omg) * x3(V)**(alp4+alp1*(omg-2)) * x4(V)**(1+alp5)
+            # Singularity w2
+            if abs(w-w2) <= eps:
+                factor = lambda V: (1-x1(V))/(x1(V)-(gamma+1)/(2*gamma))
+                _lambda = lambda V: x1(V)**-alpha0 * x2(V)**((gamma-1)/(2*e)) * np.exp(factor * (gamma+1)/(2*e))
+                _dlambda = lambda V: -_lambda(V) * (dx1*alpha0/x1(V) + dx2*(gamma-1)/(2*e*x2(V)) - dx1*((gamma+1)/(2*e))*(factor/(1-x1(V)))*(1+factor))
+                _f = lambda V: x1(V) * _lambda(V)
+                _g = lambda V: x1(V)**(alpha0*w) * x2(V)**(4-j-(2*gamma)/(2*e)) * x4(V)**alpha5 * np.exp(factor * (gamma+1)/e)
+                _h = lambda V: x1(V)**(alpha0*w) * x3(V)**(-j*gamma/(2*e)) * x4(V)**(1+alpha5)
 
-        if V2 < Vstar-eps:
-            Vmin = 2/(gamma*ex)
+            # Singularity w3
+            elif abs(w-w3) <= eps:
+                factor = lambda V: np.exp(-(j*gamma*(gamma+1)*(1-x1(V)))/(2*e*(.5*(gamma+1)-x1(V))))
+                _lambda = lambda V: x1(V)**-alpha0 * x2(V)**-alpha2 * x4(V)**-alpha1
+                _dlambda = lambda V: -_lambda(V) * (dx1*alpha0/x1(V) + dx2*alpha2/x2(V) + dx4*alpha1/x4(V))
+                _f = lambda V: x1(V) * _lambda(V)
+                _g = lambda V: x1(V)**(alpha0*w) * x2(V)**(alpha3+alpha2*w) * x4(V)**(1-2/e) * factor
+                _h = lambda V: x1(V)**(alpha0*w) * x4(V)**((j*(gamma-1)-gamma)/e) * factor
+
+            # Standard
+            else:
+                _lambda = lambda V: x1(V)**-alpha0 * x2(V)**-alpha2 * x3(V)**-alpha1
+                _dlambda = lambda V: -_lambda(V) * (dx1*alpha0/x1(V) + dx2*alpha2/x2(V) + dx3*alpha1/x3(V))
+                _f = lambda V: x1(V) * _lambda(V)
+                _g = lambda V: x1(V)**(alpha0*w) * x2(V)**(alpha3+alpha2*w) * x3(V)**(alpha4+alpha1*w) * x4(V)**alpha5
+                _h = lambda V: x1(V)**(alpha0*w) * x3(V)**(alpha4+alpha1*(w-2)) * x4(V)**(1+alpha5)
+
+        # Evaluate the energy integrals
+        rvv = 0
+        # Standard
+        if V2 < Vstar - eps:
+            Vmin = 2/(_exp*gamma)
+        # Vacuum
         else:
-            Vmin = 2/ex
+            Vmin = 2/_exp
 
-        J1 = lambda V: scipy.integrate.quad(((gamma+1)/(gamma-1)) * _lambda(V)**(j+1) * _g(V) * V**2 * _dlambda(V), Vmin, V2)
-        J2 = lambda V: scipy.integrate.quad((8 * _h(V) * _dlambda(V) * _lambda(V)**(j+1))/((gamma+1) * ex**2), Vmin, V2)
+        # Compute the energy integrals
+        J1 = sp.integrate.quad(lambda V: ((gamma+1)/(gamma-1)) * _lambda(V)**(j+1) * _g(V) * V**2 * _dlambda(V), Vmin, V2, epsabs=1e-12)[0]
+        J2 = sp.integrate.quad(lambda V: 8/((gamma+1)*_exp**2) * _lambda(V)**(j+1) * _h(V) * _dlambda(V), Vmin, V2, epsabs=1e-12)[0]
 
+        # Compute alpha with the integrated energies
         if j == 1:
-            alpha = lambda V: .5 * J1(V) + J2(V)/(gamma-1)
+            alpha = .5 * J1 + J2/(gamma-1)
         else:
-            alpha = lambda V: (j-1) * np.pi * (J1(V) + (2*J2(V))/(gamma-1))
+            alpha = (j-1) * np.pi * (J1 + 2*J2/(gamma-1))
 
-    # Determine the shock front position
-    pressures = grid[...,4]
-    physical_grid = np.linspace(sim_variables.start_pos-sim_variables.dx/2, sim_variables.end_pos+sim_variables.dx/2, sim_variables.cells+2)[1:-1]
-    left_P, right_P = pressures[:int(sim_variables.cells/2)], pressures[int(sim_variables.cells/2):]
-    if np.max(np.diff(left_P)) > np.max(np.diff(right_P)):
-        index = np.argmax(np.diff(left_P))
-    else:
-        index = np.argmax(np.diff(right_P))
-    r_want = abs(physical_grid[index])
+        # Define the shock position
+        r2 = (E_blast*t**2/(alpha*rho0))**(1/(_exp))
+    
+    # Define the post-shock values
+    vx2 = ((4*r2)/(_exp*t))/(gamma+1)
+    rho2 = rho0 * (gamma+1)/(gamma-1)
+    P2 = 2*rho0*((2*r2)/(_exp*t))**2/(gamma+1)
 
-    # Root-finding for similarity variable V*
-    f = lambda V: r2(alpha(V)) * _lambda(V) - r_want
-    V_star = scipy.optimize.fsolve(f, 1)[0]
+    arr = np.zeros_like(grid)
 
-    # Update the analytical solution
-    mask = np.abs(physical_grid) > r2
-    arr[...,0][mask] = rho0
-    arr[...,1:4][mask] = v0
-    arr[...,4][mask] = P0
-    arr[...,5:8][mask] = B0
+    # Generate the array of radii
+    centre = (sim_variables.end_pos + sim_variables.start_pos)/2
+    physical_grid = np.linspace(sim_variables.start_pos-sim_variables.dx/2, sim_variables.end_pos+sim_variables/2, sim_variables.cells+2)[1:-1]
+    radii = physical_grid[(centre <= physical_grid) & (physical_grid <= r2)]
 
-    mask = np.abs(physical_grid) <= r2
-    arr[...,0][mask] = (rho2*_g(V_star))[mask]
-    arr[...,1][mask] = (v0[...,0]*_f(V_star))[mask]
-    arr[...,4][mask] = (P2*_h(V_star))[mask]
+    density = np.zeros_like(radii)
+    pressure = np.zeros_like(radii)
+    vx = np.zeros_like(radii)
+
+    for index, r in enumerate(radii):
+        f = lambda V: r2*_lambda(V) - r
+        _V = sp.optimize.fsolve(f, 1)[0]
+
+        density[index] = rho2 * _g(_V)
+        pressure[index] = P2 * _h(_V)
+        vx[index] = vx2 * _f(_V)
+
+    arr[...,0][physical_grid <= r2] = density
+    arr[...,4][physical_grid <= r2] = pressure
+    arr[...,1][physical_grid <= r2] = vx
+    arr[...,0][physical_grid > r2] = rho0
+    arr[...,4][physical_grid > r2] = P0
+    arr[...,1][physical_grid > r2] = vx0
 
     return arr
-
-
-"""def calculate_Sedov_analytical(gamma):
-    dA = lambda eta, A, B, C: ((gamma+1)*(3*B + 5*A*C**2) + 2*C*(3*gamma*B - 13*A*C**2) + (gamma + 5 - 12*C)*((A*C*(gamma*(2*C-1)-1))/(2*(gamma-1))) - (12*A*(gamma+1)*C**2)/eta) * (2*A*(gamma-1))/((eta*(2*C-(gamma+1))*(gamma*(2*C-1)-1) - 10*eta*(gamma-1)*C**2 + 4*C*(gamma+1)*(gamma-1))*(2*C-(gamma+1))*A - 4*eta*gamma*(gamma-1)*(2*C-(gamma+1))*B)
-    dB = lambda eta, A, B, C: (dA(eta,A,B,C)*(2*C-(gamma+1))**2)/(2*(gamma-1)) - A*C*(gamma+5-12*C)/(2*eta*(gamma-1)) - 2*B/eta
-    dC = lambda eta, A, B, C: -(2*C-(gamma+1))*dA(eta,A,B,C)/(2*A) - 3*C/eta
-    pass
-"""

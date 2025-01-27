@@ -30,8 +30,8 @@ def initialise(sim_variables, convert=False):
         x, y = np.meshgrid(physical_grid, physical_grid, indexing='ij')
         centre = (end_pos+start_pos)/2
 
-        if config == "sedov":
-            mask = np.where(((x-centre)**2 + (y-centre)**2) <= shock_pos**2)
+        if config == "sedov" or "blast" in config:
+            mask = np.where(((x-centre)**2 + (y-centre)**2) <= (shock_pos-centre)**2)
             computational_grid[mask] = initial_left
 
         elif config.startswith("gauss"):
@@ -42,6 +42,19 @@ def initialise(sim_variables, convert=False):
         elif config in ["khi", "kelvin-helmholtz"] or ("kelvin" in config or "helmholtz" in config):
             computational_grid[np.where(y <= shock_pos)] = initial_left
             computational_grid[...,2] = params['perturb_ampl'] * np.sin(params['freq']*np.pi*x/(end_pos-start_pos))
+
+        elif config in ["orszag-tang", "orszag", "tang", "ot"]:
+            computational_grid[np.where(y <= shock_pos)] = initial_left
+            computational_grid[...,1] = -np.sin(2*np.pi*y)
+            computational_grid[...,2] = np.sin(2*np.pi*x)
+            computational_grid[...,5] = -params['ampl'] * np.sin(2*np.pi*y)
+            computational_grid[...,6] = params['ampl'] * np.sin(4*np.pi*x)
+
+        elif "rotor" in config:
+            mask = np.where(((x-centre)**2 + (y-centre)**2) <= (shock_pos-centre)**2)
+            computational_grid[mask] = initial_left
+            computational_grid[mask][...,1] = (-params['omega']*(y-centre)/shock_pos)[mask]
+            computational_grid[mask][...,2] = (params['omega']*(x-centre)/shock_pos)[mask]
 
         elif config in ["ivc", "vortex", "isentropic vortex"]:
             x_centre, y_centre = (np.min(x)+np.max(x))/2, (np.min(y)+np.max(y))/2
@@ -79,10 +92,10 @@ def initialise(sim_variables, convert=False):
             computational_grid[...,0] = fv.gauss_func(x, params)
 
     if convert:
-        grid = fv.point_convert_primitive(computational_grid, sim_variables)
+        grid = sim_variables.convert_primitive(computational_grid, sim_variables)
     else:
         grid = computational_grid
-    return fv.convert_mode(grid, sim_variables)
+    return fv.high_order_convert('cntr', grid, sim_variables)
 
 
 # Make flux as a function of cell-averaged (primitive) variables
@@ -103,7 +116,7 @@ def make_flux(grid, gamma, axis):
 
 # Jacobian matrix based on primitive variables
 def make_Jacobian(grid, gamma, axis):
-    rhos, v, pressures, B_fields = grid[...,0], grid[...,axis+1], grid[...,4], grid[...,5:8]
+    rhos, v, pressures, B_fields = grid[...,0], grid[...,axis+1], grid[...,4], grid[...,5:8]/np.sqrt(4*np.pi)
     abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
     
     # Create empty square arrays for each cell

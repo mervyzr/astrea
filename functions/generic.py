@@ -3,9 +3,14 @@ import random
 import argparse
 import itertools
 from datetime import timedelta
+from collections import namedtuple
+
+import yaml
+import numpy as np
 from tinydb import TinyDB, Query
 
-from numpy.polynomial import legendre
+from functions import fv
+from static import tests
 
 ##############################################################################
 # Generic functions not specific to the finite volume method
@@ -47,6 +52,18 @@ class RecursiveNamespace:
                 setattr(self, key, list(map(self.map_entry, val)))
             else:
                 setattr(self, key, val)
+
+
+# Make simulation variables; most functions accept sim_variables with all the options included,
+# so it might be useful to have a function auto-generate it when needed
+def make_sim_variables(file):
+    with open(file, "r") as _f:
+        config_variables = yaml.safe_load(_f)
+    config_variables = handle_variables(1, config_variables, {})
+    test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'])
+    _sim_variables = config_variables | test_variables
+    variable_constructor = namedtuple('simulation_variables', _sim_variables)
+    return variable_constructor(**_sim_variables)
 
 
 # Print progress status to Terminal
@@ -121,6 +138,7 @@ def handle_CLI():
     parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='run a single run or multiple runs for each simulation', choices=DB.get(PARAMS.type == 'run_type')['accepted'])
 
     parser.add_argument('--snapshots', metavar='', type=int, default=argparse.SUPPRESS, help='number of snapshots to save')
+    parser.add_argument('--plot_options', '--plot-options', dest='plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot')
     parser.add_argument('--live_plot', '--live-plot', '--live', dest='live_plot', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
     parser.add_argument('--take_snaps', '--take-snaps', dest='take_snaps', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
     parser.add_argument('--save_plots', '--save-plots', dest='save_plots', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving final plots of the simulation', choices=bool_choices)
@@ -147,6 +165,8 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     # Replace the relevant configuration variables with the CLI variables
     for k,v in cli_variables.items():
         if k in _config_variables:
+            if k == 'plot_options':
+                v = v.replace('-',' ').replace('/',',').replace('|',',')
             _config_variables[k] = v
 
     # Check validity of variables; revert to default values if not valid
@@ -161,7 +181,7 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
         elif k == "cells":
             try:
                 v = int(v) - int(v)%2
-            except Exception as e:
+            except ValueError:
                 v = 128
         elif k in ['gamma', 'cfl']:
             if not isinstance(v, float):
@@ -169,6 +189,26 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
                     v = 1.4
                 else:
                     v = .5
+            if k == "gamma" and v == 1:
+                v += np.finfo(_config_variables['precision']).eps
+        elif k == "plot_options":
+            accepted_plot_options, invalid = DB.get(PARAMS.type == k)['accepted'], []
+            try:
+                if isinstance(v, str):
+                    v = v.replace(' ','').replace('-',',').replace('/',',').replace('|',',').split(',')
+                for option in v:
+                    option = option.replace(' ','').replace('-','')
+                    if option.lower() not in accepted_plot_options:
+                        invalid.append(option)
+                        v.remove(option)
+                v = [i.lower() for i in v]
+                _ = v[0]
+            except (IndexError, TypeError):
+                v = DB.get(PARAMS.type == 'default')[k]
+                print(f"{BColours.WARNING}No valid plot options; reverting to default values..{BColours.ENDC}")
+            finally:
+                if invalid != []:
+                    print(f"{BColours.WARNING}Invalid plot options: {invalid}{BColours.ENDC}")
         else:
             if isinstance(v, str):
                 v = v.lower()
@@ -189,17 +229,25 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     final_dict['seed'] = int(seed)
     final_dict['now'] = None
     final_dict['elapsed'] = None
-    final_dict['permutations'] = [axes for axes in list(itertools.permutations(list(range(final_dict['dimension']+1)))) if axes[-1] == final_dict['dimension']]
+    final_dict['access_key'] = None
+    final_dict['permutations'] = [axes for axes in itertools.permutations(range(final_dict['dimension']+1)) if axes[-1] == final_dict['dimension']]
     final_dict['config_category'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
     final_dict['timestep_category'] = DB.get(PARAMS.accepted.any([final_dict['timestep']]))['category']
     final_dict['scheme_category'] = DB.get(PARAMS.accepted.any([final_dict['scheme']]))['category']
+    final_dict['magnetic_2d'] = (final_dict['config_category'] == 'magnetic' and final_dict['dimension'] == 2)
+    if final_dict['subgrid'].startswith("w") or final_dict['subgrid'] in ["ppm", "parabolic", "p"]:
+        final_dict['convert_primitive'] = fv.high_order_convert_primitive
+        final_dict['convert_conservative'] = fv.high_order_convert_conservative
+    else:
+        final_dict['convert_primitive'] = fv.point_convert_primitive
+        final_dict['convert_conservative'] = fv.point_convert_conservative
     try:
         final_dict['quiet'] = cli_variables["quiet"]
-    except Exception as e:
+    except KeyError:
         final_dict['quiet'] = False
 
     if final_dict['scheme'] in DB.get(PARAMS.type == 'scheme' and PARAMS.category == 'complete')['accepted']:
-        _roots, _weights = legendre.leggauss(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
+        _roots, _weights = np.polynomial.legendre.leggauss(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
         final_dict['roots'] = .5*_roots + .5  # Gauss-Legendre quadrature with interval [0,1]
         final_dict['weights'] = _weights/2  # Gauss-Legendre quadrature with interval [0,1]
 
