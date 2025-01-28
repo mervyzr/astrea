@@ -101,13 +101,13 @@ def generate_test_conditions(config, cells):
         misc = None
 
     elif "kelvin" in config or "helmholtz" in config or config == "khi":
-        start_pos = 0
+        start_pos = -1
         end_pos = 1
-        shock_pos = .5
-        t_end = 2
+        shock_pos = 0
+        t_end = 4
         boundary = "wrap"
-        initial_left = np.array([2,-.5,0,0,2.5,0,0,0])
-        initial_right = np.array([1,.5,0,0,2.5,0,0,0])
+        initial_left = np.array([2,-.5,0,0,1,0,0,0])
+        initial_right = np.array([1,.5,0,0,1,0,0,0])
         misc = {'perturb_ampl':.5, 'freq':4}
 
     # [Yee et. al., 1999]

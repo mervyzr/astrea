@@ -56,8 +56,8 @@ class RecursiveNamespace:
 
 # Make simulation variables; most functions accept sim_variables with all the options included,
 # so it might be useful to have a function auto-generate it when needed
-def make_sim_variables(file):
-    with open(file, "r") as _f:
+def make_sim_variables():
+    with open('parameters.yml', "r") as _f:
         config_variables = yaml.safe_load(_f)
     config_variables = handle_variables(1, config_variables, {})
     test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'])
