@@ -25,7 +25,6 @@ from functions import constructor, generic, plotting
 # Globals
 CURRENT_DIR = os.getcwd()
 SEED = np.random.randint(0, 1e8)
-LOAD_ENV = False
 
 
 # Finite volume shock function
@@ -104,10 +103,6 @@ def run() -> None:
         sys.stdout.write('\033[2K\033[1G')
         print(f"{generic.BColours.WARNING}Simulation end by SIGINT; exiting gracefully..{generic.BColours.ENDC}")
         sys.exit(0)
-
-    # Load env variables
-    if LOAD_ENV and (sys.version_info.major == 3 and sys.version_info.minor >= 13):
-        dotenv.load_dotenv(f"{CURRENT_DIR}/static/.env")
 
     # Generate the simulation variables from settings (dict)
     with open(f"{CURRENT_DIR}/parameters.yml", "r") as settings_file:
@@ -238,4 +233,10 @@ def run() -> None:
     ###################################### SCRIPT END ######################################
 
 if __name__ == "__main__":
+    # Load env variables
+    for dirpath, dirnames, filenames in os.walk(CURRENT_DIR):
+        _ = [_filename for _filename in filenames if _filename.endswith('.env')]
+        if len(_) == 1:
+            dotenv.load_dotenv(os.path.join(dirpath, _[0]))
+
     run()
