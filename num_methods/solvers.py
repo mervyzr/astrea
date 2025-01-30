@@ -9,23 +9,23 @@ from functions import constructor, fv
 # Intercell numerical fluxes between L and R interfaces based on Riemann solver
 def calculate_Riemann_flux(data, sim_variables):
 
-    # Select Riemann solver based on scheme
+    # Select Riemann solver
     def run_Riemann_solver(_axis, _sim_variables, _characteristics, **kwargs):
-        # HLL-type schemes
-        if _sim_variables.scheme_category == "hll":
-            if _sim_variables.scheme.endswith("d"):
+        # HLL-type solvers
+        if _sim_variables.solver_category == "hll":
+            if _sim_variables.solver.endswith("d"):
                 return calculate_HLLD_flux(_axis, _sim_variables, **kwargs)
             else:
                 return calculate_HLLC_flux(_axis, _sim_variables, **kwargs)
-        # 'Complete Riemann' schemes
-        elif _sim_variables.scheme_category == "complete":
-            if _sim_variables.scheme.startswith("o"):
+        # 'Complete Riemann' solvers
+        elif _sim_variables.solver_category == "complete":
+            if _sim_variables.solver.startswith("o"):
                 return calculate_DOTS_flux(_axis, _sim_variables, **kwargs)
             else:
                 return calculate_ES_flux(_axis, _sim_variables, **kwargs)
-        # Roe-type/Lax-type schemes
+        # Roe-type/Lax-type solvers
         else:
-            if _sim_variables.scheme.endswith("w"):
+            if _sim_variables.solver.endswith("w"):
                 return calculate_LaxWendroff_flux(_characteristics, **kwargs)
             else:
                 return calculate_LaxFriedrich_flux(_characteristics, **kwargs)
@@ -63,7 +63,7 @@ def calculate_Riemann_flux(data, sim_variables):
     return fluxes
 
 
-# (Local) Lax-Friedrich scheme (1st-order; highly diffusive)
+# (Local) Lax-Friedrich solver (1st-order; highly diffusive)
 def calculate_LaxFriedrich_flux(characteristics, **kwargs):
     q_plus, q_minus = kwargs["qFs"]
     flux_plus, flux_minus = kwargs["fluxFs"]
@@ -73,7 +73,7 @@ def calculate_LaxFriedrich_flux(characteristics, **kwargs):
     return .5*(flux_minus+flux_plus) - .5*((q_plus-q_minus) * max_eigvals[...,None])
 
 
-# Lax-Wendroff scheme (2nd-order, Jacobian method; contains overshoots)
+# Lax-Wendroff solver (2nd-order, Jacobian method; contains overshoots)
 def calculate_LaxWendroff_flux(characteristics, **kwargs):
     q_plus, q_minus = kwargs["qFs"]
     flux_plus, flux_minus = kwargs["fluxFs"]

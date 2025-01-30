@@ -72,7 +72,7 @@ def print_progress(t, sim_variables):
     _config = f"{BColours.OKCYAN}{sim_variables.config.upper()}{BColours.ENDC}"
     _subgrid = f"{BColours.OKCYAN}{sim_variables.subgrid.upper()}{BColours.ENDC}"
     _timestep = f"{BColours.OKCYAN}{sim_variables.timestep.upper()}{BColours.ENDC}"
-    _scheme = f"{BColours.OKCYAN}{sim_variables.scheme.upper()}{BColours.ENDC}"
+    _solver = f"{BColours.OKCYAN}{sim_variables.solver.upper()}{BColours.ENDC}"
     _cfl = f"{BColours.OKCYAN}{sim_variables.cfl}{BColours.ENDC}"
     _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({sim_variables.dimension}D){BColours.ENDC}"
     _instance = f"{BColours.WARNING}{'%.6f'%t} / {'%.2f'%sim_variables.t_end}{BColours.ENDC}"
@@ -82,7 +82,7 @@ def print_progress(t, sim_variables):
     else:
         _cells = f"{BColours.OKCYAN}{sim_variables.cells}{BColours.ENDC}"
 
-    print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SCHEME={_scheme}, TIMESTEP={_timestep} || {_instance}", end='\r')
+    print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SCHEME={_solver}, TIMESTEP={_timestep} || {_instance}", end='\r')
     pass
 
 
@@ -92,7 +92,7 @@ def print_final(sim_variables, timestep_count):
     _config = f"{BColours.OKCYAN}{sim_variables.config.upper()}{BColours.ENDC}"
     _subgrid = f"{BColours.OKCYAN}{sim_variables.subgrid.upper()}{BColours.ENDC}"
     _timestep = f"{BColours.OKCYAN}{sim_variables.timestep.upper()}{BColours.ENDC}"
-    _scheme = f"{BColours.OKCYAN}{sim_variables.scheme.upper()}{BColours.ENDC}"
+    _solver = f"{BColours.OKCYAN}{sim_variables.solver.upper()}{BColours.ENDC}"
     _cfl = f"{BColours.OKCYAN}{sim_variables.cfl}{BColours.ENDC}"
     _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({sim_variables.dimension}D){BColours.ENDC}"
     #_performance = f"{BColours.OKGREEN}{round(kwargs['elapsed']*1e6/(sim_variables.cells*run_length), 3)} \u03BCs/(dt*N){BColours.ENDC}"
@@ -109,7 +109,7 @@ def print_final(sim_variables, timestep_count):
     else:
         _elapsed = f"{BColours.OKGREEN}{str(timedelta(seconds=sim_variables.elapsed))}s{BColours.ENDC}"
 
-    print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SCHEME={_scheme}, TIMESTEP={_timestep} || Elapsed: {_elapsed} ({timestep_count})", flush=True)
+    print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SCHEME={_solver}, TIMESTEP={_timestep} || Elapsed: {_elapsed} ({timestep_count})", flush=True)
     pass
 
 
@@ -134,8 +134,10 @@ def handle_CLI():
     parser.add_argument('--dimension', '--dim', dest='dimension', type=int, metavar='', default=argparse.SUPPRESS, help='dimension of the simulation', choices=DB.get(PARAMS.type == 'dimension')['accepted'])
     parser.add_argument('--subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='subgrid model used in the reconstruction of the grid', choices=accepted_values('subgrid'))
     parser.add_argument('--timestep', metavar='', type=str.lower, default=argparse.SUPPRESS, help='sime-stepping algorithm used in the update step of the simulation', choices=accepted_values('timestep'))
-    parser.add_argument('--scheme', metavar='', type=str.lower, default=argparse.SUPPRESS, help='scheme of solver for the Riemann problem', choices=accepted_values('scheme'))
+    parser.add_argument('--solver', metavar='', type=str.lower, default=argparse.SUPPRESS, help='solver for the Riemann problem', choices=accepted_values('solver'))
+
     parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='run a single run or multiple runs for each simulation', choices=DB.get(PARAMS.type == 'run_type')['accepted'])
+    parser.add_argument('--compare', metavar='', type=str.lower, default=argparse.SUPPRESS, help='run a comparison of choice when run_type = multiple', choices=DB.get(PARAMS.type == 'compare')['accepted'])
 
     parser.add_argument('--snapshots', metavar='', type=int, default=argparse.SUPPRESS, help='number of snapshots to save')
     parser.add_argument('--plot_options', '--plot-options', dest='plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot')
@@ -189,8 +191,10 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
                     v = 1.4
                 else:
                     v = .5
-            if k == "gamma" and v == 1:
-                v += np.finfo(_config_variables['precision']).eps
+            if k == "gamma" and v <= 1:
+                v = 1 + np.finfo(_config_variables['precision']).eps
+            if k == "cfl" and v <= 0:
+                v = .5
         elif k == "plot_options":
             accepted_plot_options, invalid = DB.get(PARAMS.type == k)['accepted'], []
             try:
@@ -233,7 +237,7 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     final_dict['permutations'] = [axes for axes in itertools.permutations(range(final_dict['dimension']+1)) if axes[-1] == final_dict['dimension']]
     final_dict['config_category'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
     final_dict['timestep_category'] = DB.get(PARAMS.accepted.any([final_dict['timestep']]))['category']
-    final_dict['scheme_category'] = DB.get(PARAMS.accepted.any([final_dict['scheme']]))['category']
+    final_dict['solver_category'] = DB.get(PARAMS.accepted.any([final_dict['solver']]))['category']
     final_dict['magnetic_2d'] = (final_dict['config_category'] == 'magnetic' and final_dict['dimension'] == 2)
     if final_dict['subgrid'].startswith("w") or final_dict['subgrid'] in ["ppm", "parabolic", "p"]:
         final_dict['convert_primitive'] = fv.high_order_convert_primitive
@@ -246,16 +250,16 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     except KeyError:
         final_dict['quiet'] = False
 
-    if final_dict['scheme'] in DB.get(PARAMS.type == 'scheme' and PARAMS.category == 'complete')['accepted']:
+    if final_dict['solver'] in DB.get(PARAMS.type == 'solver' and PARAMS.category == 'complete')['accepted']:
         _roots, _weights = np.polynomial.legendre.leggauss(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
         final_dict['roots'] = .5*_roots + .5  # Gauss-Legendre quadrature with interval [0,1]
         final_dict['weights'] = _weights/2  # Gauss-Legendre quadrature with interval [0,1]
 
     # Exclusion cases
-    if final_dict['scheme'] in DB.get(PARAMS.type == 'scheme' and PARAMS.category == 'hll')['accepted']:
-        if (final_dict['scheme_category'] == "hll" and final_dict['scheme'].endswith('c')) and final_dict['config'] in DB.get(PARAMS.type == 'config' and PARAMS.category == 'magnetic')['accepted']:
-            print(f"{BColours.WARNING}HLLC scheme does not work with magnetic fields present..{BColours.ENDC}")
-            final_dict['scheme'] = DB.get(PARAMS.type == 'default')['scheme']
+    if final_dict['solver'] in DB.get(PARAMS.type == 'solver' and PARAMS.category == 'hll')['accepted']:
+        if (final_dict['solver_category'] == "hll" and final_dict['solver'].endswith('c')) and final_dict['config'] in DB.get(PARAMS.type == 'config' and PARAMS.category == 'magnetic')['accepted']:
+            print(f"{BColours.WARNING}HLLC solver does not work with magnetic fields present..{BColours.ENDC}")
+            final_dict['solver'] = DB.get(PARAMS.type == 'default')['solver']
 
     if final_dict['run_type'].startswith('m'):
         if final_dict['save_video']:
@@ -267,6 +271,18 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
         if final_dict['take_snaps']:
             print(f"{BColours.WARNING}Saving snapshots can only be switched on for single simulation runs..{BColours.ENDC}")
             final_dict['take_snaps'] = False
+
+        if final_dict['compare'].startswith('cell') or final_dict['compare'].startswith('size') or final_dict['compare'] == 'n':
+            if final_dict['dimension'] == 2:
+                final_dict['multi_array'] = 2**np.arange(2,8)
+            else:
+                final_dict['multi_array'] = 2**np.arange(3,11)
+        elif final_dict['compare'].startswith('subgrid'):
+            final_dict['multi_array'] = ['pcm','plm','ppm','weno']
+        elif final_dict['compare'].startswith('timestep'):
+            final_dict['multi_array'] = ['euler','rk4','ssprk22','ssprk33','ssprk54']
+        elif final_dict['compare'].startswith('solver'):
+            final_dict['multi_array'] = ['lf','lw','hllc','hlld','os']
     else:
         if (final_dict['take_snaps'] or final_dict['save_video'] or final_dict['save_plots']) and (final_dict['live_plot']):
             print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live plot interferes with matplotlib.savefig..{BColours.ENDC}")
