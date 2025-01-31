@@ -127,11 +127,11 @@ def run() -> None:
     # Auto-generate the resolutions/grid-sizes for run type
     if _sim_variables['run_type'].startswith('m'):
         if _sim_variables['dimension'] == 2:
-            n_list = 2**np.arange(2,8)
+            itr_list = 2**np.arange(2,8)
         else:
-            n_list = 2**np.arange(3,11)
+            itr_list = 2**np.arange(3,11)
     else:
-        n_list = [_sim_variables['cells']]
+        itr_list = [_sim_variables['cells']]
 
     # Save simulation variables into namedtuple
     variable_constructor = namedtuple('simulation_variables', _sim_variables)
@@ -157,14 +157,14 @@ def run() -> None:
             f.attrs['datetime'] = script_start
             f.attrs['seed'] = sim_variables.seed
 
-        for N in n_list:
+        for _var in itr_list:
             ############################# INDIVIDUAL SIMULATION #############################
             now = datetime.now()
 
             # Update cells (and grid width) in simulation variables (namedtuple)
             sim_variables = sim_variables._replace(access_key=now.strftime('%Y%m%d%H%M%S')+str(now.microsecond))
             sim_variables = sim_variables._replace(now=now)
-            sim_variables = sim_variables._replace(cells=N)
+            sim_variables = sim_variables._replace(cells=_var)
             sim_variables = sim_variables._replace(dx=abs(sim_variables.end_pos-sim_variables.start_pos)/sim_variables.cells)
 
             # Save simulation variables into HDF5 file
