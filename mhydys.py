@@ -177,7 +177,7 @@ def run() -> None:
                 grp.attrs['dimension'] = sim_variables.dimension
                 grp.attrs['subgrid'] = sim_variables.subgrid
                 grp.attrs['timestep'] = sim_variables.timestep
-                grp.attrs['scheme'] = sim_variables.scheme
+                grp.attrs['solver'] = sim_variables.solver
 
             ################### CORE ###################
             lap = perf_counter()

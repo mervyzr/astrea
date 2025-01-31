@@ -302,7 +302,7 @@
       ]
     },
     "18": {
-      "type": "scheme",
+      "type": "solver",
       "category": "lax",
       "accepted": [
         "lf",
@@ -316,7 +316,7 @@
       ]
     },
     "19": {
-      "type": "scheme",
+      "type": "solver",
       "category": "hll",
       "accepted": [
         "hllc",
@@ -326,7 +326,7 @@
       ]
     },
     "20": {
-      "type": "scheme",
+      "type": "solver",
       "category": "complete",
       "accepted": [
         "os",
@@ -357,7 +357,7 @@
       "precision": "float64",
       "subgrid": "pcm",
       "timestep": "euler",
-      "scheme": "lf",
+      "solver": "lf",
       "run_type": "single",
       "plot_options": [
         "density",

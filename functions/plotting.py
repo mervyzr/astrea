@@ -244,7 +244,7 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
 
 # Function for plotting a snapshot of the grid
 def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
-    config, N, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
+    config, N, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
     options = sim_variables.plot_options
 
@@ -279,7 +279,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
         plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}", fontsize=30)
         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
 
-    plt.savefig(f"{kwargs['save_path']}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{scheme}_{'%.3f' % round(t,3)}.png", dpi=330)
+    plt.savefig(f"{kwargs['save_path']}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{solver}_{'%.3f' % round(t,3)}.png", dpi=330)
 
     plt.cla()
     plt.clf()
@@ -289,8 +289,8 @@ def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
 
 # Plot snapshots of quantities for multiple runs
 def plot_quantities(hdf5, sim_variables, save_path):
-    config, dimension, subgrid, timestep = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep
-    scheme, precision, snapshots = sim_variables.scheme, sim_variables.precision, sim_variables.snapshots
+    config, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
+    precision, snapshots = sim_variables.precision, sim_variables.snapshots
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
     options = sim_variables.plot_options
 
@@ -392,7 +392,7 @@ def plot_quantities(hdf5, sim_variables, save_path):
             handles, labels = plt.gca().get_legend_handles_labels()
             fig.legend(handles, labels, prop={'size': 24}, loc='upper right', ncol=_ncol)
 
-        plt.savefig(f"{save_path}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{scheme}_{'%.3f' % round(ref_time,3)}.png", dpi=330)
+        plt.savefig(f"{save_path}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{solver}_{'%.3f' % round(ref_time,3)}.png", dpi=330)
 
         plt.cla()
         plt.clf()
@@ -402,7 +402,7 @@ def plot_quantities(hdf5, sim_variables, save_path):
 # Plot solution errors to determine order of convergence of numerical scheme
 def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
     options = ["density", "total energy"]
-    config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
+    config, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -461,7 +461,7 @@ def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
     plt.suptitle(rf"$L_{error_norm}$ solution error norm $\epsilon_\nu(\vec{{w}})$ against resolution $N_\nu$ for {config.title()} test", fontsize=24)
     fig.text(0.5, 0.04, r"Resolution $\log{(N_\nu)}$", fontsize=18, ha='center')
 
-    plt.savefig(f"{save_path}/solErr_L{error_norm}_{subgrid}_{timestep}_{scheme}.png", dpi=330)
+    plt.savefig(f"{save_path}/solErr_L{error_norm}_{subgrid}_{timestep}_{solver}.png", dpi=330)
 
     plt.cla()
     plt.clf()
@@ -490,7 +490,7 @@ def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
     ax.set_xticklabels(_xticklabels, rotation=45, fontsize=18, ha="right")
     ax.legend(prop={'size': 18})
 
-    plt.savefig(f"{save_path}/convergenceOrder_{subgrid}_{timestep}_{scheme}.png", dpi=330)
+    plt.savefig(f"{save_path}/convergenceOrder_{subgrid}_{timestep}_{solver}.png", dpi=330)
 
     plt.cla()
     plt.clf()
@@ -499,7 +499,7 @@ def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
 
 # Total variation to determine if numerical scheme prevents oscillation
 def plot_total_variation(hdf5, sim_variables, save_path):
-    config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
+    config, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
     options = sim_variables.plot_options
 
     # hdf5 keys are datetime strings
@@ -547,7 +547,7 @@ def plot_total_variation(hdf5, sim_variables, save_path):
         plt.suptitle(rf"Total variation of primitive variables TV($\vec{{w}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=30)
         fig.text(0.5, 0.04, r"Time $t$", fontsize=24, ha='center')
 
-        plt.savefig(f"{save_path}/TV_{config}_{subgrid}_{timestep}_{scheme}_{N}.png", dpi=330)
+        plt.savefig(f"{save_path}/TV_{config}_{subgrid}_{timestep}_{solver}_{N}.png", dpi=330)
 
         plt.cla()
         plt.clf()
@@ -557,7 +557,7 @@ def plot_total_variation(hdf5, sim_variables, save_path):
 # Determines if numerical scheme is conservative to machine precision
 def plot_conservation_equations(hdf5, sim_variables, save_path):
     options = ["mass", "momentum_x", "energy"]
-    config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
+    config, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
     
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -609,7 +609,7 @@ def plot_conservation_equations(hdf5, sim_variables, save_path):
         plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=30)
         fig.text(0.5, 0.04, r"Time $t$", fontsize=24, ha='center')
 
-        plt.savefig(f"{save_path}/conserveEq_{config}_{subgrid}_{timestep}_{scheme}_{N}.png", dpi=330)
+        plt.savefig(f"{save_path}/conserveEq_{config}_{subgrid}_{timestep}_{solver}_{N}.png", dpi=330)
 
         plt.cla()
         plt.clf()
@@ -618,7 +618,7 @@ def plot_conservation_equations(hdf5, sim_variables, save_path):
 
 # Make a video of entire simulation; video of all plot options or specific variable
 def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
-    config, dimension, subgrid, timestep, scheme = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.scheme
+    config, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
 
     # hdf5 keys are datetime strings
@@ -686,7 +686,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                 counter += 1
 
             try:
-                subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "error", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{save_path}/vid_{config}_{subgrid}_{timestep}_{scheme}_{variable}.mp4"])
+                subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "error", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{save_path}/vid_{config}_{subgrid}_{timestep}_{solver}_{variable}.mp4"])
             except Exception as e:
                 print(f"{generic.BColours.FAIL}Video creation failed{generic.BColours.ENDC}")
                 pass
@@ -723,7 +723,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                 style_counter += 1
 
                 try:
-                    subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "error", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{save_path}/vid_{config}_{subgrid}_{timestep}_{scheme}_{_variable}.mp4"])
+                    subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "error", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{save_path}/vid_{config}_{subgrid}_{timestep}_{solver}_{_variable}.mp4"])
                 except Exception as e:
                     print(f"{generic.BColours.FAIL}Video creation failed{generic.BColours.ENDC}")
                     pass
