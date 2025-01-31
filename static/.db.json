@@ -85,7 +85,13 @@
         "brio-wu",
         "bw",
         "brio",
-        "wu",
+        "wu"
+      ]
+    },
+    "7": {
+      "type": "config",
+      "category": "magnetic-2D",
+      "accepted": [
         "orszag-tang",
         "orszag",
         "tang",
@@ -99,7 +105,7 @@
         "mhd-blast-wave"
       ]
     },
-    "7": {
+    "8": {
       "type": "config",
       "category": "2D",
       "accepted": [
@@ -188,14 +194,14 @@
         "lax-liu19"
       ]
     },
-    "8": {
+    "9": {
       "type": "dimension",
       "accepted": [
         1,
         2
       ]
     },
-    "9": {
+    "10": {
       "type": "precision",
       "accepted": [
         "float",
@@ -205,7 +211,7 @@
         "float128"
       ]
     },
-    "10": {
+    "11": {
       "type": "subgrid",
       "category": "pcm",
       "accepted": [
@@ -214,7 +220,7 @@
         "c"
       ]
     },
-    "11": {
+    "12": {
       "type": "subgrid",
       "category": "plm",
       "accepted": [
@@ -223,7 +229,7 @@
         "l"
       ]
     },
-    "12": {
+    "13": {
       "type": "subgrid",
       "category": "ppm",
       "accepted": [
@@ -233,7 +239,7 @@
         "p"
       ]
     },
-    "13": {
+    "14": {
       "type": "subgrid",
       "category": "weno",
       "accepted": [
@@ -249,7 +255,7 @@
         "weno 7"
       ]
     },
-    "14": {
+    "15": {
       "type": "timestep",
       "category": "euler",
       "accepted": [
@@ -259,7 +265,7 @@
         "forward euler"
       ]
     },
-    "15": {
+    "16": {
       "type": "timestep",
       "category": "rk",
       "accepted": [
@@ -271,7 +277,7 @@
         "runge-kutta4"
       ]
     },
-    "16": {
+    "17": {
       "type": "timestep",
       "category": "ssprk",
       "accepted": [
@@ -295,7 +301,7 @@
         "ssprk10,4"
       ]
     },
-    "17": {
+    "18": {
       "type": "scheme",
       "category": "lax",
       "accepted": [
@@ -309,7 +315,7 @@
         "wendroff"
       ]
     },
-    "18": {
+    "19": {
       "type": "scheme",
       "category": "hll",
       "accepted": [
@@ -319,7 +325,7 @@
         "d"
       ]
     },
-    "19": {
+    "20": {
       "type": "scheme",
       "category": "complete",
       "accepted": [
@@ -333,7 +339,7 @@
         "entropy-stable"
       ]
     },
-    "20": {
+    "21": {
       "type": "run_type",
       "accepted": [
         "s",
@@ -344,7 +350,7 @@
         "many"
       ]
     },
-    "21": {
+    "22": {
       "type": "default",
       "config": "sod",
       "dimension": 1,
@@ -360,7 +366,7 @@
         "total energy"
       ]
     },
-    "22": {
+    "23": {
       "type": "plot_options",
       "category": "plotting",
       "accepted": [
@@ -420,7 +426,7 @@
         "internaltemperature"
       ]
     },
-    "23": {
+    "24": {
       "type": "quotes",
       "name": [
         "It's not a bug; it's an undocumented feature.",

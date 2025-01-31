@@ -226,30 +226,34 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
         final_dict[k] = v
 
     # Add relevant key-pairs to the dictionary
+    try:
+        final_dict['quiet'] = cli_variables["quiet"]
+    except KeyError:
+        final_dict['quiet'] = False
+
     final_dict['seed'] = int(seed)
     final_dict['now'] = None
     final_dict['elapsed'] = None
     final_dict['access_key'] = None
-    final_dict['permutations'] = [axes for axes in itertools.permutations(range(final_dict['dimension']+1)) if axes[-1] == final_dict['dimension']]
+
     final_dict['config_category'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
     final_dict['timestep_category'] = DB.get(PARAMS.accepted.any([final_dict['timestep']]))['category']
     final_dict['scheme_category'] = DB.get(PARAMS.accepted.any([final_dict['scheme']]))['category']
-    final_dict['magnetic_2d'] = (final_dict['config_category'] == 'magnetic' and final_dict['dimension'] == 2)
+    
+    final_dict['permutations'] = [axes for axes in itertools.permutations(range(final_dict['dimension']+1)) if axes[-1] == final_dict['dimension']]
+    final_dict['magnetic_2d'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category'] == 'magnetic-2D'
+
+    if final_dict['scheme'] in DB.get(PARAMS.type == 'scheme' and PARAMS.category == 'complete')['accepted']:
+        _roots, _weights = np.polynomial.legendre.leggauss(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
+        final_dict['roots'] = .5*_roots + .5  # Gauss-Legendre quadrature with interval [0,1]
+        final_dict['weights'] = _weights/2  # Gauss-Legendre quadrature with interval [0,1]
+
     if final_dict['subgrid'].startswith("w") or final_dict['subgrid'] in ["ppm", "parabolic", "p"]:
         final_dict['convert_primitive'] = fv.high_order_convert_primitive
         final_dict['convert_conservative'] = fv.high_order_convert_conservative
     else:
         final_dict['convert_primitive'] = fv.point_convert_primitive
         final_dict['convert_conservative'] = fv.point_convert_conservative
-    try:
-        final_dict['quiet'] = cli_variables["quiet"]
-    except KeyError:
-        final_dict['quiet'] = False
-
-    if final_dict['scheme'] in DB.get(PARAMS.type == 'scheme' and PARAMS.category == 'complete')['accepted']:
-        _roots, _weights = np.polynomial.legendre.leggauss(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
-        final_dict['roots'] = .5*_roots + .5  # Gauss-Legendre quadrature with interval [0,1]
-        final_dict['weights'] = _weights/2  # Gauss-Legendre quadrature with interval [0,1]
 
     # Exclusion cases
     if final_dict['scheme'] in DB.get(PARAMS.type == 'scheme' and PARAMS.category == 'hll')['accepted']:
