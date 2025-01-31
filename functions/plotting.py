@@ -737,7 +737,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
 
 # Function for plotting instance of the grid; insert into any part of the code
 def plot_this(grid, sim_variables, **kwargs):
-    N, dimension = sim_variables.cells, sim_variables.dimension
+    dimension = sim_variables.dimension
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
 
     options = ['density', 'pressure', 'total energy', 'vx', 'vy', 'vz', 'Bx', 'By', 'Bz']
@@ -751,7 +751,7 @@ def plot_this(grid, sim_variables, **kwargs):
             except KeyError:
                 text = ""
         else:
-            text = rf"at $t = {t}$ "
+            text = rf"at $t = {t}$"
 
     fig, ax, plot_ = make_figure(options, sim_variables)
     y_data = make_data(options, grid, sim_variables)
@@ -765,18 +765,18 @@ def plot_this(grid, sim_variables, **kwargs):
             cax = divider.append_axes('right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
-            x = np.linspace(start_pos, end_pos, N)
+            x = np.linspace(start_pos, end_pos, len(y))
             if BEAUTIFY:
                 gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=plot_['colours']['1d'][idx])
             else:
                 ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
 
     if dimension == 2:
-        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ {text}($N = {N}^{dimension}$)", fontsize=30)
+        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ {text}", fontsize=30)
         fig.text(0.5, 0.04, r"Cell index $x$", fontsize=24, ha='center')
         fig.text(0.04, 0.4, r"Cell index $y$", fontsize=24, ha='center', rotation='vertical')
     else:
-        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}($N = {N}$)", fontsize=30)
+        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}", fontsize=30)
         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
 
     plt.show()
