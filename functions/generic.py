@@ -239,8 +239,7 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     final_dict['config_category'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
     final_dict['timestep_category'] = DB.get(PARAMS.accepted.any([final_dict['timestep']]))['category']
     final_dict['solver_category'] = DB.get(PARAMS.accepted.any([final_dict['solver']]))['category']
-    
-    final_dict['permutations'] = [axes for axes in itertools.permutations(range(final_dict['dimension']+1)) if axes[-1] == final_dict['dimension']]
+
     final_dict['magnetic_2d'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category'] == 'magnetic-2D'
 
     if final_dict['solver'] in DB.get(PARAMS.type == 'solver' and PARAMS.category == 'complete')['accepted']:
@@ -256,6 +255,10 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
         final_dict['convert_conservative'] = fv.point_convert_conservative
 
     # Exclusion cases
+    if '2D' in final_dict['config_category'] and final_dict['dimension'] != 2:
+        final_dict['dimension'] = 2
+    final_dict['permutations'] = [axes for axes in itertools.permutations(range(final_dict['dimension']+1)) if axes[-1] == final_dict['dimension']]
+
     if final_dict['solver'] in DB.get(PARAMS.type == 'solver' and PARAMS.category == 'hll')['accepted']:
         if (final_dict['solver_category'] == "hll" and final_dict['solver'].endswith('c')) and final_dict['config'] in DB.get(PARAMS.type == 'config' and PARAMS.category == 'magnetic')['accepted']:
             print(f"{BColours.WARNING}HLLC solver does not work with magnetic fields present..{BColours.ENDC}")
