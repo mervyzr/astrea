@@ -745,8 +745,11 @@ def plot_this(grid, sim_variables, **kwargs):
     if kwargs:
         try:
             t = kwargs['t']
-        except Exception as e:
-            text = ""
+        except KeyError:
+            try:
+                text = kwargs['text']
+            except KeyError:
+                text = ""
         else:
             text = rf"at $t = {t}$ "
 
