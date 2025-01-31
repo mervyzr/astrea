@@ -12,20 +12,20 @@ def calculate_Riemann_flux(data, sim_variables):
     # Select Riemann solver
     def run_Riemann_solver(_axis, _sim_variables, _characteristics, **kwargs):
         # HLL-type solvers
-        if _sim_variables.solver_category == "hll":
+        if _sim_variables.solver.startswith(("h","c","d")):
             if _sim_variables.solver.endswith("d"):
                 return calculate_HLLD_flux(_axis, _sim_variables, **kwargs)
             else:
                 return calculate_HLLC_flux(_axis, _sim_variables, **kwargs)
         # 'Complete Riemann' solvers
-        elif _sim_variables.solver_category == "complete":
-            if _sim_variables.solver.startswith("o"):
+        elif _sim_variables.solver.startswith(("o","s","e")):
+            if _sim_variables.solver.startswith(("o","s")):
                 return calculate_DOTS_flux(_axis, _sim_variables, **kwargs)
             else:
                 return calculate_ES_flux(_axis, _sim_variables, **kwargs)
         # Roe-type/Lax-type solvers
         else:
-            if _sim_variables.solver.endswith("w"):
+            if "w" in _sim_variables.solver:
                 return calculate_LaxWendroff_flux(_characteristics, **kwargs)
             else:
                 return calculate_LaxFriedrich_flux(_characteristics, **kwargs)
