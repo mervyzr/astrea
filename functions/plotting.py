@@ -735,6 +735,51 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
         shutil.rmtree(vidpath)
 
 
+# Function for plotting instance of the grid; insert into any part of the code
+def plot_this(grid, sim_variables, **kwargs):
+    N, dimension = sim_variables.cells, sim_variables.dimension
+    start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
+
+    options = ['density', 'pressure', 'total energy', 'vx', 'vy', 'vz', 'Bx', 'By', 'Bz']
+
+    if kwargs:
+        try:
+            t = kwargs['t']
+        except Exception as e:
+            text = ""
+        else:
+            text = rf"at $t = {t}$ "
+
+    fig, ax, plot_ = make_figure(options, sim_variables)
+    y_data = make_data(options, grid, sim_variables)
+
+    for idx, (_i,_j) in enumerate(plot_['indexes']):
+        y = y_data[idx]
+
+        if dimension == 2:
+            graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
+            divider = make_axes_locatable(ax[_i,_j])
+            cax = divider.append_axes('right', size='5%', pad=0.05)
+            fig.colorbar(graph, cax=cax, orientation='vertical')
+        else:
+            x = np.linspace(start_pos, end_pos, N)
+            if BEAUTIFY:
+                gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=plot_['colours']['1d'][idx])
+            else:
+                ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
+
+    if dimension == 2:
+        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ {text}($N = {N}^{dimension}$)", fontsize=30)
+        fig.text(0.5, 0.04, r"Cell index $x$", fontsize=24, ha='center')
+        fig.text(0.04, 0.4, r"Cell index $y$", fontsize=24, ha='center', rotation='vertical')
+    else:
+        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}($N = {N}$)", fontsize=30)
+        fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
+
+    plt.show()
+    pass
+
+
 # Gradient fill the plots
 def gradient_plot(data, plot_index, ax, **kwargs):
     x, y = data
