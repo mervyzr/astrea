@@ -742,16 +742,15 @@ def plot_this(grid, sim_variables, **kwargs):
 
     options = ['density', 'pressure', 'total energy', 'vx', 'vy', 'vz', 'Bx', 'By', 'Bz']
 
-    if kwargs:
+    try:
+        t = kwargs['t']
+    except KeyError:
         try:
-            t = kwargs['t']
+            text = kwargs['text']
         except KeyError:
-            try:
-                text = kwargs['text']
-            except KeyError:
-                text = ""
-        else:
-            text = rf"at $t = {t}$"
+            text = ""
+    else:
+        text = rf"at $t = {t}$"
 
     fig, ax, plot_ = make_figure(options, sim_variables)
     y_data = make_data(options, grid, sim_variables)
