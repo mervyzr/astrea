@@ -121,6 +121,17 @@ def generate_test_conditions(config, cells):
         initial_right = np.array([1,0,0,0,1,0,0,0])
         misc = {'vortex_str':5, 'freq':2}
 
+    # Rudimentary (protostellar) jet
+    elif "jet" in config or config == "funnel":
+        start_pos = -1
+        end_pos = 1
+        shock_pos = 0
+        t_end = 1
+        boundary = "edge"
+        initial_left = np.array([0,0,0,0,0,0,0,0])
+        initial_right = np.array([0,0,0,0,0,0,0,0])
+        misc = {'a':.05, 'b':10, 'alpha':20}
+
     # [Orszag & Tang, 1998; Stone et al., 2008]
     elif "orszag" in config or "tang" in config or config == "ot":
         start_pos = -.5

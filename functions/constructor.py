@@ -43,6 +43,29 @@ def initialise(sim_variables, convert=False):
             computational_grid[np.where(y <= shock_pos)] = initial_left
             computational_grid[...,2] = params['perturb_ampl'] * np.sin(params['freq']*np.pi*x/(end_pos-start_pos))
 
+        elif config in ["ivc", "vortex", "isentropic vortex"]:
+            x_centre, y_centre = (np.min(x)+np.max(x))/2, (np.min(y)+np.max(y))/2
+
+            r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
+            T = 1 - (((gamma-1)*params['vortex_str']**2)/(2*gamma*(params['freq']*np.pi)**2))*np.exp(1-r**2)
+
+            computational_grid[...,0] = T**(1/(gamma-1))
+            computational_grid[...,1] = (params['vortex_str']/(params['freq']*np.pi)) * np.exp((1-r**2)/2)
+            computational_grid[...,2] = (params['vortex_str']/(params['freq']*np.pi)) * np.exp((1-r**2)/2)
+            computational_grid[...,4] = T**(gamma/(gamma-1))
+
+        elif config == "funnel" or "jet" in config:
+            disc_mask = np.where((y**2/params['a']) - (x**2/params['b']) <= 1)
+            computational_grid[disc_mask][...,1] = (-.1/x)[disc_mask]
+
+            jet_mask = 1
+            pass
+
+        elif "ll" in config or "lax-liu" in config:
+            computational_grid[np.where(x <= shock_pos)] = initial_left
+            computational_grid[np.where((x <= shock_pos) & (y >= shock_pos))] = params['bottom_left']
+            computational_grid[np.where((x > shock_pos) & (y >= shock_pos))] = params['bottom_right']
+
         elif config in ["orszag-tang", "orszag", "tang", "ot"]:
             computational_grid[np.where(y <= shock_pos)] = initial_left
             computational_grid[...,1] = -np.sin(2*np.pi*y)
@@ -55,22 +78,6 @@ def initialise(sim_variables, convert=False):
             computational_grid[mask] = initial_left
             computational_grid[mask][...,1] = (-params['omega']*(y-centre)/shock_pos)[mask]
             computational_grid[mask][...,2] = (params['omega']*(x-centre)/shock_pos)[mask]
-
-        elif config in ["ivc", "vortex", "isentropic vortex"]:
-            x_centre, y_centre = (np.min(x)+np.max(x))/2, (np.min(y)+np.max(y))/2
-
-            r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
-            T = 1 - (((gamma-1)*params['vortex_str']**2)/(2*gamma*(params['freq']*np.pi)**2))*np.exp(1-r**2)
-
-            computational_grid[...,0] = T**(1/(gamma-1))
-            computational_grid[...,1] = (params['vortex_str']/(params['freq']*np.pi)) * np.exp((1-r**2)/2)
-            computational_grid[...,2] = (params['vortex_str']/(params['freq']*np.pi)) * np.exp((1-r**2)/2)
-            computational_grid[...,4] = T**(gamma/(gamma-1))
-
-        elif "ll" in config or "lax-liu" in config:
-            computational_grid[np.where(x <= shock_pos)] = initial_left
-            computational_grid[np.where((x <= shock_pos) & (y >= shock_pos))] = params['bottom_left']
-            computational_grid[np.where((x > shock_pos) & (y >= shock_pos))] = params['bottom_right']
 
         else:
             computational_grid[np.where(x < shock_pos)] = initial_left
