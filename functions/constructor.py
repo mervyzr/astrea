@@ -57,12 +57,17 @@ def initialise(sim_variables, convert=False):
         elif config == "funnel" or "jet" in config:
             disc_mask = np.where((y**2/params['a']) - (x**2/params['b']) <= 1)
             _ = computational_grid[disc_mask]
-            _[...,1] = fv.divide(-.1, x[disc_mask])
+            _[...,0] = .1
+            _[...,1] = np.divide(-params['factor'], x[disc_mask], out=np.zeros_like(x[disc_mask]), where=x[disc_mask]!=0)
+            _[...,2] = -params['factor'] * y[disc_mask]
+            _[...,4] = .1
             computational_grid[disc_mask] = _
 
-            central_column = np.where(np.abs(x) <= .1)
-            computational_grid[central_column] = 1
-            pass
+            jet_mask = np.where((x**2/params['c']) - (y**2/params['d']) <= 1)
+            _ = computational_grid[jet_mask]
+            _[...,1] = params['factor'] * x[jet_mask]
+            _[...,2] = 2 * y[jet_mask]
+            computational_grid[jet_mask] = _
 
         elif "ll" in config or "lax-liu" in config:
             computational_grid[np.where(x <= shock_pos)] = initial_left
