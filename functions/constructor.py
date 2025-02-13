@@ -56,9 +56,12 @@ def initialise(sim_variables, convert=False):
 
         elif config == "funnel" or "jet" in config:
             disc_mask = np.where((y**2/params['a']) - (x**2/params['b']) <= 1)
-            computational_grid[disc_mask][...,1] = (-.1/x)[disc_mask]
+            _ = computational_grid[disc_mask]
+            _[...,1] = fv.divide(-.1, x[disc_mask])
+            computational_grid[disc_mask] = _
 
-            jet_mask = 1
+            central_column = np.where(np.abs(x) <= .1)
+            computational_grid[central_column] = 1
             pass
 
         elif "ll" in config or "lax-liu" in config:
