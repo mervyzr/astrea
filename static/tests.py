@@ -123,14 +123,14 @@ def generate_test_conditions(config, cells):
 
     # Rudimentary (protostellar) jet
     elif "jet" in config or config == "funnel":
-        start_pos = -5
+        start_pos = 0
         end_pos = 5
-        shock_pos = 0
+        shock_pos = 2.5
         t_end = 1
         boundary = "edge"
-        initial_left = np.array([0,0,0,0,0,0,0,0])
-        initial_right = np.array([0,0,0,0,0,0,0,0])
-        misc = {'factor':.1, 'a':.2, 'b':5, 'c':.05, 'd':.5}
+        initial_left = np.array([1,5,0,0,1,0,0,0])
+        initial_right = np.array([1,5,0,0,1,0,0,0])
+        misc = {'a':.01, 'b':10}
 
     # [Orszag & Tang, 1998; Stone et al., 2008]
     elif "orszag" in config or "tang" in config or config == "ot":
