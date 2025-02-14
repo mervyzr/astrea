@@ -55,9 +55,6 @@ def initialise(sim_variables, convert=False):
             computational_grid[...,4] = T**(gamma/(gamma-1))
 
         elif config == "funnel" or "jet" in config:
-            _ = computational_grid[np.where(x < 2.5)]
-            
-
             mask = np.where(((y-centre)**2/params['a']) - (x**2/params['b']) <= .1)
             _ = computational_grid[mask]
             _[:] = sim_variables.initial_left
