@@ -6,7 +6,7 @@
 
 # mhydys
 
-_mhydys_ (pronounced _"Hades"_; the _"m"_ is silent 😀) is a one-/two-dimensional (**M**agneto)**HY**dro**DY**namics **S**imulation toy model code for the purpose of modelling shock waves in the interstellar medium, with possible implementation of a chemical network and radiative cooling.
+**_mhydys_** (pronounced _"Hades"_; the _"m"_ is silent 😀) is a one-/two-dimensional (**M**agneto)**HY**dro**DY**namics **S**imulation toy model code for the purpose of modelling shock waves in the interstellar medium, with possible implementation of a chemical network and radiative cooling.
 
 **_This code is created as part of the Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner._**
 
