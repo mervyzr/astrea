@@ -6,7 +6,7 @@
 
 # m-hydys
 
-m-hydys (pronounced _"Hades"_; the _"m"_ is silent 😀) is a one-/two-dimensional **M**agneto**HY**dro**DY**namics **S**imulation code for the purpose of modelling shockwaves in the interstellar medium, with possible implementation of a chemical network of ions and neutrals, and radiative cooling.
+m-hydys (pronounced _"Hades"_; the _"m"_ is silent 😀) is a one-/two-dimensional **M**agneto**HY**dro**DY**namics **S**imulation toy model code for the purpose of modelling shock waves in the interstellar medium, with possible implementation of a chemical network and radiative cooling.
 
 **_This code is created as part of the Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner._**
 
@@ -20,7 +20,7 @@ m-hydys (pronounced _"Hades"_; the _"m"_ is silent 😀) is a one-/two-dimension
 
 ### Code
 
-The simulation employs a finite volume subgrid model (Eulerian) with a fixed and uniform Cartesian grid with periodic or outlet boundary conditions. The solution in the grid is updated in parallel. The simulation also allows for magnetic fields with the magnetic permeability set to one for simplicity.
+The simulation employs a higher-order finite volume subgrid model (Eulerian) with a fixed and uniform Cartesian grid with periodic or outlet boundary conditions. The solution in the grid is updated in parallel. The simulation also allows for magnetic fields with the magnetic permeability set to one for simplicity.
 
 The code is written entirely in Python 3, and uses the `numpy` and `h5py` modules extensively for calculations and data handling respectively. The last _^stable_ Python version supported is _**Python 3.12**_.
 
