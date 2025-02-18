@@ -54,13 +54,6 @@ def initialise(sim_variables, convert=False):
             computational_grid[...,2] = (params['vortex_str']/(params['freq']*np.pi)) * np.exp((1-r**2)/2)
             computational_grid[...,4] = T**(gamma/(gamma-1))
 
-        elif config == "funnel" or "jet" in config:
-            mask = np.where(((y-centre)**2/params['a']) - (x**2/params['b']) <= .1)
-            _ = computational_grid[mask]
-            _[:] = sim_variables.initial_left
-            _[...,2] = .01 * x[mask]
-            computational_grid[mask] = _
-
         elif "ll" in config or "lax-liu" in config:
             computational_grid[np.where(x <= shock_pos)] = initial_left
             computational_grid[np.where((x <= shock_pos) & (y >= shock_pos))] = params['bottom_left']
@@ -97,6 +90,17 @@ def initialise(sim_variables, convert=False):
             computational_grid[...,0] = fv.sine_func(x, params)
         elif config.startswith('gauss'):
             computational_grid[...,0] = fv.gauss_func(x, params)
+        elif config.startswith('lin'):
+            perturbation = np.array([1,-1,1,1,1.5,0,0,0]) * params['ampl']
+            if 'mhd' in config:
+                # fast magnetosonic wave
+                #perturbation = np.array([.4472135954999580,-.8944271909999160,.4216370213557840,.1490711984999860,2.012457825664615,.8432740427115680,.2981423969999720,0]) * params['ampl']
+                # Alfven wave
+                perturbation = np.array([0,0,-.3333333333333333,.9428090415820634,0,-.3333333333333333,.9428090415820634,0]) * params['ampl']
+                # slow magnetosonic wave
+                #perturbation = np.array([.8944271909999159,-.4472135954999579,-.8432740427115680,-.2981423969999720,.6708136850795449,-.4216370213557841,-.1490711984999860,0]) * params['ampl']
+            perturbation = perturbation * np.sin(params['freq'] * np.pi * x)[...,None]
+            computational_grid += perturbation
 
     if convert:
         grid = sim_variables.convert_primitive(computational_grid, sim_variables)

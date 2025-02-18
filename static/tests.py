@@ -4,7 +4,7 @@ import numpy as np
 # Initial conditions for test configs
 ##############################################################################
 
-def generate_test_conditions(config, cells):
+def generate_test_conditions(config, cells, gamma):
     # [Sod, 1978]
     if "sod" in config:
         start_pos = 0
@@ -44,8 +44,8 @@ def generate_test_conditions(config, cells):
         shock_pos = 1
         t_end = 1
         boundary = "wrap"
-        initial_left = np.array([0,1,1,0,1,0,0,0])
-        initial_right = np.array([0,1,1,0,1,0,0,0])
+        initial_left = np.array([0,1,1,1,1,0,0,0])
+        initial_right = np.array([0,1,1,1,1,0,0,0])
         misc = {'freq':2, 'ampl':.1, 'y_offset':2}
 
     elif config.startswith('gauss'):
@@ -54,9 +54,23 @@ def generate_test_conditions(config, cells):
         shock_pos = 1
         t_end = 2
         boundary = "wrap"
-        initial_left = np.array([0,1,1,0,1e-6,0,0,0])
-        initial_right = np.array([0,1,1,0,1e-6,0,0,0])
+        initial_left = np.array([0,1,1,1,1e-6,0,0,0])
+        initial_right = np.array([0,1,1,1,1e-6,0,0,0])
         misc = {'peak_pos':0, 'ampl':.75, 'fwhm':.08, 'y_offset':1}
+
+    # [Shu, 1991]
+    elif config.startswith('lin'):
+        start_pos = 0
+        end_pos = 1
+        shock_pos = 1
+        t_end = 2*np.pi
+        boundary = "wrap"
+        initial_left = np.array([1,1,1,1,1/gamma,0,0,0])
+        initial_right = np.array([1,1,1,1,1/gamma,0,0,0])
+        if 'mhd' in config:
+            initial_left[5:] = np.array([1,np.sqrt(2),.5]) * np.sqrt(4*np.pi)
+            initial_right[5:] = np.array([1,np.sqrt(2),.5]) * np.sqrt(4*np.pi)
+        misc = {'freq':2, 'ampl':1e-6}
 
     elif "slow" in config:
         start_pos = 0
@@ -120,17 +134,6 @@ def generate_test_conditions(config, cells):
         initial_left = np.array([1,0,0,0,1,0,0,0])
         initial_right = np.array([1,0,0,0,1,0,0,0])
         misc = {'vortex_str':5, 'freq':2}
-
-    # Rudimentary (protostellar) jet
-    elif "jet" in config or config == "funnel":
-        start_pos = 0
-        end_pos = 5
-        shock_pos = 2.5
-        t_end = 1
-        boundary = "edge"
-        initial_left = np.array([1,5,0,0,1,0,0,0])
-        initial_right = np.array([1,5,0,0,1,0,0,0])
-        misc = {'a':.01, 'b':10}
 
     # [Orszag & Tang, 1998; Stone et al., 2008]
     elif "orszag" in config or "tang" in config or config == "ot":

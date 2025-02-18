@@ -61,7 +61,13 @@
         "sine wave",
         "sine-wave",
         "gaussian",
-        "gauss"
+        "gauss",
+        "linear",
+        "lin",
+        "linear mhd",
+        "lin mhd",
+        "linear-mhd",
+        "lin-mhd"
       ]
     },
     "5": {
@@ -116,10 +122,6 @@
         "isentropic-vortex",
         "isentropic vortex",
         "ivc",
-        "funnel",
-        "jet",
-        "protostellar jet",
-        "protostellar-jet",
         "ll1",
         "ll2",
         "ll3",

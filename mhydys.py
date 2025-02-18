@@ -121,7 +121,7 @@ def run() -> None:
     config_variables = generic.handle_variables(SEED, config_variables, cli_variables)
 
     # Generate test configuration and final variables
-    test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'])
+    test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'], config_variables['gamma'])
     _sim_variables = config_variables | test_variables
 
     # Auto-generate the resolutions/grid-sizes for run type
