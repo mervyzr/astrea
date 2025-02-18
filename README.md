@@ -6,7 +6,7 @@
 
 # m-hydys
 
-m-hydys (pronounced _"Hades"_; the _"m"_ is silent 😀) is a one-/two-dimensional **M**agneto**HY**dro**DY**namics **S**imulation toy model code for the purpose of modelling shock waves in the interstellar medium, with possible implementation of a chemical network and radiative cooling.
+m-hydys (pronounced _"Hades"_; the _"m"_ is silent 😀) is a one-/two-dimensional (**M**agneto-)**HY**dro**DY**namics **S**imulation toy model code for the purpose of modelling shock waves in the interstellar medium, with possible implementation of a chemical network and radiative cooling.
 
 **_This code is created as part of the Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner._**
 
@@ -79,12 +79,12 @@ Several (magneto-)hydrodynamical tests are in place:
     - sine
     - square
     - isentropic vortex (Yee et al., 1999)
-- Magnetohydrodynamics
+- Magnetohydrodynamics (_2D not stable_)
   - Ryu-Jones 2a shock test (Ryu & Jones, 1995)
   - Brio-Wu shock test (Brio & Wu, 1988)
   - Orszag-Tang test (Orszag & Tang, 1998)
-  - 2D MHD rotor (Balsara & Spicer, 1999)
-  - 2D MHD blast wave (Felker & Stone, 2018)
+  - MHD rotor (Balsara & Spicer, 1999)
+  - MHD blast wave (Felker & Stone, 2018)
 
 Analytical solutions for the Sod shock test (Pfrommer et al., 2006), Gaussian wave test and the sine wave test are overplotted in the saved plots. The solution error norms are also calculated when the smooth advection wave tests are run (Gaussian & sine waves).
 
@@ -131,23 +131,23 @@ mhydys.run()
 ├── __init__.py
 ├── functions
 │   ├── __init__.py
-│   ├── analytic.py      : Analytical solutions to hydrodynamics tests
+│   ├── analytic.py      : Analytical solutions to (magneto)hydrodynamics tests
 │   ├── constructors.py  : Constructors for math objects, such as eigenvectors and Jacobian matrices
-│   ├── fv.py            : Frequently used functions specific to finite volume
-│   ├── generic.py       : Generic functions not specific to finite volume
+│   ├── fv.py            : Frequently used functions specific to FVM
+│   ├── generic.py       : Generic functions not specific to FVM
 │   └── plotting.py      : Functions for (live-)plotting
 ├── num_methods
 │   ├── __init__.py
 │   ├── evolvers.py      : Collates the schemes for space and time evolution
 │   ├── limiters.py      : Implements flux/slope limiters in the reconstructed states
-│   ├── mag_field.py     : Functions for magnetic componenets computation
+│   ├── mag_field.py     : Functions for magnetic componenets computation (currently not stable)
 │   ├── solvers.py       : Contains the Riemann solvers
 ├── parameters.yml       : Parameters for the simulation
 ├── schemes
 │   ├── __init__.py
 │   ├── pcm.py           : Piecewise constant method [Godunov, 1959]
 │   ├── plm.py           : Piecewise linear method [Derigs et al., 2018]
-│   ├── ppm.py           : Piecewise parabolic method [Felker & Stone, 2015]
+│   ├── ppm.py           : Piecewise parabolic method [McCorquodale & Colella, 2011; Felker & Stone, 2015]
 │   ├── weno.py          : WENO method [Shu, 2009; San & Kara, 2015]
 ├── setup.py             : Installation script
 ├── mhydys.py            : Runs the simulation, and contains the update loop
@@ -157,7 +157,7 @@ mhydys.run()
 │   ├── .default.yml     : Default parameters file
 │   ├── .env             : Environment file
 │   ├── requirements.txt : Full Python package requirements
-│   ├── tests.py         : Hydrodynamics test configurations
+│   ├── tests.py         : Initial conditions for (magneto)hydrodynamics tests
 ```
 
 
