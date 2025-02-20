@@ -19,7 +19,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
     author = author.lower()
 
     # Rotate grid and apply algorithm for each axis
-    for axis, axes in enumerate(permutations):
+    for axis, axes in permutations.items():
         _grid = grid.transpose(axes)
 
         # Convert to primitive variables

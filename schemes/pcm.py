@@ -14,7 +14,7 @@ def run(grid, sim_variables):
     data = nested_dict()
 
     # Rotate grid and apply algorithm for each axis
-    for axis, axes in enumerate(permutations):
+    for axis, axes in permutations.items():
         _grid = grid.transpose(axes)
 
         # Convert to primitive variables

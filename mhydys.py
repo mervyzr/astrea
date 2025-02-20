@@ -37,7 +37,6 @@ def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
 
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables
     grid = constructor.initialise(sim_variables, convert=True)
-    plot_axes = sim_variables.permutations[-1]
 
     # Initiate live or snapshot plotting, if enabled
     if sim_variables.live_plot:
@@ -50,7 +49,7 @@ def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
     t, idx = 0., 1
     while t <= sim_variables.t_end:
         # Saves each instance of the system (primitive variables) at time t
-        grid_snapshot = sim_variables.convert_conservative(grid, sim_variables).transpose(plot_axes)
+        grid_snapshot = sim_variables.convert_conservative(grid, sim_variables).transpose(sim_variables.ortho_axis)
         with h5py.File(hdf5, "a") as f:
             dataset = f[sim_variables.access_key].create_dataset(str(float(t)), data=grid_snapshot)
             dataset.attrs['t'] = float(t)
@@ -88,6 +87,7 @@ def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
 
             # Update time step
             t += dt
+            sim_variables = sim_variables._replace(permutations=dict(reversed(list(sim_variables.permutations.items()))))
 
 ##############################################################################
 

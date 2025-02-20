@@ -32,8 +32,8 @@ def evolve_space(grid, sim_variables):
 
         e3U = mag_field.compute_corner(magnetic_components, sim_variables)
 
-        reversed_axes = sim_variables.permutations[::-1]
-        for axis, axes in enumerate(sim_variables.permutations):
+        reversed_axes = dict(reversed(list(sim_variables.permutations.items())))
+        for axis, axes in sim_variables.permutations.items():
             ortho_axis = reversed_axes[axis][:-1]
             fluxes[axes]['mag_flux'] = (-1)**axis * fv.add_boundary(e3U.transpose(ortho_axis), sim_variables.boundary)[1:]
 
@@ -47,15 +47,15 @@ def evolve_time(grid, fluxes, dt, sim_variables):
     def compute_L(_fluxes, _sim_variables):
         total_flux = 0
 
-        for _axis, _axes in enumerate(_sim_variables.permutations):
+        for _axis, _axes in _sim_variables.permutations.items():
             reversed_axes = np.argsort(_axes)
             Riemann_flux = _fluxes[_axes]['flux']
             flux_diff = np.diff(Riemann_flux, axis=0)/_sim_variables.dx
             total_flux += flux_diff.transpose(reversed_axes)
 
         if _sim_variables.magnetic_2d:
-            ortho_axis = _sim_variables.permutations[-1][:-1]
-            for _axis, _axes in enumerate(_sim_variables.permutations):
+            ortho_axis = _sim_variables.ortho_axis[:-1]
+            for _axis, _axes in _sim_variables.permutations.items():
                 mag_flux = _fluxes[_axes]['mag_flux']
                 mag_flux_diff = np.diff(mag_flux, axis=0)/_sim_variables.dx
                 #total_flux[...,5+_axis] = mag_flux_diff.transpose(ortho_axis)

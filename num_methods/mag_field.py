@@ -9,7 +9,7 @@ from num_methods import limiters
 
 # Reconstruct the transverse values for each face average
 def reconstruct_transverse(_wF, sim_variables, method="ppm", author="mc"):
-    ortho_axis, boundary = sim_variables.permutations[-1], sim_variables.boundary
+    ortho_axis, boundary = sim_variables.ortho_axis, sim_variables.boundary
 
     # Compute with orthogonal axes
     wF = np.copy(_wF.transpose(ortho_axis))
@@ -124,12 +124,13 @@ def reconstruct_transverse(_wF, sim_variables, method="ppm", author="mc"):
 
 # Compute the corner electric fields wrt to corner; gives 4-fold values for each corner for now
 def compute_corner(magnetic_components, sim_variables):
-    gamma, boundary, reversed_axes = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations[::-1]
+    gamma, boundary = sim_variables.gamma, sim_variables.boundary
     magnetic_components = np.asarray(magnetic_components)
+    reversed_axes = dict(reversed(list(sim_variables.permutations.items())))
 
     # Transpose the magnetic components back into the original arrangement (use the x-axis as 'reference axis')
     data = []
-    for axis, axes in enumerate(reversed_axes):
+    for axis, axes in reversed_axes.items():
         wD, wU = magnetic_components[axis]
         data.append([wD.transpose(axes), wU.transpose(axes)])
     data = np.asarray(data)
@@ -179,7 +180,7 @@ def compute_corner(magnetic_components, sim_variables):
 def inverse_reconstruct(grid, sim_variables):
     _grid = np.copy(grid)
 
-    for axis, axes in enumerate(sim_variables.permutations):
+    for axis, axes in sim_variables.permutations.items():
         reversed_axes = np.argsort(axes)
 
         # Approximate the face-averaged values to face-centred values (eq. 38)

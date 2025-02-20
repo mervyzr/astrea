@@ -257,7 +257,11 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     # Exclusion cases
     if '2D' in final_dict['config_category'] and final_dict['dimension'] != 2:
         final_dict['dimension'] = 2
-    final_dict['permutations'] = [axes for axes in itertools.permutations(range(final_dict['dimension']+1)) if axes[-1] == final_dict['dimension']]
+    final_dict['permutations'] = {}
+    permutations = [axes for axes in itertools.permutations(range(final_dict['dimension']+1)) if axes[-1] == final_dict['dimension']]
+    for idx, axes in enumerate(permutations):
+        final_dict['permutations'][idx] = axes
+    final_dict['ortho_axis'] = permutations[-1]
 
     if final_dict['solver'] in DB.get(PARAMS.type == 'solver' and PARAMS.category == 'hll')['accepted']:
         if (final_dict['solver_category'] == "hll" and final_dict['solver'].endswith('c')) and final_dict['config'] in DB.get(PARAMS.type == 'config' and PARAMS.category == 'magnetic')['accepted']:
