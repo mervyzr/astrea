@@ -20,7 +20,7 @@ class CustomInstallCommand(install):
 
 setup(
     name="mhydys",
-    version="1.3.0",
+    version="1.3.1",
     author="Mervin Yap",
     author_email="myap@ph1.uni-koeln.de",
     description="Magnetohydrodynamics code for modelling shockwaves in the interstellar medium",
