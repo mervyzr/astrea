@@ -127,9 +127,9 @@ def make_flux(grid, gamma, axis):
 
 # Jacobian matrix based on primitive variables
 def make_Jacobian(grid, gamma, axis):
-    rhos, v, pressures, B_fields = grid[...,0], grid[...,axis+1], grid[...,4], grid[...,5:8]/np.sqrt(4*np.pi)
+    rhos, vels, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
     abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
-    
+
     # Create empty square arrays for each cell
     _arr = np.zeros_like(grid)
     arr = np.repeat(_arr[...,None], _arr.shape[-1], axis=-1)
@@ -137,18 +137,29 @@ def make_Jacobian(grid, gamma, axis):
 
     # Replace matrix with values
     # Hydrodynamic components
-    arr[...,i,j] = v[...,None]  # diagonal elements
-    arr[...,0,axis+1] = rhos
-    arr[...,axis+1,4] = 1/rhos
-    arr[...,4,axis+1] = gamma * pressures
+    arr[...,i,j] = vels[...,abscissa][...,None]  # diagonal elements
+    arr[...,0,abscissa+1] = rhos
+    arr[...,abscissa+1,4] = 1/rhos
+    arr[...,4,abscissa+1] = gamma * pressures
 
     # Magnetic field components
+    arr[...,abscissa+5,abscissa+5] = 0
+
+    arr[...,abscissa+1,abscissa+5] = -fv.divide(B_fields[...,abscissa], rhos)
     arr[...,abscissa+1,ordinate+5] = fv.divide(B_fields[...,ordinate], rhos)
     arr[...,abscissa+1,applicate+5] = fv.divide(B_fields[...,applicate], rhos)
+
     arr[...,ordinate+1,ordinate+5] = arr[...,applicate+1,applicate+5] = -fv.divide(B_fields[...,abscissa], rhos)
+    arr[...,ordinate+1,abscissa+5] = -fv.divide(B_fields[...,ordinate], rhos)
+    arr[...,applicate+1,abscissa+5] = -fv.divide(B_fields[...,applicate], rhos)
+
     arr[...,ordinate+5,abscissa+1] = B_fields[...,ordinate]
     arr[...,applicate+5,abscissa+1] = B_fields[...,applicate]
+    arr[...,4,abscissa+5] = (gamma-1) * np.sum(vels*B_fields, axis=-1)
+
     arr[...,ordinate+5,ordinate+1] = arr[...,applicate+5,applicate+1] = -B_fields[...,abscissa]
+    arr[...,ordinate+5,abscissa+5] = -vels[...,ordinate]
+    arr[...,applicate+5,abscissa+5] = -vels[...,applicate]
     return arr
 
 
@@ -168,7 +179,7 @@ def make_Roe_average(left_interface, right_interface):
 # Make the right eigenvectors for adiabatic magnetohydrodynamics [Derigs]
 def make_right_eigenvectors(axis, grids, gamma):
     abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
-    rhos, vels, pressures, B_fields = grids[...,0], grids[...,1:4], grids[...,4], grids[...,5:8]/np.sqrt(4*np.pi)
+    rhos, vels, pressures, B_fields = grids[...,0], grids[...,1:4], grids[...,4], grids[...,5:8]
     vx, vy, vz = vels[...,abscissa], vels[...,ordinate], vels[...,applicate]
     Bx, By, Bz = B_fields[...,abscissa], B_fields[...,ordinate], B_fields[...,applicate]
 
@@ -282,7 +293,7 @@ def make_right_eigenvectors(axis, grids, gamma):
 # Make the right eigenvector for adiabatic magnetohydrodynamics in entropy-stable flux (primitive variables)
 def make_ES_right_eigenvectors(axis, grids, gamma):
     abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
-    rhos, vels, pressures, B_fields = grids[...,0], grids[...,1:4], grids[...,4], grids[...,5:8]/np.sqrt(4*np.pi)
+    rhos, vels, pressures, B_fields = grids[...,0], grids[...,1:4], grids[...,4], grids[...,5:8]
     vx, vy, vz = vels[...,abscissa], vels[...,ordinate], vels[...,applicate]
 
     # Define the right eigenvectors for each cell in each grid
