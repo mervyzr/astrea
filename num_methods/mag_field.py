@@ -143,7 +143,7 @@ def compute_corner(magnetic_components, sim_variables):
 
     # Calculate the eigenvalues for the Riemann problem at the corner; crucial for selecting the corner
     alphas = []
-    for axis, axes in enumerate(reversed_axes):
+    for axis, axes in reversed_axes.items():
         _w_plus, _w_minus = magnetic_components[axis][0], magnetic_components[axis][1]
         _axes = axes[:-1]
 
