@@ -10,7 +10,7 @@ simulation_parameters:
   dimension     : 1
 
 numerical_parameters:
-  # Floating-point precision : float16, float32, float64, float128
+  # Floating-point precision : float16, float32, float64
   precision     : float64
   # Subgrid models : PCM, PLM, PPM, WENO-3/5/7
   subgrid       : PPM

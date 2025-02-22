@@ -213,8 +213,7 @@
         "float",
         "float16",
         "float32",
-        "float64",
-        "float128"
+        "float64"
       ]
     },
     "11": {
