@@ -20,7 +20,7 @@ class CustomInstallCommand(install):
 
 setup(
     name="mhydys",
-    version="1.3.1",
+    version="1.3.2",
     author="Mervin Yap",
     author_email="myap@ph1.uni-koeln.de",
     description="Magnetohydrodynamics code for modelling shockwaves in the interstellar medium",
@@ -30,10 +30,11 @@ setup(
     ),
     install_requires=[
         "wheel",
-        "numpy>=2.1.0",
-        "scipy>=1.13",
-        "h5py>=3.6",
+        "numpy>=2.0.0",
+        "h5py>=3.7",
+        "scipy",
         "matplotlib",
+        "mpi4py",
         "pyyaml",
         "tinydb",
         "python-dotenv",
