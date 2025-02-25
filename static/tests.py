@@ -140,7 +140,7 @@ def generate_test_conditions(config, cells, gamma):
         start_pos = -.5
         end_pos = .5
         shock_pos = .5
-        t_end = np.pi
+        t_end = np.pi/2
         boundary = "wrap"
         initial_left = np.array([25/(36*np.pi),0,0,0,5/(12*np.pi),0,0,0])
         initial_right = np.array([25/(36*np.pi),0,0,0,5/(12*np.pi),0,0,0])
