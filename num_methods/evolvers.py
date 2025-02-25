@@ -24,23 +24,12 @@ def evolve_space(grid, sim_variables):
 
     # Magneto-component reconstruction
     if sim_variables.magnetic_2d:
-        for axes, arrays in data.items():
-            fluxes[axes]['mag_interface'] = data[axes]['wF']
+        e3U = mag_field.compute_corner(data, sim_variables)  # aligned to x-axis
 
-        e3U = mag_field.compute_corner(data, sim_variables)
-
-
-        magnetic_components = []
-        for axes, arrays in data.items():
-            wD, wU = arrays['wTs']
-            magnetic_components.append([wD, wU])
-
-        e3U = mag_field.compute_corner(magnetic_components, sim_variables)
-
-        reversed_axes = dict(reversed(list(sim_variables.permutations.items())))
-        for axis, axes in sim_variables.permutations.items():
-            ortho_axis = reversed_axes[axis][:-1]
-            fluxes[axes]['mag_flux'] = (-1)**axis * fv.add_boundary(e3U.transpose(ortho_axis), sim_variables.boundary)[1:]
+        swapped_permutations = dict([(key, num) for (key, _), num in zip(sim_variables.permutations.items(), reversed(list(sim_variables.permutations.values())))])
+        for axis, axes in swapped_permutations.items():
+            fluxes[axes]['face_avg'] = data[axes]['wF']
+            fluxes[axes]['mag_corner'] = np.copy(e3U.transpose(sim_variables.permutations[axis][:-1]))
 
     return fluxes
 
@@ -52,27 +41,47 @@ def evolve_time(grid, fluxes, dt, sim_variables):
     def compute_L(_fluxes, _sim_variables):
         total_flux = 0
 
+        # Finite difference for hydrodynamic components
         for _axis, _axes in _sim_variables.permutations.items():
             reversed_axes = np.argsort(_axes)
             Riemann_flux = _fluxes[_axes]['flux']
             flux_diff = np.diff(Riemann_flux, axis=0)/_sim_variables.dx
-            total_flux += flux_diff.transpose(reversed_axes)
+            total_flux += flux_diff.transpose(reversed_axes)  # Need to re-align components
 
+        # Finite difference for magnetic components (do not combine with hydrodynamic loop)
         if _sim_variables.magnetic_2d:
-            ortho_axis = _sim_variables.ortho_axis[:-1]
+            swapped_permutations = dict([(key, num) for (key, _), num in zip(_sim_variables.permutations.items(), reversed(list(_sim_variables.permutations.values())))])
             for _axis, _axes in _sim_variables.permutations.items():
-                mag_flux = _fluxes[_axes]['mag_flux']
-                mag_flux_diff = np.diff(mag_flux, axis=0)/_sim_variables.dx
-                #total_flux[...,5+_axis] = mag_flux_diff.transpose(ortho_axis)
+                alignment_axes = swapped_permutations[_axis][:-1]
+                padded_e3U = fv.add_boundary(_fluxes[_axes]['mag_corner'], _sim_variables.boundary)
+                mag_flux = (-1)**_axis * np.diff(padded_e3U[1:], axis=0)/_sim_variables.dx
+                mag_flux = mag_flux.transpose(alignment_axes)  # Need to re-align components
+                total_flux[...,5+(_axis%3)] = mag_flux
 
         return -total_flux
+    
 
-    # Perform any refinement to the grid after the update step
+        # {0: in y-dir, 1: in x-dir}
+        # {0: (0,1,2), 1: (1,0,2)}
+        # face averages aligned with axis
+        # e3U aligned orthogonal to axis
+
+
+
+        # {0: (0,1,2), 1: (1,0,2)} permute
+        # {0: (1,0,2), 1: (0,1,2)} swapped
+
+    # Perform any refinement to the grid after the update step to maintain higher-order accuracy (mostly for magnetohydrodynamics)
+    # -------------------------------->
+
+
+
+
+
     def refine_grid(_grid, _sim_variables):
         # 'Inverse reconstruct' the cell-average values from the face-average values if there are magnetic fields (for 2D)
         if _sim_variables.magnetic_2d:
             return mag_field.inverse_reconstruct(_grid, _sim_variables)
-        # No need to do any changes to the grid
         else:
             return _grid
 
@@ -80,8 +89,9 @@ def evolve_time(grid, fluxes, dt, sim_variables):
 
     # Re-assign the B-field variables to the face-average values; the induction difference is wrt to face-averages, not cell-averages
     if sim_variables.magnetic_2d:
-        #grid[...,5:7] = fluxes[sim_variables.permutations[0]]['mag_interface'][...,5:7]
-        pass
+        for axis, axes in sim_variables.permutations.items():
+            reversed_axes = np.argsort(axes)
+            grid[...,5+(axis%3)] = fluxes[axes]['face_avg'].transpose(reversed_axes)[...,5+(axis%3)]
 
     # Methods for linear and non-linear systems [Shu & Osher, 1988]
     if sim_variables.timestep_category == "ssprk":

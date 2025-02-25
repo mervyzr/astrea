@@ -118,129 +118,73 @@ def reconstruct_transverse(wF, sim_variables, method="ppm", author="mc"):
             + (a2(g2)/(a0(g0)+a1(g1)+a2(g2))) * (1/3*zeroth + 5/6*plus_one - 1/6*plus_two)
         )
 
-    # Return result back in 'original' axis
-    return wD.transpose(ortho_axis), wU.transpose(ortho_axis)
+    return wD, wU
 
 
 # Compute the corner electric fields wrt to corner; gives 4-fold values for each corner for now [Mignone & del Zanna, 2021]
-def compute_corner(data, sim_variables):
-    gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
-    reversed_axes = dict(reversed(list(sim_variables.permutations.items())))
+def compute_corner(data, sim_variables, solver="lf"):
 
-    # Collate and align the magnetic components (use the x-axis as 'reference axis')
-    magnetic_components = []
-    for axes, arrays in data.items():
-        wD, wU = arrays['wTs']
-        magnetic_components.append([wD.transpose(axes), wU.transpose(axes)])
-    [R2, L2], [R1, L1] = magnetic_components
-    [north, south], [east, west] = magnetic_components
+    # Calculate the eigenvalues for the Riemann problem at the corner; crucial for selecting the corner
+    def get_wavespeeds(_wD, _wU, _sim_variables, _axis, _solver):
+        # Re-align the interfaces so that cell wall is in between interfaces
+        plus, minus = fv.add_boundary(_wD, _sim_variables.boundary)[1:], fv.add_boundary(_wU, _sim_variables.boundary)[:-1]
+
+        # Get the average solution between the interfaces at the boundaries
+        intf_avg = constructor.make_Roe_average(plus, minus)[1:]
+
+        # HLL-family solver
+        if _solver.startswith("hll"):
+            # Define the variables
+            rhos, vels, pressures, B_fields = intf_avg[...,0], intf_avg[...,1:4], intf_avg[...,4], intf_avg[...,5:8]
+            vx, Bx = vels[...,_axis%3], B_fields[...,_axis%3]
+
+            # Define speeds
+            sound_speed = np.sqrt(_sim_variables.gamma * fv.divide(pressures, rhos))
+            alfven_speed = fv.divide(fv.norm(B_fields), np.sqrt(rhos))
+            alfven_speed_x = fv.divide(Bx, np.sqrt(rhos))
+            fast_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 + np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
+
+            # Local min/max characteristic waves for each cell
+            local_max_eigvals = np.maximum(np.zeros_like(vx), vx+fast_magnetosonic_wave)
+            local_min_eigvals = -np.minimum(np.zeros_like(vx), vx-fast_magnetosonic_wave)
+
+        # Default to Local Lax-Friedrich solver
+        else:
+            # Compute the eigenvalues for the Riemann fan at the corner; crucial in selecting the corner
+            A = constructor.make_Jacobian(intf_avg, _sim_variables.gamma, _axis%3)
+            characteristics = np.linalg.eigvals(A)
+
+            # Local min/max eigenvalues for each cell
+            local_max_eigvals = np.max(characteristics, axis=-1)
+            local_min_eigvals = -np.min(characteristics, axis=-1)
+
+        return local_max_eigvals, local_min_eigvals
+
+    permutations = sim_variables.permutations
+    swapped_permutations = dict([(key, num) for (key, _), num in zip(permutations.items(), reversed(list(permutations.values())))])
+
+    # Collate and align the magnetic components and the alphas (use the x-axis as 'reference axis')
+    alphas, magnetic_components = [], []
+    for axis, axes in swapped_permutations.items():
+        wD, wU = data[axes]['wTs']
+        alignment_axes = permutations[axis]
+
+        a_plus, a_minus = get_wavespeeds(wD, wU, sim_variables, axis, solver)
+
+        alphas.append([a_plus.transpose(alignment_axes[:-1]), a_minus.transpose(alignment_axes[:-1])])
+        magnetic_components.append([wD.transpose(alignment_axes), wU.transpose(alignment_axes)])
 
     # Compute the corner B-fields wrt to corner
+    [north, south], [east, west] = magnetic_components
     NE = .5*(west[...,2]+south[...,2])*south[...,5] - .5*(west[...,1]+south[...,1])*west[...,6]
     NW = .5*(east[...,2]+south[...,2])*south[...,5] - .5*(east[...,1]+south[...,1])*east[...,6]
     SE = .5*(west[...,2]+north[...,2])*north[...,5] - .5*(west[...,1]+north[...,1])*west[...,6]
     SW = .5*(east[...,2]+north[...,2])*north[...,5] - .5*(east[...,1]+north[...,1])*east[...,6]
 
-
-    # NEED TO CHECK IF THE ALIGNMENT IS RIGHT; WHEN COMPUTING THE JACOBIAN AND EIGENVALUES, IS THE ALIGNMENT CORRECT FOR THE CORRECT ARRAY?
-    def get_wavespeeds(_R, _L, _sim_variables, _axis):
-        # Re-align the interfaces so that cell wall is in between interfaces
-        plus, minus = fv.add_boundary(_R, _sim_variables.boundary)[1:], fv.add_boundary(_L, _sim_variables.boundary)[:-1]
-
-        # Get the average solution between the interfaces at the boundaries
-        intf_avg = constructor.make_Roe_average(plus, minus)[1:]
-
-        # Compute the eigenvalues for the Riemann fan at the corner; crucial in selecting the corner
-        A = constructor.make_Jacobian(intf_avg, _sim_variables.gamma, _axis)
-        characteristics = np.linalg.eigvals(A)
-
-        # Local min/max eigenvalues for each cell
-        local_max_eigvals = np.max(characteristics, axis=-1)
-        local_min_eigvals = -np.min(characteristics, axis=-1)
-
-        return local_max_eigvals, local_min_eigvals
-
     # Determine the alphas
-    alphas = []
-    for axis, axes in permutations.item():
-        alphas.append(list(get_wavespeeds(north, south, sim_variables, axis)))
-    #[ap2,am2], [ap1,am1] = alphas
+    [ap_y, am_y], [ap_x, am_x] = alphas
 
-
-
-
-    # Re-align the interfaces so that cell wall is in between interfaces
-    #NS_plus, NS_minus = fv.add_boundary(north, boundary)[1:], fv.add_boundary(south, boundary)[:-1]
-    #EW_plus, EW_minus = fv.add_boundary(east, boundary)[1:], fv.add_boundary(west, boundary)[:-1]
-
-
-
-    # {0: (0,1,2) , 1: (1,0,2)}
-
-    # {(0,1,2): [ R2(up), L2(down) ] , (1,0,2): [ R1(right), L1(left) ]}
-
-    # ortho axis,  normal axis
-
-
-
-    # {1: (1,0,2) , 0: (0,1,2)}
-
-    # {(1,0,2): [ R1(right), L1(left) ] , (0,1,2): [ R2(up), L2(down) ]}
-
-    # normal axis, ortho axis
-
-
-def compute_corner(magnetic_components, sim_variables):
-    gamma, boundary = sim_variables.gamma, sim_variables.boundary
-    magnetic_components = np.asarray(magnetic_components)
-    reversed_axes = dict(reversed(list(sim_variables.permutations.items())))
-
-    # Transpose the magnetic components back into the original arrangement (use the x-axis as 'reference axis')
-    data = []
-    for axis, axes in reversed_axes.items():
-        wD, wU = magnetic_components[axis]
-        data.append([wD.transpose(axes), wU.transpose(axes)])
-    data = np.asarray(data)
-
-    # Compute the corner B-fields wrt to corner
-    NE = np.average(data[:,0,...,2], axis=0)*data[0,0,...,5] - np.average(data[:,0,...,1], axis=0)*data[1,0,...,6]
-    NW = np.average(data[[0,1],[0,1],...,2], axis=0)*data[0,0,...,5] - np.average(data[[0,1],[0,1],...,1], axis=0)*data[1,1,...,6]
-    SW = np.average(data[:,1,...,2], axis=0)*data[0,1,...,5] - np.average(data[:,1,...,1], axis=0)*data[1,1,...,6]
-    SE = np.average(data[[0,1],[1,0],...,2], axis=0)*data[0,1,...,5] - np.average(data[[0,1],[1,0],...,1], axis=0)*data[1,0,...,6]
-
-    # Calculate the eigenvalues for the Riemann problem at the corner; crucial for selecting the corner
-    alphas = []
-    for axis, axes in reversed_axes.items():
-        _w_plus, _w_minus = magnetic_components[axis][0], magnetic_components[axis][1]
-        _axes = axes[:-1]
-
-        # Re-align the interfaces and calculate Roe average between the interfaces
-        w_plus, w_minus = fv.add_boundary(_w_plus, boundary)[1:], fv.add_boundary(_w_minus, boundary)[:-1]
-        grid_intf = constructor.make_Roe_average(w_plus, w_minus)[1:]
-
-        # Define the variables
-        rhos, vels, pressures, B_fields = grid_intf[...,0], grid_intf[...,1:4], grid_intf[...,4], grid_intf[...,5:8]/np.sqrt(4*np.pi)
-        vx, Bx = vels[...,axis%3], B_fields[...,axis%3]
-
-        # Define speeds
-        sound_speed = np.sqrt(gamma * fv.divide(pressures, rhos))
-        alfven_speed = fv.divide(fv.norm(B_fields), np.sqrt(rhos))
-        alfven_speed_x = fv.divide(Bx, np.sqrt(rhos))
-        fast_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 + np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
-
-        """Determine the alphas. The convention here uses L & R states, i.e. L state = w-, R state = w+
-            |                        w(i-1/2)                    w(i+1/2)                       |
-            |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
-            |   w_R1(i-1)   w_L1(i-1)   |   w_R1(i)       w_L1(i)   |  w_R1(i+1)    w_L1(i+1)   |
-        --> |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
-        """
-        alpha_minus = -np.minimum(np.zeros_like(vx), vx-fast_magnetosonic_wave)
-        alpha_plus = np.maximum(np.zeros_like(vx), vx+fast_magnetosonic_wave)
-        alphas.append([alpha_plus.transpose(_axes), alpha_minus.transpose(_axes)])
-
-    [ap2,am2], [ap1,am1] = alphas
-
-    return fv.divide(ap1*ap2*SW + am1*ap2*SE + ap1*am2*NW + am1*am2*NE, (ap1+am1)*(ap2+am2)) - fv.divide(ap2*am2*np.squeeze(np.diff(data[0,...,5], axis=0)), ap2+am2) + fv.divide(ap1*am1*np.squeeze(np.diff(data[1,...,6], axis=0)), ap1+am1)
+    return fv.divide(ap_x*ap_y*SW + am_x*ap_y*SE + ap_x*am_y*NW + am_x*am_y*NE, (ap_x+am_x)*(ap_y+am_y)) - fv.divide(ap_y*am_y, ap_y+am_y)*(north[...,5]-south[...,5]) + fv.divide(ap_x*am_x, ap_x+am_x)*(east[...,6]-west[...,6])
 
 
 # 'Inverse reconstruct' the cell-average values from the face-average values with the induction difference [Felker & Stone, 2018]
