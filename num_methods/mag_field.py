@@ -122,10 +122,10 @@ def reconstruct_transverse(wF, sim_variables, method="ppm", author="mc"):
 
 
 # Compute the corner electric fields wrt to corner; gives 4-fold values for each corner for now [Mignone & del Zanna, 2021]
-def compute_corner(data, sim_variables, solver="lf"):
+def compute_corner(data, sim_variables):
 
     # Calculate the eigenvalues for the Riemann problem at the corner; crucial for selecting the corner
-    def get_wavespeeds(_wD, _wU, _sim_variables, _axis, _solver):
+    def get_wavespeeds(_wD, _wU, _sim_variables, _axis):
         # Re-align the interfaces so that cell wall is in between interfaces
         plus, minus = fv.add_boundary(_wD, _sim_variables.boundary)[1:], fv.add_boundary(_wU, _sim_variables.boundary)[:-1]
 
@@ -133,7 +133,7 @@ def compute_corner(data, sim_variables, solver="lf"):
         intf_avg = constructor.make_Roe_average(plus, minus)[1:]
 
         # HLL-family solver
-        if _solver.startswith("hll"):
+        if _sim_variables.solver_category == "hll":
             # Define the variables
             rhos, vels, pressures, B_fields = intf_avg[...,0], intf_avg[...,1:4], intf_avg[...,4], intf_avg[...,5:8]
             vx, Bx = vels[...,_axis%3], B_fields[...,_axis%3]
@@ -169,7 +169,7 @@ def compute_corner(data, sim_variables, solver="lf"):
         wD, wU = data[axes]['wTs']
         alignment_axes = permutations[axis]
 
-        a_plus, a_minus = get_wavespeeds(wD, wU, sim_variables, axis, solver)
+        a_plus, a_minus = get_wavespeeds(wD, wU, sim_variables, axis)
 
         alphas.append([a_plus.transpose(alignment_axes[:-1]), a_minus.transpose(alignment_axes[:-1])])
         magnetic_components.append([wD.transpose(alignment_axes), wU.transpose(alignment_axes)])
@@ -187,9 +187,9 @@ def compute_corner(data, sim_variables, solver="lf"):
     return fv.divide(ap_x*ap_y*SW + am_x*ap_y*SE + ap_x*am_y*NW + am_x*am_y*NE, (ap_x+am_x)*(ap_y+am_y)) - fv.divide(ap_y*am_y, ap_y+am_y)*(north[...,5]-south[...,5]) + fv.divide(ap_x*am_x, ap_x+am_x)*(east[...,6]-west[...,6])
 
 
-# 'Inverse reconstruct' the cell-average values from the face-average values with the induction difference [Felker & Stone, 2018]
+# 'Inverse reconstruct' the cell-averages from the face-averages after the induction difference [Felker & Stone, 2018]
 def inverse_reconstruct(grid, sim_variables):
-    _grid = np.copy(grid)
+    new_grid = np.copy(grid)
 
     for axis, axes in sim_variables.permutations.items():
         reversed_axes = np.argsort(axes)
@@ -206,5 +206,6 @@ def inverse_reconstruct(grid, sim_variables):
         cell_avgd = fv.high_order_convert('cntr', cell_cntrd, sim_variables, 'cell')
 
         # Update the grid values with the updated B-field values
-        _grid[...,5+axis] = cell_avgd.transpose(reversed_axes)[...,5+axis]
-    return _grid
+        new_grid[...,5+(axis%3)] = cell_avgd.transpose(reversed_axes)[...,5+(axis%3)]
+    
+    return new_grid
