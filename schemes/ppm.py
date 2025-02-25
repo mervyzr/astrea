@@ -98,6 +98,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
 
         # Update dict
         data[axes]['wS'] = wS
+        data[axes]['wF'] = wF
         data[axes]['wFs'] = w_plus, w_minus
         data[axes]['qFs'] = q_plus, q_minus
         data[axes]['fluxFs'] = flux_plus, flux_minus

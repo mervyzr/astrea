@@ -8,13 +8,12 @@ from num_methods import limiters
 ##############################################################################
 
 # Reconstruct the transverse values for each face average
-def reconstruct_transverse(_wF, sim_variables, method="ppm", author="mc"):
+def reconstruct_transverse(wF, sim_variables, method="ppm", author="mc"):
     ortho_axis, boundary = sim_variables.ortho_axis, sim_variables.boundary
 
-    # Compute with orthogonal axes
-    wF = np.copy(_wF.transpose(ortho_axis))
-
-    wF_pad2 = fv.add_boundary(wF, boundary, 2)
+    # Compute in orthogonal axis
+    ortho_wF = np.copy(wF.transpose(ortho_axis))
+    wF_pad2 = fv.add_boundary(ortho_wF, boundary, 2)
     wF_pad1 = np.copy(wF_pad2[1:-1])
 
     if method == "ppm":
@@ -27,7 +26,7 @@ def reconstruct_transverse(_wF, sim_variables, method="ppm", author="mc"):
         |                  ||                  ||                  ||
         |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
         """
-        wU = 7/12 * (wF + wF_pad1[2:]) - 1/12 * (wF_pad1[:-2] + wF_pad2[4:])
+        wU = 7/12 * (ortho_wF + wF_pad1[2:]) - 1/12 * (wF_pad1[:-2] + wF_pad2[4:])
 
         if "x" in author or "ph" in author or author in ["peterson", "hammett"]:
             """Extrapolate the face averages to both corners (upwards & downwards)
@@ -44,15 +43,15 @@ def reconstruct_transverse(_wF, sim_variables, method="ppm", author="mc"):
             |           w_D(i-1/2,j-1/2)    w_D(i+1/2,j-1/2)            |
             |-------------------|-------------------|-------------------|
             """
-            wD = 7/12 * (wF_pad1[:-2] + wF) - 1/12 * (wF_pad2[:-4] + wF_pad1[2:])
+            wD = 7/12 * (wF_pad1[:-2] + ortho_wF) - 1/12 * (wF_pad2[:-4] + wF_pad1[2:])
 
             # Limit interface values [Peterson & Hammett, 2008, eq. 3.33-3.34]
-            limited_wUs = limiters.interface_limiter(wD, wF_pad2[:-4], wF_pad1[:-2], wF, wF_pad1[2:]), limiters.interface_limiter(wU, wF_pad1[:-2], wF, wF_pad1[2:], wF_pad2[4:])
+            limited_wUs = limiters.interface_limiter(wD, wF_pad2[:-4], wF_pad1[:-2], ortho_wF, wF_pad1[2:]), limiters.interface_limiter(wU, wF_pad1[:-2], ortho_wF, wF_pad1[2:], wF_pad2[4:])
             wU_pad2 = np.zeros_like(fv.add_boundary(wU, boundary, 2))
         else:
             if author == "c" or author == "collela":
                 # Limit interface values [Colella et al., 2011, p. 25-26]
-                wU = limiters.interface_limiter(wU, wF_pad1[:-2], wF, wF_pad1[2:], wF_pad2[4:])
+                wU = limiters.interface_limiter(wU, wF_pad1[:-2], ortho_wF, wF_pad1[2:], wF_pad2[4:])
 
             # Define the top and bottom parabolic interpolants
             wU_pad2 = fv.add_boundary(wU, boundary, 2)
@@ -74,7 +73,7 @@ def reconstruct_transverse(_wF, sim_variables, method="ppm", author="mc"):
         |                   |                   |                   |
         |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
         """
-        wD, wU = limiters.interpolant_limiter(wF, wF_pad1, wF_pad2, wU_pad2, author, boundary, *limited_wUs)
+        wD, wU = limiters.interpolant_limiter(ortho_wF, wF_pad1, wF_pad2, wU_pad2, author, boundary, *limited_wUs)
     
     # 5th-order
     elif method == "weno":
@@ -119,10 +118,78 @@ def reconstruct_transverse(_wF, sim_variables, method="ppm", author="mc"):
             + (a2(g2)/(a0(g0)+a1(g1)+a2(g2))) * (1/3*zeroth + 5/6*plus_one - 1/6*plus_two)
         )
 
-    return np.copy(_wF), wD, wU
+    # Return result back in 'original' axis
+    return wD.transpose(ortho_axis), wU.transpose(ortho_axis)
 
 
-# Compute the corner electric fields wrt to corner; gives 4-fold values for each corner for now
+# Compute the corner electric fields wrt to corner; gives 4-fold values for each corner for now [Mignone & del Zanna, 2021]
+def compute_corner(data, sim_variables):
+    gamma, boundary, permutations = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations
+    reversed_axes = dict(reversed(list(sim_variables.permutations.items())))
+
+    # Collate and align the magnetic components (use the x-axis as 'reference axis')
+    magnetic_components = []
+    for axes, arrays in data.items():
+        wD, wU = arrays['wTs']
+        magnetic_components.append([wD.transpose(axes), wU.transpose(axes)])
+    [R2, L2], [R1, L1] = magnetic_components
+    [north, south], [east, west] = magnetic_components
+
+    # Compute the corner B-fields wrt to corner
+    NE = .5*(west[...,2]+south[...,2])*south[...,5] - .5*(west[...,1]+south[...,1])*west[...,6]
+    NW = .5*(east[...,2]+south[...,2])*south[...,5] - .5*(east[...,1]+south[...,1])*east[...,6]
+    SE = .5*(west[...,2]+north[...,2])*north[...,5] - .5*(west[...,1]+north[...,1])*west[...,6]
+    SW = .5*(east[...,2]+north[...,2])*north[...,5] - .5*(east[...,1]+north[...,1])*east[...,6]
+
+
+    # NEED TO CHECK IF THE ALIGNMENT IS RIGHT; WHEN COMPUTING THE JACOBIAN AND EIGENVALUES, IS THE ALIGNMENT CORRECT FOR THE CORRECT ARRAY?
+    def get_wavespeeds(_R, _L, _sim_variables, _axis):
+        # Re-align the interfaces so that cell wall is in between interfaces
+        plus, minus = fv.add_boundary(_R, _sim_variables.boundary)[1:], fv.add_boundary(_L, _sim_variables.boundary)[:-1]
+
+        # Get the average solution between the interfaces at the boundaries
+        intf_avg = constructor.make_Roe_average(plus, minus)[1:]
+
+        # Compute the eigenvalues for the Riemann fan at the corner; crucial in selecting the corner
+        A = constructor.make_Jacobian(intf_avg, _sim_variables.gamma, _axis)
+        characteristics = np.linalg.eigvals(A)
+
+        # Local min/max eigenvalues for each cell
+        local_max_eigvals = np.max(characteristics, axis=-1)
+        local_min_eigvals = -np.min(characteristics, axis=-1)
+
+        return local_max_eigvals, local_min_eigvals
+
+    # Determine the alphas
+    alphas = []
+    for axis, axes in permutations.item():
+        alphas.append(list(get_wavespeeds(north, south, sim_variables, axis)))
+    #[ap2,am2], [ap1,am1] = alphas
+
+
+
+
+    # Re-align the interfaces so that cell wall is in between interfaces
+    #NS_plus, NS_minus = fv.add_boundary(north, boundary)[1:], fv.add_boundary(south, boundary)[:-1]
+    #EW_plus, EW_minus = fv.add_boundary(east, boundary)[1:], fv.add_boundary(west, boundary)[:-1]
+
+
+
+    # {0: (0,1,2) , 1: (1,0,2)}
+
+    # {(0,1,2): [ R2(up), L2(down) ] , (1,0,2): [ R1(right), L1(left) ]}
+
+    # ortho axis,  normal axis
+
+
+
+    # {1: (1,0,2) , 0: (0,1,2)}
+
+    # {(1,0,2): [ R1(right), L1(left) ] , (0,1,2): [ R2(up), L2(down) ]}
+
+    # normal axis, ortho axis
+
+
 def compute_corner(magnetic_components, sim_variables):
     gamma, boundary = sim_variables.gamma, sim_variables.boundary
     magnetic_components = np.asarray(magnetic_components)
