@@ -45,7 +45,9 @@ def calculate_Riemann_flux(data, sim_variables):
             # Compute the orthogonal L/R Riemann states and fluxes
             high_order_intfs = {}
             for _key, _arrays in data[axes].items():
-                if len(_arrays) == 2:
+                if _key == "wS":
+                    high_order_intfs[_key] = _arrays
+                elif len(_arrays) == 2:
                     plus_intf, minus_intf = _arrays
                     high_order_intfs[_key] = fv.high_order_convert('avg', plus_intf, sim_variables, 'face'), fv.high_order_convert('avg', minus_intf, sim_variables, 'face')
 
