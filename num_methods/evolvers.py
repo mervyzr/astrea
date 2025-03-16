@@ -55,8 +55,7 @@ def evolve_time(grid, fluxes, dt, sim_variables):
                 alignment_axes = swapped_permutations[_axis][:-1]
                 padded_e3U = fv.add_boundary(_fluxes[_axes]['mag_corner'], _sim_variables.boundary)
                 mag_flux = (-1)**_axis * np.diff(padded_e3U[1:], axis=0)/_sim_variables.dx
-                mag_flux = mag_flux.transpose(alignment_axes)
-                total_flux[...,5+(_axis%3)] = mag_flux
+                total_flux[...,5+(_axis%3)] = mag_flux.transpose(alignment_axes)
 
         return -total_flux
 
