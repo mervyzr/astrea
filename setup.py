@@ -35,6 +35,7 @@ setup(
         "scipy",
         "matplotlib",
         "mpi4py",
+        "torch",
         "pyyaml",
         "tinydb",
         "python-dotenv",
