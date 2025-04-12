@@ -17,7 +17,7 @@ def reconstruct_transverse(wF, sim_variables, method="ppm", author="mc"):
     wF_pad1 = np.copy(wF_pad2[1:-1])
 
     if method == "ppm":
-        """Extrapolate the face averages to the top corners (upwards) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
+        """Interpolate the face averages to the top corners (upwards) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
         |                w(i-1/2)            w(i+1/2)               |
         |-------------------|-------------------|-------------------|
         |           w_U(i-1/2,j+1/2)    w_U(i+1/2,j+1/2)            |
@@ -29,7 +29,7 @@ def reconstruct_transverse(wF, sim_variables, method="ppm", author="mc"):
         wU = 7/12 * (ortho_wF + wF_pad1[2:]) - 1/12 * (wF_pad1[:-2] + wF_pad2[4:])
 
         if "x" in author or "ph" in author or author in ["peterson", "hammett"]:
-            """Extrapolate the face averages to both corners (upwards & downwards)
+            """Interpolate the face averages to both corners (upwards & downwards)
             |                w(i-1/2)            w(i+1/2)               |
             |-------------------|-------------------|-------------------|
             |           w_U(i-1/2,j+1/2)    w_U(i+1/2,j+1/2)            |
@@ -53,11 +53,11 @@ def reconstruct_transverse(wF, sim_variables, method="ppm", author="mc"):
                 # Limit interface values [Colella et al., 2011, p. 25-26]
                 wU = limiters.interface_limiter(wU, wF_pad1[:-2], ortho_wF, wF_pad1[2:], wF_pad2[4:])
 
-            # Define the top and bottom parabolic interpolants
+            # Define the top and bottom parabolic extrapolants
             wU_pad2 = fv.add_boundary(wU, boundary, 2)
             limited_wUs = np.copy(wU_pad2[1:-3]), np.copy(wU_pad2[2:-2])
 
-        """Reconstruct the limited interpolants from the interface values. Returns the face averages in the form of w+(y) & w-(y) when considering x-axis, and w+(x) & w-(x) when considering y-axis
+        """Reconstruct the limited extrapolants from the interface values. Returns the face averages in the form of w+(y) & w-(y) when considering x-axis, and w+(x) & w-(x) when considering y-axis
         |                w(i-1/2)            w(i+1/2)               |
         |  o (i-1,j+1)      |  o (i,j+1)        |  o (i+1,j+1)      |
         |                   |                   |                   |
@@ -73,11 +73,11 @@ def reconstruct_transverse(wF, sim_variables, method="ppm", author="mc"):
         |                   |                   |                   |
         |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
         """
-        wD, wU = limiters.interpolant_limiter(ortho_wF, wF_pad1, wF_pad2, wU_pad2, author, boundary, *limited_wUs)
+        wD, wU = limiters.extrapolant_limiter(ortho_wF, wF_pad1, wF_pad2, wU_pad2, author, boundary, *limited_wUs)
     
     # 5th-order
     elif method == "weno":
-        """Extrapolate the face averages to both corners (upwards & downwards)
+        """Interpolate the face averages to both corners (upwards & downwards)
         |                w(i-1/2)            w(i+1/2)               |
         |-------------------|-------------------|-------------------|
         |           w_U(i-1/2,j+1/2)    w_U(i+1/2,j+1/2)            |

@@ -49,7 +49,7 @@ def superbee_limiter(w):
     return np.maximum(np.zeros_like(r), np.maximum(np.minimum(2*r, np.ones_like(r)), np.minimum(r, np.full_like(r,2)))) * np.diff(w[1:], axis=0)
 
 
-# Function for limiting the interface values extrapolated from cell centre for PPM [Colella et al., 2011, p. 26; Peterson & Hammett, 2008, eq. 3.33-3.34]
+# Function for limiting the interface values interpolated from cell centre for PPM [Colella et al., 2011, p. 26; Peterson & Hammett, 2008, eq. 3.33-3.34]
 def interface_limiter(w_face, w_minus_one, w_cell, w_plus_one, w_plus_two):
     C = 5/4
     # Initial check for local extrema (eq. 84)
@@ -78,8 +78,8 @@ def interface_limiter(w_face, w_minus_one, w_cell, w_plus_one, w_plus_two):
         return w_face
     
 
-# Parabolic interpolant limiter for PPM [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
-def interpolant_limiter(wS, w, w2, wF_pad2, author, boundary, *args):
+# Parabolic extrapolant limiter for PPM [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
+def extrapolant_limiter(wS, w, w2, wF_pad2, author, boundary, *args):
     wF_L, wF_R = args
     C = 5/4
 
@@ -146,22 +146,22 @@ def interpolant_limiter(wS, w, w2, wF_pad2, author, boundary, *args):
         cell_extrema = dw_minus*dw_plus <= 0
 
         if "x" in author or "ph" in author or author in ["peterson", "hammett"]:
-            interpolant_extrema = (w[:-2]-wS)*(wS-w[2:]) <= 0
+            extrapolant_extrema = (w[:-2]-wS)*(wS-w[2:]) <= 0
         else:
             # Check for overshoot in cells [Colella et al., 2011, eq. 90]
             overshoot = (np.abs(dw_minus) > 2*np.abs(dw_plus)) | (np.abs(dw_plus) > 2*np.abs(dw_minus))
 
-            # Check for extrema in interpolants [Colella et al., 2011, eq. 91-94]
+            # Check for extrema in extrapolants [Colella et al., 2011, eq. 91-94]
             d_wF_minmod_L, d_wF_minmod_R = wF_L - np.copy(wF_pad2[:-4]), np.copy(wF_pad2[4:]) - wF_R
             d_wS_minmod_L, d_wS_minmod_R = wS - w[:-2], w[2:] - wS
 
             d_wF_minmod = np.minimum(np.abs(d_wF_minmod_L), np.abs(d_wF_minmod_R))
             d_wS_minmod = np.minimum(np.abs(d_wS_minmod_L), np.abs(d_wS_minmod_R))
 
-            interpolant_extrema = ((d_wF_minmod >= d_wS_minmod) & (d_wF_minmod_L*d_wF_minmod_R < 0)) | ((d_wS_minmod >= d_wF_minmod) & (d_wS_minmod_L*d_wS_minmod_R < 0))
+            extrapolant_extrema = ((d_wF_minmod >= d_wS_minmod) & (d_wF_minmod_L*d_wF_minmod_R < 0)) | ((d_wS_minmod >= d_wF_minmod) & (d_wS_minmod_L*d_wS_minmod_R < 0))
 
-        # If there are extrema in the cells or interpolants
-        if cell_extrema.any() or interpolant_extrema.any():
+        # If there are extrema in the cells or extrapolants
+        if cell_extrema.any() or extrapolant_extrema.any():
             D2w_lim = np.zeros_like(wS)
 
             # Approximation to the second derivative [Colella et al., 2011, eq. 95; Peterson & Hammett, 2008, eq. 3.37]
@@ -185,7 +185,7 @@ def interpolant_limiter(wS, w, w2, wF_pad2, author, boundary, *args):
 
                 wL, wR = wS + phi*(wF_L-wS), wS + phi*(wF_R-wS)
             else:
-                D2w_lim[interpolant_extrema & non_monotonic] = limited_curvature[interpolant_extrema & non_monotonic]
+                D2w_lim[extrapolant_extrema & non_monotonic] = limited_curvature[extrapolant_extrema & non_monotonic]
 
                 phi = fv.divide(D2w_lim, D2w)
 

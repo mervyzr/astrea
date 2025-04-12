@@ -29,7 +29,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         w2 = fv.add_boundary(wS, boundary, 2)
         w = np.copy(w2[1:-1])
 
-        """Extrapolate the cell averages to face averages (forward/upwind)
+        """Interpolate the cell averages to face averages (forward/upwind)
         |               w(i-1/2)            w(i+1/2)                |
         |  i-1           -->|   i            -->|  i+1           -->|
         |        w_R(i-1)   |          w_R(i)   |        w_R(i+1)   |
@@ -41,7 +41,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
             data[axes]['wTs'] = mag_field.reconstruct_transverse(wF, sim_variables)
 
         if "x" in author or "ph" in author or author in ["peterson", "hammett"]:
-            """Extrapolate the cell averages to face averages (both sides)
+            """Interpolate the cell averages to face averages (both sides)
             |                        w(i-1/2)                    w(i+1/2)                       |
             |<--         i-1         -->|<--          i          -->|<--         i+1         -->|
             |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
@@ -66,17 +66,17 @@ def run(grid, sim_variables, author="mc", dissipate=False):
                 eta = apply_flattener(wS, axis, boundary)
                 wF = wF * eta[...,None] + wS * (1-eta)[...,None]
 
-            # Define the left and right parabolic interpolants
+            # Define the left and right parabolic extrapolants
             wF_pad2 = fv.add_boundary(wF, boundary, 2)
             limited_wFs = np.copy(wF_pad2[1:-3]), np.copy(wF_pad2[2:-2])
 
-        """Reconstruct the limited parabolic interpolants from the interface values [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
+        """Reconstruct the limited parabolic extrapolants from the interface values [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
         |                        w(i-1/2)                    w(i+1/2)                       |
         |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
         |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
         |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
         """
-        wL, wR = limiters.interpolant_limiter(wS, w, w2, wF_pad2, author, boundary, *limited_wFs)
+        wL, wR = limiters.extrapolant_limiter(wS, w, w2, wF_pad2, author, boundary, *limited_wFs)
 
         # Re-align the interfaces so that cell wall is in between interfaces
         w_plus, w_minus = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
@@ -107,7 +107,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
     return data
 
 
-# Calculate the coefficient of the slope flattener for the parabolic extrapolants [Colella, 1990]
+# Calculate the coefficient of the slope flattener for the parabolic interpolants/extrapolants [Colella, 1990]
 def apply_flattener(wS, axis, boundary, slope_determinants=[.33, .75, .85]):
     delta, z0, z1 = slope_determinants
 
