@@ -6,7 +6,7 @@
 
 # mhydys
 
-**_mhydys_** (pronounced _"Hades"_; the _"m"_ is silent 😀) is a one-/two-dimensional (**M**agneto)**HY**dro**DY**namics **S**imulation toy model code for the purpose of modelling shock waves in the interstellar medium, with possible implementation of a chemical network and radiative cooling.
+**_mhydys_** (pronounced _"Hades"_; the _"m"_ is silent 😀) is a one-/two-dimensional (**M**agneto)**HY**dro**DY**namics **S**imulation toy model code for the purpose of modelling shockwaves in the interstellar medium, with possible implementation of a chemical network and radiative cooling.
 
 **_This code is created as part of the Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner._**
 
@@ -36,7 +36,7 @@ The code employs various reconstruction methods with _primitive variables_ as pa
 
 In order to fulfil the Total Variation Diminishing (TVD) condition (Harten, 1983), which ensures that the reconstruction scheme is monotonicity-preserving, limiters have to be used after the spatial reconstructions. The PCM does not require any limiters. The PLM employs the "minmod" slope limiter (Derigs et al., 2018). The PPM employs several limiters: when _interpolating_ from the cell centres to the interfaces (Colella et al., 2011) and when _extrapolating_ to the left and right of each cell interface (Colella et al., 2011; McCorquodale & Colella, 2011). The WENO method currently does not employ any limiters. There are other TVD slope limiters available in the code too (e.g., superbee).
 
-The parabolic reconstruction method by McCorquodale & Colella (2011) also allows for a slope flattener (Colella, 1990) and artificial viscosity as additional dissipation mechanisms to suppress oscillations at strong shocks.
+The parabolic reconstruction method by McCorquodale & Colella (2011) also allows for a slope flattener (Colella, 1990) and artificial viscosity as additional dissipation mechanisms to suppress oscillations at sharp discontinuities.
 
 ### Riemann solver and flux update
 
@@ -46,9 +46,9 @@ The Local Lax-Friedrichs (LLF) solver (LeVeque, 1992) is an approximate linearis
 
 The fluxes are calculated from the interpolated interfaces, and the Jacobian matrices are calculated from the Roe average (Roe & Pike, 1984) of these interfaces (Cargo & Gallice, 1997).
 
-An issue that arises when linear schemes are made to be monotonicity-preserving (i.e. do not produce spurrious oscillations), then the scheme can be at most first-order accurate. This is known as Godunov's Theorem (Godunov, 1954). Since the main focus of this project is simulating shocks, where large discontinuities and possible spurrious oscillations are present (similar to Gibbs phenomenon), non-linear approximate Riemann solvers, that attempt to restore some form of the eigenstructure of the characteristic waves, are therefore implemented into the code too.
+An issue that arises when linear schemes are made to be monotonicity-preserving (i.e. do not produce spurrious oscillations), then the scheme can be at most first-order accurate. This is known as Godunov's Theorem (Godunov, 1954). Since the main focus of this project is simulating shockwaves, where large discontinuities and possible spurrious oscillations are present (similar to Gibbs phenomenon), non-linear approximate Riemann solvers, that attempt to restore some form of the eigenstructure of the characteristic waves, are therefore implemented into the code too.
 
-The Harten-Lax-van Leer-Contact (HLLC) Riemann solver (Toro et al., 1994; Fleischmann et. al., 2020) attempts to restore the contact discontinuity wave while tracing the rarefaction and shock wave (Riemann invariants), thus it provides a better resolution albeit with some dissipation. The HLLC Riemann solver crashes when magnetic fields are present. For that, the Harten-Lax-van Leer-discontinuities (HLLD) solver (Miyoshi & Kusano, 2005) should be used. The HLLD Riemann solver restores the magnetosonic and Alfvén waves, although this is not a complete Riemann solver; this implementation of the Riemann solver ignores the slow magnetosonic wave.
+The Harten-Lax-van Leer-Contact (HLLC) Riemann solver (Toro et al., 1994; Fleischmann et. al., 2020) attempts to restore the contact discontinuity wave while tracing the rarefaction and shockwave (Riemann invariants), thus it provides a better resolution albeit with some dissipation. The HLLC Riemann solver crashes when magnetic fields are present. For that, the Harten-Lax-van Leer-discontinuities (HLLD) solver (Miyoshi & Kusano, 2005) should be used. The HLLD Riemann solver restores the magnetosonic and Alfvén waves, although this is not a complete Riemann solver; this implementation of the Riemann solver ignores the slow magnetosonic wave.
 
 Riemann solvers that attempt to derive the flux from the full (_but not exact_) eigenstructure are also included in the code, such as the entropy-stable flux (Derigs et al., 2018) and the modified Osher-Solomon flux (Dumbser & Toro, 2011). However, these solvers are not as robust and stable, and run into errors frequently.
 
@@ -67,12 +67,12 @@ For a _j_-order reconstruction scheme, _j_ > 4, the Dormand-Prince 8(7) (Dormand
 Several (magneto)hydrodynamical tests are in place:
 
 - Hydrodynamics
-  - Sod shock tube test (Sod, 1978)
+  - Sod shock-tube test (Sod, 1978)
   - Sedov blast test (Sedov, 1946)
-  - Shu-Osher shock test (Shu & Osher, 1988)
+  - Shu-Osher shockwave test (Shu & Osher, 1988)
   - "Toro tests" (Toro, 1999, p.225)
   - "Lax-Liu tests" (Lax & Liu, 1998)
-  - Slow-moving shock (Zingale, 2023, p.148)
+  - Slow-moving shockwave (Zingale, 2023, p.148)
   - Kelvin-Helmholtz instability
   - Simple advection wave tests
     - Gaussian
@@ -80,13 +80,13 @@ Several (magneto)hydrodynamical tests are in place:
     - square
     - isentropic vortex (Yee et al., 1999)
 - Magnetohydrodynamics (_2D not stable_)
-  - Ryu-Jones 2a shock test (Ryu & Jones, 1995)
-  - Brio-Wu shock test (Brio & Wu, 1988)
+  - Ryu-Jones 2a shockwave test (Ryu & Jones, 1995)
+  - Brio-Wu shockwave test (Brio & Wu, 1988)
   - Orszag-Tang test (Orszag & Tang, 1998)
   - MHD rotor (Balsara & Spicer, 1999)
   - MHD blast wave (Felker & Stone, 2018)
 
-Analytical solutions for the Sod shock test (Pfrommer et al., 2006), Gaussian wave test and the sine wave test are overplotted in the saved plots. The solution error norms are also calculated when the smooth advection wave tests are run (Gaussian & sine waves).
+Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussian wave test and the sine wave test are overplotted in the saved plots. The solution error norms are also calculated when the smooth advection wave tests are run (Gaussian & sine waves).
 
 # Installation
 
