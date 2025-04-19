@@ -173,7 +173,7 @@ def calculate_HLLD_flux(axis, sim_variables, **kwargs):
     cafL, cafR = make_speeds(w_minus, gamma), make_speeds(w_plus, gamma)
 
     sL, sR = np.minimum(vecL[...,axis], vecR[...,axis]) - np.maximum(cafL, cafR), np.minimum(vecL[...,axis], vecR[...,axis]) + np.maximum(cafL, cafR)
-    sM = fv.divide(pR - pL + rhoL*vecL[...,axis]*(sL-vecL[...,axis]) - rhoR*vecR[...,axis]*(sR-vecR[...,axis]) + .5*(fv.norm(BR)**2) - fv.norm(BL)**2, rhoL*(sL-vecL[...,axis]) - rhoR*(sR-vecR[...,axis]))
+    sM = fv.divide(pR - pL + rhoL*vecL[...,axis]*(sL-vecL[...,axis]) - rhoR*vecR[...,axis]*(sR-vecR[...,axis]) + .5*(fv.norm(BR)**2) - .5*(fv.norm(BL)**2), rhoL*(sL-vecL[...,axis]) - rhoR*(sR-vecR[...,axis]))
 
     # Calculate the star states
     rhoL_star, rhoR_star = rhoL * fv.divide(sL-vecL[...,axis], sL-sM), rhoR * fv.divide(sR-vecR[...,axis], sR-sM)
