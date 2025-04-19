@@ -194,6 +194,7 @@ def calculate_HLLD_flux(axis, sim_variables, **kwargs):
     QL_star[...,abscissa+1], QR_star[...,abscissa+1] = rhoL * sM, rhoR * sM
     QL_star[...,ordinate+1], QR_star[...,ordinate+1] = rhoL * vyL_star, rhoR * vyR_star
     QL_star[...,applicate+1], QR_star[...,applicate+1] = rhoL * vzL_star, rhoR * vzR_star
+    QL_star[...,abscissa+5], QR_star[...,abscissa+5] = np.copy(QL[...,abscissa+5]), np.copy(QR[...,abscissa+5])
     QL_star[...,ordinate+5], QR_star[...,ordinate+5] = ByL_star, ByR_star
     QL_star[...,applicate+5], QR_star[...,applicate+5] = BzL_star, BzR_star
     QL_star[...,4] = fv.divide(QL[...,4]*(sL-vecL[...,axis]) - vecL[...,axis]*(pL+.5*fv.norm(BL)**2) + p_star*sM + wS[...,abscissa+5]*(np.sum(vecL*BL, axis=-1) - np.sum(QL_star[...,1:4]*QL_star[...,5:8], axis=-1)), sL-sM)
@@ -213,6 +214,7 @@ def calculate_HLLD_flux(axis, sim_variables, **kwargs):
     QL_starstar[...,abscissa+1], QR_starstar[...,abscissa+1] = sM, sM
     QL_starstar[...,ordinate+1], QR_starstar[...,ordinate+1] = vy_starstar, vy_starstar
     QL_starstar[...,applicate+1], QR_starstar[...,applicate+1] = vz_starstar, vz_starstar
+    QL_starstar[...,abscissa+5], QR_starstar[...,abscissa+5] = np.copy(QL_star[...,abscissa+5]), np.copy(QR_star[...,abscissa+5])
     QL_starstar[...,ordinate+5], QR_starstar[...,ordinate+5] = By_starstar, By_starstar
     QL_starstar[...,applicate+5], QR_starstar[...,applicate+5] = Bz_starstar, Bz_starstar
     QL_starstar[...,4] = np.copy(QL_star[...,4] - np.sqrt(rhoL_star)*np.sign(wS[...,abscissa+5])*(np.sum(QL_star[...,1:4]*QL_star[...,5:8], axis=-1) - np.sum(QL_starstar[...,1:4]*QL_starstar[...,5:8], axis=-1)))
