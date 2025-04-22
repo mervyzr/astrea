@@ -22,7 +22,7 @@
 
 The simulation employs a higher-order finite volume subgrid model (Eulerian) with a fixed and uniform Cartesian grid with periodic or outlet boundary conditions. The solution in the grid is updated in parallel. The simulation also allows for magnetic fields with the magnetic permeability set to one for simplicity.
 
-The code is written entirely in Python 3, and uses the `numpy` and `h5py` modules extensively for calculations and data handling respectively. The last _^stable_ Python version supported is _**Python 3.12**_.
+The code is written entirely in Python 3, and uses the `numpy` and `h5py` modules extensively for calculations and data handling respectively. The last _stable^_ Python version supported is _**Python 3.12**_.
 
 Some experimentation was done to parallelise the code with `Open MPI` and `MPICH`, or to enable multithreading. However, this is generally not recommended because of the global-interpreter-lock (GIL) in Python and the sequential nature of the simulation. Futhermore, `numpy` should already use multi-threading _wherever possible_, and 'parallelised Python' with `numpy` does not show a substantial increase in speed anyway over 'fully-parallel' code in Fortran or C (Ross, 2016).
 
