@@ -44,8 +44,8 @@ def derivative(grid, ax):
     return np.diff(grid.take(range(1,width), axis=ax), axis=ax) - np.diff(grid.take(range(0,width-1), axis=ax), axis=ax)
 
 
-# Convert between pressure P and total energy density E = e_tot; P is also related to the internal energy density e_int: P = (gamma-1) * e_int.
-# Do note that the energy densities are related to the energies by the density: e_tot = rho * total energy, e_int = rho * internal energy.
+# Convert between pressure P and total energy density e_tot; P is also related to the internal energy density e_int: P = (gamma-1) * e_int.
+# Do note that the energy densities e are related to the energies E: e_tot = rho * E_tot, e_int = rho * E_int.
 def convert_variable(variable, grid, gamma):
     if variable.lower().startswith('p'):
         return grid[...,4]/(gamma-1) + .5*(grid[...,0]*norm(grid[...,1:4])**2 + norm(grid[...,5:8])**2)
