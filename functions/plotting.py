@@ -160,8 +160,6 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs
                 ax[_i,_j].set_xlim([sim_variables.start_pos, sim_variables.end_pos])
                 ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
-        #plt.tight_layout()
-
         return fig, ax, {'indexes':indexes, 'labels':labels, 'errors':errors, 'tvs':tvs, 'colours': {'theo':theo_colour, '1d':colours, '2d':twod_colours}}
     else:
         raise IndexError('Number of variables to plot should be < 13')
@@ -208,6 +206,8 @@ def initiate_live_plot(sim_variables):
     plt.ion()
 
     fig, ax, plot_ = make_figure(options, sim_variables, figsize=[16,8])
+
+    plt.tight_layout()
 
     graphs = []
     for idx, (_i,_j) in enumerate(plot_['indexes']):
