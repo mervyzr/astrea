@@ -150,7 +150,7 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs
                 ax[_i,_j].set_xlim([sim_variables.start_pos, sim_variables.end_pos])
                 ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
-        plt.tight_layout()
+        #plt.tight_layout()
 
         return fig, ax, {'indexes':indexes, 'labels':labels, 'errors':errors, 'tvs':tvs, 'colours': {'theo':theo_colour, '1d':colours, '2d':twod_colours}}
     else:
