@@ -53,16 +53,26 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs
             if "energy" in option or "temp" in option or option.startswith("e"):
                 if "int" in option:
                     name = "Internal energy"
-                    label = r"$e$"
-                    error = r"$\log{(\epsilon_\nu(e))}$"
-                    tv = r"TV($e$)"
+                    if "density" in option:
+                        name += ' density'
+                        label = r"$e_\mathrm{int}$"
+                        error = r"$\log{(\epsilon_\nu(e_\mathrm{int}))}$"    
+                        tv = r"TV($e_\mathrm{int}$)"
+                    else:
+                        label = r"$E_\mathrm{int}$"
+                        error = r"$\log{(\epsilon_\nu(E_\mathrm{int}))}$"
+                        tv = r"TV($E_\mathrm{int}$)"
                 else:
                     name = "Total energy"
-                    label = r"$E$"
-                    error = r"$\log{(\epsilon_\nu(E))}$"
-                    tv = r"TV($E$)"
-                if "density" in option:
-                    name += ' density'
+                    if "density" in option:
+                        name += ' density'
+                        label = r"$e_\mathrm{tot}$"
+                        error = r"$\log{(\epsilon_\nu(e_\mathrm{tot}))}$"
+                        tv = r"TV($e_\mathrm{tot}$)"
+                    else:
+                        label = r"$E_\mathrm{tot}$"
+                        error = r"$\log{(\epsilon_\nu(E_\mathrm{tot}))}$"
+                        tv = r"TV($E_\mathrm{tot}$)"
 
             elif "mom" in option:
                 name = "Momentum"
