@@ -76,7 +76,7 @@ def interface_limiter(w_face, w_minus_one, w_cell, w_plus_one, w_plus_two):
         return .5*(w_cell+w_plus_one) - D2w/6
     else:
         return w_face
-    
+
 
 # Parabolic extrapolant limiter for PPM [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
 def extrapolant_limiter(wS, w, w2, wF_pad2, author, boundary, *args):
