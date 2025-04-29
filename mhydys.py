@@ -129,7 +129,7 @@ def run() -> None:
         if _sim_variables['dimension'] == 2:
             itr_list = 2**np.arange(2,8)
         else:
-            itr_list = 2**np.arange(3,11)
+            itr_list = 2**np.arange(3,5)
     else:
         itr_list = [_sim_variables['cells']]
 

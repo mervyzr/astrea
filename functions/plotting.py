@@ -46,7 +46,7 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs
             twod_colours = ["viridis", "hot", "cividis", "plasma", "inferno", "ocean", "terrain", "cubehelix", "magma", "gist_earth"]
 
         # Set up labels and axes names
-        labels, errors, tvs = [], [], []
+        names, labels, errors, tvs = [], [], [], []
         for option in options:
             option = option.lower()
 
@@ -56,69 +56,70 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs
                     if "density" in option:
                         name += ' density'
                         label = r"$e_\mathrm{int}$"
-                        error = r"$\log{(\epsilon_\nu(e_\mathrm{int}))}$"    
+                        error = r"$\epsilon_N(e_\mathrm{int})$"
                         tv = r"TV($e_\mathrm{int}$)"
                     else:
                         label = r"$E_\mathrm{int}$"
-                        error = r"$\log{(\epsilon_\nu(E_\mathrm{int}))}$"
+                        error = r"$\epsilon_N(E_\mathrm{int})$"
                         tv = r"TV($E_\mathrm{int}$)"
                 else:
                     name = "Total energy"
                     if "density" in option:
                         name += ' density'
                         label = r"$e_\mathrm{tot}$"
-                        error = r"$\log{(\epsilon_\nu(e_\mathrm{tot}))}$"
+                        error = r"$\epsilon_N(e_\mathrm{tot})$"
                         tv = r"TV($e_\mathrm{tot}$)"
                     else:
                         label = r"$E_\mathrm{tot}$"
-                        error = r"$\log{(\epsilon_\nu(E_\mathrm{tot}))}$"
+                        error = r"$\epsilon_N(E_\mathrm{tot})$"
                         tv = r"TV($E_\mathrm{tot}$)"
 
             elif "mom" in option:
                 name = "Momentum"
                 label = rf"$p_{option[-1]}$"
-                error = rf"$\log{{(\epsilon_\nu(p_{option[-1]}))}}$"
+                error = rf"$\epsilon_N(p_{option[-1]})$"
                 tv = rf"TV($p_{option[-1]}$)"
 
             elif "mass" in option:
                 name = "Mass"
                 label = r"$m$"
-                error = r"$\log{(\epsilon_\nu(m))}$"
+                error = r"$\epsilon_N(m)$"
                 tv = r"TV($m$)"
 
             elif option.startswith("p"):
                 name = "Pressure"
                 label = r"$P$"
-                error = r"$\log{(\epsilon_\nu(P))}$"
+                error = r"$\epsilon_N(P)$"
                 tv = r"TV($P$)"
 
             elif option.startswith("v"):
                 name = "Velocity"
                 label = rf"$v_{option[-1]}$"
-                error = rf"$\log{{(\epsilon_\nu(v_{option[-1]}))}}$"
+                error = rf"$\epsilon_N(v_{option[-1]})$"
                 tv = rf"TV($v_{option[-1]}$)"
 
             elif option.startswith("b") or option.startswith("mag"):
                 if "p" in option:
                     name = "Mag. pressure"
                     label = r"$P_B$"
-                    error = r"$\log{(\epsilon_\nu(P_B))}$"
+                    error = r"$\epsilon_N(P_B)$"
                     tv = r"TV($P_B$)"
                 else:
                     name = "Mag. field"
                     label = rf"$B_{option[-1]}$"
-                    error = rf"$\log{{(\epsilon_\nu(B_{option[-1]}))}}$"
+                    error = rf"$\epsilon_N(B_{option[-1]})$"
                     tv = rf"TV($B_{option[-1]}$)"
 
             else:
                 name = "Density"
                 label = r"$\rho$"
-                error = r"$\log{(\epsilon_\nu(\rho))}$"
+                error = r"$\epsilon_N(\rho)$"
                 tv = r"TV($\rho$)"
 
-            labels.append(rf"{name.capitalize()} {label}")
-            errors.append(rf"{name.capitalize()} {error}")
-            tvs.append(rf"{name.capitalize()} {tv}")
+            names.append(f"{name} {label}")
+            labels.append(rf"{label} [arb. units]")
+            errors.append(rf"{error} [arb. units]")
+            tvs.append(rf"{tv} [arb. units]")
 
         # Set up rows and columns
         indexes = []
@@ -147,6 +148,7 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs
         fig.subplots_adjust(wspace=0.75)
 
         for idx, (_i,_j) in enumerate(indexes):
+            ax[_i,_j].set_title(names[idx], fontsize=24)
             ax[_i,_j].tick_params(axis='both', which='major', labelsize=16)
             ax[_i,_j].tick_params(axis='both', which='minor', labelsize=14)
             if "error" in variable:
@@ -205,9 +207,9 @@ def initiate_live_plot(sim_variables):
     options = sim_variables.plot_options
     plt.ion()
 
-    fig, ax, plot_ = make_figure(options, sim_variables, figsize=[16,8])
+    fig, ax, plot_ = make_figure(options, sim_variables, figsize=[21,8])
 
-    plt.tight_layout()
+    #plt.tight_layout()
 
     graphs = []
     for idx, (_i,_j) in enumerate(plot_['indexes']):
@@ -237,7 +239,7 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
             graph.set_data(plot_data[index])
             graph.set_clim([np.min(plot_data[index]), np.max(plot_data[index])])
 
-        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t = {round(t,4)}$", fontsize=24)
+        plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell indices $x$ & $y$ at $t = {round(t,4)}$", fontsize=24)
     else:
         for index, graph in enumerate(graphs):
             graph.set_ydata(plot_data[index])
@@ -247,7 +249,7 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
             _.relim()
             _.autoscale_view()
 
-        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(t,4)}$", fontsize=24)
+        plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell position $x$ at $t = {round(t,4)}$", fontsize=24)
 
     fig.canvas.draw()
     fig.canvas.flush_events()
@@ -284,11 +286,11 @@ def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
                 ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
 
     if dimension == 2:
-        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t \approx {round(t,3)}$ ($N = {N}^{dimension}$) {text}", fontsize=30)
+        plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell indices $x$ & $y$ at $t \approx {round(t,3)}$ ($N = {N}^{dimension}$) {text}", fontsize=30)
         fig.text(0.5, 0.04, r"Cell index $x$", fontsize=24, ha='center')
         fig.text(0.04, 0.4, r"Cell index $y$", fontsize=24, ha='center', rotation='vertical')
     else:
-        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}", fontsize=30)
+        plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell position $x$ {text}", fontsize=30)
         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
 
     plt.savefig(f"{kwargs['save_path']}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{solver}_{'%.3f' % round(t,3)}.png", dpi=330)
@@ -346,7 +348,7 @@ def plot_quantities(hdf5, sim_variables, save_path):
                     if dimension < 2:
                         ax[_i,_j].plot(x, y, linewidth=2, label=f"N = {N}")
                         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
-                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(ref_time,3)}$", fontsize=30)
+                        plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell position $x$ at $t \approx {round(ref_time,3)}$", fontsize=30)
                         legends_on = True
                 else:
                     if dimension == 2:
@@ -354,7 +356,7 @@ def plot_quantities(hdf5, sim_variables, save_path):
                         divider = make_axes_locatable(ax[_i,_j])
                         cax = divider.append_axes('right', size='5%', pad=0.05)
                         fig.colorbar(graph, cax=cax, orientation='vertical')
-                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t \approx {round(ref_time,3)}$ ($N = {N}^{dimension}$)", fontsize=30)
+                        plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell indices $x$ & $y$ at $t \approx {round(ref_time,3)}$ ($N = {N}^{dimension}$)", fontsize=30)
                         fig.text(0.5, 0.04, r"Cell index $x$", fontsize=24, ha='center')
                         fig.text(0.04, 0.4, r"Cell index $y$", fontsize=24, ha='center', rotation='vertical')
                     else:
@@ -364,7 +366,7 @@ def plot_quantities(hdf5, sim_variables, save_path):
                             #ax[_i,_j].plot(x, y, linewidth=2, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=plot_['colours']['1d'], color=plot_['colours']['1d'])
                             ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
                         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
-                        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t \approx {round(ref_time,3)}$ ($N = {N}$)", fontsize=24)
+                        plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell position $x$ at $t \approx {round(ref_time,3)}$ ($N = {N}$)", fontsize=24)
 
         # Add analytical solutions only for 1D
         if dimension < 2:
@@ -463,15 +465,15 @@ def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
         for order in [1,2,4,5]:
             alpha = 10**c
             ytheo = alpha*x**(-order)
-            ax[_i,_j].loglog(x, ytheo, linewidth=2, color=plot_['colours']['theo'], linestyle="--")
+            ax[_i,_j].loglog(x, ytheo, linewidth=1, color=plot_['colours']['theo'], linestyle="--")
             ax[_i,_j].annotate(rf"$O(N^{order})$", (x[-1], ytheo[-1]), fontsize=18)
-        ax[_i,_j].loglog(x, y, linewidth=2, linestyle="--", marker="o", color=plot_['colours']['1d'][idx])
+        ax[_i,_j].loglog(x, y, linewidth=2, linestyle="-", marker="o", color=plot_['colours']['1d'][idx])
         ax[_i,_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|\text{{EOC}}_{{max}}|$ = {round(max(np.abs(EOC)), 4)}")
         ax[_i,_j].legend(prop={'size': 14})
         ax[_i,_j].set_xlim([min(x)/1.5,max(x)*1.5])
 
-    plt.suptitle(rf"$L_{error_norm}$ solution error norm $\epsilon_\nu(\vec{{w}})$ against resolution $N_\nu$ for {config.title()} test", fontsize=24)
-    fig.text(0.5, 0.04, r"Resolution $\log{(N_\nu)}$", fontsize=18, ha='center')
+    plt.suptitle(rf"$L_{error_norm}$ error norm $\epsilon_N(\boldsymbol{{W}})$ against resolution $N$ for {config.title()} test", fontsize=24)
+    fig.text(0.5, 0.04, r"Resolution $N$", fontsize=18, ha='center')
 
     plt.savefig(f"{save_path}/solErr_L{error_norm}_{subgrid}_{timestep}_{solver}.png", dpi=330)
 
@@ -494,7 +496,7 @@ def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
     for idx in range(len(plot_['indexes'])):
         ax.plot(x_diff, y_diff[idx], linewidth=2, linestyle="--", marker="o", color=plot_['colours']['1d'][idx], label=plot_['labels'][idx])
 
-    plt.suptitle(rf"Order of convergence against resolution $N_\nu$ for {config.title()} test", fontsize=30)
+    plt.suptitle(rf"Order of convergence against resolution $N$ for {config.title()} test", fontsize=30)
     fig.text(0.5, 0.04, r"Resolution $N$", fontsize=24, ha='center')
     _xticklabels = [item.get_text() for item in ax.get_xticklabels()]
     _xticklabels = [rf"${int(v)}\rightarrow{int(x[i+1])}$" for i,v in enumerate(x[:-1])]
@@ -556,7 +558,7 @@ def plot_total_variation(hdf5, sim_variables, save_path):
         else:
             grid_size = N
 
-        plt.suptitle(rf"Total variation of primitive variables TV($\vec{{w}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=30)
+        plt.suptitle(rf"Total variation of primitive variables TV($\boldsymbol{{W}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=30)
         fig.text(0.5, 0.04, r"Time $t$", fontsize=24, ha='center')
 
         plt.savefig(f"{save_path}/TV_{config}_{subgrid}_{timestep}_{solver}_{N}.png", dpi=330)
@@ -668,7 +670,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                             divider = make_axes_locatable(ax[_i,_j])
                             cax = divider.append_axes('right', size='5%', pad=0.05)
                             fig.colorbar(graph, cax=cax, orientation='vertical')
-                            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}^{dimension}$)", fontsize=30)
+                            plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}^{dimension}$)", fontsize=30)
 
                         else:
                             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
@@ -676,7 +678,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                                 gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=plot_['colours']['1d'][idx])
                             else:
                                 ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
-                            plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=30)
+                            plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=30)
 
                     plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", dpi=330)
 
@@ -780,11 +782,11 @@ def plot_this(grid, sim_variables, **kwargs):
                 ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
 
     if sim_variables.dimension == 2:
-        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell indices $x$ & $y$ {text}", fontsize=30)
+        plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell indices $x$ & $y$ {text}", fontsize=30)
         fig.text(0.5, 0.04, r"Cell index $x$", fontsize=24, ha='center')
         fig.text(0.04, 0.4, r"Cell index $y$", fontsize=24, ha='center', rotation='vertical')
     else:
-        plt.suptitle(rf"Primitive variables $\vec{{w}}$ against cell position $x$ {text}", fontsize=30)
+        plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell position $x$ {text}", fontsize=30)
         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
 
     if not sim_variables.live_plot:
