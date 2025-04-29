@@ -60,7 +60,7 @@ def make_sim_variables():
     with open('parameters.yml', "r") as _f:
         config_variables = yaml.safe_load(_f)
     config_variables = handle_variables(1, config_variables, {})
-    test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'])
+    test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'], config_variables['gamma'])
     _sim_variables = config_variables | test_variables
     variable_constructor = namedtuple('simulation_variables', _sim_variables)
     return variable_constructor(**_sim_variables)
