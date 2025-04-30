@@ -51,7 +51,7 @@ def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
         # Saves each instance of the system (primitive variables) at time t
         grid_snapshot = sim_variables.convert_conservative(grid, sim_variables).transpose(sim_variables.ortho_axis)
         with h5py.File(hdf5, "a") as f:
-            dataset = f[sim_variables.access_key].create_dataset(str(float(t)), data=grid_snapshot)
+            dataset = f[sim_variables.access_key].create_dataset(str(float(t)), data=grid_snapshot, compression="gzip", compression_opts=9)
             dataset.attrs['t'] = float(t)
 
         # Miscellaneous media/print options
