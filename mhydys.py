@@ -61,7 +61,7 @@ def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
         if sim_variables.live_plot:
             plotting.update_plot(grid_snapshot, t, sim_variables, *plotting_params)
         elif sim_variables.take_snaps and take_snapshot:
-            plotting.plot_snapshot(grid_snapshot, t, sim_variables, save_path=f"./savedData/snap{sim_variables.seed}")
+            plotting.plot_snapshot(grid_snapshot, t, sim_variables, save_path=f"{CURRENT_DIR}/savedData/snap{sim_variables.seed}")
             take_snapshot = False
 
         if t == sim_variables.t_end:
