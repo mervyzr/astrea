@@ -76,7 +76,7 @@ def evolve_time(grid, fluxes, dt, sim_variables):
             grid[...,5+(axis%3)] = fluxes[axes]['face_avg'].transpose(reversed_axes)[...,5+(axis%3)]
 
     # Methods for linear and non-linear systems [Shu & Osher, 1988]
-    if sim_variables.timestep_category == "ssprk":
+    if sim_variables.timestep.startswith("ssprk"):
         timestep = sim_variables.timestep.replace(',','').replace('(','').replace(')','').replace('ssprk','')
         register, order = int(timestep[:-1]), int(timestep[-1])
 
@@ -184,7 +184,7 @@ def evolve_time(grid, fluxes, dt, sim_variables):
             # Computation of 2nd register
             return refine_grid(.5*(grid + k1 + dt*compute_L(fluxes1, sim_variables)))
 
-    elif sim_variables.timestep_category == "rk4":
+    elif sim_variables.timestep.startswith("r"):
         # Evolve the system by RK4 method (4th-order); effective SSP coeff = 0.25
         # Computation of 1st register
         k1 = refine_grid(grid + .5*dt*L_zero)

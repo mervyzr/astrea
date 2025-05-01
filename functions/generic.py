@@ -237,7 +237,6 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     final_dict['access_key'] = None
 
     final_dict['config_category'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
-    final_dict['timestep_category'] = DB.get(PARAMS.accepted.any([final_dict['timestep']]))['category']
     final_dict['solver_category'] = DB.get(PARAMS.accepted.any([final_dict['solver']]))['category']
 
     final_dict['magnetic_2d'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category'] == 'magnetic-2D'
