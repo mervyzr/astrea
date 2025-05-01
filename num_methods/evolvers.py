@@ -85,7 +85,7 @@ def evolve_time(grid, fluxes, dt, sim_variables):
                 # Evolve system by SSP-RK (10,4) method (4th-order); effective SSP coeff = 0.6 [Ketcheson, 2008]
                 # Computation of i-th registers (i = 1,2,3,4)
                 k = np.copy(grid)
-                for _ in range(4):
+                for _ in range(5):
                     k += refine_grid(1/6*dt*compute_L(fluxes, sim_variables))
                     fluxes = evolve_space(k, sim_variables)
 
