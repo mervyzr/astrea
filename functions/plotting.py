@@ -472,7 +472,7 @@ def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
         ax[_i,_j].legend(prop={'size': 14})
         ax[_i,_j].set_xlim([min(x)/1.5,max(x)*1.5])
 
-    plt.suptitle(rf"$L_{error_norm}$ error norm $\epsilon_N(\boldsymbol{{W}})$ against resolution $N$ for {config.title()} test", fontsize=24)
+    plt.suptitle(rf"$L_{error_norm}$ error norm $\epsilon_N(\boldsymbol{{W}})$ against resolution $N$ for {config.title()} test", fontsize=30)
     fig.text(0.5, 0.04, r"Resolution $N$", fontsize=24, ha='center')
 
     plt.savefig(f"{save_path}/solErr_L{error_norm}_{subgrid}_{timestep}_{solver}.png", dpi=330)
