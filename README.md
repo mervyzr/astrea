@@ -2,11 +2,11 @@
 [![Python](https://img.shields.io/badge/Python-3.1x-yellow?logo=python&logoColor=white)](https://www.python.org)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-<!-- ![GitHub Tag](https://img.shields.io/github/v/tag/mervyzr/mHydyS) -->
+<!-- ![GitHub Tag](https://img.shields.io/github/v/tag/mervyzr/astrea) -->
 
-# mhydys
+# astrea
 
-**_mhydys_** (pronounced _"Hades"_; the _"m"_ is silent 😀) is a one-/two-dimensional (**M**agneto)**HY**dro**DY**namics **S**imulation toy model code for the purpose of modelling shockwaves in the interstellar medium, with possible implementation of a chemical network and radiative cooling.
+**_astrea_** (**A**strophysical **S**hockwave and **T**urbulence **RE**search for interstellar **A**pplications) is a one-/two-dimensional (magneto-)hydrodynamics simulation toy model code for the purpose of modelling shockwaves in the interstellar medium, with possible implementation of a chemical network and radiative cooling.
 
 **_This code is created as part of the Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner._**
 
@@ -99,19 +99,19 @@ Clone this repository onto your local machine, and navigate to the cloned reposi
 The main method to run the simulation would be to edit the simulation parameters in `parameters.yml` and running the main Python file:
 
 ```bash
-python3 mhydys.py
+python3 astrea.py
 ```
 
 OR
 
 ```bash
-./mhydys.py
+./astrea.py
 ```
 
 Alternatively, the code can be run with CLI options:
 
 ```bash
-python3 mhydys.py --config=sedov --cells=256
+python3 astrea.py --config=sedov --cells=256
 ```
 
 See _`--help`_ for a list of available options.
@@ -119,8 +119,8 @@ See _`--help`_ for a list of available options.
 _Running the code in a Python interactive shell is also possible, although this is generally not recommended:_
 
 ```python
-import mhydys
-mhydys.run()
+import astrea
+astrea.run()
 ```
 
 # Organisation
@@ -129,6 +129,7 @@ mhydys.run()
 ├── LICENSE
 ├── README.md
 ├── __init__.py
+├── astrea.py            : Runs the simulation, and contains the update loop
 ├── functions
 │   ├── __init__.py
 │   ├── analytic.py      : Analytical solutions to (magneto)hydrodynamics tests
@@ -150,7 +151,6 @@ mhydys.run()
 │   ├── ppm.py           : Piecewise parabolic method [McCorquodale & Colella, 2011; Felker & Stone, 2015]
 │   ├── weno.py          : WENO method [Shu, 2009; San & Kara, 2015]
 ├── setup.py             : Installation script
-├── mhydys.py            : Runs the simulation, and contains the update loop
 ├── static
 │   ├── __init__.py
 │   ├── .db.json         : Database for parameters

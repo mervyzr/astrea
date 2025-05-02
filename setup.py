@@ -14,17 +14,17 @@ class CustomInstallCommand(install):
     def run(self):
         if not os.path.exists(f"{CURRENTDIR}/parameters.yml"):
             shutil.copy2(f"{CURRENTDIR}/static/.default.yml", f"{CURRENTDIR}/parameters.yml")
-        subprocess.run(f"chmod +x {CURRENTDIR}/mhydys.py", shell=True)
+        subprocess.run(f"chmod +x {CURRENTDIR}/astrea.py", shell=True)
         install.run(self)
 
 
 setup(
-    name="mhydys",
+    name="astrea",
     version="1.3.2",
     author="Mervin Yap",
     author_email="myap@ph1.uni-koeln.de",
     description="Magnetohydrodynamics code for modelling shockwaves in the interstellar medium",
-    url="<https://github.com/mervyzr/mHydyS>",
+    url="<https://github.com/mervyzr/astrea>",
     packages=find_packages(
         exclude=['savedData','.vidplots'],
     ),

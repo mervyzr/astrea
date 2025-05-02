@@ -62,7 +62,6 @@ kiwisolver==1.4.7
 MarkupSafe==3.0.2
 matplotlib==3.9.2
 matplotlib-inline==0.1.7
-mhydys @ file:///Users/mervinyap/Desktop/Uni_zu_Koeln/mHydyS
 mistune==3.0.2
 more-itertools==10.5.0
 mpi4py==4.0.1

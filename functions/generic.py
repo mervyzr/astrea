@@ -123,7 +123,7 @@ def handle_CLI():
     accepted_values = lambda _type: [value for category in DB.search(PARAMS.type == _type) for value in category['accepted']]
     quotes = DB.get(PARAMS.type == 'quotes')['name']
 
-    parser = argparse.ArgumentParser(description='Run the mHydyS simulation.\n\nmHydyS is a 1D or 2D (magneto-)hydrodynamics finite volume simulation written in Python3. Refer to the README for more information.', 
+    parser = argparse.ArgumentParser(description='Run the astrea simulation.\n\nastrea is a 1D or 2D (magneto-)hydrodynamics finite volume simulation written in Python3. Refer to the README for more information.', 
                                      epilog=f"--- {BColours.ITALIC}{quotes[random.randint(0,len(quotes)-1)]}{BColours.ENDC} ---", 
                                      formatter_class=argparse.RawTextHelpFormatter)
 
