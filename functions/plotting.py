@@ -239,7 +239,7 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
             graph.set_data(plot_data[index])
             graph.set_clim([np.min(plot_data[index]), np.max(plot_data[index])])
 
-        plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell indices $x$ & $y$ at $t = {round(t,4)}$", fontsize=24)
+        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ at $t = {round(t,4)}$", fontsize=24)
     else:
         for index, graph in enumerate(graphs):
             graph.set_ydata(plot_data[index])
@@ -249,7 +249,7 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
             _.relim()
             _.autoscale_view()
 
-        plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell position $x$ at $t = {round(t,4)}$", fontsize=24)
+        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t = {round(t,4)}$", fontsize=24)
 
     fig.canvas.draw()
     fig.canvas.flush_events()
@@ -286,11 +286,11 @@ def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
                 ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
 
     if dimension == 2:
-        plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell indices $x$ & $y$ at $t \approx {round(t,3)}$ ($N = {N}^{dimension}$) {text}", fontsize=30)
+        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ at $t \approx {round(t,3)}$ ($N = {N}^{dimension}$) {text}", fontsize=30)
         fig.text(0.5, 0.04, r"Cell index $x$", fontsize=24, ha='center')
         fig.text(0.04, 0.4, r"Cell index $y$", fontsize=24, ha='center', rotation='vertical')
     else:
-        plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell position $x$ {text}", fontsize=30)
+        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ {text}", fontsize=30)
         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
 
     plt.savefig(f"{kwargs['save_path']}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{solver}_{'%.3f' % round(t,3)}.png", dpi=330)
@@ -348,7 +348,7 @@ def plot_quantities(hdf5, sim_variables, save_path):
                     if dimension < 2:
                         ax[_i,_j].plot(x, y, linewidth=2, label=f"N = {N}")
                         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
-                        plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell position $x$ at $t \approx {round(ref_time,3)}$", fontsize=30)
+                        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t \approx {round(ref_time,3)}$", fontsize=30)
                         legends_on = True
                 else:
                     if dimension == 2:
@@ -356,7 +356,7 @@ def plot_quantities(hdf5, sim_variables, save_path):
                         divider = make_axes_locatable(ax[_i,_j])
                         cax = divider.append_axes('right', size='5%', pad=0.05)
                         fig.colorbar(graph, cax=cax, orientation='vertical')
-                        plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell indices $x$ & $y$ at $t \approx {round(ref_time,3)}$ ($N = {N}^{dimension}$)", fontsize=30)
+                        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ at $t \approx {round(ref_time,3)}$ ($N = {N}^{dimension}$)", fontsize=30)
                         fig.text(0.5, 0.04, r"Cell index $x$", fontsize=24, ha='center')
                         fig.text(0.04, 0.4, r"Cell index $y$", fontsize=24, ha='center', rotation='vertical')
                     else:
@@ -366,7 +366,7 @@ def plot_quantities(hdf5, sim_variables, save_path):
                             #ax[_i,_j].plot(x, y, linewidth=2, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=plot_['colours']['1d'], color=plot_['colours']['1d'])
                             ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
                         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
-                        plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell position $x$ at $t \approx {round(ref_time,3)}$ ($N = {N}$)", fontsize=24)
+                        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t \approx {round(ref_time,3)}$ ($N = {N}$)", fontsize=24)
 
         # Add analytical solutions only for 1D
         if dimension < 2:
@@ -558,7 +558,7 @@ def plot_total_variation(hdf5, sim_variables, save_path):
         else:
             grid_size = N
 
-        plt.suptitle(rf"Total variation of primitive variables TV($\boldsymbol{{W}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=30)
+        plt.suptitle(rf"Total variation of grid variables TV($\boldsymbol{{u}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=30)
         fig.text(0.5, 0.04, r"Time $t$", fontsize=24, ha='center')
 
         plt.savefig(f"{save_path}/TV_{config}_{subgrid}_{timestep}_{solver}_{N}.png", dpi=330)
@@ -670,7 +670,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                             divider = make_axes_locatable(ax[_i,_j])
                             cax = divider.append_axes('right', size='5%', pad=0.05)
                             fig.colorbar(graph, cax=cax, orientation='vertical')
-                            plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}^{dimension}$)", fontsize=30)
+                            plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}^{dimension}$)", fontsize=30)
 
                         else:
                             fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
@@ -678,7 +678,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                                 gradient_plot([x, y], [_i,_j], ax, linewidth=2, color=plot_['colours']['1d'][idx])
                             else:
                                 ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
-                            plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=30)
+                            plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=30)
 
                     plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", dpi=330)
 
@@ -782,11 +782,11 @@ def plot_this(grid, sim_variables, **kwargs):
                 ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
 
     if sim_variables.dimension == 2:
-        plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell indices $x$ & $y$ {text}", fontsize=30)
+        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ {text}", fontsize=30)
         fig.text(0.5, 0.04, r"Cell index $x$", fontsize=24, ha='center')
         fig.text(0.04, 0.4, r"Cell index $y$", fontsize=24, ha='center', rotation='vertical')
     else:
-        plt.suptitle(rf"Primitive variables $\boldsymbol{{W}}$ against cell position $x$ {text}", fontsize=30)
+        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ {text}", fontsize=30)
         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
 
     if not sim_variables.live_plot:
