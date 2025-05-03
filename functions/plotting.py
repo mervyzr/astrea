@@ -26,10 +26,10 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs
         try:
             _figsize = kwargs['figsize']
         except KeyError:
-            _figsize = [21,10]
+            _figsize = [25,12]
         else:
             if not isinstance(_figsize, list) or not all(isinstance(_, int) for _ in _figsize):
-                _figsize = [21,10]
+                _figsize = [25,12]
 
         # Set up colours
         try:
@@ -286,7 +286,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
                 ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
 
     if dimension == 2:
-        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ at $t \approx {round(t,3)}$ ($N = {N}^{dimension}$) {text}", fontsize=30)
+        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ at $t = {round(t,3)}$ ($N = {N}^{dimension}$) {text}", fontsize=30)
         fig.text(0.5, 0.04, r"Cell index $x$", fontsize=24, ha='center')
         fig.text(0.04, 0.4, r"Cell index $y$", fontsize=24, ha='center', rotation='vertical')
     else:
@@ -348,7 +348,7 @@ def plot_quantities(hdf5, sim_variables, save_path):
                     if dimension < 2:
                         ax[_i,_j].plot(x, y, linewidth=2, label=f"N = {N}")
                         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
-                        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t \approx {round(ref_time,3)}$", fontsize=30)
+                        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t = {round(ref_time,3)}$", fontsize=30)
                         legends_on = True
                 else:
                     if dimension == 2:
@@ -356,7 +356,7 @@ def plot_quantities(hdf5, sim_variables, save_path):
                         divider = make_axes_locatable(ax[_i,_j])
                         cax = divider.append_axes('right', size='5%', pad=0.05)
                         fig.colorbar(graph, cax=cax, orientation='vertical')
-                        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ at $t \approx {round(ref_time,3)}$ ($N = {N}^{dimension}$)", fontsize=30)
+                        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ at $t = {round(ref_time,3)}$ ($N = {N}^{dimension}$)", fontsize=30)
                         fig.text(0.5, 0.04, r"Cell index $x$", fontsize=24, ha='center')
                         fig.text(0.04, 0.4, r"Cell index $y$", fontsize=24, ha='center', rotation='vertical')
                     else:
@@ -366,7 +366,7 @@ def plot_quantities(hdf5, sim_variables, save_path):
                             #ax[_i,_j].plot(x, y, linewidth=2, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=plot_['colours']['1d'], color=plot_['colours']['1d'])
                             ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
                         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
-                        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t \approx {round(ref_time,3)}$ ($N = {N}$)", fontsize=24)
+                        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t = {round(ref_time,3)}$ ($N = {N}$)", fontsize=24)
 
         # Add analytical solutions only for 1D
         if dimension < 2:
