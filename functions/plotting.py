@@ -161,6 +161,9 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs
             if sim_variables.dimension < 2:
                 ax[_i,_j].set_xlim([sim_variables.start_pos, sim_variables.end_pos])
                 ax[_i,_j].grid(linestyle="--", linewidth=0.5)
+            else:
+                ax[_i,_j].yaxis.set_label_position("right")
+                ax[_i,_j].yaxis.labelpad = 60
 
         return fig, ax, {'indexes':indexes, 'labels':labels, 'errors':errors, 'tvs':tvs, 'colours': {'theo':theo_colour, '1d':colours, '2d':twod_colours}}
     else:
