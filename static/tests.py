@@ -99,8 +99,8 @@ def generate_test_conditions(config, cells, gamma):
         shock_pos = 0
         t_end = .15
         boundary = "edge"
-        initial_left = np.array([1.08,1.2,.01,.5,.95,.5641895835477562,1.0155412503859613,.5641895835477562])
-        initial_right = np.array([1,0,0,0,1,.5641895835477562,1.1283791670955125,.5641895835477562])
+        initial_left = np.array([1.08,1.2,.01,.5,.95,1/np.sqrt(np.pi),1.8/np.sqrt(np.pi),1/np.sqrt(np.pi)])
+        initial_right = np.array([1,0,0,0,1,1/np.sqrt(np.pi),2/np.sqrt(np.pi),1/np.sqrt(np.pi)])
         misc = None
 
     # [Brio & Wu, 1988]
