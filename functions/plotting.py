@@ -562,7 +562,7 @@ def plot_total_variation(hdf5, sim_variables, save_path):
             grid_size = N
 
         plt.suptitle(rf"Total variation of grid variables TV($\boldsymbol{{u}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=30)
-        fig.text(0.5, 0.04, r"Time $t$", fontsize=24, ha='center')
+        fig.text(0.5, 0.04, rf"Time $t$ [arb. units]", fontsize=24, ha='center')
 
         plt.savefig(f"{save_path}/TV_{config}_{subgrid}_{timestep}_{solver}_{N}.png", dpi=330)
 
@@ -624,7 +624,7 @@ def plot_conservation_equations(hdf5, sim_variables, save_path):
             grid_size = N
 
         plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=30)
-        fig.text(0.5, 0.04, r"Time $t$", fontsize=24, ha='center')
+        fig.text(0.5, 0.04, rf"Time $t$ [arb. units]", fontsize=24, ha='center')
 
         plt.savefig(f"{save_path}/conserveEq_{config}_{subgrid}_{timestep}_{solver}_{N}.png", dpi=330)
 
