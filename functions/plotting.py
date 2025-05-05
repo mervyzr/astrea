@@ -163,7 +163,7 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs
                 ax[_i,_j].grid(linestyle="--", linewidth=0.5)
             else:
                 ax[_i,_j].yaxis.set_label_position("right")
-                ax[_i,_j].yaxis.labelpad = 60
+                ax[_i,_j].yaxis.labelpad = 80
 
         return fig, ax, {'indexes':indexes, 'labels':labels, 'errors':errors, 'tvs':tvs, 'colours': {'theo':theo_colour, '1d':colours, '2d':twod_colours}}
     else:
@@ -222,7 +222,8 @@ def initiate_live_plot(sim_variables):
             graph = ax[_i,_j].imshow(np.zeros((N,N)), interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes('right', size='5%', pad=0.05)
-            fig.colorbar(graph, cax=cax, orientation='vertical')
+            cbar = fig.colorbar(graph, cax=cax, orientation='vertical')
+            cbar.ax.tick_params(labelsize=16)
         else:
             fig.text(0.5, 0.04, r"Cell position $x$", ha='center', fontsize=18)
             ax[_i,_j].set_xlim([start_pos, end_pos])
@@ -280,7 +281,8 @@ def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
             graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes('right', size='5%', pad=0.05)
-            fig.colorbar(graph, cax=cax, orientation='vertical')
+            cbar = fig.colorbar(graph, cax=cax, orientation='vertical')
+            cbar.ax.tick_params(labelsize=16)
         else:
             x = np.linspace(start_pos, end_pos, N)
             if BEAUTIFY:
@@ -358,7 +360,8 @@ def plot_quantities(hdf5, sim_variables, save_path):
                         graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
                         divider = make_axes_locatable(ax[_i,_j])
                         cax = divider.append_axes('right', size='5%', pad=0.05)
-                        fig.colorbar(graph, cax=cax, orientation='vertical')
+                        cbar = fig.colorbar(graph, cax=cax, orientation='vertical')
+                        cbar.ax.tick_params(labelsize=16)
                         plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ at $t = {round(ref_time,3)}$ ($N = {N}^{dimension}$)", fontsize=30)
                         fig.text(0.5, 0.04, r"Cell index $x$", fontsize=24, ha='center')
                         fig.text(0.04, 0.4, r"Cell index $y$", fontsize=24, ha='center', rotation='vertical')
@@ -672,7 +675,8 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                             graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
                             divider = make_axes_locatable(ax[_i,_j])
                             cax = divider.append_axes('right', size='5%', pad=0.05)
-                            fig.colorbar(graph, cax=cax, orientation='vertical')
+                            cbar = fig.colorbar(graph, cax=cax, orientation='vertical')
+                            cbar.ax.tick_params(labelsize=16)
                             plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}^{dimension}$)", fontsize=30)
 
                         else:
@@ -776,7 +780,8 @@ def plot_this(grid, sim_variables, **kwargs):
             graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes('right', size='5%', pad=0.05)
-            fig.colorbar(graph, cax=cax, orientation='vertical')
+            cbar = fig.colorbar(graph, cax=cax, orientation='vertical')
+            cbar.ax.tick_params(labelsize=16)
         else:
             x = np.linspace(sim_variables.start_pos, sim_variables.end_pos, len(y))
             if BEAUTIFY:
