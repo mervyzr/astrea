@@ -129,25 +129,28 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE):
         indexes = indexes[:len(options)]
 
         # Set up figure
-        mpl.rcParams['text.usetex'] = True
-        fig, ax = plt.figure(), np.full((rows, cols), None)
-        plt.rcParams['text.latex.preamble'] = r"\usepackage{lmodern}"
-        params = {
-            'font.size': 12,
-            'font.family': 'DejaVuSans',
-            'axes.labelsize': 12,
-            'axes.titlesize': 12,
-            'legend.fontsize': 12,
-            'xtick.labelsize': 12,
-            'ytick.labelsize': 12,
+        if sim_variables.live_plot:
+            fig, ax = plt.figure(), np.full((rows, cols), None)
+        else:
+            mpl.rcParams['text.usetex'] = True
+            fig, ax = plt.figure(), np.full((rows, cols), None)
+            plt.rcParams['text.latex.preamble'] = r"\usepackage{lmodern}"
+            params = {
+                'font.size': 12,
+                'font.family': 'DejaVuSans',
+                'axes.labelsize': 12,
+                'axes.titlesize': 12,
+                'legend.fontsize': 12,
+                'xtick.labelsize': 12,
+                'ytick.labelsize': 12,
 
-            'figure.dpi': 300,
-            'savefig.dpi': 300,
+                'figure.dpi': 300,
+                'savefig.dpi': 300,
 
-            'lines.linewidth': 1.0,
-            'lines.dashed_pattern': [3, 2]
-        }
-        plt.rcParams.update(params)
+                'lines.linewidth': 1.0,
+                'lines.dashed_pattern': [3, 2]
+            }
+            plt.rcParams.update(params)
         spec = gridspec.GridSpec(rows, cols*2, figure=fig)
 
         for _i in range(len(options)):
@@ -230,18 +233,22 @@ def initiate_live_plot(sim_variables):
     graphs = []
     for idx, (_i,_j) in enumerate(plot_['indexes']):
         if dimension == 2:
-            fig.text(0.5, 0.04, r"$x$", ha='center')
-            fig.text(0.04, 0.4, r"$y$", ha='center', rotation='vertical')
             graph = ax[_i,_j].imshow(np.zeros((N,N)), interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes('right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
-            fig.text(0.5, 0.04, r"$x$", ha='center')
             ax[_i,_j].set_xlim([start_pos, end_pos])
             ax[_i,_j].grid(linestyle='--', linewidth=0.5)
             graph, = ax[_i,_j].plot(np.linspace(start_pos, end_pos, N), np.linspace(start_pos, end_pos, N), color=plot_['colours']['1d'][idx])
         graphs.append(graph)
+
+    fig.text(0.5, 0.04, r"$x$", ha='center')
+    fig.subplots_adjust(bottom=0.15)
+    if dimension == 2:
+        fig.text(0.04, 0.4, r"$y$", ha='center', rotation='vertical')
+        fig.subplots_adjust(left=0.15)
+
     return fig, ax, graphs
 
 
@@ -301,13 +308,15 @@ def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
             else:
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
 
+    fig.text(0.5, 0.04, r"$x$", ha='center')
+    fig.subplots_adjust(bottom=0.15)
     if dimension == 2:
-        #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ at $t = {round(t,3)}$ ($N = {N}^{dimension}$) {text}", fontsize=30)
-        fig.text(0.5, 0.04, r"$x$", ha='center')
         fig.text(0.04, 0.4, r"$y$", ha='center', rotation='vertical')
+        fig.subplots_adjust(left=0.15)
+        #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ at $t = {round(t,3)}$ ($N = {N}^{dimension}$) {text}", fontsize=30)
     else:
         #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ {text}", fontsize=30)
-        fig.text(0.5, 0.04, r"$x$", ha='center')
+        pass
 
     plt.savefig(f"{kwargs['save_path']}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{solver}_{'%.3f' % round(t,3)}.png", bbox_inches='tight')
 
@@ -363,7 +372,6 @@ def plot_quantities(hdf5, sim_variables, save_path):
                 if len(hdf5) != 1:
                     if dimension < 2:
                         ax[_i,_j].plot(x, y, label=f"N = {N}")
-                        fig.text(0.5, 0.04, r"$x$", ha='center')
                         #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t = {round(ref_time,3)}$", fontsize=30)
                         legends_on = True
                 else:
@@ -373,16 +381,19 @@ def plot_quantities(hdf5, sim_variables, save_path):
                         cax = divider.append_axes('right', size='5%', pad=0.05)
                         fig.colorbar(graph, cax=cax, orientation='vertical')
                         #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ at $t = {round(ref_time,3)}$ ($N = {N}^{dimension}$)", fontsize=30)
-                        fig.text(0.5, 0.04, r"$x$", ha='center')
-                        fig.text(0.04, 0.4, r"$y$", ha='center', rotation='vertical')
                     else:
                         if BEAUTIFY:
                             gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
                         else:
                             #ax[_i,_j].plot(x, y, linewidth=2, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=plot_['colours']['1d'], color=plot_['colours']['1d'])
                             ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
-                        fig.text(0.5, 0.04, r"$x$", ha='center')
                         #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t = {round(ref_time,3)}$ ($N = {N}$)", fontsize=24)
+
+            fig.text(0.5, 0.04, r"$x$", ha='center')
+            fig.subplots_adjust(bottom=0.15)
+            if dimension == 2:
+                fig.text(0.04, 0.4, r"$y$", ha='center', rotation='vertical')
+                fig.subplots_adjust(left=0.15)
 
         # Add analytical solutions only for 1D
         if dimension < 2:
@@ -490,6 +501,7 @@ def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
 
     #plt.suptitle(rf"$L_{error_norm}$ error norm $\epsilon_N(\boldsymbol{{W}})$ against resolution $N$ for {config.title()} test", fontsize=30)
     fig.text(0.5, 0.04, r"Resolution $N$", ha='center')
+    fig.subplots_adjust(bottom=0.15)
 
     plt.savefig(f"{save_path}/solErr_L{error_norm}_{subgrid}_{timestep}_{solver}.png", bbox_inches='tight')
 
@@ -514,6 +526,7 @@ def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
 
     #plt.suptitle(rf"Order of convergence against resolution $N$ for {config.title()} test", fontsize=30)
     fig.text(0.5, 0.04, r"Resolution $N$", ha='center')
+    fig.subplots_adjust(bottom=0.15)
     _xticklabels = [item.get_text() for item in ax.get_xticklabels()]
     _xticklabels = [rf"${int(v)}\rightarrow{int(x[i+1])}$" for i,v in enumerate(x[:-1])]
     ax.set_xticks(x_diff)
@@ -576,6 +589,7 @@ def plot_total_variation(hdf5, sim_variables, save_path):
 
         #plt.suptitle(rf"Total variation of grid variables TV($\boldsymbol{{u}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=30)
         fig.text(0.5, 0.04, rf"Time $t$ [arb. units]", ha='center')
+        fig.subplots_adjust(bottom=0.15)
 
         plt.savefig(f"{save_path}/TV_{config}_{subgrid}_{timestep}_{solver}_{N}.png", bbox_inches='tight')
 
@@ -638,6 +652,7 @@ def plot_conservation_equations(hdf5, sim_variables, save_path):
 
         #plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=30)
         fig.text(0.5, 0.04, rf"Time $t$ [arb. units]", ha='center')
+        fig.subplots_adjust(bottom=0.15)
 
         plt.savefig(f"{save_path}/conserveEq_{config}_{subgrid}_{timestep}_{solver}_{N}.png", bbox_inches='tight')
 
@@ -680,8 +695,6 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                         y = y_data[idx]
 
                         if dimension == 2:
-                            fig.text(0.5, 0.04, r"$x$", ha='center')
-                            fig.text(0.04, 0.4, r"$y$", ha='center', rotation='vertical')
                             graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
                             divider = make_axes_locatable(ax[_i,_j])
                             cax = divider.append_axes('right', size='5%', pad=0.05)
@@ -689,12 +702,17 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                             #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}^{dimension}$)", fontsize=30)
 
                         else:
-                            fig.text(0.5, 0.04, r"$x$", ha='center')
                             if BEAUTIFY:
                                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
                             else:
                                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
                             #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=30)
+
+                    fig.text(0.5, 0.04, r"$x$", ha='center')
+                    fig.subplots_adjust(bottom=0.15)
+                    if dimension == 2:
+                        fig.text(0.04, 0.4, r"$y$", ha='center', rotation='vertical')
+                        fig.subplots_adjust(left=0.15)
 
                     plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight')
 
@@ -797,13 +815,15 @@ def plot_this(grid, sim_variables, **kwargs):
             else:
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
 
+    fig.text(0.5, 0.04, r"$x$", ha='center')
+    fig.subplots_adjust(bottom=0.15)
     if sim_variables.dimension == 2:
-        #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ {text}", fontsize=30)
-        fig.text(0.5, 0.04, r"$x$", ha='center')
         fig.text(0.04, 0.4, r"$y$", ha='center', rotation='vertical')
+        fig.subplots_adjust(left=0.15)
+        #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ {text}", fontsize=30)
     else:
         #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ {text}", fontsize=30)
-        fig.text(0.5, 0.04, r"$x$", ha='center')
+        pass
 
     if not sim_variables.live_plot:
         plt.show(block=True)
