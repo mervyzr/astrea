@@ -4,6 +4,7 @@ import subprocess
 
 import numpy as np
 import matplotlib as mpl
+mpl.rcParams['text.usetex'] = True
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.patches import Polygon
@@ -106,7 +107,7 @@ def make_figure(option, sim_variables, variable="normal", style=STYLE, **kwargs)
         tv = r"TV($\rho$)"
 
     # Set up figure
-    mpl.rcParams['text.usetex'] = True
+    #mpl.rcParams['text.usetex'] = True
     fig, ax = plt.subplots()
     plt.rcParams['text.latex.preamble'] = r"\usepackage{lmodern}"
     params = {'font.size': 12,
@@ -591,17 +592,14 @@ def dual_plot(paths, sim_variables, error_norm=1):
     plot_ = make_weird_figure(options)
     config, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
 
-    # Solution errors plot
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
 
-    mpl.rcParams['text.usetex'] = True
+    #mpl.rcParams['text.usetex'] = True
 
     plt.rcParams['text.latex.preamble'] = r"\usepackage{lmodern}"
     params = {'font.size': 12, 'font.family': 'DejaVuSans', 'axes.labelsize': 12, 'axes.titlesize': 12, 'legend.fontsize': 12, 'xtick.labelsize': 12, 'ytick.labelsize': 12, 'figure.dpi': 300, 'savefig.dpi': 300, 'lines.linewidth': 1.0, 'lines.dashed_pattern': [3, 2]}
     plt.rcParams.update(params)
 
-    fig, ax = plt.subplots(figsize=[7,11], nrows=1, ncols=2)
+    fig, ax = plt.subplots(figsize=[11,7], nrows=1, ncols=2)
 
     import h5py
 
@@ -716,21 +714,21 @@ def dual_plot(paths, sim_variables, error_norm=1):
                     alpha = 10**c
                     ytheo = alpha*x**(-order)
                     ax[_j].loglog(x, ytheo, color="black", linestyle="--")
-                    ax[_j].annotate(rf"$O(N^{order})$", (x[-1], ytheo[-1]))
+                    ax[_j].annotate(rf"$O(N^{order})$", xy=(x[-1], ytheo[-1]), xytext=(5,-5), textcoords='offset points')
 
-            ax[_j].loglog(x, y, linestyle="-", marker="o", color=plot_['colours']['1d'][path_i], label=rf"{_config}, $|\text{{EOC}}_\text{{max}}|$ = {round(max(np.abs(EOC)), 4)}")
+            ax[_j].loglog(x, y, linestyle="-", marker="o", color=plot_['colours']['1d'][path_i], label=rf"{_config}, $|$EOC$_\mathrm{{max}}$$|$ = {round(max(np.abs(EOC)), 4)}")
             ax[_j].legend()
-            ax[_j].set_xlim([min(x)/1.5,max(x)*2])
+            ax[_j].set_xlim([min(x)/1.5,max(x)*2.5])
             ax[_j].set_xlabel(r"Resolution $N$")
             ax[_j].grid(linestyle="--", linewidth=0.5)
             if _j == 0:
-                ax[_j].set_title(r"Gaussian wave")
+                ax[_j].set_title(r"Gaussian function")
                 ax[_j].set_ylabel(r"$\epsilon_N(\rho)$ [arb. units]", rotation='vertical')
             else:
                 ax[_j].set_title(r"sine-wave")
                 ax[_j].yaxis.tick_right()
-
-    plt.savefig(f"solErr_L{error_norm}.png")
+    plt.subplots_adjust(wspace=0, hspace=0)
+    plt.savefig(f"solErr_L{error_norm}.png", bbox_inches='tight')
 
     plt.cla()
     plt.clf()
