@@ -129,6 +129,7 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE):
         indexes = indexes[:len(options)]
 
         # Set up figure
+        mpl.rcParams['text.usetex'] = True
         fig, ax = plt.figure(), np.full((rows, cols), None)
         plt.rcParams['text.latex.preamble'] = r"\usepackage{lmodern}"
         params = {
@@ -157,7 +158,7 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE):
                 extra = cols - len(options) % cols
                 ax[row,col] = fig.add_subplot(spec[row, 2*col+extra:2*(col+1)+extra])
         #fig.subplots_adjust(wspace=0, hspace=0)
-        fig.subplots_adjust(wspace=0.75)
+        fig.subplots_adjust(wspace=0.75, hspace=0.25)
 
         for idx, (_i,_j) in enumerate(indexes):
             ax[_i,_j].set_title(names[idx])
@@ -176,6 +177,8 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE):
             else:
                 ax[_i,_j].yaxis.set_label_position("right")
                 ax[_i,_j].yaxis.labelpad = 80
+
+        plt.tight_layout()
 
         return fig, ax, {'indexes':indexes, 'labels':labels, 'errors':errors, 'tvs':tvs, 'colours': {'theo':theo_colour, '1d':colours, '2d':twod_colours}}
     else:
@@ -223,8 +226,6 @@ def initiate_live_plot(sim_variables):
     plt.ion()
 
     fig, ax, plot_ = make_figure(options, sim_variables)
-
-    #plt.tight_layout()
 
     graphs = []
     for idx, (_i,_j) in enumerate(plot_['indexes']):
