@@ -136,22 +136,6 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs
         indexes = indexes[:len(options)]
 
         # Set up figure
-        params = {'font.size': 18,
-                'font.family': 'DejaVuSans',
-                'axes.labelsize': 24,
-                'axes.titlesize': 30,
-                'legend.fontsize': 24,
-                'xtick.labelsize': 18,
-                'ytick.labelsize': 18,
-                'text.usetex': False,
-
-                'figure.dpi': 300,
-                'savefig.dpi': 300,
-
-                'lines.linewidth': 2.0,
-                'lines.dashed_pattern': [3, 2]
-                }
-        plt.rcParams.update(params)
         fig, ax = plt.figure(figsize=_figsize), np.full((rows, cols), None)
         spec = gridspec.GridSpec(rows, cols*2, figure=fig)
         for _i in range(len(options)):
@@ -165,14 +149,14 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs
 
         for idx, (_i,_j) in enumerate(indexes):
             ax[_i,_j].set_title(names[idx], fontsize=24)
-            ax[_i,_j].tick_params(axis='both', which='major')
+            ax[_i,_j].tick_params(axis='both', which='major', labelsize=18)
             ax[_i,_j].tick_params(axis='both', which='minor', labelsize=16)
             if "error" in variable:
-                ax[_i,_j].set_ylabel(errors[idx])
+                ax[_i,_j].set_ylabel(errors[idx], fontsize=24)
             elif "tv" in variable:
-                ax[_i,_j].set_ylabel(tvs[idx])
+                ax[_i,_j].set_ylabel(tvs[idx], fontsize=24)
             else:
-                ax[_i,_j].set_ylabel(labels[idx])
+                ax[_i,_j].set_ylabel(labels[idx], fontsize=24)
 
             if sim_variables.dimension < 2:
                 ax[_i,_j].set_xlim([sim_variables.start_pos, sim_variables.end_pos])
@@ -314,7 +298,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
         plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ {text}", fontsize=30)
         fig.text(0.5, 0.04, r"Cell position $x$", fontsize=24, ha='center')
 
-    plt.savefig(f"{kwargs['save_path']}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{solver}_{'%.3f' % round(t,3)}.png")
+    plt.savefig(f"{kwargs['save_path']}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{solver}_{'%.3f' % round(t,3)}.png", dpi=330)
 
     plt.cla()
     plt.clf()
@@ -428,7 +412,7 @@ def plot_quantities(hdf5, sim_variables, save_path):
             handles, labels = plt.gca().get_legend_handles_labels()
             fig.legend(handles, labels, prop={'size': 24}, loc='upper right', ncol=_ncol)
 
-        plt.savefig(f"{save_path}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{solver}_{'%.3f' % round(ref_time,3)}.png")
+        plt.savefig(f"{save_path}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{solver}_{'%.3f' % round(ref_time,3)}.png", dpi=330)
 
         plt.cla()
         plt.clf()
@@ -497,7 +481,7 @@ def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
     plt.suptitle(rf"$L_{error_norm}$ error norm $\epsilon_N(\boldsymbol{{W}})$ against resolution $N$ for {config.title()} test", fontsize=30)
     fig.text(0.5, 0.04, r"Resolution $N$", fontsize=24, ha='center')
 
-    plt.savefig(f"{save_path}/solErr_L{error_norm}_{subgrid}_{timestep}_{solver}.png")
+    plt.savefig(f"{save_path}/solErr_L{error_norm}_{subgrid}_{timestep}_{solver}.png", dpi=330)
 
     plt.cla()
     plt.clf()
@@ -526,7 +510,7 @@ def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
     ax.set_xticklabels(_xticklabels, rotation=45, fontsize=18, ha="right")
     ax.legend(prop={'size': 18})
 
-    plt.savefig(f"{save_path}/convergenceOrder_{subgrid}_{timestep}_{solver}.png")
+    plt.savefig(f"{save_path}/convergenceOrder_{subgrid}_{timestep}_{solver}.png", dpi=330)
 
     plt.cla()
     plt.clf()
@@ -583,7 +567,7 @@ def plot_total_variation(hdf5, sim_variables, save_path):
         plt.suptitle(rf"Total variation of grid variables TV($\boldsymbol{{u}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=30)
         fig.text(0.5, 0.04, rf"Time $t$ [arb. units]", fontsize=24, ha='center')
 
-        plt.savefig(f"{save_path}/TV_{config}_{subgrid}_{timestep}_{solver}_{N}.png")
+        plt.savefig(f"{save_path}/TV_{config}_{subgrid}_{timestep}_{solver}_{N}.png", dpi=330)
 
         plt.cla()
         plt.clf()
@@ -645,7 +629,7 @@ def plot_conservation_equations(hdf5, sim_variables, save_path):
         plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=30)
         fig.text(0.5, 0.04, rf"Time $t$ [arb. units]", fontsize=24, ha='center')
 
-        plt.savefig(f"{save_path}/conserveEq_{config}_{subgrid}_{timestep}_{solver}_{N}.png")
+        plt.savefig(f"{save_path}/conserveEq_{config}_{subgrid}_{timestep}_{solver}_{N}.png", dpi=330)
 
         plt.cla()
         plt.clf()
@@ -703,7 +687,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                                 ax[_i,_j].plot(x, y, linewidth=2, color=plot_['colours']['1d'][idx])
                             plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=30)
 
-                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png")
+                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", dpi=330)
 
                 else:
                     idx = 0
@@ -714,7 +698,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                     else:
                         ax[idx,idx].plot(x, y_data[idx], linewidth=2, color=plot_['colours']['1d'][idx])
 
-                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight', pad_inches=0, transparent=True)
+                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", dpi=330, bbox_inches='tight', pad_inches=0, transparent=True)
 
                 plt.cla()
                 plt.clf()
@@ -749,7 +733,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                     else:
                         ax[idx,idx].plot(x, y_data[idx], linewidth=2, color=plot_['colours']['1d'][style_counter])
 
-                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight', pad_inches=0, transparent=True)
+                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", dpi=330, bbox_inches='tight', pad_inches=0, transparent=True)
 
                     plt.cla()
                     plt.clf()
