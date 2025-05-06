@@ -137,7 +137,25 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, **kwargs
 
         # Set up figure
         fig, ax = plt.figure(figsize=_figsize), np.full((rows, cols), None)
+        """plt.rcParams['text.latex.preamble'] = r"\usepackage{lmodern}"
+        params = {
+            'font.size': 12,
+            'font.family': 'DejaVuSans',
+            'axes.labelsize': 12,
+            'axes.titlesize': 12,
+            'legend.fontsize': 12,
+            'xtick.labelsize': 12,
+            'ytick.labelsize': 12,
+
+            'figure.dpi': 300,
+            'savefig.dpi': 300,
+
+            'lines.linewidth': 1.0,
+            'lines.dashed_pattern': [3, 2]
+        }
+        plt.rcParams.update(params)"""
         spec = gridspec.GridSpec(rows, cols*2, figure=fig)
+
         for _i in range(len(options)):
             row, col = divmod(_i, cols)
             if row < len(options)//cols:
@@ -472,7 +490,7 @@ def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
             alpha = 10**c
             ytheo = alpha*x**(-order)
             ax[_i,_j].loglog(x, ytheo, linewidth=1, color=plot_['colours']['theo'], linestyle="--")
-            ax[_i,_j].annotate(rf"$O(N^{order})$", (x[-1], ytheo[-1]), fontsize=18)
+            ax[_i,_j].annotate(rf"$O(N^{order})$", xy=(x[-1], ytheo[-1]), xytext=(5,-5), textcoords='offset points', fontsize=18)
         ax[_i,_j].loglog(x, y, linewidth=2, linestyle="-", marker="o", color=plot_['colours']['1d'][idx])
         ax[_i,_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|\text{{EOC}}_{{max}}|$ = {round(max(np.abs(EOC)), 4)}")
         ax[_i,_j].legend(prop={'size': 14})
