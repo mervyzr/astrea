@@ -129,7 +129,12 @@ def run() -> None:
         if _sim_variables['dimension'] == 2:
             itr_list = 2**np.arange(2,8)
         else:
-            itr_list = 2**np.arange(3,11)
+            #itr_list = 2**np.arange(3,11)
+            #itr_list = ["pcm","plm","ppm","weno-5","weno-7"]
+            itr_list = ["ppm","weno-5","weno-7"]
+            #itr_list = ["lf", "lw", "hllc", "hlld", "os"]
+            #itr_list = ["euler", "rk4", "ssprk(3,3)"]
+            #itr_list = ["ssprk(2,2)", "ssprk(3,3)", "ssprk(4,3)", "ssprk(5,3)", "ssprk(5,4)", "ssprk(10,4)"]
     else:
         itr_list = [_sim_variables['cells']]
 
@@ -164,7 +169,10 @@ def run() -> None:
             # Update cells (and grid width) in simulation variables (namedtuple)
             sim_variables = sim_variables._replace(access_key=now.strftime('%Y%m%d%H%M%S')+str(now.microsecond))
             sim_variables = sim_variables._replace(now=now)
-            sim_variables = sim_variables._replace(cells=_var)
+            #sim_variables = sim_variables._replace(cells=_var)
+            sim_variables = sim_variables._replace(subgrid=_var)
+            #sim_variables = sim_variables._replace(solver=_var)
+            #sim_variables = sim_variables._replace(timestep=_var)
             sim_variables = sim_variables._replace(dx=abs(sim_variables.end_pos-sim_variables.start_pos)/sim_variables.cells)
 
             # Save simulation variables into HDF5 file
@@ -201,6 +209,7 @@ def run() -> None:
                 if sim_variables.run_type.startswith("m"):
                     if sim_variables.config_category == "smooth":
                         plotting.plot_solution_errors(f, sim_variables, save_path, error_norm=1)
+                    plotting.plot_total_variation(f, sim_variables, save_path)
                 else:
                     plotting.plot_total_variation(f, sim_variables, save_path)
                     plotting.plot_conservation_equations(f, sim_variables, save_path)
