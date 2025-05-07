@@ -433,7 +433,7 @@ def plot_quantities(hdf5, sim_variables, save_path):
             handles, labels = plt.gca().get_legend_handles_labels()
             fig.legend(handles, labels, ncol=_ncol)
 
-        plt.savefig(f"{save_path}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{solver}_{'%.3f' % round(ref_time,3)}.png", dpi=330)
+        plt.savefig(f"{save_path}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{solver}_{'%.3f' % round(ref_time,3)}.png", bbox_inches='tight')
 
         plt.cla()
         plt.clf()
