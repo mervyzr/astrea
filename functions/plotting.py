@@ -687,6 +687,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                 print(f"Creating {counter+1}/{end_count} ...", end='\r')
 
                 fig, ax, plot_ = make_figure(options, sim_variables)
+                ax.title.set_visible(False)
                 x = np.linspace(start_pos, end_pos, N)
                 y_data = make_data(options, grid, sim_variables)
 
