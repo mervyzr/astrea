@@ -385,7 +385,7 @@ def plot_quantities(hdf5, sim_variables, save_path):
                         if BEAUTIFY:
                             gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
                         else:
-                            #ax[_i,_j].plot(x, y, linewidth=2, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=plot_['colours']['1d'], color=plot_['colours']['1d'])
+                            #ax[_i,_j].plot(x, y, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=plot_['colours']['1d'], color=plot_['colours']['1d'])
                             ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
                         #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t = {round(ref_time,3)}$ ($N = {N}$)", fontsize=24)
 

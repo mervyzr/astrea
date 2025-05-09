@@ -61,7 +61,7 @@ def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
         if sim_variables.live_plot:
             plotting.update_plot(grid_snapshot, t, sim_variables, *plotting_params)
         elif sim_variables.take_snaps and take_snapshot:
-            plotting.plot_snapshot(grid_snapshot, t, sim_variables, save_path=f"{CURRENT_DIR}/savedData/snap{sim_variables.seed}")
+            plotting.plot_snapshot(grid_snapshot, t, sim_variables, save_path=f"{CURRENT_DIR}/saved_data/snap{sim_variables.seed}")
             take_snapshot = False
 
         if t == sim_variables.t_end:
@@ -139,13 +139,13 @@ def run() -> None:
 
     ###################################### SCRIPT INITIATE ######################################
     script_start = datetime.now().strftime('%Y%m%d%H%M')
-    save_path = f"{CURRENT_DIR}/savedData/sim{script_start}_{SEED}"
+    save_path = f"{CURRENT_DIR}/saved_data/sim{script_start}_{SEED}"
 
     # Make directories if they do not exist
     if (sim_variables.save_plots or sim_variables.save_video or sim_variables.save_file) and not os.path.exists(save_path):
         os.makedirs(save_path)
-    if sim_variables.take_snaps and not os.path.exists(f"{CURRENT_DIR}/savedData/snap{SEED}"):
-        os.makedirs(f"{CURRENT_DIR}/savedData/snap{SEED}")
+    if sim_variables.take_snaps and not os.path.exists(f"{CURRENT_DIR}/saved_data/snap{SEED}"):
+        os.makedirs(f"{CURRENT_DIR}/saved_data/snap{SEED}")
 
     # Run in a try-except-else to handle crashes and prevent exiting code entirely, with signal handler
     original_sigint_handler = signal.getsignal(signal.SIGINT)
@@ -222,7 +222,7 @@ def run() -> None:
             print(f"{generic.BColours.FAIL}-- Error: {e}{generic.BColours.ENDC} (use --debug option for more details)")
 
     finally:
-        # Save the temporary HDF5 database (!! Possibly large file sizes > 100GB !!)
+        # Save the temporary HDF5 database (!! Possibly large file sizes > 100 GB !!)
         if sim_variables.save_file:
             shutil.move(file_name, f"{save_path}/astrea_{sim_variables.config}_{sim_variables.subgrid}_{sim_variables.timestep}_{SEED}.hdf5")
         else:
