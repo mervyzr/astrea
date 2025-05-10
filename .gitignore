@@ -54,7 +54,7 @@ docs/_build/
 
 # custom files
 parameters.yml
-savedData
+saved_data
 *.hdf5
 *.sh
 .vidplots
