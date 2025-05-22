@@ -28,12 +28,8 @@ SEED = np.random.randint(0, 1e8)
 
 
 # Finite volume shock function
-def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
-    try:
-        chkpts = kwargs['checkpoints']
-    except KeyError:
-        chkpts = 10
-    chkpt = sim_variables.t_end/chkpts
+def core_run(hdf5: str, sim_variables: namedtuple):
+    chkpt = sim_variables.t_end/sim_variables.checkpoints
 
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables
     grid = constructor.initialise(sim_variables, convert=True)
@@ -42,7 +38,6 @@ def core_run(hdf5: str, sim_variables: namedtuple, *args, **kwargs):
     if sim_variables.live_plot:
         plotting_params = plotting.initiate_live_plot(sim_variables)
     elif sim_variables.take_snaps:
-        chkpt = sim_variables.t_end/sim_variables.snapshots
         take_snapshot = True
 
     # Start simulation run

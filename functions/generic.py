@@ -135,9 +135,10 @@ def handle_CLI():
     parser.add_argument('--subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='subgrid model used in the reconstruction of the grid', choices=accepted_values('subgrid'))
     parser.add_argument('--timestep', metavar='', type=str.lower, default=argparse.SUPPRESS, help='sime-stepping algorithm used in the update step of the simulation', choices=accepted_values('timestep'))
     parser.add_argument('--solver', metavar='', type=str.lower, default=argparse.SUPPRESS, help='solver used for the Riemann problem', choices=accepted_values('solver'))
-    parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='run a single run or multiple runs for each simulation', choices=DB.get(PARAMS.type == 'run_type')['accepted'])
 
-    parser.add_argument('--snapshots', metavar='', type=int, default=argparse.SUPPRESS, help='number of snapshots to save')
+    parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='run a single run or multiple runs for each simulation', choices=DB.get(PARAMS.type == 'run_type')['accepted'])
+    parser.add_argument('--checkpoints', '--chkpts', dest='checkpoints', metavar='', type=int, default=argparse.SUPPRESS, help='number of checkpoints in simulation')
+
     parser.add_argument('--plot_options', '--plot-options', dest='plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot')
     parser.add_argument('--live_plot', '--live-plot', '--live', dest='live_plot', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
     parser.add_argument('--take_snaps', '--take-snaps', dest='take_snaps', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
@@ -175,7 +176,7 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
         if k in ['live_plot', 'take_snaps', 'save_video', 'save_plots', 'save_file']:
             if not isinstance(v, bool):
                 v = False
-        elif k in ['snapshots', 'dimension']:
+        elif k in ['checkpoints', 'dimension']:
             if not isinstance(v, int):
                 v = 1
         elif k == "cells":

@@ -22,11 +22,11 @@ numerical_parameters:
 runtime_parameters:
   # Run types : single, multiple
   run_type      : single
+  checkpoints   : 1
 
 media_options:
   live_plot     : false
   take_snaps    : false
-  snapshots     : 1
   save_plots    : false
   save_video    : false
   save_file     : false
