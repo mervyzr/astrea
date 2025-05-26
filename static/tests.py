@@ -65,7 +65,7 @@ def generate_test_conditions(config, cells, gamma):
         t_end = 1
         boundary = "edge"
         initial_left = np.array([16,0,0,0,16/3,0,0,0])
-        initial_right = np.array([1,1,1,1,1e-6,0,0,0])
+        initial_right = np.array([1,0,0,0,1e-6,0,0,0])
         misc = None
 
     elif "slow" in config:

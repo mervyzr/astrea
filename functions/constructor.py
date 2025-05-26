@@ -73,8 +73,13 @@ def initialise(sim_variables, convert=False):
             computational_grid[mask][...,2] = (params['omega']*(x-centre)/shock_pos)[mask]
 
         elif "noh" in config:
-            mask = np.where(((x-start_pos)**2 + (y-start_pos)**2) <= (shock_pos-start_pos)**2)
-            computational_grid[mask] = initial_left
+            inside_mask = np.where(((x-start_pos)**2 + (y-start_pos)**2) <= (shock_pos-start_pos)**2)
+            computational_grid[inside_mask] = initial_left
+            outside_mask = np.where(((x-start_pos)**2 + (y-start_pos)**2) > (shock_pos-start_pos)**2)
+            _physical_grid = make_physical_grid(0, np.pi/2, N)
+            _x, _y = np.meshgrid(_physical_grid, _physical_grid, indexing='ij')
+            computational_grid[outside_mask][...,1] = -np.sin(_x)[outside_mask]
+            computational_grid[outside_mask][...,2] = -np.cos(_x)[outside_mask]
 
         else:
             computational_grid[np.where(x < shock_pos)] = initial_left

@@ -22,7 +22,7 @@ BEAUTIFY = False
 
 
 # Make figures and axes for plotting
-def make_figure(options, sim_variables, variable="normal", style=STYLE):
+def make_figure(options, sim_variables, variable="normal", style=STYLE, tight_layout=True):
     if 0 < len(options) < 13:
         # Set up colours
         try:
@@ -181,7 +181,8 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE):
                 ax[_i,_j].yaxis.set_label_position("right")
                 ax[_i,_j].yaxis.labelpad = 80
 
-        plt.tight_layout()
+        if tight_layout:
+            plt.tight_layout()
 
         return fig, ax, {'indexes':indexes, 'labels':labels, 'errors':errors, 'tvs':tvs, 'colours': {'theo':theo_colour, '1d':colours, '2d':twod_colours}}
     else:
@@ -228,7 +229,7 @@ def initiate_live_plot(sim_variables):
     options = sim_variables.plot_options
     plt.ion()
 
-    fig, ax, plot_ = make_figure(options, sim_variables)
+    fig, ax, plot_ = make_figure(options, sim_variables, tight_layout=False)
 
     graphs = []
     for idx, (_i,_j) in enumerate(plot_['indexes']):
