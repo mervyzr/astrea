@@ -4,7 +4,7 @@ import numpy as np
 # Initial conditions for test configs
 ##############################################################################
 
-def generate_test_conditions(config, cells, gamma):
+def generate_test_conditions(config, cells):
     # [Sod, 1978]
     if "sod" in config:
         start_pos = 0
