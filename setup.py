@@ -34,8 +34,6 @@ setup(
         "h5py>=3.7",
         "scipy",
         "matplotlib",
-        "mpi4py",
-        "torch",
         "pyyaml",
         "tinydb",
         "python-dotenv",
