@@ -442,7 +442,7 @@ def plot_quantities(hdf5, sim_variables, save_path):
 
 # Plot solution errors to determine order of convergence of numerical scheme
 def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
-    options = ["density", "total energy"]
+    options = ["density"]
     config, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
 
     # hdf5 keys are datetime strings
@@ -485,9 +485,9 @@ def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
     for idx, (_i,_j) in enumerate(plot_['indexes']):
         y = y_data[idx]
 
-        EOC = np.diff(np.log(y))/np.diff(np.log(x))
-        _idx = np.argmin(np.abs(np.average(EOC)-EOC))
-        c = np.log10(y[_idx]) - EOC[_idx]*np.log10(x[_idx])
+        eoc = np.diff(np.log(y))/np.diff(np.log(x))
+        _idx = np.argmin(np.abs(np.average(eoc)-eoc))
+        c = np.log10(y[_idx]) - eoc[_idx]*np.log10(x[_idx])
 
         for order in [1,2,4,5]:
             alpha = 10**c
@@ -495,9 +495,9 @@ def plot_solution_errors(hdf5, sim_variables, save_path, error_norm):
             ax[_i,_j].loglog(x, ytheo, color=plot_['colours']['theo'], linestyle="--")
             ax[_i,_j].annotate(rf"$O(N^{order})$", xy=(x[-1], ytheo[-1]), xytext=(5,-5), textcoords='offset points')
         ax[_i,_j].loglog(x, y, linestyle="-", marker="o", color=plot_['colours']['1d'][idx])
-        ax[_i,_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|$EOC$_{{max}}|$ = {round(max(np.abs(EOC)), 4)}")
+        ax[_i,_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|$EOC$_{{max}}|$ = {round(max(np.abs(eoc)), 4)}")
         ax[_i,_j].legend()
-        ax[_i,_j].set_xlim([min(x)/1.5,max(x)*1.5])
+        ax[_i,_j].set_xlim([min(x)/1.5,max(x)*3.5])
 
     #plt.suptitle(rf"$L_{error_norm}$ error norm $\epsilon_N(\boldsymbol{{W}})$ against resolution $N$ for {config.title()} test", fontsize=30)
     fig.text(0.5, 0.04, r"Resolution $N$", ha='center')
