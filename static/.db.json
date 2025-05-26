@@ -61,13 +61,7 @@
         "sine wave",
         "sine-wave",
         "gaussian",
-        "gauss",
-        "linear",
-        "lin",
-        "linear mhd",
-        "lin mhd",
-        "linear-mhd",
-        "lin-mhd"
+        "gauss"
       ]
     },
     "5": {
@@ -118,6 +112,8 @@
         "kelvin-helmholtz",
         "kelvin-helmholtz instability",
         "khi",
+        "noh",
+        "noh problem",
         "vortex",
         "isentropic-vortex",
         "isentropic vortex",

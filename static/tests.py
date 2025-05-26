@@ -58,19 +58,15 @@ def generate_test_conditions(config, cells, gamma):
         initial_right = np.array([0,1,1,1,1e-6,0,0,0])
         misc = {'peak_pos':0, 'ampl':.75, 'fwhm':.08, 'y_offset':1}
 
-    # [Shu, 1991]
-    elif config.startswith('lin'):
+    elif "noh" in config:
         start_pos = 0
         end_pos = 1
-        shock_pos = 1
-        t_end = 2*np.pi
-        boundary = "wrap"
-        initial_left = np.array([1,1,1,1,1/gamma,0,0,0])
-        initial_right = np.array([1,1,1,1,1/gamma,0,0,0])
-        if 'mhd' in config:
-            initial_left[5:] = np.array([1,np.sqrt(2),.5]) * np.sqrt(4*np.pi)
-            initial_right[5:] = np.array([1,np.sqrt(2),.5]) * np.sqrt(4*np.pi)
-        misc = {'freq':2, 'ampl':1e-6}
+        shock_pos = .1
+        t_end = 1
+        boundary = "edge"
+        initial_left = np.array([16,0,0,0,16/3,0,0,0])
+        initial_right = np.array([1,1,1,1,1e-6,0,0,0])
+        misc = None
 
     elif "slow" in config:
         start_pos = 0

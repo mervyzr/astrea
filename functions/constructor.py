@@ -72,6 +72,10 @@ def initialise(sim_variables, convert=False):
             computational_grid[mask][...,1] = (-params['omega']*(y-centre)/shock_pos)[mask]
             computational_grid[mask][...,2] = (params['omega']*(x-centre)/shock_pos)[mask]
 
+        elif "noh" in config:
+            mask = np.where(((x-start_pos)**2 + (y-start_pos)**2) <= (shock_pos-start_pos)**2)
+            computational_grid[mask] = initial_left
+
         else:
             computational_grid[np.where(x < shock_pos)] = initial_left
     else:
@@ -90,17 +94,6 @@ def initialise(sim_variables, convert=False):
             computational_grid[...,0] = fv.sine_func(x, params)
         elif config.startswith('gauss'):
             computational_grid[...,0] = fv.gauss_func(x, params)
-        elif config.startswith('lin'):
-            perturbation = np.array([1,-1,1,1,1.5,0,0,0]) * params['ampl']
-            if 'mhd' in config:
-                # fast magnetosonic wave
-                #perturbation = np.array([.4472135954999580,-.8944271909999160,.4216370213557840,.1490711984999860,2.012457825664615,.8432740427115680,.2981423969999720,0]) * params['ampl']
-                # Alfven wave
-                perturbation = np.array([0,0,-.3333333333333333,.9428090415820634,0,-.3333333333333333,.9428090415820634,0]) * params['ampl']
-                # slow magnetosonic wave
-                #perturbation = np.array([.8944271909999159,-.4472135954999579,-.8432740427115680,-.2981423969999720,.6708136850795449,-.4216370213557841,-.1490711984999860,0]) * params['ampl']
-            perturbation = perturbation * np.sin(params['freq'] * np.pi * x)[...,None]
-            computational_grid += perturbation
 
     if convert:
         grid = sim_variables.convert_primitive(computational_grid, sim_variables)
