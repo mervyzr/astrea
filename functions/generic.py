@@ -37,7 +37,6 @@ class BColours:
 
 # Simple name space for recursive dict
 class RecursiveNamespace:
-
     @staticmethod
     def map_entry(entry):
         if isinstance(entry, dict):
