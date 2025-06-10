@@ -41,14 +41,27 @@ def core_run(hdf5: str, sim_variables: namedtuple):
     elif sim_variables.take_snaps:
         take_snapshot = True
 
+    # Set up min/max arrays
+    _axes = tuple(range(sim_variables.dimension))
+    _max, _min = np.zeros(8), np.zeros(8)
+    Emax, Emin = 0, 0
+
     # Start simulation run
     t, idx = 0., 1
     while t <= sim_variables.t_end:
-        # Saves each instance of the system (primitive variables) at time t
         grid_snapshot = sim_variables.convert_conservative(grid, sim_variables).transpose(sim_variables.ortho_axis)
+
+        # Save each instance of the system (primitive variables) at time t
         with h5py.File(hdf5, "a") as f:
             dataset = f[sim_variables.access_key].create_dataset(str(float(t)), data=grid_snapshot, compression="gzip", compression_opts=9)
             dataset.attrs['t'] = float(t)
+
+        # Save min/max values
+        pmax, pmin = np.max(grid_snapshot, axis=_axes), np.min(grid_snapshot, axis=_axes)
+        _max[_max > pmax] = pmax[_max > pmax]
+        _min[_min < pmin] = pmin[_min < pmin]
+        Emax = np.max(grid[...,4]) if np.max(grid[...,4]) > Emax else Emax
+        Emin = np.min(grid[...,4]) if np.min(grid[...,4]) < Emin else Emin
 
         # Miscellaneous media/print options
         if not sim_variables.quiet:
@@ -60,6 +73,7 @@ def core_run(hdf5: str, sim_variables: namedtuple):
             plotting.plot_snapshot(grid_snapshot, t, sim_variables, save_path=f"{SAVE_DIR}/snap{sim_variables.seed}")
             take_snapshot = False
 
+        # Computation loop
         if t == sim_variables.t_end:
             # Exact stop for the simulation; prevents adding an additional computation step
             break
@@ -84,6 +98,10 @@ def core_run(hdf5: str, sim_variables: namedtuple):
             # Update time step
             t += dt
             sim_variables = sim_variables._replace(permutations=dict(reversed(list(sim_variables.permutations.items()))))
+    
+    with h5py.File(hdf5, "a") as f:
+        f[sim_variables.access_key].attrs['max_values'] = np.append(_max, Emax)
+        f[sim_variables.access_key].attrs['min_values'] = np.append(_min, Emin)
 
 ##############################################################################
 
