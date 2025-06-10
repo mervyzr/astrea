@@ -674,6 +674,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
     for datetime in datetimes:
         simulation = hdf5[datetime]
         N = simulation.attrs['cells']
+        max_values, min_values = simulation.attrs['max_values'], simulation.attrs['min_values']
 
         if isinstance(variable, str):
             variable = variable.lower()
@@ -701,6 +702,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                             divider = make_axes_locatable(ax[_i,_j])
                             cax = divider.append_axes('right', size='5%', pad=0.05)
                             fig.colorbar(graph, cax=cax, orientation='vertical')
+                            #graph.set_clim()
                             #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ at $t = {round(float(t),4)}$ ($N = {N}^{dimension}$)", fontsize=30)
 
                         else:
