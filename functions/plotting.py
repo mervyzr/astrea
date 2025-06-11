@@ -130,7 +130,7 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, tight_la
 
         # Set up figure
         if sim_variables.live_plot:
-            fig, ax = plt.figure(), np.full((rows, cols), None)
+            fig, ax = plt.figure(figsize=[13,8]), np.full((rows, cols), None)
         else:
             mpl.rcParams['text.usetex'] = True
             fig, ax = plt.figure(), np.full((rows, cols), None)
@@ -151,6 +151,7 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, tight_la
                 'lines.dashed_pattern': [3, 2]
             }
             plt.rcParams.update(params)
+
         spec = gridspec.GridSpec(rows, cols*2, figure=fig)
 
         for _i in range(len(options)):
@@ -160,7 +161,7 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, tight_la
             else:
                 extra = cols - len(options) % cols
                 ax[row,col] = fig.add_subplot(spec[row, 2*col+extra:2*(col+1)+extra])
-        #fig.subplots_adjust(wspace=0, hspace=0)
+
         fig.subplots_adjust(wspace=0.75, hspace=0.25)
 
         for idx, (_i,_j) in enumerate(indexes):
