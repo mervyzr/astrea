@@ -44,15 +44,15 @@ def initialise(sim_variables, convert=False):
             computational_grid[...,2] = params['perturb_ampl'] * np.sin(params['freq']*np.pi*x/(end_pos-start_pos))
 
         elif config in ["ivc", "vortex", "isentropic vortex"]:
-            x_centre, y_centre = (np.min(x)+np.max(x))/2, (np.min(y)+np.max(y))/2
+            r = np.sqrt((x-centre)**2 + (y-centre)**2)
+            b, freq = params['vortex_str'], params['freq']
 
-            r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
-            T = 1 - (((gamma-1)*params['vortex_str']**2)/(2*gamma*(params['freq']*np.pi)**2))*np.exp(1-r**2)
+            T = (1 - (((gamma-1)*b**2)/(freq*gamma*(2*np.pi)**2) * np.exp(1 - r**2)))**(1/(gamma-1))
 
-            computational_grid[...,0] = T**(1/(gamma-1))
-            computational_grid[...,1] = (params['vortex_str']/(params['freq']*np.pi)) * np.exp((1-r**2)/2)
-            computational_grid[...,2] = (params['vortex_str']/(params['freq']*np.pi)) * np.exp((1-r**2)/2)
-            computational_grid[...,4] = T**(gamma/(gamma-1))
+            computational_grid[...,0] = T
+            computational_grid[...,1] = 1 - (b/(freq*np.pi) * np.exp((1-r**2)/freq) * (y-centre))
+            computational_grid[...,2] = b/(freq*np.pi) * np.exp((1-r**2)/freq) * (x-centre)
+            computational_grid[...,4] = T**(gamma)
 
         elif "ll" in config or "lax-liu" in config:
             computational_grid[np.where(x <= shock_pos)] = initial_left
@@ -113,13 +113,13 @@ def make_flux(grid, gamma, axis):
     abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
     arr = np.zeros_like(grid)
 
-    arr[...,0] = rhos * vels[...,axis]
-    arr[...,abscissa+1] = rhos*vels[...,axis]**2 + pressures + .5*fv.norm(B_fields)**2 - B_fields[...,axis]**2
-    arr[...,ordinate+1] = rhos*vels[...,axis]*vels[...,ordinate] - B_fields[...,axis]*B_fields[...,ordinate]
-    arr[...,applicate+1] = rhos*vels[...,axis]*vels[...,applicate] - B_fields[...,axis]*B_fields[...,applicate]
-    arr[...,4] = vels[...,axis]*(.5*rhos*fv.norm(vels)**2 + (gamma*pressures)/(gamma-1) + fv.norm(B_fields)**2) - B_fields[...,axis]*np.sum(vels*B_fields, axis=-1)
-    arr[...,ordinate+5] = B_fields[...,ordinate]*vels[...,axis] - B_fields[...,axis]*vels[...,ordinate]
-    arr[...,applicate+5] = B_fields[...,applicate]*vels[...,axis] - B_fields[...,axis]*vels[...,applicate]
+    arr[...,0] = rhos * vels[...,abscissa]
+    arr[...,abscissa+1] = rhos*vels[...,abscissa]**2 + pressures + .5*fv.norm(B_fields)**2 - B_fields[...,abscissa]**2
+    arr[...,ordinate+1] = rhos*vels[...,abscissa]*vels[...,ordinate] - B_fields[...,abscissa]*B_fields[...,ordinate]
+    arr[...,applicate+1] = rhos*vels[...,abscissa]*vels[...,applicate] - B_fields[...,abscissa]*B_fields[...,applicate]
+    arr[...,4] = vels[...,abscissa]*(.5*rhos*fv.norm(vels)**2 + (gamma*pressures)/(gamma-1) + fv.norm(B_fields)**2) - B_fields[...,abscissa]*np.sum(vels*B_fields, axis=-1)
+    arr[...,ordinate+5] = B_fields[...,ordinate]*vels[...,abscissa] - B_fields[...,abscissa]*vels[...,ordinate]
+    arr[...,applicate+5] = B_fields[...,applicate]*vels[...,abscissa] - B_fields[...,abscissa]*vels[...,applicate]
     return arr
 
 

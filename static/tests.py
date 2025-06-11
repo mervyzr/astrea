@@ -125,11 +125,11 @@ def generate_test_conditions(config, cells):
         start_pos = 0
         end_pos = 10
         shock_pos = 5
-        t_end = 1
+        t_end = 10
         boundary = "wrap"
         initial_left = np.array([1,0,0,0,1,0,0,0])
         initial_right = np.array([1,0,0,0,1,0,0,0])
-        misc = {'vortex_str':5, 'freq':2}
+        misc = {'vortex_str':.5, 'freq':2}
 
     # [Orszag & Tang, 1998; Stone et al., 2008]
     elif "orszag" in config or "tang" in config or config == "ot":
