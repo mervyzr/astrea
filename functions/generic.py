@@ -185,10 +185,14 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
                 v = 128
         elif k in ['gamma', 'cfl']:
             if not isinstance(v, float):
-                if k == "gamma":
-                    v = 1.4
+                if "/" in v:
+                    num, dem = v.split('/')
+                    v = float(num)/float(dem)
                 else:
-                    v = .5
+                    if k == "gamma":
+                        v = 1.4
+                    else:
+                        v = .5
             if k == "gamma" and v == 1:
                 v += np.finfo(_config_variables['precision']).eps
         elif k == "plot_options":
