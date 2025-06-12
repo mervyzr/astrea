@@ -686,7 +686,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
             else:
                 options = [variable]
 
-            for t, grid in simulation.items():
+            for _, grid in simulation.items():
                 print(f"Creating {counter+1}/{end_count} ...", end='\r')
 
                 fig, ax, plot_ = make_figure(options, sim_variables)
@@ -730,6 +730,8 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                     else:
                         ax[idx,idx].plot(x, y_data[idx], color=plot_['colours']['1d'][idx])
 
+                    ax[idx,idx].set_title('')
+
                     plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight', pad_inches=0, transparent=True)
 
                 plt.cla()
@@ -751,7 +753,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
             for _variable in variables:
                 counter, end_count = 0, len(simulation)
 
-                for t, grid in simulation.items():
+                for _, grid in simulation.items():
                     print(f"Creating {counter+1}/{end_count} ... [{_variable}]", end='\r')
 
                     fig, ax, plot_ = make_figure([_variable], sim_variables)
@@ -764,6 +766,8 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                         ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][style_counter], origin="lower")
                     else:
                         ax[idx,idx].plot(x, y_data[idx], color=plot_['colours']['1d'][style_counter])
+
+                    ax[idx,idx].set_title('')
 
                     plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight', pad_inches=0, transparent=True)
 
@@ -778,7 +782,7 @@ def make_video(hdf5, sim_variables, save_path, vidpath, variable="all"):
                 try:
                     subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "error", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{save_path}/vid_{config}_{subgrid}_{timestep}_{solver}_{_variable}.mp4"])
                 except Exception as e:
-                    print(f"{generic.BColours.FAIL}Video creation failed{generic.BColours.ENDC}")
+                    print(f"{generic.BColours.FAIL}Video creation failed: {e}{generic.BColours.ENDC}")
                     pass
                 else:
                     for filename in os.listdir(vidpath):
