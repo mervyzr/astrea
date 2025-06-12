@@ -100,10 +100,9 @@ def initialise(sim_variables, convert=False):
             computational_grid[...,0] = fv.gauss_func(x, params)
 
     if convert:
-        grid = sim_variables.convert_primitive(computational_grid, sim_variables)
+        return sim_variables.convert_primitive(computational_grid, sim_variables)
     else:
-        grid = computational_grid
-    return fv.high_order_convert('cntr', grid, sim_variables)
+        return computational_grid
 
 
 # Make flux as a function of cell-averaged (primitive) variables
