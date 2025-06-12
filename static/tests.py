@@ -133,10 +133,10 @@ def generate_test_conditions(config, cells):
 
     # [Orszag & Tang, 1998; Stone et al., 2008]
     elif "orszag" in config or "tang" in config or config == "ot":
-        start_pos = -.5
-        end_pos = .5
-        shock_pos = .5
-        t_end = np.pi/2
+        start_pos = 0
+        end_pos = 1
+        shock_pos = 1
+        t_end = 1.5
         boundary = "wrap"
         initial_left = np.array([25/(36*np.pi),0,0,0,5/(12*np.pi),0,0,0])
         initial_right = np.array([25/(36*np.pi),0,0,0,5/(12*np.pi),0,0,0])

@@ -60,7 +60,6 @@ def initialise(sim_variables, convert=False):
             computational_grid[np.where((x > shock_pos) & (y >= shock_pos))] = params['bottom_right']
 
         elif config in ["orszag-tang", "orszag", "tang", "ot"]:
-            computational_grid[np.where(y <= shock_pos)] = initial_left
             computational_grid[...,1] = -np.sin(2*np.pi*y)
             computational_grid[...,2] = np.sin(2*np.pi*x)
             computational_grid[...,5] = -params['ampl'] * np.sin(2*np.pi*y)
