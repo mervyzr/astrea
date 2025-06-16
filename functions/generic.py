@@ -244,6 +244,7 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     final_dict['solver_category'] = DB.get(PARAMS.accepted.any([final_dict['solver']]))['category']
 
     final_dict['magnetic_2d'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category'] == 'magnetic-2D'
+    final_dict['magnetic'] = 'magnetic' in DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
 
     if final_dict['solver'] in DB.get(PARAMS.type == 'solver' and PARAMS.category == 'complete')['accepted']:
         _roots, _weights = np.polynomial.legendre.leggauss(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]

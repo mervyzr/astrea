@@ -168,7 +168,6 @@ def make_Roe_average(left_interface, right_interface):
     avg[...,1:4] = fv.divide((left_interface[...,1:4] * rho_plus[...,None]) + (right_interface[...,1:4] * rho_minus[...,None]), (rho_minus + rho_plus)[...,None])
     avg[...,4] = fv.divide((rho_plus * left_interface[...,4]) + (rho_minus * right_interface[...,4]), rho_minus + rho_plus)
     avg[...,5:8] = fv.divide((left_interface[...,5:8] * rho_minus[...,None]) + (right_interface[...,5:8] * rho_plus[...,None]), (rho_minus + rho_plus)[...,None])
-
     return avg
 
 
