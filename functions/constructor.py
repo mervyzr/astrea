@@ -118,6 +118,7 @@ def make_flux(grid, gamma, axis):
     arr[...,4] = vels[...,abscissa]*(.5*rhos*fv.norm(vels)**2 + (gamma*pressures)/(gamma-1) + fv.norm(B_fields)**2) - B_fields[...,abscissa]*np.sum(vels*B_fields, axis=-1)
     arr[...,ordinate+5] = B_fields[...,ordinate]*vels[...,abscissa] - B_fields[...,abscissa]*vels[...,ordinate]
     arr[...,applicate+5] = B_fields[...,applicate]*vels[...,abscissa] - B_fields[...,abscissa]*vels[...,applicate]
+
     return arr
 
 
@@ -156,6 +157,7 @@ def make_Jacobian(grid, gamma, axis):
     arr[...,ordinate+5,ordinate+1] = arr[...,applicate+5,applicate+1] = -B_fields[...,abscissa]
     arr[...,ordinate+5,abscissa+5] = -vels[...,ordinate]
     arr[...,applicate+5,abscissa+5] = -vels[...,applicate]
+
     return arr
 
 
@@ -168,6 +170,7 @@ def make_Roe_average(left_interface, right_interface):
     avg[...,1:4] = fv.divide((left_interface[...,1:4] * rho_plus[...,None]) + (right_interface[...,1:4] * rho_minus[...,None]), (rho_minus + rho_plus)[...,None])
     avg[...,4] = fv.divide((rho_plus * left_interface[...,4]) + (rho_minus * right_interface[...,4]), rho_minus + rho_plus)
     avg[...,5:8] = fv.divide((left_interface[...,5:8] * rho_minus[...,None]) + (right_interface[...,5:8] * rho_plus[...,None]), (rho_minus + rho_plus)[...,None])
+
     return avg
 
 

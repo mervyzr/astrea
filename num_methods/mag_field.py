@@ -192,6 +192,7 @@ def inverse_reconstruct(grid, sim_variables):
     new_grid = np.copy(grid)
 
     for axis, axes in sim_variables.permutations.items():
+        axis %= 3
         reversed_axes = np.argsort(axes)
 
         # Approximate the face-averaged values to face-centred values (eq. 38)
@@ -206,6 +207,6 @@ def inverse_reconstruct(grid, sim_variables):
         cell_avgd = fv.high_order_convert('cntr', cell_cntrd, sim_variables, 'cell')
 
         # Update the grid values with the updated B-field values
-        new_grid[...,5+(axis%3)] = cell_avgd.transpose(reversed_axes)[...,5+(axis%3)]
-    
+        new_grid[...,5+axis] = cell_avgd.transpose(reversed_axes)[...,5+axis]
+
     return new_grid

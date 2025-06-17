@@ -22,7 +22,7 @@ def calculate_entropy_density(grid, gamma):
 
 # Function for solution error calculation of sine-wave and Gaussian tests
 def calculate_solution_error(grid, sim_variables, norm):
-    gamma, dimension = sim_variables.gamma, sim_variables.dimension
+    gamma, dimension, axes = sim_variables.gamma, sim_variables.dimension, sim_variables.axes
     w_num = np.copy(grid)
 
     # Create theoretical array
@@ -37,16 +37,16 @@ def calculate_solution_error(grid, sim_variables, norm):
     w_num, w_theo = np.concatenate((w_num, E_int_num[...,None]), axis=-1), np.concatenate((w_theo, E_int_theo[...,None]), axis=-1)
 
     if norm > 10:
-        return np.max(np.abs(w_num-w_theo), axis=tuple(range(dimension)))
+        return np.max(np.abs(w_num-w_theo), axis=axes)
     elif norm <= 0:
-        return normalising_factor * np.sum(np.abs(w_num-w_theo), axis=tuple(range(dimension)))
+        return normalising_factor * np.sum(np.abs(w_num-w_theo), axis=axes)
     else:
-        return (normalising_factor * np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(range(dimension))))**(1/norm)
+        return (normalising_factor * np.sum(np.abs(w_num-w_theo)**norm, axis=axes))**(1/norm)
 
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
 def calculate_TV(simulation, sim_variables):
-    gamma, dimension, tot_vary = sim_variables.gamma, sim_variables.dimension, {}
+    gamma, dimension, axes, tot_vary = sim_variables.gamma, sim_variables.dimension, sim_variables.axes, {}
 
     for t in list(simulation.keys()):
         grid = simulation[t]
@@ -56,7 +56,7 @@ def calculate_TV(simulation, sim_variables):
             grid = np.diff(grid, axis=i)
             E_tot = np.diff(E_tot, axis=i)
             E_int = np.diff(E_int, axis=i)
-        tot_vary[float(t)] = np.sum(np.abs(grid), axis=tuple(range(dimension)))
+        tot_vary[float(t)] = np.sum(np.abs(grid), axis=axes)
         tot_vary[float(t)] = np.append(tot_vary[float(t)], np.sum(np.abs(E_tot)))
         tot_vary[float(t)] = np.append(tot_vary[float(t)], np.sum(np.abs(E_int)))
     return tot_vary
@@ -64,13 +64,13 @@ def calculate_TV(simulation, sim_variables):
 
 # Function for checking the conservation equations; works with primitive variables but needs to be converted
 def calculate_conservation(simulation, sim_variables):
-    dx, dimension, conservation = sim_variables.dx, sim_variables.dimension, {}
+    dimension, axes, conservation = sim_variables.dimension, sim_variables.axes, {}
     box_width = sim_variables.end_pos - sim_variables.start_pos
 
     for t in list(simulation.keys()):
         _grid = simulation[t][:]  # Needs the '[:]' to access the array
         grid = sim_variables.convert_primitive(_grid, sim_variables)
-        grid = np.sum(grid, axis=tuple(range(dimension)))
+        grid = np.sum(grid, axis=axes)
         conservation[float(t)] = grid * (box_width)**dimension
     return conservation
 
@@ -79,7 +79,7 @@ def calculate_conservation(simulation, sim_variables):
 # The reason is because at the boundaries, some values are lost to the ghost cells and not counted into the conservation plots
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
 def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
-    dx, dimension, conservation = sim_variables.dx, sim_variables.dimension, {}
+    dimension, axes, conservation = sim_variables.dimension, sim_variables.axes, {}
     box_width = sim_variables.end_pos - sim_variables.start_pos
 
     simulation_timings = list(simulation.keys())
@@ -89,7 +89,7 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
     for t in intervals:
         _grid = simulation[t][:]  # Needs the '[:]' to access the array
         grid = sim_variables.convert_primitive(_grid, sim_variables)
-        grid = np.sum(grid, axis=tuple(range(dimension)))
+        grid = np.sum(grid, axis=axes)
         conservation[t] = grid * (box_width)**dimension
     return conservation
 

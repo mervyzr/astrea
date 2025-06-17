@@ -235,6 +235,7 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     except KeyError:
         final_dict['quiet'] = False
 
+    # Initialise additional variables for simulation
     final_dict['seed'] = int(seed)
     final_dict['now'] = None
     final_dict['elapsed'] = None
@@ -243,14 +244,17 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     final_dict['config_category'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
     final_dict['solver_category'] = DB.get(PARAMS.accepted.any([final_dict['solver']]))['category']
 
+    # Magnetic field presence condition
     final_dict['magnetic_2d'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category'] == 'magnetic-2D'
     final_dict['magnetic'] = 'magnetic' in DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
 
+    # Weights for OS solvers
     if final_dict['solver'] in DB.get(PARAMS.type == 'solver' and PARAMS.category == 'complete')['accepted']:
         _roots, _weights = np.polynomial.legendre.leggauss(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
         final_dict['roots'] = .5*_roots + .5  # Gauss-Legendre quadrature with interval [0,1]
         final_dict['weights'] = _weights/2  # Gauss-Legendre quadrature with interval [0,1]
 
+    # Conditional conversion functions
     if final_dict['subgrid'].startswith("w") or final_dict['subgrid'] in ["ppm", "parabolic", "p"]:
         final_dict['convert_primitive'] = fv.high_order_convert_primitive
         final_dict['convert_conservative'] = fv.high_order_convert_conservative
@@ -258,15 +262,20 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
         final_dict['convert_primitive'] = fv.point_convert_primitive
         final_dict['convert_conservative'] = fv.point_convert_conservative
 
-    # Exclusion cases
+    # Permutations for axes
     if '2D' in final_dict['config_category'] and final_dict['dimension'] != 2:
         final_dict['dimension'] = 2
+    final_dict['axes'] = tuple(range(final_dict['dimension']))
+
     final_dict['permutations'] = {}
     permutations = [axes for axes in itertools.permutations(range(final_dict['dimension']+1)) if axes[-1] == final_dict['dimension']]
+    if final_dict['dimension'] >= 3:
+        permutations[np.arange(final_dict['dimension'])] = permutations[[0,3,4,1,2,5]]
+    final_dict['ortho_axis'] = permutations[-1]
     for idx, axes in enumerate(permutations):
         final_dict['permutations'][idx] = axes
-    final_dict['ortho_axis'] = permutations[-1]
 
+    # Exclusion cases
     if final_dict['solver'] in DB.get(PARAMS.type == 'solver' and PARAMS.category == 'hll')['accepted']:
         if (final_dict['solver_category'] == "hll" and final_dict['solver'].endswith('c')) and final_dict['config'] in DB.get(PARAMS.type == 'config' and PARAMS.category == 'magnetic')['accepted']:
             print(f"{BColours.WARNING}HLLC solver does not work with magnetic fields present..{BColours.ENDC}")

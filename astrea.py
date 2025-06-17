@@ -49,6 +49,8 @@ def core_run(hdf5: str, sim_variables: namedtuple):
     while t <= sim_variables.t_end:
         if sim_variables.magnetic:
             _grid = mag_field.inverse_reconstruct(grid, sim_variables)
+        else:
+            _grid = grid
         grid_snapshot = sim_variables.convert_conservative(_grid, sim_variables).transpose(sim_variables.ortho_axis)
 
         # Save each instance of the system (primitive variables) at time t
@@ -57,7 +59,7 @@ def core_run(hdf5: str, sim_variables: namedtuple):
             dataset.attrs['t'] = float(t)
 
         # Save min/max values
-        pmax, pmin = np.max(grid_snapshot, axis=tuple(range(sim_variables.dimension))), np.min(grid_snapshot, axis=tuple(range(sim_variables.dimension)))
+        pmax, pmin = np.max(grid_snapshot, axis=sim_variables.axes), np.min(grid_snapshot, axis=sim_variables.axes)
         _max[_max > pmax] = pmax[_max > pmax]
         _min[_min < pmin] = pmin[_min < pmin]
         _Emax = np.max(grid[...,4]) if np.max(grid[...,4]) > _Emax else _Emax
