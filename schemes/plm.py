@@ -10,17 +10,17 @@ from num_methods import limiters, mag_field
 ##############################################################################
 
 def run(grid, sim_variables):
-    gamma, boundary, permutations, magnetic_2d = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations, sim_variables.magnetic_2d
+    gamma, boundary, permutations, magnetic = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations, sim_variables.magnetic
     convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in permutations.items():
-        _grid = grid.transpose(axes)
+        staggered_grid = grid.transpose(axes)
 
-        # Convert to primitive variables; able to use pointwise conversion as it is still 2nd-order
-        wS = convert_conservative(_grid, sim_variables)
+        # Convert to primitive variables
+        wS = convert_conservative(staggered_grid, sim_variables)
 
         # Pad array with boundary & apply (TVD) slope limiters
         w = fv.add_boundary(wS, boundary)
@@ -35,7 +35,9 @@ def run(grid, sim_variables):
         gradients = .5 * limited_values
         wL, wR = np.copy(wS-gradients), np.copy(wS+gradients)  # (eq. 4.13)
 
-        if magnetic_2d:
+        if magnetic:
+            wL[...,5:8] = staggered_grid[...,5:8]
+            wR[...,5:8] = staggered_grid[...,5:8]
             data[axes]['wTs'] = mag_field.reconstruct_transverse(wR, sim_variables)
 
         # Re-align the interfaces so that cell wall is in between interfaces
@@ -46,7 +48,6 @@ def run(grid, sim_variables):
         _intf_avg = fv.add_boundary(intf_avg, boundary)
 
         # Convert the primitive variables
-        # The conversion can be pointwise conversion for face-average values as it is still 2nd-order
         q_plus, q_minus = convert_primitive(w_plus, sim_variables), convert_primitive(w_minus, sim_variables)
 
         # Compute the fluxes and the Jacobian

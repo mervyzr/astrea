@@ -11,7 +11,7 @@ from num_methods import limiters, mag_field
 
 # [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
 def run(grid, sim_variables, author="mc", dissipate=False):
-    gamma, boundary, permutations, magnetic_2d = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations, sim_variables.magnetic_2d
+    gamma, boundary, permutations, magnetic = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations, sim_variables.magnetic
     convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
@@ -20,10 +20,10 @@ def run(grid, sim_variables, author="mc", dissipate=False):
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in permutations.items():
-        _grid = grid.transpose(axes)
+        staggered_grid = grid.transpose(axes)
 
         # Convert to primitive variables
-        wS = convert_conservative(_grid, sim_variables)
+        wS = convert_conservative(staggered_grid, sim_variables)
 
         # Pad array with boundary; PPM requires additional ghost cells
         w2 = fv.add_boundary(wS, boundary, 2)
@@ -37,7 +37,8 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
         wF = 7/12 * (wS + w[2:]) - 1/12 * (w[:-2] + w2[4:])
 
-        if magnetic_2d:
+        if magnetic:
+            wF[...,5:8] = staggered_grid[...,5:8]
             data[axes]['wTs'] = mag_field.reconstruct_transverse(wF, sim_variables)
 
         if "x" in author or "ph" in author or author in ["peterson", "hammett"]:

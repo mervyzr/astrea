@@ -119,7 +119,10 @@ def high_order_convert_primitive(grid, sim_variables, _type="cell"):
 
         _q = point_convert_primitive(_w, sim_variables)
         q += 1/24 * derivative(_q, 0).transpose(reversed_axes)
-    return point_convert_primitive(w, sim_variables) + q
+
+    avgd_conserv_variables = point_convert_primitive(w, sim_variables) + q
+    avgd_conserv_variables[...,5:8] = grid[...,5:8]
+    return avgd_conserv_variables
 
 
 # Converting (cell-/face-averaged) conservative variables q to (cell-/face-averaged) primitive variables q through a Laplacian (2nd-deriv, 2nd-order) approx.
@@ -140,7 +143,10 @@ def high_order_convert_conservative(grid, sim_variables, _type="cell"):
 
         _w = point_convert_conservative(_q, sim_variables)
         w += 1/24 * derivative(_w, 0).transpose(reversed_axes)
-    return point_convert_conservative(q, sim_variables) + w
+
+    avgd_prim_variables = point_convert_conservative(q, sim_variables) + w
+    avgd_prim_variables[...,5:8] = grid[...,5:8]
+    return avgd_prim_variables
 
 
 # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation

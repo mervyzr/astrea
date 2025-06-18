@@ -47,6 +47,7 @@ def core_run(hdf5: str, sim_variables: namedtuple):
     # Start simulation run
     t, idx = 0., 1
     while t <= sim_variables.t_end:
+        # Transform grid for visualisation
         if sim_variables.magnetic:
             _grid = mag_field.inverse_reconstruct(grid, sim_variables)
         else:

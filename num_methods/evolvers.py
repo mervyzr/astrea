@@ -1,8 +1,8 @@
 import numpy as np
 
 from functions import fv
-from schemes import pcm, plm, ppm, weno
 from num_methods import solvers, mag_field
+from schemes import pcm, plm, ppm, weno
 
 ##############################################################################
 # Collates and controls space and time evolution
