@@ -245,7 +245,7 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     final_dict['solver_category'] = DB.get(PARAMS.accepted.any([final_dict['solver']]))['category']
 
     # Magnetic field presence condition
-    #final_dict['magnetic_2d'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category'] == 'magnetic-2D'
+    final_dict['magnetic_2d'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category'] == 'magnetic-2D'
     final_dict['magnetic'] = 'magnetic' in DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
 
     # Weights for OS solvers

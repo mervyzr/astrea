@@ -23,7 +23,7 @@ def evolve_space(grid, sim_variables):
     fluxes = solvers.calculate_Riemann_flux(data, sim_variables)
 
     # Magneto-component reconstruction
-    if sim_variables.magnetic_2d:
+    if sim_variables.magnetic:
         e3U = mag_field.compute_corner(data, sim_variables)
 
         swapped_permutations = dict([(key, num) for (key, _), num in zip(sim_variables.permutations.items(), reversed(list(sim_variables.permutations.values())))])

@@ -140,8 +140,6 @@ def reconstruct_transverse(wF, sim_variables, **kwargs):
     else:
         wD, wU = np.copy(ortho_wF), np.copy(ortho_wF)
 
-    wD[...,5:8] = ortho_wF[...,5:8]
-    wU[...,5:8] = ortho_wF[...,5:8]
     return wD, wU
 
 
@@ -201,10 +199,10 @@ def compute_corner(data, sim_variables):
 
     # Compute the corner B-fields wrt to corner
     [north, south], [east, west] = magnetic_components
-    NE = .5*(west[...,2]+south[...,2])*south[...,5] - .5*(west[...,1]+south[...,1])*west[...,6]
-    NW = .5*(east[...,2]+south[...,2])*south[...,5] - .5*(east[...,1]+south[...,1])*east[...,6]
-    SE = .5*(west[...,2]+north[...,2])*north[...,5] - .5*(west[...,1]+north[...,1])*west[...,6]
-    SW = .5*(east[...,2]+north[...,2])*north[...,5] - .5*(east[...,1]+north[...,1])*east[...,6]
+    SW = .5*(west[...,2]+south[...,2])*south[...,5] - .5*(west[...,1]+south[...,1])*west[...,6]
+    SE = .5*(east[...,2]+south[...,2])*south[...,5] - .5*(east[...,1]+south[...,1])*east[...,6]
+    NW = .5*(west[...,2]+north[...,2])*north[...,5] - .5*(west[...,1]+north[...,1])*west[...,6]
+    NE = .5*(east[...,2]+north[...,2])*north[...,5] - .5*(east[...,1]+north[...,1])*east[...,6]
 
     # Determine the alphas
     [ap_y, am_y], [ap_x, am_x] = alphas
@@ -221,7 +219,7 @@ def inverse_reconstruct(grid, sim_variables):
         reversed_axes = np.argsort(axes)
 
         # Approximate the face-averaged values to face-centred values (eq. 38)
-        face_cntrd = fv.high_order_convert('avg', grid.transpose(axes), sim_variables, 'face')
+        face_cntrd = fv.high_order_convert('face', 'avg', grid.transpose(axes), sim_variables)
 
         # Interpolate the face-centred values to cell-centred values (eq. 39)
         face_cntrd_pad2 = fv.add_boundary(face_cntrd, sim_variables.boundary, 2)
@@ -229,7 +227,7 @@ def inverse_reconstruct(grid, sim_variables):
         cell_cntrd = -1/16*(face_cntrd_pad1[:-2] + face_cntrd_pad2[4:]) + 9/16*(face_cntrd + face_cntrd_pad1[2:])
 
         # Apply Laplacian operator to convert cell-centred values to cell-averaged values (eq. 40)
-        cell_avgd = fv.high_order_convert('cntr', cell_cntrd, sim_variables, 'cell')
+        cell_avgd = fv.high_order_convert('cell', 'cntr', cell_cntrd, sim_variables)
 
         # Update the grid values with the updated B-field values
         new_grid[...,5+axis] = cell_avgd.transpose(reversed_axes)[...,5+axis]

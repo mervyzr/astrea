@@ -61,13 +61,11 @@ def add_boundary(grid, boundary, stencil=1, axis=0):
     return np.pad(arr, padding, mode=boundary)
 
 
-# Convert centred variables to averaged variables (FD -> FV) (at higher order) with the Laplacian operator and centred difference coefficients (up to 2nd derivative because parabolic function)
-# Attempts to raise the order of accuracy for the Laplacian to 4th-, 6th- and even 8th-order were made, but not too feasible because the averaging function
-# is limited by the time-stepping and the limiting functions (currently max is 4th order)
-def high_order_convert(num_scheme, grid, sim_variables, _type="cell"):
+# Convert centred cell/face variables to averaged cell/face variables (i.e. FD -> FV) (at higher order) with the Laplacian operator and centred difference coefficients (up to 2nd derivative because parabolic function)
+def high_order_convert(var_pos, grid_rep, grid, sim_variables):
     new_grid = np.copy(grid)
 
-    if "face" in _type:
+    if "face" in var_pos:
         _range = range(1, sim_variables.dimension)
     else:
         _range = range(sim_variables.dimension)
@@ -78,7 +76,7 @@ def high_order_convert(num_scheme, grid, sim_variables, _type="cell"):
 
         padded_grid = add_boundary(grid.transpose(axes), sim_variables.boundary)
 
-        if num_scheme.startswith("a"):
+        if grid_rep.startswith("a"):
             new_grid -= 1/24 * derivative(padded_grid, 0).transpose(reversed_axes)
         else:
             new_grid += 1/24 * derivative(padded_grid, 0).transpose(reversed_axes)
@@ -121,7 +119,7 @@ def high_order_convert_primitive(grid, sim_variables, _type="cell"):
         q += 1/24 * derivative(_q, 0).transpose(reversed_axes)
 
     avgd_conserv_variables = point_convert_primitive(w, sim_variables) + q
-    avgd_conserv_variables[...,5:8] = grid[...,5:8]
+    avgd_conserv_variables[...,5:5+sim_variables.dimension] = grid[...,5:5+sim_variables.dimension]
     return avgd_conserv_variables
 
 
@@ -145,18 +143,8 @@ def high_order_convert_conservative(grid, sim_variables, _type="cell"):
         w += 1/24 * derivative(_w, 0).transpose(reversed_axes)
 
     avgd_prim_variables = point_convert_conservative(q, sim_variables) + w
-    avgd_prim_variables[...,5:8] = grid[...,5:8]
+    avgd_prim_variables[...,5:5+sim_variables.dimension] = grid[...,5:5+sim_variables.dimension]
     return avgd_prim_variables
-
-
-# Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation
-def high_order_compute_flux(cntr_flux, avg_flux, sim_variables):
-    _cntr_flux, _avg_flux = np.copy(cntr_flux), np.copy(avg_flux)
-
-    for ax in range(1, sim_variables.dimension):
-        padded_avg_flux = add_boundary(_avg_flux, sim_variables.boundary, axis=ax)
-        _cntr_flux -= 1/24 * derivative(padded_avg_flux, ax)
-    return _cntr_flux
 
 
 # Get the characteristics and max eigenvalues for calculating the time evolution
@@ -173,3 +161,13 @@ def compute_eigen(jacobian):
     eigmax = np.max(max_eigvals)
 
     return characteristics, eigmax
+
+
+# Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation
+def high_order_compute_flux(cntr_flux, avg_flux, sim_variables):
+    _cntr_flux, _avg_flux = np.copy(cntr_flux), np.copy(avg_flux)
+
+    for ax in range(1, sim_variables.dimension):
+        padded_avg_flux = add_boundary(_avg_flux, sim_variables.boundary, axis=ax)
+        _cntr_flux -= 1/24 * derivative(padded_avg_flux, ax)
+    return _cntr_flux

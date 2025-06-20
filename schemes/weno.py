@@ -8,7 +8,7 @@ from num_methods import mag_field
 ##############################################################################
 
 def run(grid, sim_variables):
-    gamma, subgrid, boundary, permutations, magnetic = sim_variables.gamma, sim_variables.subgrid, sim_variables.boundary, sim_variables.permutations, sim_variables.magnetic
+    gamma, subgrid, dimension, boundary, permutations, magnetic = sim_variables.gamma, sim_variables.subgrid, sim_variables.dimension, sim_variables.boundary, sim_variables.permutations, sim_variables.magnetic
     convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
@@ -165,8 +165,8 @@ def run(grid, sim_variables):
             wL, wR = reconstruct(wS, boundary)
 
         if magnetic:
-            wL[...,5:8] = staggered_grid[...,5:8]
-            wR[...,5:8] = staggered_grid[...,5:8]
+            wL[...,5:5+dimension] = staggered_grid[...,5:5+dimension]
+            wR[...,5:5+dimension] = staggered_grid[...,5:5+dimension]
             data[axes]['wTs'] = mag_field.reconstruct_transverse(wR, sim_variables)
 
         # Re-align the interfaces so that cell wall is in between interfaces

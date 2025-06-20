@@ -11,7 +11,7 @@ from num_methods import limiters, mag_field
 
 # [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
 def run(grid, sim_variables, author="mc", dissipate=False):
-    gamma, boundary, permutations, magnetic = sim_variables.gamma, sim_variables.boundary, sim_variables.permutations, sim_variables.magnetic
+    gamma, dimension, boundary, permutations, magnetic = sim_variables.gamma, sim_variables.dimension, sim_variables.boundary, sim_variables.permutations, sim_variables.magnetic
     convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
@@ -38,7 +38,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         wF = 7/12 * (wS + w[2:]) - 1/12 * (w[:-2] + w2[4:])
 
         if magnetic:
-            wF[...,5:8] = staggered_grid[...,5:8]
+            wF[...,5:5+dimension] = staggered_grid[...,5:5+dimension]
             data[axes]['wTs'] = mag_field.reconstruct_transverse(wF, sim_variables)
 
         if "x" in author or "ph" in author or author in ["peterson", "hammett"]:
