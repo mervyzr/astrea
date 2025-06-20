@@ -26,8 +26,7 @@ def evolve_space(grid, sim_variables):
     if sim_variables.magnetic:
         e3U = mag_field.compute_corner(data, sim_variables)
 
-        swapped_permutations = dict([(key, num) for (key, _), num in zip(sim_variables.permutations.items(), reversed(list(sim_variables.permutations.values())))])
-        for axis, axes in swapped_permutations.items():
+        for axis, axes in sim_variables.swapped_permutations.items():
             fluxes[axes]['face_avg'] = data[axes]['wF']
             fluxes[axes]['mag_corner'] = np.copy(e3U.transpose(sim_variables.permutations[axis][:-1]))
 
@@ -50,9 +49,8 @@ def evolve_time(grid, fluxes, dt, sim_variables):
 
         # Finite difference for magnetic components (DO NOT combine with hydrodynamic loop)
         if _sim_variables.magnetic_2d:
-            swapped_permutations = dict([(key, num) for (key, _), num in zip(_sim_variables.permutations.items(), reversed(list(_sim_variables.permutations.values())))])
             for _axis, _axes in _sim_variables.permutations.items():
-                alignment_axes = swapped_permutations[_axis][:-1]
+                alignment_axes = sim_variables.swapped_permutations[_axis][:-1]
                 padded_e3U = fv.add_boundary(_fluxes[_axes]['mag_corner'], _sim_variables.boundary)
                 mag_flux = (-1)**_axis * np.diff(padded_e3U[1:], axis=0)/_sim_variables.dx
                 total_flux[...,5+(_axis%3)] = mag_flux.transpose(alignment_axes)

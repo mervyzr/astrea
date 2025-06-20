@@ -267,13 +267,12 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
         final_dict['dimension'] = 2
     final_dict['axes'] = tuple(range(final_dict['dimension']))
 
-    final_dict['permutations'] = {}
     permutations = [axes for axes in itertools.permutations(range(final_dict['dimension']+1)) if axes[-1] == final_dict['dimension']]
+    final_dict['permutations'] = dict([(key, axes) for key, axes in zip(range(len(permutations)), permutations)])
+    final_dict['swapped_permutations'] = dict([(key, axes) for key, axes in zip(range(len(permutations)), reversed(permutations))])
+    final_dict['ortho_axis'] = permutations[-1]
     if final_dict['dimension'] >= 3:
         permutations[np.arange(final_dict['dimension'])] = permutations[[0,3,4,1,2,5]]
-    final_dict['ortho_axis'] = permutations[-1]
-    for idx, axes in enumerate(permutations):
-        final_dict['permutations'][idx] = axes
 
     # Exclusion cases
     if final_dict['solver'] in DB.get(PARAMS.type == 'solver' and PARAMS.category == 'hll')['accepted']:

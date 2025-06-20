@@ -183,14 +183,11 @@ def compute_corner(data, sim_variables):
 
         return local_max_eigvals, local_min_eigvals
 
-    permutations = sim_variables.permutations
-    swapped_permutations = dict([(key, num) for (key, _), num in zip(permutations.items(), reversed(list(permutations.values())))])
-
     # Collate and align the magnetic components and the alphas (use the x-axis as 'reference axis')
     alphas, magnetic_components = [], []
-    for axis, axes in swapped_permutations.items():
+    for axis, axes in sim_variables.swapped_permutations.items():
         wD, wU = data[axes]['wTs']
-        alignment_axes = permutations[axis]
+        alignment_axes = sim_variables.permutations[axis]
 
         a_plus, a_minus = get_wavespeeds(wD, wU, sim_variables, axis)
 
