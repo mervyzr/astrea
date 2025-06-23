@@ -41,7 +41,7 @@ def calculate_Riemann_flux(data, sim_variables):
         # Calculate the interface-averaged fluxes
         intf_fluxes_avgd = run_Riemann_solver(axis, sim_variables, characteristics, **data[axes])
 
-        if sim_variables.dimension == 2:
+        if sim_variables.dimension >= 2:
             # Compute the orthogonal L/R Riemann states and fluxes
             high_order_intfs = {}
             for _key, _arrays in data[axes].items():
@@ -278,8 +278,8 @@ def calculate_DOTS_flux(axis, sim_variables, **kwargs):
     # Compute the Osher-Solomon dissipation term
     _q_plus = jacobian @ q_plus[...,None]
     _q_minus = jacobian @ q_minus[...,None]
-    _q_plus = _q_plus.reshape(len(_q_plus), len(_q_plus[0]))
-    _q_minus = _q_minus.reshape(len(_q_minus), len(_q_minus[0]))
+    _q_plus = _q_plus.reshape(_q_plus.shape[:-1])
+    _q_minus = _q_minus.reshape(_q_minus.shape[:-1])
 
     return .5*(flux_plus+flux_minus) - .5*(_q_plus-_q_minus)
 
