@@ -8,6 +8,7 @@ from functions import fv
 
 # Initialise the discrete POINTWISE solution array with initial conditions and primitive variables w, and transform into discrete AVERAGES <w>
 # Gives option to convert to conservative variables <q>
+# For magnetohydrodynamics, this returns a staggered grid
 def initialise(sim_variables, convert=False):
 
     def make_physical_grid(_start_pos, _end_pos, _N):

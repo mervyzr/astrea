@@ -97,9 +97,10 @@ def core_run(hdf5: str, sim_variables: namedtuple):
             # Update the solution with the numerical fluxes using iterative methods
             grid = evolvers.evolve_time(grid, fluxes, dt, sim_variables)
 
-            # Update time step
+            # Update time step and alternate axis for computations
             t += dt
             sim_variables = sim_variables._replace(permutations=dict(reversed(list(sim_variables.permutations.items()))))
+            sim_variables = sim_variables._replace(swapped_permutations=dict(reversed(list(sim_variables.swapped_permutations.items()))))
 
     with h5py.File(hdf5, "a") as f:
         f[sim_variables.access_key].attrs['max_values'] = np.append(_max, _Emax)
