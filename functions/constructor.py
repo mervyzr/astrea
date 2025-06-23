@@ -15,16 +15,17 @@ def initialise(sim_variables, convert=False):
         half_cell = dx/2
         return np.linspace(_start_pos-half_cell, _end_pos+half_cell, _N+2)[1:-1]
 
-    config, N, gamma, dimension, precision = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimension, sim_variables.precision
+    config, cells, gamma, dimension, precision = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimension, sim_variables.precision
     start_pos, end_pos, shock_pos, params = sim_variables.start_pos, sim_variables.end_pos, sim_variables.shock_pos, sim_variables.misc
     initial_left, initial_right = sim_variables.initial_left, sim_variables.initial_right
+    convert_primitive = sim_variables.convert_primitive
 
-    _i = (N,) * dimension
+    _i = (cells,) * dimension
     _i += (len(initial_right),)
     computational_grid = np.zeros(_i, dtype=precision)
     computational_grid[:] = initial_right
 
-    physical_grid = make_physical_grid(start_pos, end_pos, N)
+    physical_grid = make_physical_grid(start_pos, end_pos, cells)
 
     if dimension == 2:
         x, y = np.meshgrid(physical_grid, physical_grid, indexing='ij')
@@ -75,7 +76,7 @@ def initialise(sim_variables, convert=False):
             inside_mask = np.where(((x-start_pos)**2 + (y-start_pos)**2) <= (shock_pos-start_pos)**2)
             computational_grid[inside_mask] = initial_left
             outside_mask = np.where(((x-start_pos)**2 + (y-start_pos)**2) > (shock_pos-start_pos)**2)
-            _physical_grid = make_physical_grid(0, np.pi/2, N)
+            _physical_grid = make_physical_grid(0, np.pi/2, cells)
             _x, _y = np.meshgrid(_physical_grid, _physical_grid, indexing='ij')
             computational_grid[outside_mask][...,1] = -np.sin(_x)[outside_mask]
             computational_grid[outside_mask][...,2] = -np.cos(_x)[outside_mask]
@@ -100,7 +101,7 @@ def initialise(sim_variables, convert=False):
             computational_grid[...,0] = fv.gauss_func(x, params)
 
     if convert:
-        return sim_variables.convert_primitive(computational_grid, sim_variables)
+        return convert_primitive(computational_grid, sim_variables)
     else:
         return computational_grid
 
