@@ -23,7 +23,7 @@ def evolve_space(grid, sim_variables):
     fluxes = solvers.calculate_Riemann_flux(data, sim_variables)
 
     # Magneto-component reconstruction
-    if sim_variables.magnetic:
+    if sim_variables.magnetic and sim_variables.dimension >= 2:
         e3U = mag_field.compute_corner(data, sim_variables)
 
         for axis, axes in sim_variables.swapped_permutations.items():
@@ -48,7 +48,7 @@ def evolve_time(grid, fluxes, dt, sim_variables):
             total_flux += flux_diff.transpose(reversed_axes)
 
         # Finite difference for magnetic components (DO NOT combine with hydrodynamic loop, because each loop will overwrite the previous values)
-        if _sim_variables.magnetic:
+        if sim_variables.magnetic and sim_variables.dimension >= 2:
             for _axis, _axes in _sim_variables.permutations.items():
                 alignment_axes = sim_variables.swapped_permutations[_axis][:-1]
                 mag_flux = (-1)**_axis * np.diff(_fluxes[_axes]['mag_corner'][1:], axis=0)/_sim_variables.dx
