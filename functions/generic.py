@@ -244,6 +244,8 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
     final_dict['config_category'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
     final_dict['solver_category'] = DB.get(PARAMS.accepted.any([final_dict['solver']]))['category']
 
+    final_dict['plot_style'] = ""
+
     # Magnetic field presence condition
     final_dict['magnetic'] = 'magnetic' in DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
 

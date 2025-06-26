@@ -16,21 +16,19 @@ from functions import analytic, constructor, fv, generic
 # Plotting functions and media handling
 ##############################################################################
 
-STYLE = "default"
-BEAUTIFY = False
-
+BEAUTIFY_1D_PLOTS = False
 
 
 # Make figures and axes for plotting
-def make_figure(options, sim_variables, variable="normal", style=STYLE):
+def make_figure(options, sim_variables, variable="normal"):
     if 0 < len(options) < 13:
         # Set up colours
         try:
-            plt.style.use(style)
+            plt.style.use(sim_variables.plot_style)
         except Exception as e:
             plt.style.use('default')
         else:
-            if style == "dark_background":
+            if sim_variables.plot_style == "dark_background":
                 theo_colour = "white"
             else:
                 theo_colour = "black"
@@ -309,7 +307,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
             x = np.linspace(start_pos, end_pos, N)
-            if BEAUTIFY:
+            if BEAUTIFY_1D_PLOTS:
                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
             else:
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
@@ -391,7 +389,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
                         cax = divider.append_axes('right', size='5%', pad=0.05)
                         fig.colorbar(graph, cax=cax, orientation='vertical')
                     else:
-                        if BEAUTIFY:
+                        if BEAUTIFY_1D_PLOTS:
                             gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
                         else:
                             #ax[_i,_j].plot(x, y, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=plot_['colours']['1d'], color=plot_['colours']['1d'])
@@ -772,7 +770,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                             fig.colorbar(graph, cax=cax, orientation='vertical')
                             graph.set_clim(limits[idx][0], limits[idx][1])
                         else:
-                            if BEAUTIFY:
+                            if BEAUTIFY_1D_PLOTS:
                                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
                             else:
                                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
@@ -903,7 +901,7 @@ def plot_this(grid, sim_variables, **kwargs):
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
             x = np.linspace(sim_variables.start_pos, sim_variables.end_pos, len(y))
-            if BEAUTIFY:
+            if BEAUTIFY_1D_PLOTS:
                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
             else:
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])

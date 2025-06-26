@@ -26,6 +26,7 @@ from functions import constructor, generic, plotting
 CURRENT_DIR = os.getcwd()
 SAVE_DIR = f"{CURRENT_DIR}/saved_data"
 SEED = np.random.randint(0, 1e8)
+PLOT_STYLE = "default"
 
 
 # Finite volume shock function
@@ -37,7 +38,7 @@ def core_run(hdf5: str, sim_variables: namedtuple):
 
     # Initiate live or snapshot plotting, if enabled
     if sim_variables.live_plot:
-        plotting_params = plotting.initiate_live_plot(sim_variables, title=True)
+        plotting_params = plotting.initiate_live_plot(sim_variables)
     elif sim_variables.take_snaps:
         take_snapshot = True
 
@@ -109,7 +110,7 @@ def core_run(hdf5: str, sim_variables: namedtuple):
 ##############################################################################
 
 # Main script; includes handlers and core execution of simulation code
-def run(seed, current_dir, save_dir) -> None:
+def run(seed, current_dir, save_dir, plot_style) -> None:
     np.random.seed(seed)
 
     # Save the HDF5 file (with seed) to store the temporary data
@@ -157,6 +158,7 @@ def run(seed, current_dir, save_dir) -> None:
     ###################################### SCRIPT INITIATE ######################################
     script_start = datetime.now().strftime('%Y%m%d%H%M')
     save_path = f"{save_dir}/sim{script_start}_{seed}"
+    sim_variables = sim_variables._replace(plot_style=plot_style)
 
     # Make directories if they do not exist
     if sim_variables.take_snaps or sim_variables.save_plots or sim_variables.save_video or sim_variables.save_file:
@@ -257,6 +259,6 @@ if __name__ == "__main__":
         _ = [_filename for _filename in filenames if _filename.endswith('.env')]
         if len(_) == 1:
             dotenv.load_dotenv(os.path.join(dirpath, _[0]))
-    _globals = [SEED, CURRENT_DIR, SAVE_DIR]
+    _globals = [SEED, CURRENT_DIR, SAVE_DIR, PLOT_STYLE]
 
     run(*_globals)
