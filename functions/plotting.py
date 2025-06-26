@@ -247,7 +247,7 @@ def initiate_live_plot(sim_variables, title=False):
 
     if title == True:
         if dimension == 2:
-            grid_axes == "$(x,y)$"
+            grid_axes = "$(x,y)$"
         else:
             grid_axes = "$x$"
         plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position {grid_axes} at $t = 0.0000$", fontsize=24)
@@ -281,7 +281,7 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
         pass
     else:
         if sim_variables.dimension == 2:
-            grid_axes == "$(x,y)$"
+            grid_axes = "$(x,y)$"
         else:
             grid_axes = "$x$"
         plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position {grid_axes} at $t = {round(t,4)}$", fontsize=24)
@@ -292,15 +292,10 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
 
 
 # Function for plotting a snapshot of the grid
-def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
+def plot_snapshot(grid_snapshot, t, sim_variables):
     config, N, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
     options = sim_variables.plot_options
-
-    try:
-        text = kwargs["text"]
-    except KeyError:
-        text = ""
 
     fig, ax, plot_ = make_figure(options, sim_variables)
     y_data = make_data(options, grid_snapshot, sim_variables)
@@ -330,7 +325,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, **kwargs):
         #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ {text}", fontsize=30)
         pass
 
-    plt.savefig(f"{kwargs['save_path']}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{solver}_{'%.3f' % round(t,3)}.png", bbox_inches='tight')
+    plt.savefig(f"{sim_variables.snapshot_path}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{solver}_{'%.3f' % round(t,3)}.png", bbox_inches='tight')
 
     plt.cla()
     plt.clf()
