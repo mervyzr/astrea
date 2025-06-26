@@ -37,7 +37,7 @@ def core_run(hdf5: str, sim_variables: namedtuple):
 
     # Initiate live or snapshot plotting, if enabled
     if sim_variables.live_plot:
-        plotting_params = plotting.initiate_live_plot(sim_variables)
+        plotting_params = plotting.initiate_live_plot(sim_variables, title=True)
     elif sim_variables.take_snaps:
         take_snapshot = True
 

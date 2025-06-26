@@ -41,7 +41,7 @@ def calculate_Riemann_flux(data, sim_variables):
         # Calculate the interface-averaged fluxes
         intf_fluxes_avgd = run_Riemann_solver(axis, sim_variables, characteristics, **data[axes])
 
-        if sim_variables.dimension >= 2:
+        if sim_variables.dimension == 2:
             # Compute the orthogonal L/R Riemann states and fluxes
             high_order_intfs = {}
             for _key, _arrays in data[axes].items():
