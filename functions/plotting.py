@@ -22,7 +22,7 @@ BEAUTIFY = False
 
 
 # Make figures and axes for plotting
-def make_figure(options, sim_variables, variable="normal", style=STYLE, tight_layout=True):
+def make_figure(options, sim_variables, variable="normal", style=STYLE):
     if 0 < len(options) < 13:
         # Set up colours
         try:
@@ -165,27 +165,26 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE, tight_la
         fig.subplots_adjust(wspace=0.75, hspace=0.25)
 
         for idx, (_i,_j) in enumerate(indexes):
-            ax[_i,_j].set_title(names[idx])
             ax[_i,_j].tick_params(axis='both', which='major')
             ax[_i,_j].tick_params(axis='both', which='minor')
+
             if "error" in variable:
                 ax[_i,_j].set_ylabel(errors[idx])
             elif "tv" in variable:
                 ax[_i,_j].set_ylabel(tvs[idx])
             else:
-                ax[_i,_j].set_ylabel(labels[idx])
+                if sim_variables.dimension == 2:
+                    if not sim_variables.live_plot:
+                        ax[_i,_j].yaxis.set_label_position("right")
+                        ax[_i,_j].set_ylabel(labels[idx], rotation=90, fontsize=18, labelpad=50)
+                else:
+                    ax[_i,_j].set_ylabel(labels[idx])
 
             if sim_variables.dimension < 2:
                 ax[_i,_j].set_xlim([sim_variables.start_pos, sim_variables.end_pos])
                 ax[_i,_j].grid(linestyle="--", linewidth=0.5)
-            else:
-                ax[_i,_j].yaxis.set_label_position("right")
-                ax[_i,_j].yaxis.labelpad = 80
 
-        if tight_layout:
-            plt.tight_layout()
-
-        return fig, ax, {'indexes':indexes, 'labels':labels, 'errors':errors, 'tvs':tvs, 'colours': {'theo':theo_colour, '1d':colours, '2d':twod_colours}}
+        return fig, ax, {'indexes':indexes, 'names':names, 'labels':labels, 'errors':errors, 'tvs':tvs, 'colours': {'theo':theo_colour, '1d':colours, '2d':twod_colours}}
     else:
         raise IndexError('Number of variables to plot should be < 13')
 
@@ -225,15 +224,16 @@ def make_data(options, grid, sim_variables):
 
 
 # Initiate the live plot feature
-def initiate_live_plot(sim_variables):
+def initiate_live_plot(sim_variables, title=False):
     N, dimension, start_pos, end_pos = sim_variables.cells, sim_variables.dimension, sim_variables.start_pos, sim_variables.end_pos
     options = sim_variables.plot_options
     plt.ion()
 
-    fig, ax, plot_ = make_figure(options, sim_variables, tight_layout=False)
+    fig, ax, plot_ = make_figure(options, sim_variables)
 
     graphs = []
     for idx, (_i,_j) in enumerate(plot_['indexes']):
+        ax[_i,_j].set_title(plot_['names'][idx], fontsize=20)
         if dimension == 2:
             graph = ax[_i,_j].imshow(np.zeros((N,N)), interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
             divider = make_axes_locatable(ax[_i,_j])
@@ -245,11 +245,13 @@ def initiate_live_plot(sim_variables):
             graph, = ax[_i,_j].plot(np.linspace(start_pos, end_pos, N), np.linspace(start_pos, end_pos, N), color=plot_['colours']['1d'][idx])
         graphs.append(graph)
 
-    fig.text(0.5, 0.04, r"$x$", ha='center')
-    fig.subplots_adjust(bottom=0.15)
-    if dimension == 2:
-        fig.text(0.04, 0.4, r"$y$", ha='center', rotation='vertical')
-        fig.subplots_adjust(left=0.15)
+    if title == True:
+        if dimension == 2:
+            plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ & $y$ at $t = 0.0$", fontsize=24)
+        else:
+            plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t = 0.0$", fontsize=24)
+
+    plt.tight_layout()
 
     return fig, ax, graphs
 
@@ -263,8 +265,6 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
         for index, graph in enumerate(graphs):
             graph.set_data(plot_data[index])
             graph.set_clim([np.min(plot_data[index]), np.max(plot_data[index])])
-
-        #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $x$ & $y$ at $t = {round(t,4)}$", fontsize=24)
     else:
         for index, graph in enumerate(graphs):
             graph.set_ydata(plot_data[index])
@@ -274,7 +274,15 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
             _.relim()
             _.autoscale_view()
 
-        #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t = {round(t,4)}$", fontsize=24)
+    try:
+        fig._suptitle.get_text()
+    except AttributeError:
+        pass
+    else:
+        if sim_variables.dimension == 2:
+            plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $(x,y)$ at $t = {round(t,4)}$", fontsize=24)
+        else:
+            plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t = {round(t,4)}$", fontsize=24)
 
     fig.canvas.draw()
     fig.canvas.flush_events()
@@ -584,7 +592,7 @@ def plot_total_variation(hdf5, sim_variables, save_path):
             ax[_i,_j].plot(x, y_data[idx], color=plot_['colours']['1d'][idx])
             ax[_i,_j].set_xlim([min(x), max(x)])
 
-        if dimension >= 2:
+        if dimension == 2:
             grid_size = f"{N}^{dimension}"
         else:
             grid_size = N
@@ -647,7 +655,7 @@ def plot_conservation_equations(hdf5, sim_variables, save_path):
             ax[_i,_j].annotate(round(y_init, decimal_point), xy=(x[0], y_init), xytext=(0,0), textcoords='offset points')
             ax[_i,_j].annotate(round(y_final, decimal_point), xy=(x[-1], y_final), xytext=(0,0), textcoords='offset points')
 
-        if dimension >= 2:
+        if dimension == 2:
             grid_size = f"{N}^{dimension}"
         else:
             grid_size = N
