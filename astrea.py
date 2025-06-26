@@ -72,7 +72,7 @@ def core_run(hdf5: str, sim_variables: namedtuple):
         if sim_variables.live_plot:
             plotting.update_plot(grid_snapshot, t, sim_variables, *plotting_params)
         elif sim_variables.take_snaps and take_snapshot:
-            plotting.plot_snapshot(grid_snapshot, t, sim_variables, save_path=f"{SAVE_DIR}/snap{sim_variables.seed}")
+            plotting.plot_snapshot(grid_snapshot, t, sim_variables)
             take_snapshot = False
 
         # Actual computation starts here
@@ -109,11 +109,11 @@ def core_run(hdf5: str, sim_variables: namedtuple):
 ##############################################################################
 
 # Main script; includes handlers and core execution of simulation code
-def run() -> None:
-    np.random.seed(SEED)
+def run(seed, current_dir, save_dir) -> None:
+    np.random.seed(seed)
 
     # Save the HDF5 file (with seed) to store the temporary data
-    file_name = f"{CURRENT_DIR}/.tempSimData_{SEED}.hdf5"
+    file_name = f"{current_dir}/.tempSimData_{seed}.hdf5"
 
     # Signal handler for Ctrl+C
     def graceful_exit(sig, frame):
@@ -122,7 +122,7 @@ def run() -> None:
         sys.exit(0)
 
     # Generate the simulation variables from settings (dict)
-    with open(f"{CURRENT_DIR}/parameters.yml", "r") as settings_file:
+    with open(f"{current_dir}/parameters.yml", "r") as settings_file:
         config_variables = yaml.safe_load(settings_file)
 
     # Check CLI arguments
@@ -135,7 +135,7 @@ def run() -> None:
         np.seterr(all='ignore')
 
     # Variables handler; filter erroneous entries and default values
-    config_variables = generic.handle_variables(SEED, config_variables, cli_variables)
+    config_variables = generic.handle_variables(seed, config_variables, cli_variables)
 
     # Generate test configuration and final variables
     test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'])
@@ -156,13 +156,15 @@ def run() -> None:
 
     ###################################### SCRIPT INITIATE ######################################
     script_start = datetime.now().strftime('%Y%m%d%H%M')
-    save_path = f"{SAVE_DIR}/sim{script_start}_{SEED}"
+    save_path = f"{save_dir}/sim{script_start}_{seed}"
 
     # Make directories if they do not exist
-    if (sim_variables.save_plots or sim_variables.save_video or sim_variables.save_file) and not os.path.exists(save_path):
-        os.makedirs(save_path)
-    if sim_variables.take_snaps and not os.path.exists(f"{SAVE_DIR}/snap{SEED}"):
-        os.makedirs(f"{SAVE_DIR}/snap{SEED}")
+    if sim_variables.take_snaps or sim_variables.save_plots or sim_variables.save_video or sim_variables.save_file:
+        sim_variables = sim_variables._replace(save_path=save_path)
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+    if sim_variables.take_snaps and not os.path.exists(f"{save_path}/snapshots"):
+        os.makedirs(f"{save_path}/snapshots")
 
     # Run in a try-except-else to handle crashes and prevent exiting code entirely, with signal handler
     original_sigint_handler = signal.getsignal(signal.SIGINT)
@@ -172,7 +174,7 @@ def run() -> None:
         # Initiate the HDF5 database to store data
         with h5py.File(file_name, "w") as f:
             f.attrs['datetime'] = script_start
-            f.attrs['seed'] = sim_variables.seed
+            f.attrs['seed'] = seed
 
         for _var in itr_list:
             ############################# INDIVIDUAL SIMULATION #############################
@@ -214,20 +216,20 @@ def run() -> None:
         # Save plots; primitive quantities, total variation, conservation equation quantities, solution errors (errors only for run_type=multiple)
         with h5py.File(file_name, "r") as f:
             if sim_variables.save_plots:
-                plotting.plot_quantities(f, sim_variables, save_path)
+                plotting.plot_quantities(f, sim_variables)
                 if sim_variables.run_type.startswith("m"):
                     if sim_variables.config_category == "smooth":
-                        plotting.plot_solution_errors(f, sim_variables, save_path, error_norm=1)
+                        plotting.plot_solution_errors(f, sim_variables, error_norm=1)
                 else:
-                    plotting.plot_total_variation(f, sim_variables, save_path)
-                    plotting.plot_conservation_equations(f, sim_variables, save_path)
+                    plotting.plot_total_variation(f, sim_variables)
+                    plotting.plot_conservation_equations(f, sim_variables)
 
             # Save video (only for run_type=single)
             if sim_variables.save_video:
-                vidpath = f"{SAVE_DIR}/.vidplots"
+                vidpath = f"{save_path}/.vidplots"
                 if not os.path.exists(vidpath):
                     os.makedirs(vidpath)
-                plotting.make_video(f, sim_variables, save_path, vidpath)
+                plotting.make_video(f, sim_variables, vidpath)
 
     # Exception handling; deletes the temporary HDF5 database to prevent clutter
     except Exception as e:
@@ -241,7 +243,7 @@ def run() -> None:
     finally:
         # Save the temporary HDF5 database (!! Possibly large file sizes > 100 GB !!)
         if sim_variables.save_file:
-            shutil.move(file_name, f"{save_path}/astrea_{sim_variables.config}_{sim_variables.subgrid}_{sim_variables.timestep}_{SEED}.hdf5")
+            shutil.move(file_name, f"{save_path}/astrea_{sim_variables.config}_{sim_variables.subgrid}_{sim_variables.timestep}_{sim_variables.seed}.hdf5")
         else:
             os.remove(file_name)
 
@@ -255,5 +257,6 @@ if __name__ == "__main__":
         _ = [_filename for _filename in filenames if _filename.endswith('.env')]
         if len(_) == 1:
             dotenv.load_dotenv(os.path.join(dirpath, _[0]))
+    _globals = [SEED, CURRENT_DIR, SAVE_DIR]
 
-    run()
+    run(*_globals)

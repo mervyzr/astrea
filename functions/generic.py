@@ -292,8 +292,10 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
             print(f"{BColours.WARNING}Saving snapshots can only be switched on for single simulation runs..{BColours.ENDC}")
             final_dict['take_snaps'] = False
     else:
-        if (final_dict['take_snaps'] or final_dict['save_video'] or final_dict['save_plots']) and (final_dict['live_plot']):
+        if (final_dict['take_snaps'] or final_dict['save_plots'] or final_dict['save_video']) and (final_dict['live_plot']):
             print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live plot interferes with matplotlib.savefig..{BColours.ENDC}")
             final_dict['live_plot'] = False
+        if final_dict['take_snaps'] or final_dict['save_plots'] or final_dict['save_video'] or final_dict['save_file']:
+            final_dict['save_path'] = ''
 
     return final_dict
