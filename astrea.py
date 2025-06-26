@@ -42,7 +42,7 @@ def core_run(hdf5: str, sim_variables: namedtuple):
         take_snapshot = True
 
     # Set up min/max arrays
-    _max, _min, _Emax, _Emin = np.zeros(8), np.zeros(8), 0, 0
+    var_max, var_min, _Emax, _Emin = np.zeros(8), np.zeros(8), 0, 0
 
     # Start simulation run
     t, idx = 0., 1
@@ -61,8 +61,8 @@ def core_run(hdf5: str, sim_variables: namedtuple):
 
         # Save min/max values
         pmax, pmin = np.max(grid_snapshot, axis=sim_variables.axes), np.min(grid_snapshot, axis=sim_variables.axes)
-        _max[_max > pmax] = pmax[_max > pmax]
-        _min[_min < pmin] = pmin[_min < pmin]
+        var_max[pmax > var_max] = pmax[pmax > var_max]
+        var_min[pmin < var_min] = pmin[pmin < var_min]
         _Emax = np.max(grid[...,4]) if np.max(grid[...,4]) > _Emax else _Emax
         _Emin = np.min(grid[...,4]) if np.min(grid[...,4]) < _Emin else _Emin
 
@@ -103,8 +103,8 @@ def core_run(hdf5: str, sim_variables: namedtuple):
             sim_variables = sim_variables._replace(swapped_permutations=dict(reversed(list(sim_variables.swapped_permutations.items()))))
 
     with h5py.File(hdf5, "a") as f:
-        f[sim_variables.access_key].attrs['max_values'] = np.append(_max, _Emax)
-        f[sim_variables.access_key].attrs['min_values'] = np.append(_min, _Emin)
+        f[sim_variables.access_key].attrs['max_values'] = np.append(var_max, _Emax)
+        f[sim_variables.access_key].attrs['min_values'] = np.append(var_min, _Emin)
 
 ##############################################################################
 
@@ -229,7 +229,7 @@ def run(seed, current_dir, save_dir) -> None:
                 vidpath = f"{save_path}/.vidplots"
                 if not os.path.exists(vidpath):
                     os.makedirs(vidpath)
-                plotting.make_video(f, sim_variables, vidpath)
+                plotting.make_video(f, sim_variables, vidpath, variable='all')
 
     # Exception handling; deletes the temporary HDF5 database to prevent clutter
     except Exception as e:

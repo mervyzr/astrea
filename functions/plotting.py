@@ -133,7 +133,7 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE):
             fig, ax = plt.figure(figsize=[13,8]), np.full((rows, cols), None)
         else:
             mpl.rcParams['text.usetex'] = True
-            fig, ax = plt.figure(), np.full((rows, cols), None)
+            fig, ax = plt.figure(figsize=(4*cols, 4*rows)), np.full((rows, cols), None)
             plt.rcParams['text.latex.preamble'] = r"\usepackage{lmodern}"
             params = {
                 'font.size': 12,
@@ -175,8 +175,7 @@ def make_figure(options, sim_variables, variable="normal", style=STYLE):
             else:
                 if sim_variables.dimension == 2:
                     if not sim_variables.live_plot:
-                        ax[_i,_j].yaxis.set_label_position("right")
-                        ax[_i,_j].set_ylabel(labels[idx], rotation=90, fontsize=18, labelpad=50)
+                        ax[_i,_j].set_title(labels[idx])
                 else:
                     ax[_i,_j].set_ylabel(labels[idx])
 
@@ -245,12 +244,12 @@ def initiate_live_plot(sim_variables, title=False):
             graph, = ax[_i,_j].plot(np.linspace(start_pos, end_pos, N), np.linspace(start_pos, end_pos, N), color=plot_['colours']['1d'][idx])
         graphs.append(graph)
 
-    if title == True:
+    if title:
         if dimension == 2:
             grid_axes = "$(x,y)$"
         else:
             grid_axes = "$x$"
-        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position {grid_axes} at $t = 0.0000$", fontsize=24)
+        plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = 0.0000$", fontsize=24)
 
     plt.tight_layout()
 
@@ -284,7 +283,7 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
             grid_axes = "$(x,y)$"
         else:
             grid_axes = "$x$"
-        plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position {grid_axes} at $t = {round(t,4)}$", fontsize=24)
+        plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(t,4)}$", fontsize=24)
 
     fig.canvas.draw()
     fig.canvas.flush_events()
@@ -292,7 +291,7 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
 
 
 # Function for plotting a snapshot of the grid
-def plot_snapshot(grid_snapshot, t, sim_variables):
+def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
     config, N, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
     options = sim_variables.plot_options
@@ -315,15 +314,20 @@ def plot_snapshot(grid_snapshot, t, sim_variables):
             else:
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
 
+    if title:
+        if dimension == 2:
+            grid_axes = "$(x,y)$"
+        else:
+            grid_axes = "$x$"
+        plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell indices {grid_axes} at $t = {round(t,3)}$ ($N = {N}^{dimension}$)")
+
+    plt.tight_layout()
+
     fig.text(0.5, 0.04, r"$x$", ha='center')
-    fig.subplots_adjust(bottom=0.15)
+    fig.subplots_adjust(bottom=0.1)
     if dimension == 2:
-        fig.text(0.04, 0.4, r"$y$", ha='center', rotation='vertical')
-        fig.subplots_adjust(left=0.15)
-        #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $(x,y)$ at $t = {round(t,3)}$ ($N = {N}^{dimension}$) {text}", fontsize=30)
-    else:
-        #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ {text}", fontsize=30)
-        pass
+        fig.text(0.04, 0.5, r"$y$", ha='center', rotation='vertical')
+        fig.subplots_adjust(left=0.1)
 
     plt.savefig(f"{sim_variables.save_path}/snapshots/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{solver}_{'%.3f' % round(t,3)}.png", bbox_inches='tight')
 
@@ -334,7 +338,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables):
 
 
 # Generic plot of simulation variables
-def plot_quantities(hdf5, sim_variables):
+def plot_quantities(hdf5, sim_variables, title=False):
     config, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
     precision, t_end, checkpoints = sim_variables.precision, sim_variables.t_end, sim_variables.checkpoints
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
@@ -379,7 +383,6 @@ def plot_quantities(hdf5, sim_variables):
                 if len(hdf5) != 1:
                     if dimension < 2:
                         ax[_i,_j].plot(x, y, label=f"N = {N}")
-                        #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t = {round(ref_time,3)}$", fontsize=30)
                         legends_on = True
                 else:
                     if dimension == 2:
@@ -387,20 +390,30 @@ def plot_quantities(hdf5, sim_variables):
                         divider = make_axes_locatable(ax[_i,_j])
                         cax = divider.append_axes('right', size='5%', pad=0.05)
                         fig.colorbar(graph, cax=cax, orientation='vertical')
-                        #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $(x,y)$ at $t = {round(ref_time,3)}$ ($N = {N}^{dimension}$)", fontsize=30)
                     else:
                         if BEAUTIFY:
                             gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
                         else:
                             #ax[_i,_j].plot(x, y, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=plot_['colours']['1d'], color=plot_['colours']['1d'])
                             ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
-                        #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t = {round(ref_time,3)}$ ($N = {N}$)", fontsize=24)
+
+            if title:
+                if dimension == 2:
+                    grid_axes, grid_cells = "$(x,y)$", f" ($N = {N}^{dimension}$)"
+                else:
+                    if len(hdf5) != 1:
+                        grid_axes, grid_cells = "$x$", ""
+                    else:
+                        grid_axes, grid_cells = "$x$", f" ($N = {N}$)"
+                plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(ref_time,3)}${grid_cells}")
+
+            plt.tight_layout()
 
             fig.text(0.5, 0.04, r"$x$", ha='center')
-            fig.subplots_adjust(bottom=0.15)
+            fig.subplots_adjust(bottom=0.1)
             if dimension == 2:
-                fig.text(0.04, 0.4, r"$y$", ha='center', rotation='vertical')
-                fig.subplots_adjust(left=0.15)
+                fig.text(0.04, 0.5, r"$y$", ha='center', rotation='vertical')
+                fig.subplots_adjust(left=0.1)
 
         # Add analytical solutions only for 1D
         if dimension < 2:
@@ -448,7 +461,7 @@ def plot_quantities(hdf5, sim_variables):
 
 
 # Plot solution errors to determine order of convergence of numerical scheme
-def plot_solution_errors(hdf5, sim_variables, error_norm):
+def plot_solution_errors(hdf5, sim_variables, error_norm, title=False):
     options = ["density"]
     config, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
 
@@ -506,9 +519,13 @@ def plot_solution_errors(hdf5, sim_variables, error_norm):
         ax[_i,_j].legend()
         ax[_i,_j].set_xlim([min(x)/1.5,max(x)*3.5])
 
-    #plt.suptitle(rf"$L_{error_norm}$ error norm $\epsilon_N(\boldsymbol{{W}})$ against resolution $N$ for {config.title()} test", fontsize=30)
+    if title:
+        plt.suptitle(rf"$L_{error_norm}$ error norm $\epsilon_N(\mathbf{{W}})$ against resolution $N$ for {config.title()} test")
+    
+    plt.tight_layout()
+
     fig.text(0.5, 0.04, r"Resolution $N$", ha='center')
-    fig.subplots_adjust(bottom=0.15)
+    fig.subplots_adjust(bottom=0.1)
 
     plt.savefig(f"{sim_variables.save_path}/solErr_L{error_norm}_{subgrid}_{timestep}_{solver}.png", bbox_inches='tight')
 
@@ -531,9 +548,13 @@ def plot_solution_errors(hdf5, sim_variables, error_norm):
     for idx in range(len(plot_['indexes'])):
         ax.plot(x_diff, y_diff[idx], linestyle="--", marker="o", color=plot_['colours']['1d'][idx], label=plot_['labels'][idx])
 
-    #plt.suptitle(rf"Order of convergence against resolution $N$ for {config.title()} test", fontsize=30)
+    if title:
+        plt.suptitle(rf"Order of convergence against resolution $N$ for {config.title()} test")
+
+    plt.tight_layout()
+
     fig.text(0.5, 0.04, r"Resolution $N$", ha='center')
-    fig.subplots_adjust(bottom=0.15)
+    fig.subplots_adjust(bottom=0.1)
     _xticklabels = [item.get_text() for item in ax.get_xticklabels()]
     _xticklabels = [rf"${int(v)}\rightarrow{int(x[i+1])}$" for i,v in enumerate(x[:-1])]
     ax.set_xticks(x_diff)
@@ -548,7 +569,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm):
 
 
 # Total variation to determine if numerical scheme prevents oscillation
-def plot_total_variation(hdf5, sim_variables):
+def plot_total_variation(hdf5, sim_variables, title=False):
     config, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
     options = sim_variables.plot_options
 
@@ -589,14 +610,17 @@ def plot_total_variation(hdf5, sim_variables):
             ax[_i,_j].plot(x, y_data[idx], color=plot_['colours']['1d'][idx])
             ax[_i,_j].set_xlim([min(x), max(x)])
 
-        if dimension == 2:
-            grid_size = f"{N}^{dimension}"
-        else:
-            grid_size = N
+        if title:
+            if dimension == 2:
+                grid_size = f"{N}^{dimension}"
+            else:
+                grid_size = N
+            plt.suptitle(rf"Total variation of grid variables TV($\mathbf{{u}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)")
 
-        #plt.suptitle(rf"Total variation of grid variables TV($\boldsymbol{{u}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=30)
+        plt.tight_layout()
+
         fig.text(0.5, 0.04, rf"Time $t$ [arb. units]", ha='center')
-        fig.subplots_adjust(bottom=0.15)
+        fig.subplots_adjust(bottom=0.1)
 
         plt.savefig(f"{sim_variables.save_path}/TV_{config}_{subgrid}_{timestep}_{solver}_{N}.png", bbox_inches='tight')
 
@@ -606,7 +630,7 @@ def plot_total_variation(hdf5, sim_variables):
 
 
 # Determines if numerical scheme is conservative to machine precision
-def plot_conservation_equations(hdf5, sim_variables):
+def plot_conservation_equations(hdf5, sim_variables, title=False):
     options = ["mass", "momentum_x", "energy"]
     config, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
     
@@ -652,14 +676,17 @@ def plot_conservation_equations(hdf5, sim_variables):
             ax[_i,_j].annotate(round(y_init, decimal_point), xy=(x[0], y_init), xytext=(0,0), textcoords='offset points')
             ax[_i,_j].annotate(round(y_final, decimal_point), xy=(x[-1], y_final), xytext=(0,0), textcoords='offset points')
 
-        if dimension == 2:
-            grid_size = f"{N}^{dimension}"
-        else:
-            grid_size = N
+        if title:
+            if dimension == 2:
+                grid_size = f"{N}^{dimension}"
+            else:
+                grid_size = N
+            plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)")
 
-        #plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)", fontsize=30)
+        plt.tight_layout()
+
         fig.text(0.5, 0.04, rf"Time $t$ [arb. units]", ha='center')
-        fig.subplots_adjust(bottom=0.15)
+        fig.subplots_adjust(bottom=0.1)
 
         plt.savefig(f"{sim_variables.save_path}/conserveEq_{config}_{subgrid}_{timestep}_{solver}_{N}.png", bbox_inches='tight')
 
@@ -669,9 +696,45 @@ def plot_conservation_equations(hdf5, sim_variables):
 
 
 # Make a video of entire simulation; video of all plot options or specific variable
-def make_video(hdf5, sim_variables, vidpath, variable="all"):
-    config, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
+def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
+    config, gamma, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.gamma, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
+
+    def make_limits(_options, _gamma, _min_values, _max_values, scale_factor=1.):
+        limits = []
+
+        for _option in _options:
+            _option = _option.lower()
+
+            if "energy" in _option or "temp" in _option or _option.startswith("e"):
+                if "int" in _option:
+                    if "density" in _option:
+                        limit = np.array([fv.divide(_min_values[...,4],_gamma-1), fv.divide(_max_values[...,4],_gamma-1)])
+                    else:
+                        limit = np.array([fv.divide(_min_values[...,4],_min_values[...,0] * (_gamma-1)), fv.divide(_max_values[...,4],_max_values[...,0] * (_gamma-1))])
+                else:
+                    if "density" in _option:
+                        limit = np.array([_min_values[...,-1], _max_values[...,-1]])
+                    else:
+                        limit = np.array([fv.divide(_min_values[...,-1],_min_values[...,0]), fv.divide(_max_values[...,-1],_max_values[...,0])])
+            elif _option.startswith("p"):
+                limit = np.array([_min_values[...,4], _max_values[...,4]])
+            elif _option.startswith("v") or "mom" in _option or _option.startswith("b") or _option.startswith("mag"):
+                axis = {"x":0, "y":1, "z":2}[_option[-1]]
+                if _option.startswith("v") or "mom" in _option:
+                    limit = np.array([_min_values[...,1+axis], _max_values[...,1+axis]])
+                    if "mom" in _option:
+                        limit = np.array([_min_values[...,1+axis]*_min_values[...,0], _max_values[...,1+axis]*_max_values[...,0]])
+                else:
+                    limit = np.array([_min_values[...,5+axis], _max_values[...,5+axis]])
+            else:
+                limit = np.array([_min_values[...,0], _max_values[...,0]])
+
+            if np.diff(limit) <= 1e-10:
+                limit[1] += np.finfo(np.float64).eps
+
+            limits.append(limit*scale_factor)
+        return limits
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -680,7 +743,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all"):
     for datetime in datetimes:
         simulation = hdf5[datetime]
         N = simulation.attrs['cells']
-        max_values, min_values = simulation.attrs['max_values'], simulation.attrs['min_values']
+        x = np.linspace(start_pos, end_pos, N)
 
         if isinstance(variable, str):
             variable = variable.lower()
@@ -691,12 +754,12 @@ def make_video(hdf5, sim_variables, vidpath, variable="all"):
             else:
                 options = [variable]
 
-            for _, grid in simulation.items():
+            for t, grid in simulation.items():
                 print(f"Creating {counter+1}/{end_count} ...", end='\r')
 
                 fig, ax, plot_ = make_figure(options, sim_variables)
-                x = np.linspace(start_pos, end_pos, N)
                 y_data = make_data(options, grid, sim_variables)
+                limits = make_limits(options, gamma, simulation.attrs['min_values'], simulation.attrs['max_values'])
 
                 if variable == "all":
                     for idx, (_i,_j) in enumerate(plot_['indexes']):
@@ -707,32 +770,41 @@ def make_video(hdf5, sim_variables, vidpath, variable="all"):
                             divider = make_axes_locatable(ax[_i,_j])
                             cax = divider.append_axes('right', size='5%', pad=0.05)
                             fig.colorbar(graph, cax=cax, orientation='vertical')
-                            #graph.set_clim()
-                            #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $(x,y)$ at $t = {round(float(t),4)}$ ($N = {N}^{dimension}$)", fontsize=30)
-
+                            graph.set_clim(limits[idx][0], limits[idx][1])
                         else:
                             if BEAUTIFY:
                                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
                             else:
                                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
-                            #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ at $t = {round(float(t),4)}$ ($N = {N}$)", fontsize=30)
+                                ax[_i,_j].set_ylim(limits[idx][0], limits[idx][1])
+
+                    if title:
+                        if dimension == 2:
+                            grid_axes, grid_cells = "$(x,y)$", f" ($N = {N}^{dimension}$)"
+                        else:
+                            grid_axes, grid_cells = "$x$", f" ($N = {N}$)"
+                        plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(float(t),4)}${grid_cells}")
+
+                    plt.tight_layout()
 
                     fig.text(0.5, 0.04, r"$x$", ha='center')
-                    fig.subplots_adjust(bottom=0.15)
+                    fig.subplots_adjust(bottom=0.1)
                     if dimension == 2:
-                        fig.text(0.04, 0.4, r"$y$", ha='center', rotation='vertical')
-                        fig.subplots_adjust(left=0.15)
+                        fig.text(0.04, 0.5, r"$y$", ha='center', rotation='vertical')
+                        fig.subplots_adjust(left=0.1)
 
                     plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight')
 
                 else:
                     idx = 0
-                    plt.axis('off')
 
                     if dimension == 2:
-                        ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
+                        plt.axis('off')
+                        graph = ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
+                        graph.set_clim(limits[idx][0], limits[idx][1])
                     else:
                         ax[idx,idx].plot(x, y_data[idx], color=plot_['colours']['1d'][idx])
+                        ax[idx,idx].set_ylim(limits[idx][0], limits[idx][1])
 
                     ax[idx,idx].set_title('')
 
@@ -745,6 +817,8 @@ def make_video(hdf5, sim_variables, vidpath, variable="all"):
                 counter += 1
 
             try:
+                print(f"                                                                                ", end='\r')
+                print(f"Creating video ... [{variable}]", end='\r')
                 subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "error", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{sim_variables.save_path}/vid_{config}_{subgrid}_{timestep}_{solver}_{variable}.mp4"])
             except Exception as e:
                 print(f"{generic.BColours.FAIL}Video creation failed{generic.BColours.ENDC}")
@@ -758,18 +832,22 @@ def make_video(hdf5, sim_variables, vidpath, variable="all"):
                 counter, end_count = 0, len(simulation)
 
                 for _, grid in simulation.items():
+                    print(f"                                                                                ", end='\r')
                     print(f"Creating {counter+1}/{end_count} ... [{_variable}]", end='\r')
 
                     fig, ax, plot_ = make_figure([_variable], sim_variables)
                     y_data = make_data([_variable], grid, sim_variables)
+                    limits = make_limits([_variable], gamma, simulation.attrs['min_values'], simulation.attrs['max_values'])
 
                     idx = 0
-                    plt.axis('off')
 
                     if dimension == 2:
-                        ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][style_counter], origin="lower")
+                        plt.axis('off')
+                        graph = ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][style_counter], origin="lower")
+                        graph.set_clim(limits[idx][0], limits[idx][1])
                     else:
                         ax[idx,idx].plot(x, y_data[idx], color=plot_['colours']['1d'][style_counter])
+                        ax[idx,idx].set_ylim(limits[idx][0], limits[idx][1])
 
                     ax[idx,idx].set_title('')
 
@@ -784,6 +862,8 @@ def make_video(hdf5, sim_variables, vidpath, variable="all"):
                 style_counter += 1
 
                 try:
+                    print(f"                                                                                ", end='\r')
+                    print(f"Creating video ... [{_variable}]", end='\r')
                     subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "error", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{sim_variables.save_path}/vid_{config}_{subgrid}_{timestep}_{solver}_{_variable}.mp4"])
                 except Exception as e:
                     print(f"{generic.BColours.FAIL}Video creation failed: {e}{generic.BColours.ENDC}")
@@ -828,15 +908,19 @@ def plot_this(grid, sim_variables, **kwargs):
             else:
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
 
-    fig.text(0.5, 0.04, r"$x$", ha='center')
-    fig.subplots_adjust(bottom=0.15)
     if sim_variables.dimension == 2:
-        fig.text(0.04, 0.4, r"$y$", ha='center', rotation='vertical')
-        fig.subplots_adjust(left=0.15)
-        #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell indices $(x,y)$ {text}", fontsize=30)
+        grid_axes = "$(x,y)$"
     else:
-        #plt.suptitle(rf"Grid variables $\boldsymbol{{u}}$ against cell position $x$ {text}", fontsize=30)
-        pass
+        grid_axes = "$x$"
+
+    plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell indices {grid_axes} {text}")
+    plt.tight_layout()
+
+    fig.text(0.5, 0.04, r"$x$", ha='center')
+    fig.subplots_adjust(bottom=0.1)
+    if sim_variables.dimension == 2:
+        fig.text(0.04, 0.5, r"$y$", ha='center', rotation='vertical')
+        fig.subplots_adjust(left=0.1)
 
     if not sim_variables.live_plot:
         plt.show(block=True)
