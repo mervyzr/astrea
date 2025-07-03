@@ -37,6 +37,9 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
         wF = 7/12 * (wS + w[2:]) - 1/12 * (w[:-2] + w2[4:])
 
+        # Face i+1/2 (5th-order, less robust) [Suresh & Huynh, 1997, eq. 2.1]
+        #wF = 1/60 * (2*w2[:-4] - 13*w[:-2] + 47*wS + 27*w[2:] - 3*w2[4:])
+
         if magnetic:
             wF[...,5:5+dimension] = staggered_grid[...,5:5+dimension]
             data[axes]['wTs'] = mag_field.reconstruct_transverse(wF, sim_variables)
@@ -50,9 +53,6 @@ def run(grid, sim_variables, author="mc", dissipate=False):
             # Face i+1/2 (4th-order) (eq. 3.26-3.27)
             wF_L = 7/12 * (w[:-2] + wS) - 1/12 * (w2[:-4] + w[2:])
             wF_R = wF
-
-            # Face i+1/2 (5th-order) [Peterson & Hammett, 2008, eq. 3.40]
-            #wF_R = 1/60 * (2*w2[:-4] - 13*w[:-2] + 47*wS + 27*w[2:] - 2*w2[4:])
 
             # Limit interface values [Peterson & Hammett, 2008, eq. 3.33-3.34]
             limited_wFs = limiters.interface_limiter(wF_L, w2[:-4], w[:-2], wS, w[2:]), limiters.interface_limiter(wF_R, w[:-2], wS, w[2:], w2[4:])
@@ -82,9 +82,13 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         # Re-align the interfaces so that cell wall is in between interfaces
         w_plus, w_minus = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
 
+        if magnetic:
+            padded_stag_grid = fv.add_boundary(staggered_grid, boundary)
+            w_plus[...,5:5+dimension] = w_minus[...,5:5+dimension] = padded_stag_grid[:-1][...,5:5+dimension]
+
         # Get the average solution between the interfaces at the boundaries
         intf_avg = constructor.make_Roe_average(w_plus, w_minus)[1:]
-        _intf_avg = fv.add_boundary(intf_avg, boundary)
+        padded_intf_avg = fv.add_boundary(intf_avg, boundary)
 
         # Convert the primitive variables
         q_plus, q_minus = convert_primitive(w_plus, sim_variables, 'face'), convert_primitive(w_minus, sim_variables, 'face')
@@ -95,11 +99,10 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         if (author == "mc" or "mccorquodale" in author) and dissipate:
             data[axes]['mu'] = apply_artificial_viscosity(wS, axis, sim_variables)
 
-        A = constructor.make_Jacobian(_intf_avg, gamma, axis)
+        A = constructor.make_Jacobian(padded_intf_avg, gamma, axis)
 
         # Update dict
         data[axes]['wS'] = wS
-        data[axes]['wF'] = wF
         data[axes]['wFs'] = w_plus, w_minus
         data[axes]['qFs'] = q_plus, q_minus
         data[axes]['fluxFs'] = flux_plus, flux_minus

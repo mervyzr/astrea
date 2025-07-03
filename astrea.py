@@ -50,10 +50,9 @@ def core_run(hdf5: str, sim_variables: namedtuple):
     while t <= sim_variables.t_end:
         # Transform grid for visualisation
         if sim_variables.magnetic:
-            _grid = mag_field.inverse_reconstruct(grid, sim_variables)
+            grid_snapshot = sim_variables.convert_conservative(mag_field.inverse_reconstruct(grid, sim_variables), sim_variables).transpose(sim_variables.ortho_axis)
         else:
-            _grid = grid
-        grid_snapshot = sim_variables.convert_conservative(_grid, sim_variables).transpose(sim_variables.ortho_axis)
+            grid_snapshot = sim_variables.convert_conservative(grid, sim_variables).transpose(sim_variables.ortho_axis)
 
         # Save each instance of the system (primitive variables) at time t
         with h5py.File(hdf5, "a") as f:

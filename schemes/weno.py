@@ -165,8 +165,9 @@ def run(grid, sim_variables):
             wL, wR = reconstruct(wS, boundary)
 
         if magnetic:
-            wL[...,5:5+dimension] = staggered_grid[...,5:5+dimension]
-            wR[...,5:5+dimension] = staggered_grid[...,5:5+dimension]
+            padded_stag_grid = fv.add_boundary(staggered_grid, boundary)
+            wL[...,5:5+dimension] = padded_stag_grid[:-2][...,5:5+dimension]
+            wR[...,5:5+dimension] = padded_stag_grid[1:-1][...,5:5+dimension]
             data[axes]['wTs'] = mag_field.reconstruct_transverse(wR, sim_variables)
 
         # Re-align the interfaces so that cell wall is in between interfaces
@@ -174,18 +175,17 @@ def run(grid, sim_variables):
 
         # Get the average solution between the interfaces at the boundaries
         intf_avg = constructor.make_Roe_average(w_plus, w_minus)[1:]
-        _intf_avg = fv.add_boundary(intf_avg, boundary)
+        padded_intf_avg = fv.add_boundary(intf_avg, boundary)
 
         # Convert the primitive variables
         q_plus, q_minus = convert_primitive(w_plus, sim_variables, 'face'), convert_primitive(w_minus, sim_variables, 'face')
 
         # Compute the fluxes and the Jacobian
         flux_plus, flux_minus = constructor.make_flux(w_plus, gamma, axis), constructor.make_flux(w_minus, gamma, axis)
-        A = constructor.make_Jacobian(_intf_avg, gamma, axis)
+        A = constructor.make_Jacobian(padded_intf_avg, gamma, axis)
 
         # Update dict
         data[axes]['wS'] = wS
-        data[axes]['wF'] = wR
         data[axes]['wFs'] = w_plus, w_minus
         data[axes]['qFs'] = q_plus, q_minus
         data[axes]['fluxFs'] = flux_plus, flux_minus

@@ -206,6 +206,7 @@ def compute_corner(data, sim_variables):
     [ap_y, am_y], [ap_x, am_x] = alphas
 
     return fv.divide(ap_x*ap_y*SW + am_x*ap_y*SE + ap_x*am_y*NW + am_x*am_y*NE, (ap_x+am_x)*(ap_y+am_y)) - fv.divide(ap_y*am_y, ap_y+am_y)*(north[...,5]-south[...,5]) + fv.divide(ap_x*am_x, ap_x+am_x)*(east[...,6]-west[...,6])
+    #return -(west[...,1]*west[...,6] + east[...,1]*east[...,6]) + (north[...,2]*north[...,5] + south[...,2]*south[...,5])
 
 
 # 'Inverse reconstruct' the cell-averages from the face-averages after the induction difference [Felker & Stone, 2018]
@@ -213,7 +214,6 @@ def inverse_reconstruct(grid, sim_variables):
     new_grid = np.copy(grid)
 
     for axis, axes in sim_variables.permutations.items():
-        axis %= 3
         reversed_axes = np.argsort(axes)
 
         # Approximate the face-averaged values to face-centred values (eq. 38)
@@ -222,7 +222,7 @@ def inverse_reconstruct(grid, sim_variables):
         # Interpolate the face-centred values to cell-centred values (eq. 39)
         face_cntrd_pad2 = fv.add_boundary(face_cntrd, sim_variables.boundary, 2)
         face_cntrd_pad1 = np.copy(face_cntrd_pad2[1:-1])
-        cell_cntrd = -1/16*(face_cntrd_pad1[:-2] + face_cntrd_pad2[4:]) + 9/16*(face_cntrd + face_cntrd_pad1[2:])
+        cell_cntrd = -1/16*(face_cntrd_pad1[2:] + face_cntrd_pad2[:-4]) + 9/16*(face_cntrd + face_cntrd_pad1[:-2])
 
         # Apply Laplacian operator to convert cell-centred values to cell-averaged values (eq. 40)
         cell_avgd = fv.high_order_convert('cell', 'cntr', cell_cntrd, sim_variables)

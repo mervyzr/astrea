@@ -27,9 +27,7 @@ def evolve_space(grid, sim_variables):
         e3U = mag_field.compute_corner(data, sim_variables)
 
         for axis, axes in sim_variables.swapped_permutations.items():
-            fluxes[axes]['face_avg'] = data[axes]['wF']
-            padded_e3U = fv.add_boundary(e3U.transpose(sim_variables.permutations[axis][:-1]), sim_variables.boundary)
-            fluxes[axes]['mag_corner'] = padded_e3U
+            fluxes[axes]['mag_corner'] = fv.add_boundary(e3U.transpose(sim_variables.permutations[axis][:-1]), sim_variables.boundary)
 
     return fluxes
 
