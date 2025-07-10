@@ -61,25 +61,26 @@ def add_boundary(grid, boundary, stencil=1, axis=0):
     return np.pad(arr, padding, mode=boundary)
 
 
-# Convert centred cell/face variables to averaged cell/face variables (i.e. FD -> FV) (at higher order) with the Laplacian operator and centred difference coefficients (up to 2nd derivative because parabolic function)
+# Convert between centred cell/face variables and averaged cell/face variables (i.e. FD <-> FV) (at higher order) with the Laplacian operator and centred difference coefficients (up to 2nd derivative because parabolic function)
 def high_order_convert(var_pos, grid_rep, grid, sim_variables):
     new_grid = np.copy(grid)
 
-    if "face" in var_pos:
-        _range = range(1, sim_variables.dimension)
-    else:
-        _range = range(sim_variables.dimension)
-
-    for ax in _range:
-        axes = sim_variables.permutations[ax]
-        reversed_axes = np.argsort(axes)
-
-        padded_grid = add_boundary(grid.transpose(axes), sim_variables.boundary)
-
-        if grid_rep.startswith("a"):
-            new_grid -= 1/24 * derivative(padded_grid, 0).transpose(reversed_axes)
+    if sim_variables.subgrid.startswith("w") or sim_variables.subgrid in ["ppm", "parabolic", "p"]:
+        if "face" in var_pos:
+            _range = range(1, sim_variables.dimension)
         else:
-            new_grid += 1/24 * derivative(padded_grid, 0).transpose(reversed_axes)
+            _range = range(sim_variables.dimension)
+
+        for ax in _range:
+            axes = sim_variables.permutations[ax]
+            reversed_axes = np.argsort(axes)
+
+            padded_grid = add_boundary(grid.transpose(axes), sim_variables.boundary)
+
+            if grid_rep.startswith("a"):
+                new_grid -= 1/24 * derivative(padded_grid, 0).transpose(reversed_axes)
+            else:
+                new_grid += 1/24 * derivative(padded_grid, 0).transpose(reversed_axes)
     return new_grid
 
 
@@ -167,7 +168,8 @@ def compute_eigen(jacobian):
 def high_order_compute_flux(cntr_flux, avg_flux, sim_variables):
     _cntr_flux, _avg_flux = np.copy(cntr_flux), np.copy(avg_flux)
 
-    for ax in range(1, sim_variables.dimension):
-        padded_avg_flux = add_boundary(_avg_flux, sim_variables.boundary, axis=ax)
-        _cntr_flux -= 1/24 * derivative(padded_avg_flux, ax)
+    if sim_variables.subgrid.startswith("w") or sim_variables.subgrid in ["ppm", "parabolic", "p"]:
+        for ax in range(1, sim_variables.dimension):
+            padded_avg_flux = add_boundary(_avg_flux, sim_variables.boundary, axis=ax)
+            _cntr_flux -= 1/24 * derivative(padded_avg_flux, ax)
     return _cntr_flux
