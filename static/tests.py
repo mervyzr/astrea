@@ -149,8 +149,8 @@ def generate_test_conditions(config, cells):
         shock_pos = .1
         t_end = .15
         boundary = "wrap"
-        initial_left = np.array([10,0,0,0,1,0,0,0])
-        initial_right = np.array([1,0,0,0,1,0,0,0])
+        initial_left = np.array([10,0,0,0,1,5/np.sqrt(4*np.pi),0,0])
+        initial_right = np.array([1,0,0,0,1,5/np.sqrt(4*np.pi),0,0])
         misc = {'omega':20}
 
     # [Felker & Stone, 2018]
