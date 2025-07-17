@@ -108,24 +108,24 @@ def initialise(sim_variables, convert=False):
 
 
 # Make flux as a function of cell-averaged (primitive) variables
-def make_flux(grid, gamma, axis):
+def make_flux(grid, gamma, axis, permeability=1):
     rhos, vels, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
     abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
     arr = np.zeros_like(grid)
 
     arr[...,0] = rhos * vels[...,abscissa]
-    arr[...,abscissa+1] = rhos*vels[...,abscissa]**2 + pressures + .5*fv.norm(B_fields)**2 - B_fields[...,abscissa]**2
-    arr[...,ordinate+1] = rhos*vels[...,abscissa]*vels[...,ordinate] - B_fields[...,abscissa]*B_fields[...,ordinate]
-    arr[...,applicate+1] = rhos*vels[...,abscissa]*vels[...,applicate] - B_fields[...,abscissa]*B_fields[...,applicate]
-    arr[...,4] = vels[...,abscissa]*(.5*rhos*fv.norm(vels)**2 + (gamma*pressures)/(gamma-1) + fv.norm(B_fields)**2) - B_fields[...,abscissa]*np.sum(vels*B_fields, axis=-1)
+    arr[...,abscissa+1] = rhos*vels[...,abscissa]**2 + pressures + .5*fv.norm(B_fields)**2 - (B_fields[...,abscissa]**2)/permeability
+    arr[...,ordinate+1] = rhos*vels[...,abscissa]*vels[...,ordinate] - (B_fields[...,abscissa]*B_fields[...,ordinate])/permeability
+    arr[...,applicate+1] = rhos*vels[...,abscissa]*vels[...,applicate] - (B_fields[...,abscissa]*B_fields[...,applicate])/permeability
+    arr[...,4] = vels[...,abscissa]*(.5*rhos*fv.norm(vels)**2 + (gamma*pressures)/(gamma-1) + fv.norm(B_fields)**2) - (B_fields[...,abscissa]*np.sum(vels*B_fields, axis=-1))/permeability
     arr[...,ordinate+5] = B_fields[...,ordinate]*vels[...,abscissa] - B_fields[...,abscissa]*vels[...,ordinate]
     arr[...,applicate+5] = B_fields[...,applicate]*vels[...,abscissa] - B_fields[...,abscissa]*vels[...,applicate]
 
     return arr
 
 
-# Jacobian matrix based on primitive variables
-def make_Jacobian(grid, gamma, axis):
+# Jacobian matrix based on primitive variables [Winters & Gassner, 2016]
+def make_Jacobian(grid, gamma, axis, permeability=1):
     rhos, vels, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
     abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
 
@@ -134,31 +134,21 @@ def make_Jacobian(grid, gamma, axis):
     arr = np.repeat(_arr[...,None], _arr.shape[-1], axis=-1)
     i, j = np.diag_indices(_arr.shape[-1])
 
-    # Replace matrix with values
+    # Input matrix with values at position [row i, col j]; positions refer to x-axis arrangement, but will permute based on the axis
     # Hydrodynamic components
     arr[...,i,j] = vels[...,abscissa][...,None]  # diagonal elements
-    arr[...,0,abscissa+1] = rhos
-    arr[...,abscissa+1,4] = 1/rhos
-    arr[...,4,abscissa+1] = gamma * pressures
+    arr[...,0,abscissa+1] = rhos  # [0,1]
+    arr[...,abscissa+1,4] = 1/rhos  # [1,4]
+    arr[...,4,abscissa+1] = gamma * pressures  # [4,1]
 
     # Magnetic field components
-    arr[...,abscissa+5,abscissa+5] = 0
+    arr[...,ordinate+1,ordinate+5] = arr[...,applicate+1,applicate+5] = -fv.divide(B_fields[...,abscissa], rhos*permeability)  # [2,6] = [3,7]
+    arr[...,abscissa+1,ordinate+5] = fv.divide(B_fields[...,ordinate], rhos*permeability)  # [1,6]
+    arr[...,abscissa+1,applicate+5] = fv.divide(B_fields[...,applicate], rhos*permeability)  # [1,7]
 
-    arr[...,abscissa+1,abscissa+5] = -fv.divide(B_fields[...,abscissa], rhos)
-    arr[...,abscissa+1,ordinate+5] = fv.divide(B_fields[...,ordinate], rhos)
-    arr[...,abscissa+1,applicate+5] = fv.divide(B_fields[...,applicate], rhos)
-
-    arr[...,ordinate+1,ordinate+5] = arr[...,applicate+1,applicate+5] = -fv.divide(B_fields[...,abscissa], rhos)
-    arr[...,ordinate+1,abscissa+5] = -fv.divide(B_fields[...,ordinate], rhos)
-    arr[...,applicate+1,abscissa+5] = -fv.divide(B_fields[...,applicate], rhos)
-
-    arr[...,ordinate+5,abscissa+1] = B_fields[...,ordinate]
-    arr[...,applicate+5,abscissa+1] = B_fields[...,applicate]
-    arr[...,4,abscissa+5] = (gamma-1) * np.sum(vels*B_fields, axis=-1)
-
-    arr[...,ordinate+5,ordinate+1] = arr[...,applicate+5,applicate+1] = -B_fields[...,abscissa]
-    arr[...,ordinate+5,abscissa+5] = -vels[...,ordinate]
-    arr[...,applicate+5,abscissa+5] = -vels[...,applicate]
+    arr[...,ordinate+5,ordinate+1] = arr[...,applicate+5,applicate+1] = -B_fields[...,abscissa]  # [6,2] = [7,3]
+    arr[...,ordinate+5,abscissa+1] = B_fields[...,ordinate]  # [6,1]
+    arr[...,applicate+5,abscissa+1] = B_fields[...,applicate]  # [7,1]
 
     return arr
 

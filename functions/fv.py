@@ -46,11 +46,11 @@ def derivative(grid, ax):
 
 # Convert between pressure P and total energy density e_tot; P is also related to the internal energy density e_int: P = (gamma-1) * e_int.
 # Do note that the energy densities e are related to the energies E: e_tot = rho * E_tot, e_int = rho * E_int.
-def convert_variable(variable, grid, gamma):
+def convert_variable(variable, grid, gamma, permeability=1):
     if variable.lower().startswith('p'):
-        return grid[...,4]/(gamma-1) + .5*(grid[...,0]*norm(grid[...,1:4])**2 + norm(grid[...,5:8])**2)
+        return grid[...,4]/(gamma-1) + .5 * (grid[...,0]*norm(grid[...,1:4])**2 + (norm(grid[...,5:8])**2)/permeability)
     elif variable.lower().startswith('e') or 'energy' in variable.lower():
-        return (gamma-1) * (grid[...,4] - .5*(grid[...,0]*norm(divide(grid[...,1:4], grid[...,0][...,None]))**2 + norm(grid[...,5:8])**2))
+        return (gamma-1) * (grid[...,4] - .5 * (grid[...,0]*norm(divide(grid[...,1:4], grid[...,0][...,None]))**2 + (norm(grid[...,5:8])**2)/permeability))
 
 
 # Add boundary conditions
