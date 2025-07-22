@@ -20,10 +20,10 @@ def run(grid, sim_variables, author="mc", dissipate=False):
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in permutations.items():
-        staggered_grid = grid.transpose(axes)
+        _grid = grid.transpose(axes)
 
         # Convert to primitive variables
-        wS = convert_conservative(staggered_grid, sim_variables)
+        wS = convert_conservative(_grid, sim_variables)
 
         # Pad array with boundary; PPM requires additional ghost cells
         w2 = fv.add_boundary(wS, boundary, 2)
@@ -41,7 +41,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         #wF = 1/60 * (2*w2[:-4] - 13*w[:-2] + 47*wS + 27*w[2:] - 3*w2[4:])
 
         if magnetic:
-            wF[...,5:5+dimension] = staggered_grid[...,5:5+dimension]
+            wF[...,5:5+dimension] = _grid[...,5:5+dimension]
             data[axes]['wTs'] = mag_field.reconstruct_transverse(wF, sim_variables)
 
         if "x" in author or "ph" in author or author in ["peterson", "hammett"]:
@@ -69,7 +69,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
 
             # Define the left and right parabolic extrapolants
             wF_pad2 = fv.add_boundary(wF, boundary, 2)
-            limited_wFs = np.copy(wF_pad2[1:-3]), np.copy(wF_pad2[2:-2])
+            limited_wFs = wF_pad2[1:-3], wF_pad2[2:-2]
 
         """Reconstruct the limited parabolic extrapolants from the interface values [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
         |                        w(i-1/2)                    w(i+1/2)                       |
@@ -83,7 +83,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         w_plus, w_minus = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
 
         if magnetic:
-            padded_stag_grid = fv.add_boundary(staggered_grid, boundary)
+            padded_stag_grid = fv.add_boundary(_grid, boundary)
             w_plus[...,5:5+dimension] = w_minus[...,5:5+dimension] = padded_stag_grid[:-1][...,5:5+dimension]
 
         # Get the average solution between the interfaces at the boundaries
@@ -91,7 +91,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         padded_intf_avg = fv.add_boundary(intf_avg, boundary)
 
         # Convert the primitive variables
-        q_plus, q_minus = convert_primitive(w_plus, sim_variables, 'face'), convert_primitive(w_minus, sim_variables, 'face')
+        q_plus, q_minus = convert_primitive(w_plus, sim_variables, compute_face=True), convert_primitive(w_minus, sim_variables, compute_face=True)
 
         # Compute the fluxes and the Jacobian
         flux_plus, flux_minus = constructor.make_flux(w_plus, gamma, axis), constructor.make_flux(w_minus, gamma, axis)
@@ -155,7 +155,7 @@ def apply_artificial_viscosity(wS, axis, sim_variables, viscosity_determinants=[
             padded_velocity = fv.add_boundary(velocity, boundary, axis=ax)
             padded_w = fv.add_boundary(velocity_w, boundary, axis=ax)
 
-            lambda_R += .25 * (np.diff(padded_w.take(range(1,padded_w.shape[ax]), axis=ax), axis=ax) + np.diff(padded_velocity.take(range(1,padded_velocity.shape[ax]), axis=ax), axis=ax))
+            lambda_R += .25 * (np.diff(fv.slice_along_axis(padded_w, ax, start=1), axis=ax) + np.diff(fv.slice_along_axis(padded_velocity, ax, start=1), axis=ax))
 
     # Calculate sound speed
     cs = np.sqrt(fv.divide(gamma*w[...,4], w[...,0]))

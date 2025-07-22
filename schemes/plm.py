@@ -17,10 +17,10 @@ def run(grid, sim_variables):
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in permutations.items():
-        staggered_grid = grid.transpose(axes)
+        _grid = grid.transpose(axes)
 
         # Convert to primitive variables
-        wS = convert_conservative(staggered_grid, sim_variables)
+        wS = convert_conservative(_grid, sim_variables)
 
         # Pad array with boundary & apply (TVD) slope limiters
         w = fv.add_boundary(wS, boundary)
@@ -33,10 +33,10 @@ def run(grid, sim_variables):
         |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
         """
         gradients = .5 * limited_values
-        wL, wR = np.copy(wS-gradients), np.copy(wS+gradients)  # (eq. 4.13)
+        wL, wR = wS - gradients, wS + gradients  # (eq. 4.13)
 
         if magnetic:
-            padded_stag_grid = fv.add_boundary(staggered_grid, boundary)
+            padded_stag_grid = fv.add_boundary(_grid, boundary)
             wL[...,5:5+dimension] = padded_stag_grid[:-2][...,5:5+dimension]
             wR[...,5:5+dimension] = padded_stag_grid[1:-1][...,5:5+dimension]
             data[axes]['wTs'] = mag_field.reconstruct_transverse(wR, sim_variables)

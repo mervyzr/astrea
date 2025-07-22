@@ -150,10 +150,10 @@ def run(grid, sim_variables):
 
     # Rotate grid and apply algorithm for each axis
     for axis, axes in permutations.items():
-        staggered_grid = grid.transpose(axes)
+        _grid = grid.transpose(axes)
 
         # Convert to primitive variables
-        wS = convert_conservative(staggered_grid, sim_variables)
+        wS = convert_conservative(_grid, sim_variables)
 
         # Reconstruct the interface states
         if len(subgrid.split("weno")) == 2:
@@ -165,7 +165,7 @@ def run(grid, sim_variables):
             wL, wR = reconstruct(wS, boundary)
 
         if magnetic:
-            padded_stag_grid = fv.add_boundary(staggered_grid, boundary)
+            padded_stag_grid = fv.add_boundary(_grid, boundary)
             wL[...,5:5+dimension] = padded_stag_grid[:-2][...,5:5+dimension]
             wR[...,5:5+dimension] = padded_stag_grid[1:-1][...,5:5+dimension]
             data[axes]['wTs'] = mag_field.reconstruct_transverse(wR, sim_variables)
@@ -178,7 +178,7 @@ def run(grid, sim_variables):
         padded_intf_avg = fv.add_boundary(intf_avg, boundary)
 
         # Convert the primitive variables
-        q_plus, q_minus = convert_primitive(w_plus, sim_variables, 'face'), convert_primitive(w_minus, sim_variables, 'face')
+        q_plus, q_minus = convert_primitive(w_plus, sim_variables, compute_face=True), convert_primitive(w_minus, sim_variables, compute_face=True)
 
         # Compute the fluxes and the Jacobian
         flux_plus, flux_minus = constructor.make_flux(w_plus, gamma, axis), constructor.make_flux(w_minus, gamma, axis)
