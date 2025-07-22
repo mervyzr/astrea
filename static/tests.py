@@ -60,12 +60,12 @@ def generate_test_conditions(config, cells):
 
     elif "noh" in config:
         start_pos = 0
-        end_pos = 1
+        end_pos = np.pi/2
         shock_pos = .1
         t_end = 1
         boundary = "edge"
-        initial_left = np.array([16,0,0,0,16/3,0,0,0])
-        initial_right = np.array([1,0,0,0,1e-6,0,0,0])
+        initial_left = np.array([1,0,0,0,1e-6,0,0,0])
+        initial_right = np.array([16,0,0,0,16/3,0,0,0])
         misc = None
 
     elif "slow" in config:
