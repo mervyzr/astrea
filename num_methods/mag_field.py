@@ -8,17 +8,18 @@ from num_methods import limiters
 ##############################################################################
 
 # Reconstruct the transverse values for each face average (computation done entirely for orthogonal axis)
-def reconstruct_transverse(wF, sim_variables, **kwargs):
-    if kwargs:
-        method = kwargs.get("method").lower()
-    else:
+# Returns array aligned with input axis, e.g., ax=1 means returned array is aligned with y-axis-transposed grid
+def reconstruct_transverse(wF, sim_variables, ax, method=None):
+    if not method:
         method = sim_variables.subgrid
+    boundary = sim_variables.boundary
 
-    ortho_axis, boundary = sim_variables.ortho_axis, sim_variables.boundary
+    padded_grid = fv.add_boundary(wF, boundary, axis=ax)
+    padded_grid_2 = fv.add_boundary(wF, boundary, stencil=2, axis=ax)
 
-    ortho_wF = np.copy(wF.transpose(ortho_axis))
-    wF_pad2 = fv.add_boundary(ortho_wF, boundary, 2)
-    wF_pad1 = np.copy(wF_pad2[1:-1])
+    zeroth = np.copy(wF)
+    minus_one, minus_two = fv.slice_along_axis(padded_grid, ax, end=-2), fv.slice_along_axis(padded_grid_2, ax, end=-4)
+    plus_one, plus_two = fv.slice_along_axis(padded_grid, ax, start=2), fv.slice_along_axis(padded_grid_2, ax, start=4)
 
     # 5th-order WENO reconstruction
     if "weno" in method:
@@ -38,10 +39,6 @@ def reconstruct_transverse(wF, sim_variables, **kwargs):
         |           w_D(i-1/2,j-1/2)    w_D(i+1/2,j-1/2)            |
         |-------------------|-------------------|-------------------|
         """
-        zeroth = ortho_wF
-        minus_one, minus_two = wF_pad1[:-2], wF_pad2[:-4]
-        plus_one, plus_two = wF_pad1[2:], wF_pad2[4:]
-
         g0, g1, g2 = 1/10, 3/5, 3/10
 
         b0 = (
@@ -73,7 +70,9 @@ def reconstruct_transverse(wF, sim_variables, **kwargs):
         )
 
     elif method == "ppm":
+
         author = "mc"
+
         """Interpolate the face averages to the top corners (upwards) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
         |                w(i-1/2)            w(i+1/2)               |
         |-------------------|-------------------|-------------------|
@@ -83,7 +82,7 @@ def reconstruct_transverse(wF, sim_variables, **kwargs):
         |                  ||                  ||                  ||
         |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
         """
-        wU = 7/12 * (ortho_wF + wF_pad1[2:]) - 1/12 * (wF_pad1[:-2] + wF_pad2[4:])
+        wU = 7/12 * (zeroth + plus_one) - 1/12 * (minus_one + plus_two)
 
         if "x" in author or "ph" in author or author in ["peterson", "hammett"]:
             """Interpolate the face averages to both corners (upwards & downwards)
@@ -100,19 +99,19 @@ def reconstruct_transverse(wF, sim_variables, **kwargs):
             |           w_D(i-1/2,j-1/2)    w_D(i+1/2,j-1/2)            |
             |-------------------|-------------------|-------------------|
             """
-            wD = 7/12 * (wF_pad1[:-2] + ortho_wF) - 1/12 * (wF_pad2[:-4] + wF_pad1[2:])
+            wD = 7/12 * (minus_one + zeroth) - 1/12 * (minus_two + plus_one)
 
             # Limit interface values [Peterson & Hammett, 2008, eq. 3.33-3.34]
-            limited_wUs = limiters.interface_limiter(wD, wF_pad2[:-4], wF_pad1[:-2], ortho_wF, wF_pad1[2:]), limiters.interface_limiter(wU, wF_pad1[:-2], ortho_wF, wF_pad1[2:], wF_pad2[4:])
-            wU_pad2 = np.zeros_like(fv.add_boundary(wU, boundary, 2))
+            limited_wUs = limiters.interface_limiter(wD, minus_two, minus_one, zeroth, plus_one), limiters.interface_limiter(wU, minus_one, zeroth, plus_one, plus_two)
+            padded_wU_2 = np.zeros_like(fv.add_boundary(wU, boundary, 2))
         else:
             if author == "c" or author == "collela":
                 # Limit interface values [Colella et al., 2011, p. 25-26]
-                wU = limiters.interface_limiter(wU, wF_pad1[:-2], ortho_wF, wF_pad1[2:], wF_pad2[4:])
+                wU = limiters.interface_limiter(wU, minus_one, zeroth, plus_one, plus_two)
 
             # Define the top and bottom parabolic extrapolants
-            wU_pad2 = fv.add_boundary(wU, boundary, 2)
-            limited_wUs = np.copy(wU_pad2[1:-3]), np.copy(wU_pad2[2:-2])
+            padded_wU_2 = fv.add_boundary(wU, boundary, stencil=2, axis=ax)
+            limited_wUs = fv.slice_along_axis(padded_wU_2, ax, [1,-3]), fv.slice_along_axis(padded_wU_2, ax, [2,-2])
 
         """Reconstruct the limited extrapolants from the interface values. Returns the face averages in the form of w+(y) & w-(y) when considering x-axis, and w+(x) & w-(x) when considering y-axis
         |                w(i-1/2)            w(i+1/2)               |
@@ -130,15 +129,15 @@ def reconstruct_transverse(wF, sim_variables, **kwargs):
         |                   |                   |                   |
         |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
         """
-        wD, wU = limiters.extrapolant_limiter(ortho_wF, wF_pad1, wF_pad2, wU_pad2, author, boundary, *limited_wUs)
+        wD, wU = limiters.extrapolant_limiter(zeroth, padded_grid, padded_grid_2, padded_wU_2, author, boundary, *limited_wUs)
 
     elif method == "plm":
-        limited_values = limiters.minmod_limiter(wF_pad1)
+        limited_values = limiters.minmod_limiter(padded_grid)
         gradients = .5 * limited_values
-        wD, wU = np.copy(ortho_wF-gradients), np.copy(ortho_wF+gradients)
+        wD, wU = zeroth - gradients, zeroth + gradients
 
     else:
-        wD, wU = np.copy(ortho_wF), np.copy(ortho_wF)
+        wD, wU = zeroth, zeroth
 
     return wD, wU
 
@@ -207,27 +206,3 @@ def compute_corner(data, sim_variables):
 
     return fv.divide(ap_x*ap_y*SW + am_x*ap_y*SE + ap_x*am_y*NW + am_x*am_y*NE, (ap_x+am_x)*(ap_y+am_y)) - fv.divide(ap_y*am_y, ap_y+am_y)*(north[...,5]-south[...,5]) + fv.divide(ap_x*am_x, ap_x+am_x)*(east[...,6]-west[...,6])
     #return -(west[...,1]*west[...,6] + east[...,1]*east[...,6]) + (north[...,2]*north[...,5] + south[...,2]*south[...,5])
-
-
-# 'Inverse reconstruct' the cell-averages from the face-averages after the induction difference [Felker & Stone, 2018]
-def inverse_reconstruct(grid, sim_variables):
-    new_grid = np.copy(grid)
-
-    for axis, axes in sim_variables.permutations.items():
-        reversed_axes = np.argsort(axes)
-
-        # Approximate the face-averaged values to face-centred values (eq. 38)
-        face_cntrd = fv.high_order_convert('face', 'avg', grid.transpose(axes), sim_variables)
-
-        # Interpolate the face-centred values to cell-centred values (eq. 39)
-        face_cntrd_pad2 = fv.add_boundary(face_cntrd, sim_variables.boundary, 2)
-        face_cntrd_pad1 = np.copy(face_cntrd_pad2[1:-1])
-        cell_cntrd = -1/16*(face_cntrd_pad1[2:] + face_cntrd_pad2[:-4]) + 9/16*(face_cntrd + face_cntrd_pad1[:-2])
-
-        # Apply Laplacian operator to convert cell-centred values to cell-averaged values (eq. 40)
-        cell_avgd = fv.high_order_convert('cell', 'cntr', cell_cntrd, sim_variables)
-
-        # Update the grid values with the updated B-field values
-        new_grid[...,5+axis] = cell_avgd.transpose(reversed_axes)[...,5+axis]
-
-    return new_grid
