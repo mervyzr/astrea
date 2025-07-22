@@ -7,7 +7,6 @@ import signal
 import traceback
 from datetime import datetime
 from time import perf_counter
-from collections import namedtuple
 
 import h5py
 import yaml
@@ -15,8 +14,9 @@ import dotenv
 import numpy as np
 
 from static import tests
-from num_methods import evolvers, mag_field
-from functions import constructor, generic, plotting
+from num_methods import evolvers
+from functions import constructor, fv, generic, plotting
+from functions.generic import SimulationVariables
 
 ##############################################################################
 # Main script
@@ -30,7 +30,7 @@ PLOT_STYLE = "default"
 
 
 # Finite volume shock function
-def core_run(hdf5: str, sim_variables: namedtuple):
+def core_run(hdf5, sim_variables):
     chkpt = sim_variables.t_end/sim_variables.checkpoints
 
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables
@@ -48,9 +48,9 @@ def core_run(hdf5: str, sim_variables: namedtuple):
     # Start simulation run
     t, idx = 0., 1
     while t <= sim_variables.t_end:
-        # Transform grid for visualisation
+        # Transform grid for visualisation; always use cell-averaged grid for visualisation, not staggered grid
         if sim_variables.magnetic:
-            grid_snapshot = sim_variables.convert_conservative(mag_field.inverse_reconstruct(grid, sim_variables), sim_variables).transpose(sim_variables.ortho_axis)
+            grid_snapshot = sim_variables.convert_conservative(fv.inverse_reconstruct(grid, sim_variables), sim_variables).transpose(sim_variables.ortho_axis)
         else:
             grid_snapshot = sim_variables.convert_conservative(grid, sim_variables).transpose(sim_variables.ortho_axis)
 
@@ -97,10 +97,11 @@ def core_run(hdf5: str, sim_variables: namedtuple):
             # Update the solution with the numerical fluxes using iterative methods
             grid = evolvers.evolve_time(grid, fluxes, dt, sim_variables)
 
-            # Update time step and alternate axis for computations
+            # Update time step
             t += dt
-            sim_variables = sim_variables._replace(permutations=dict(reversed(list(sim_variables.permutations.items()))))
-            sim_variables = sim_variables._replace(swapped_permutations=dict(reversed(list(sim_variables.swapped_permutations.items()))))
+
+            # Change the order of the axis sweep
+            sim_variables.permutations = dict(reversed(list(sim_variables.permutations.items())))
 
     with h5py.File(hdf5, "a") as f:
         f[sim_variables.access_key].attrs['max_values'] = np.append(var_max, _Emax)
@@ -134,34 +135,32 @@ def run(seed, current_dir, save_dir, plot_style) -> None:
     if not debug:
         np.seterr(all='ignore')
 
-    # Variables handler; filter erroneous entries and default values
-    config_variables = generic.handle_variables(seed, config_variables, cli_variables)
+    # Tidy up configuration variables
+    config_variables = generic.parse_cli_variables(config_variables, cli_variables)
 
-    # Generate test configuration and final variables
+    # Generate test configuration based on configuration
     test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'])
-    _sim_variables = config_variables | test_variables
+
+    # Initialise simulation variables
+    sim_variables = SimulationVariables(seed, config_variables, test_variables)
 
     # Auto-generate the resolutions/grid-sizes for run type
-    if _sim_variables['run_type'].startswith('m'):
-        if _sim_variables['dimension'] == 2:
+    if sim_variables.run_type.startswith('m'):
+        if sim_variables.dimension == 2:
             itr_list = 2**np.arange(2,8)
         else:
             itr_list = 2**np.arange(3,11)
     else:
-        itr_list = [_sim_variables['cells']]
-
-    # Save simulation variables into namedtuple
-    variable_constructor = namedtuple('simulation_variables', _sim_variables)
-    sim_variables = variable_constructor(**_sim_variables)
+        itr_list = [sim_variables.cells]
 
     ###################################### SCRIPT INITIATE ######################################
     script_start = datetime.now().strftime('%Y%m%d%H%M')
     save_path = f"{save_dir}/sim{script_start}_{seed}"
-    sim_variables = sim_variables._replace(plot_style=plot_style)
+    sim_variables.plot_style = plot_style
 
     # Make directories if they do not exist
     if sim_variables.take_snaps or sim_variables.save_plots or sim_variables.save_video or sim_variables.save_file:
-        sim_variables = sim_variables._replace(save_path=save_path)
+        sim_variables.save_path = save_path
         if not os.path.exists(save_path):
             os.makedirs(save_path)
     if sim_variables.take_snaps and not os.path.exists(f"{save_path}/snapshots"):
@@ -177,15 +176,15 @@ def run(seed, current_dir, save_dir, plot_style) -> None:
             f.attrs['datetime'] = script_start
             f.attrs['seed'] = seed
 
-        for _var in itr_list:
+        for variable in itr_list:
             ############################# INDIVIDUAL SIMULATION #############################
             now = datetime.now()
 
-            # Update cells (and grid width) in simulation variables (namedtuple)
-            sim_variables = sim_variables._replace(access_key=now.strftime('%Y%m%d%H%M%S')+str(now.microsecond))
-            sim_variables = sim_variables._replace(now=now)
-            sim_variables = sim_variables._replace(cells=_var)
-            sim_variables = sim_variables._replace(dx=abs(sim_variables.end_pos-sim_variables.start_pos)/sim_variables.cells)
+            # Update cells (and grid width) in simulation variables
+            sim_variables.access_key = now.strftime('%Y%m%d%H%M%S')+str(now.microsecond)
+            sim_variables.now = now
+            sim_variables.cells = variable
+            sim_variables.dx = abs(sim_variables.end_pos-sim_variables.start_pos)/sim_variables.cells
 
             # Save simulation variables into HDF5 file
             with h5py.File(file_name, "a") as f:
@@ -206,7 +205,7 @@ def run(seed, current_dir, save_dir, plot_style) -> None:
             ################### CORE ###################
 
             # Save attributes after individual run is completed
-            sim_variables = sim_variables._replace(elapsed=elapsed)
+            sim_variables.elapsed = elapsed
             with h5py.File(file_name, "a") as f:
                 f[sim_variables.access_key].attrs['elapsed'] = elapsed
                 timestep_count = len(f[sim_variables.access_key])

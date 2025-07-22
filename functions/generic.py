@@ -3,7 +3,6 @@ import random
 import argparse
 import itertools
 from datetime import timedelta
-from collections import namedtuple
 
 import yaml
 import numpy as np
@@ -35,34 +34,15 @@ class BColours:
     UNDERLINE = '\033[4m'
 
 
-# Simple name space for recursive dict
-class RecursiveNamespace:
-    @staticmethod
-    def map_entry(entry):
-        if isinstance(entry, dict):
-            return RecursiveNamespace(**entry)
-        return entry
-
-    def __init__(self, **kwargs):
-        for key, val in kwargs.items():
-            if type(val) == dict:
-                setattr(self, key, RecursiveNamespace(**val))
-            elif type(val) == list:
-                setattr(self, key, list(map(self.map_entry, val)))
-            else:
-                setattr(self, key, val)
-
-
 # Make simulation variables; most functions accept sim_variables with all the options included,
 # so it might be useful to have a function auto-generate it when needed
 def make_sim_variables():
     with open('parameters.yml', "r") as _f:
         config_variables = yaml.safe_load(_f)
-    config_variables = handle_variables(1, config_variables, {})
+    config_variables = parse_cli_variables(config_variables, {})
     test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'])
-    _sim_variables = config_variables | test_variables
-    variable_constructor = namedtuple('simulation_variables', _sim_variables)
-    return variable_constructor(**_sim_variables)
+    sim_variables = SimulationVariables(1, config_variables, test_variables)
+    return sim_variables
 
 
 # Print progress status to Terminal
@@ -154,24 +134,28 @@ def handle_CLI():
     return vars(args), args.debug
 
 
-# Variables handler; handles all variables from CLI & settings file and revert to default values for the simulation variables (dict) if unknown
-def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
+def parse_cli_variables(_config_variables, _cli_variables):
+    temp_dct = {}
     # Remove nested configuration dictionary
-    _config_variables = {}
-    for parameters in config_variables.values():
+    for parameters in _config_variables.values():
         for k,v in parameters.items():
-            _config_variables[k] = v
+            temp_dct[k] = v
 
     # Replace the relevant configuration variables with the CLI variables
-    for k,v in cli_variables.items():
-        if k in _config_variables:
+    for k,v in _cli_variables.items():
+        if k in temp_dct:
             if k == 'plot_options':
                 v = v.replace('-',' ').replace('/',',').replace('|',',')
-            _config_variables[k] = v
+            temp_dct[k] = v
+
+    try:
+        temp_dct['quiet'] = _cli_variables["quiet"]
+    except KeyError:
+        temp_dct['quiet'] = False
 
     # Check validity of variables; revert to default values if not valid
-    final_dict = {}
-    for k,v in _config_variables.items():
+    config_variables = {}
+    for k,v in temp_dct.items():
         if k in ['live_plot', 'take_snaps', 'save_video', 'save_plots', 'save_file']:
             if not isinstance(v, bool):
                 v = False
@@ -179,12 +163,12 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
             if not isinstance(v, int):
                 v = 1
         elif k == "cells":
-            try:
+            if isinstance(v, (int, float)):
                 v = int(v) - int(v)%2
-            except ValueError:
+            else:
                 v = 128
         elif k in ['gamma', 'cfl']:
-            if not isinstance(v, float):
+            if not isinstance(v, (int, float)):
                 if "/" in v:
                     num, dem = v.split('/')
                     v = float(num)/float(dem)
@@ -195,6 +179,11 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
                         v = .5
             if k == "gamma" and v == 1:
                 v += np.finfo(_config_variables['precision']).eps
+            if k == "cfl":
+                if v <= 0:
+                    v = np.finfo(_config_variables['precision']).eps
+                elif v > 1:
+                    v = 1
         elif k == "plot_options":
             accepted_plot_options, invalid = DB.get(PARAMS.type == k)['accepted'], []
             try:
@@ -213,6 +202,8 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
             finally:
                 if invalid != []:
                     print(f"{BColours.WARNING}Invalid plot options: {invalid}{BColours.ENDC}")
+        elif k == 'quiet':
+            pass
         else:
             if isinstance(v, str):
                 v = v.lower()
@@ -227,78 +218,88 @@ def handle_variables(seed: float, config_variables: dict, cli_variables: dict):
                 v = DB.get(PARAMS.type == 'default')[k]
                 print(f"{BColours.WARNING}{k.upper()} value not valid; reverting back to default value: {v}..{BColours.ENDC}")
 
-        final_dict[k] = v
+        config_variables[k] = v
 
-    # Add relevant key-pairs to the dictionary
-    try:
-        final_dict['quiet'] = cli_variables["quiet"]
-    except KeyError:
-        final_dict['quiet'] = False
+    return config_variables
 
-    # Initialise additional variables for simulation
-    final_dict['seed'] = int(seed)
-    final_dict['now'] = None
-    final_dict['elapsed'] = None
-    final_dict['access_key'] = None
 
-    final_dict['config_category'] = DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
-    final_dict['solver_category'] = DB.get(PARAMS.accepted.any([final_dict['solver']]))['category']
+class SimulationVariables(object):
+    __slots__ = [
+        '__dict__',
+        'config', 'cells', 'cfl', 'gamma', 'dimension', 'precision', 'subgrid', 'timestep', 'solver',
+        'seed', 'now', 'elapsed', 'access_key', 'datetime',
+        'permeability', 'magnetic', 'roots', 'weights', 'axes', 'ortho_axis', 'permutations',
+        'config_category', 'solver_category', 'convert_primitive', 'convert_conservative', 'higher_order',
+        'start_pos', 'end_pos', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'dx', 'dy', 'dz',
+        'run_type', 'checkpoints', 'live_plot', 'take_snaps', 'save_plots', 'save_video', 'save_file', 'plot_options', 'plot_style',
+        'debug', 'quiet', 'test'
+    ]
 
-    final_dict['plot_style'] = ""
-    final_dict['permeability'] = 1.
+    def __init__(self, seed, config_variables, test_variables):
+        for key in config_variables:
+            setattr(self, key, config_variables[key])
 
-    # Magnetic field presence condition
-    final_dict['magnetic'] = 'magnetic' in DB.get(PARAMS.accepted.any([final_dict['config']]))['category']
+        for key in test_variables:
+            setattr(self, key, test_variables[key])
 
-    # Weights for OS solvers
-    if final_dict['solver'] in DB.get(PARAMS.type == 'solver' and PARAMS.category == 'complete')['accepted']:
-        _roots, _weights = np.polynomial.legendre.leggauss(3)  # 3rd-order Gauss-Legendre quadrature with interval [-1,1]
-        final_dict['roots'] = .5*_roots + .5  # Gauss-Legendre quadrature with interval [0,1]
-        final_dict['weights'] = _weights/2  # Gauss-Legendre quadrature with interval [0,1]
+        # 5th-order Gauss-Legendre quadrature with interval [0,1] for OS solver
+        roots, weights = np.array(list(np.polynomial.legendre.leggauss(5)))/2
 
-    # Conditional conversion functions
-    if final_dict['subgrid'].startswith("w") or final_dict['subgrid'] in ["ppm", "parabolic", "p"]:
-        final_dict['convert_primitive'] = fv.high_order_convert_primitive
-        final_dict['convert_conservative'] = fv.high_order_convert_conservative
-    else:
-        final_dict['convert_primitive'] = fv.point_convert_primitive
-        final_dict['convert_conservative'] = fv.point_convert_conservative
+        self.seed = int(seed)
+        self.now = None
+        self.elapsed = None
+        self.access_key = None
 
-    # Permutations for axes
-    if '2D' in final_dict['config_category'] and final_dict['dimension'] != 2:
-        final_dict['dimension'] = 2
-    final_dict['axes'] = tuple(range(final_dict['dimension']))
+        self.plot_style = None
+        self.permeability = 1.
+        self.roots = roots + .5
+        self.weights = weights
 
-    permutations = np.array([axes for axes in itertools.permutations(range(final_dict['dimension']+1)) if axes[-1] == final_dict['dimension']], dtype=int)
-    if final_dict['dimension'] >= 3:
-        permutations[np.arange(len(permutations))] = permutations[[0,3,4,1,2,5]]
-        final_dict['ortho_axis'] = np.argsort(permutations)
-    else:
-        final_dict['ortho_axis'] = permutations[-1]
-    final_dict['permutations'] = dict([(key, tuple(axes)) for key, axes in zip(range(len(permutations)), permutations)])
-    final_dict['swapped_permutations'] = dict([(key, tuple(axes)) for key, axes in zip(range(len(permutations)), reversed(permutations))])
+        self.config_category = DB.get(PARAMS.accepted.any([self.config]))['category']
+        self.solver_category = DB.get(PARAMS.accepted.any([self.solver]))['category']
+        self.magnetic = 'magnetic' in DB.get(PARAMS.accepted.any([self.config]))['category']
 
-    # Exclusion cases
-    if final_dict['solver'] in DB.get(PARAMS.type == 'solver' and PARAMS.category == 'hll')['accepted']:
-        if (final_dict['solver_category'] == "hll" and final_dict['solver'].endswith('c')) and final_dict['config'] in DB.get(PARAMS.type == 'config' and PARAMS.category == 'magnetic')['accepted']:
-            print(f"{BColours.WARNING}HLLC solver does not work with magnetic fields present..{BColours.ENDC}")
-            final_dict['solver'] = DB.get(PARAMS.type == 'default')['solver']
+        self.convert_primitive = fv.point_convert_primitive
+        self.convert_conservative = fv.point_convert_conservative
+        self.higher_order = False
 
-    if final_dict['run_type'].startswith('m'):
-        if final_dict['save_video']:
-            print(f"{BColours.WARNING}Videos can only be saved for single simulation runs..{BColours.ENDC}")
-            final_dict['save_video'] = False
-        if final_dict['live_plot']:
-            print(f"{BColours.WARNING}Live plots can only be switched on for single simulation runs..{BColours.ENDC}")
-            final_dict['live_plot'] = False
-        if final_dict['take_snaps']:
-            print(f"{BColours.WARNING}Saving snapshots can only be switched on for single simulation runs..{BColours.ENDC}")
-            final_dict['take_snaps'] = False
-    else:
-        if (final_dict['take_snaps'] or final_dict['save_plots'] or final_dict['save_video']) and (final_dict['live_plot']):
-            print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live plot interferes with matplotlib.savefig..{BColours.ENDC}")
-            final_dict['live_plot'] = False
-        if final_dict['take_snaps'] or final_dict['save_plots'] or final_dict['save_video'] or final_dict['save_file']:
-            final_dict['save_path'] = ''
+        # Higher-order conversion functions
+        if self.subgrid.startswith("w") or self.subgrid in ["ppm", "parabolic", "p"]:
+            self.convert_primitive = fv.high_order_convert_primitive
+            self.convert_conservative = fv.high_order_convert_conservative
+            self.higher_order = True
 
-    return final_dict
+        # Permutations for axes
+        if '2D' in self.config_category and self.dimension != 2:
+            self.dimension = 2
+        permutations = [axes for axes in itertools.permutations(range(self.dimension+1)) if axes[-1] == self.dimension]
+        #if self.dimension >= 3:
+        #    permutations[np.arange(len(permutations))] = permutations[[0,3,4,1,2,5]]
+
+        self.axes = tuple(range(self.dimension))
+        self.ortho_axis = permutations[-1]
+        self.permutations = dict([(key, tuple(axes)) for key, axes in zip(range(len(permutations)), permutations)])
+        #self.swapped_permutations = dict([(key, tuple(axes)) for key, axes in zip(range(len(permutations)), reversed(permutations))])
+
+        # Exclusion cases
+        if self.solver in DB.get(PARAMS.type == 'solver' and PARAMS.category == 'hll')['accepted']:
+            if (self.solver_category == "hll" and self.solver.endswith('c')) and self.config in DB.get(PARAMS.type == 'config' and PARAMS.category == 'magnetic')['accepted']:
+                print(f"{BColours.WARNING}HLLC solver does not work with magnetic fields present..{BColours.ENDC}")
+                self.solver = DB.get(PARAMS.type == 'default')['solver']
+
+        if self.run_type.startswith('m'):
+            if self.save_video:
+                print(f"{BColours.WARNING}Videos can only be saved for single simulation runs..{BColours.ENDC}")
+                self.save_video = False
+            if self.live_plot:
+                print(f"{BColours.WARNING}Live plots can only be switched on for single simulation runs..{BColours.ENDC}")
+                self.live_plot = False
+            if self.take_snaps:
+                print(f"{BColours.WARNING}Saving snapshots can only be switched on for single simulation runs..{BColours.ENDC}")
+                self.take_snaps = False
+        else:
+            if (self.take_snaps or self.save_plots or self.save_video) and (self.live_plot):
+                print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live plot interferes with matplotlib.savefig..{BColours.ENDC}")
+                self.live_plot = False
+            if self.take_snaps or self.save_plots or self.save_video or self.save_file:
+                self.save_path = ''
