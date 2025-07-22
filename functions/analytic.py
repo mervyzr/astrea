@@ -23,15 +23,16 @@ def calculate_entropy_density(grid, gamma):
 # Function for solution error calculation of sine-wave and Gaussian tests
 def calculate_solution_error(grid, sim_variables, norm):
     gamma, dimension, axes = sim_variables.gamma, sim_variables.dimension, sim_variables.axes
+    rho, pressure = 0, 4
     w_num = np.copy(grid)
 
     # Create theoretical array
     normalising_factor = 1/(len(w_num) ** dimension)
-    sim_variables = sim_variables._replace(cells=len(w_num))
+    sim_variables.cells = len(w_num)
     w_theo = constructor.initialise(sim_variables)
 
-    E_tot_num, E_tot_theo = fv.divide(fv.convert_variable('pressure', w_num, gamma), w_num[...,0]), fv.divide(fv.convert_variable('pressure', w_theo, gamma), w_theo[...,0])
-    E_int_num, E_int_theo = fv.divide(w_num[...,4], w_num[...,0]*(gamma-1)), fv.divide(w_theo[...,4], w_theo[...,0]*(gamma-1))
+    E_tot_num, E_tot_theo = fv.divide(fv.convert_variable('pressure', w_num, sim_variables), w_num[...,rho]), fv.divide(fv.convert_variable('pressure', w_theo, sim_variables), w_theo[...,rho])
+    E_int_num, E_int_theo = fv.divide(w_num[...,pressure], w_num[...,rho]*(gamma-1)), fv.divide(w_theo[...,pressure], w_theo[...,rho]*(gamma-1))
 
     w_num, w_theo = np.concatenate((w_num, E_tot_num[...,None]), axis=-1), np.concatenate((w_theo, E_tot_theo[...,None]), axis=-1)
     w_num, w_theo = np.concatenate((w_num, E_int_num[...,None]), axis=-1), np.concatenate((w_theo, E_int_theo[...,None]), axis=-1)
@@ -46,12 +47,13 @@ def calculate_solution_error(grid, sim_variables, norm):
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
 def calculate_TV(simulation, sim_variables):
-    gamma, dimension, axes, tot_vary = sim_variables.gamma, sim_variables.dimension, sim_variables.axes, {}
+    gamma, dimension, axes, permeability, tot_vary = sim_variables.gamma, sim_variables.dimension, sim_variables.axes, sim_variables.permeability, {}
+    rho, pressure = 0, 4
 
     for t in list(simulation.keys()):
         grid = simulation[t]
-        E_tot = fv.divide(fv.convert_variable('pressure', grid, gamma), grid[...,0])
-        E_int = fv.divide(grid[...,4], grid[...,0]*(gamma-1))
+        E_tot = fv.divide(fv.convert_variable('pressure', grid, sim_variables), grid[...,rho])
+        E_int = fv.divide(grid[...,pressure], grid[...,rho]*(gamma-1))
         for i in range(dimension):
             grid = np.diff(grid, axis=i)
             E_tot = np.diff(E_tot, axis=i)

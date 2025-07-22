@@ -11,15 +11,16 @@ from functions import fv
 # For magnetohydrodynamics, this returns a staggered grid
 def initialise(sim_variables, convert=False):
 
+    rho, vx, vy, vz, pressure, Bx, By, Bz = range(8)
+
     def make_physical_grid(_start_pos, _end_pos, _N):
         dx = abs(_end_pos-_start_pos)/_N
         half_cell = dx/2
         return np.linspace(_start_pos-half_cell, _end_pos+half_cell, _N+2)[1:-1]
 
-    config, cells, gamma, dimension, precision = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimension, sim_variables.precision
+    config, cells, gamma, dimension, precision, magnetic = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimension, sim_variables.precision, sim_variables.magnetic
     start_pos, end_pos, shock_pos, params = sim_variables.start_pos, sim_variables.end_pos, sim_variables.shock_pos, sim_variables.misc
     initial_left, initial_right = sim_variables.initial_left, sim_variables.initial_right
-    convert_primitive = sim_variables.convert_primitive
 
     _i = (cells,) * dimension
     _i += (len(initial_right),)
@@ -39,11 +40,11 @@ def initialise(sim_variables, convert=False):
         elif config.startswith("gauss"):
             r = np.sqrt((x-centre)**2 + (y-centre)**2)
             mask = params['y_offset'] + params['ampl']*np.exp(-((r-centre)**2)/params['fwhm'])
-            computational_grid[...,0] = mask
+            computational_grid[...,rho] = mask
 
         elif config in ["khi", "kelvin-helmholtz"] or ("kelvin" in config or "helmholtz" in config):
             computational_grid[np.where(y <= shock_pos)] = initial_left
-            computational_grid[...,2] = params['perturb_ampl'] * np.sin(params['freq']*np.pi*x/(end_pos-start_pos))
+            computational_grid[...,vy] = params['perturb_ampl'] * np.sin(params['freq']*np.pi*x/(end_pos-start_pos))
 
         elif config in ["ivc", "vortex", "isentropic vortex"]:
             r = np.sqrt((x-centre)**2 + (y-centre)**2)
@@ -51,10 +52,10 @@ def initialise(sim_variables, convert=False):
 
             T = (1 - (((gamma-1)*b**2)/(freq*gamma*(2*np.pi)**2) * np.exp(1 - r**2)))**(1/(gamma-1))
 
-            computational_grid[...,0] = T
-            computational_grid[...,1] = 1 - (b/(freq*np.pi) * np.exp((1-r**2)/freq) * (y-centre))
-            computational_grid[...,2] = b/(freq*np.pi) * np.exp((1-r**2)/freq) * (x-centre)
-            computational_grid[...,4] = T**(gamma)
+            computational_grid[...,rho] = T
+            computational_grid[...,vx] = 1 - (b/(freq*np.pi) * np.exp((1-r**2)/freq) * (y-centre))
+            computational_grid[...,vy] = b/(freq*np.pi) * np.exp((1-r**2)/freq) * (x-centre)
+            computational_grid[...,pressure] = T**(gamma)
 
         elif "ll" in config or "lax-liu" in config:
             computational_grid[np.where(x <= shock_pos)] = initial_left
@@ -62,28 +63,25 @@ def initialise(sim_variables, convert=False):
             computational_grid[np.where((x > shock_pos) & (y >= shock_pos))] = params['bottom_right']
 
         elif config in ["orszag-tang", "orszag", "tang", "ot"]:
-            computational_grid[...,1] = -np.sin(2*np.pi*y)
-            computational_grid[...,2] = np.sin(2*np.pi*x)
-            computational_grid[...,5] = -params['ampl'] * np.sin(2*np.pi*y)
-            computational_grid[...,6] = params['ampl'] * np.sin(4*np.pi*x)
+            computational_grid[...,vx] = -np.sin(2*np.pi*y)
+            computational_grid[...,vy] = np.sin(2*np.pi*x)
+            computational_grid[...,Bx] = -params['ampl'] * np.sin(2*np.pi*y)
+            computational_grid[...,By] = params['ampl'] * np.sin(4*np.pi*x)
 
         elif "rotor" in config:
             mask = np.where(((x-centre)**2 + (y-centre)**2) <= (shock_pos-centre)**2)
             computational_grid[mask] = initial_left
-            computational_grid[mask][...,1] = (-params['omega']*(y-centre)/shock_pos)[mask]
-            computational_grid[mask][...,2] = (params['omega']*(x-centre)/shock_pos)[mask]
+            computational_grid[mask][...,vx] = (-params['omega']*(y-centre)/shock_pos)[mask]
+            computational_grid[mask][...,vy] = (params['omega']*(x-centre)/shock_pos)[mask]
 
         elif "noh" in config:
-            inside_mask = np.where(((x-start_pos)**2 + (y-start_pos)**2) <= (shock_pos-start_pos)**2)
-            computational_grid[inside_mask] = initial_left
-            outside_mask = np.where(((x-start_pos)**2 + (y-start_pos)**2) > (shock_pos-start_pos)**2)
-            _physical_grid = make_physical_grid(0, np.pi/2, cells)
-            _x, _y = np.meshgrid(_physical_grid, _physical_grid, indexing='ij')
-            computational_grid[outside_mask][...,1] = -np.sin(_x)[outside_mask]
-            computational_grid[outside_mask][...,2] = -np.cos(_x)[outside_mask]
+            mask = np.where(((x-start_pos)**2 + (y-start_pos)**2) > (shock_pos-start_pos)**2)
+            computational_grid[mask][...,vx] = -np.sin(x)[mask]
+            computational_grid[mask][...,vy] = -np.cos(x)[mask]
 
         else:
             computational_grid[np.where(x < shock_pos)] = initial_left
+
     else:
         x = physical_grid
 
@@ -95,14 +93,14 @@ def initialise(sim_variables, convert=False):
         computational_grid[mask] = initial_left
 
         if "shu" in config or "osher" in config:
-            computational_grid[np.where(x>shock_pos),0] = fv.sine_func(x[x>shock_pos], params)
+            computational_grid[np.where(x > shock_pos), rho] = fv.sine_func(x[x > shock_pos], params)
         elif config.startswith("sin"):
-            computational_grid[...,0] = fv.sine_func(x, params)
+            computational_grid[...,rho] = fv.sine_func(x, params)
         elif config.startswith('gauss'):
-            computational_grid[...,0] = fv.gauss_func(x, params)
+            computational_grid[...,rho] = fv.gauss_func(x, params)
 
     if convert:
-        return convert_primitive(computational_grid, sim_variables)
+        return fv.point_convert_primitive(computational_grid, sim_variables, staggered=magnetic)
     else:
         return computational_grid
 

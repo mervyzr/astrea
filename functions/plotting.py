@@ -188,6 +188,7 @@ def make_figure(options, sim_variables, variable="normal"):
 
 # Create list of data plots; accepts primitive grid
 def make_data(options, grid, sim_variables):
+    rho, pressure, vels, Bfields = 0, 4, slice(1,4), slice(5,8)
     quantities = []
 
     for option in options:
@@ -195,26 +196,26 @@ def make_data(options, grid, sim_variables):
 
         if "energy" in option or "temp" in option or option.startswith("e"):
             if "int" in option:
-                quantity = fv.divide(grid[...,4], grid[...,0] * (sim_variables.gamma-1))
+                quantity = fv.divide(grid[...,pressure], grid[...,rho] * (sim_variables.gamma-1))
             else:
-                quantity = fv.divide(fv.convert_variable("pressure", grid, sim_variables.gamma), grid[...,0])
+                quantity = fv.divide(fv.convert_variable('pressure', grid, sim_variables), grid[...,rho])
             if "density" in option:
-                quantity *= grid[...,0]
+                quantity *= grid[...,rho]
         elif option.startswith("p"):
-            quantity = grid[...,4]
+            quantity = grid[...,pressure]
         elif option.startswith("v") or "mom" in option:
             axis = {"x":0, "y":1, "z":2}[option[-1]]
             quantity = grid[...,1+axis]
             if "mom" in option:
-                quantity *= grid[...,0]
+                quantity *= grid[...,rho]
         elif option.startswith("b") or option.startswith("mag"):
             if "p" in option:
-                quantity = .5 * fv.norm(grid[...,5:8])**2
+                quantity = .5 * fv.norm(grid[...,Bfields])**2
             else:
                 axis = {"x":0, "y":1, "z":2}[option[-1]]
                 quantity = grid[...,5+axis]
         else:
-            quantity = grid[...,0]
+            quantity = grid[...,rho]
 
         quantities.append(quantity)
     return quantities
