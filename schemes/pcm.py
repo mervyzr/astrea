@@ -16,13 +16,12 @@ def run(grid, sim_variables):
     data = nested_dict()
 
     for axis in axes:
-
         # Convert to primitive variables
         primitive = convert_conservative(grid, sim_variables, staggered=magnetic)
 
         # Magnetic component after computing to interface (interface = centre for PCM)
         if magnetic:
-            data[axis]['transverse_grid'] = mag_field.reconstruct_transverse(primitive, sim_variables, axis=axis)
+            data[axis]['ortho_interfaces'] = mag_field.reconstruct_transverse(primitive, sim_variables, axis=axis)
 
         # Pad array with boundaries
         padded_conservative = fv.add_boundary(grid, boundary, axis=axis)

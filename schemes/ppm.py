@@ -20,7 +20,6 @@ def run(grid, sim_variables, author="mc", dissipate=False):
     Bx, By, Bz = range(5,8)
 
     for axis in axes:
-
         # Convert to primitive variables
         primitive = convert_conservative(grid, sim_variables, staggered=magnetic)
 
@@ -46,7 +45,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         if magnetic:
             padded_grid = fv.add_boundary(grid, boundary, axis=axis)
             interface[...,(Bx,By)] = grid[...,(Bx,By)]
-            data[axis]['transverse_grid'] = mag_field.reconstruct_transverse(interface, sim_variables, axis=axis)
+            data[axis]['ortho_interfaces'] = mag_field.reconstruct_transverse(interface, sim_variables, axis=axis)
 
         if "x" in author or "ph" in author or author in ["peterson", "hammett"]:
             """Interpolate the cell averages to face averages (both sides)
