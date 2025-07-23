@@ -40,10 +40,9 @@ def evolve_time(grid, fluxes, dt, sim_variables):
         total_flux = 0
 
         # Finite difference for hydrodynamic components
-        for _axis, _axes in _sim_variables.permutations.items():
-            reversed_axes = np.argsort(_axes)
-            flux_diff = np.diff(_fluxes[_axes]['flux'], axis=0)/_sim_variables.dx
-            total_flux += flux_diff.transpose(reversed_axes)
+        for _axis in _sim_variables.axes:
+            flux_diff = np.diff(_fluxes[_axis]['flux'], axis=_axis)/_sim_variables.dx
+            total_flux += flux_diff
 
         # Finite difference for magnetic components (DO NOT combine with hydrodynamic loop, because each loop will overwrite the previous values)
         if sim_variables.magnetic and sim_variables.dimension == 2:

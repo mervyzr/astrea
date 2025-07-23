@@ -272,14 +272,7 @@ class SimulationVariables(object):
         # Permutations for axes
         if '2D' in self.config_category and self.dimension != 2:
             self.dimension = 2
-        permutations = [axes for axes in itertools.permutations(range(self.dimension+1)) if axes[-1] == self.dimension]
-        #if self.dimension >= 3:
-        #    permutations[np.arange(len(permutations))] = permutations[[0,3,4,1,2,5]]
-
         self.axes = tuple(range(self.dimension))
-        self.ortho_axis = permutations[-1]
-        self.permutations = dict([(key, tuple(axes)) for key, axes in zip(range(len(permutations)), permutations)])
-        #self.swapped_permutations = dict([(key, tuple(axes)) for key, axes in zip(range(len(permutations)), reversed(permutations))])
 
         # Exclusion cases
         if self.solver in DB.get(PARAMS.type == 'solver' and PARAMS.category == 'hll')['accepted']:

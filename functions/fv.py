@@ -78,8 +78,8 @@ def slice_along_axis(arr, axis, *args, **kwargs):
 
 # Finite difference derivative (second order) of a padded grid
 # [ W(i+1) - W(i) ] - [ W(i) - W(i-1) ] = W(i+1) - 2W(i) + W(i-1)
-def derivative(grid, ax=0):
-    return np.diff(slice_along_axis(grid, ax, start=1), axis=ax) - np.diff(slice_along_axis(grid, ax, end=-1), axis=ax)
+def derivative(grid, axis=0):
+    return np.diff(slice_along_axis(grid, axis, start=1), axis=axis) - np.diff(slice_along_axis(grid, axis, end=-1), axis=axis)
 
 
 # Add boundary conditions
@@ -130,14 +130,11 @@ def high_order_convert_primitive(grid, sim_variables, staggered=False, compute_f
         _range = range(sim_variables.dimension)
 
     for ax in _range:
-        axes = sim_variables.permutations[ax]
-        reversed_axes = np.argsort(axes)
-
-        _w = add_boundary(grid.transpose(axes), sim_variables.boundary)
-        w -= 1/24 * derivative(_w, ax=0).transpose(reversed_axes)
+        _w = add_boundary(grid, sim_variables.boundary, axis=ax)
+        w -= 1/24 * derivative(_w, axis=ax)
 
         _q = point_convert_primitive(_w, sim_variables, staggered=staggered)
-        q += 1/24 * derivative(_q, ax=0).transpose(reversed_axes)
+        q += 1/24 * derivative(_q, axis=ax)
 
     conservative_grid = point_convert_primitive(w, sim_variables, staggered=staggered) + q
     if staggered:
@@ -155,14 +152,11 @@ def high_order_convert_conservative(grid, sim_variables, staggered=False, comput
         _range = range(sim_variables.dimension)
 
     for ax in _range:
-        axes = sim_variables.permutations[ax]
-        reversed_axes = np.argsort(axes)
-
-        _q = add_boundary(grid.transpose(axes), sim_variables.boundary)
-        q -= 1/24 * derivative(_q, ax=0).transpose(reversed_axes)
+        _q = add_boundary(grid, sim_variables.boundary, axis=ax)
+        q -= 1/24 * derivative(_q, axis=ax)
 
         _w = point_convert_conservative(_q, sim_variables, staggered=staggered)
-        w += 1/24 * derivative(_w, ax=0).transpose(reversed_axes)
+        w += 1/24 * derivative(_w, axis=ax)
 
     primitive_grid = point_convert_conservative(q, sim_variables, staggered=staggered) + w
     if staggered:
@@ -181,15 +175,12 @@ def high_order_convert(var_pos, grid_rep, grid, sim_variables):
             _range = range(sim_variables.dimension)
 
         for ax in _range:
-            axes = sim_variables.permutations[ax]
-            reversed_axes = np.argsort(axes)
-
-            padded_grid = add_boundary(grid.transpose(axes), sim_variables.boundary)
+            padded_grid = add_boundary(grid, sim_variables.boundary, axis=ax)
 
             if grid_rep.startswith("a"):
-                new_grid -= 1/24 * derivative(padded_grid, ax=0).transpose(reversed_axes)
+                new_grid -= 1/24 * derivative(padded_grid, axis=ax)
             else:
-                new_grid += 1/24 * derivative(padded_grid, ax=0).transpose(reversed_axes)
+                new_grid += 1/24 * derivative(padded_grid, axis=ax)
     return new_grid
 
 
@@ -235,17 +226,13 @@ def inverse_reconstruct(grid, sim_variables):
     return new_grid
 
 
-# Get the characteristics and max eigenvalues for calculating the time evolution
-def compute_eigen(jacobian):
-    characteristics = np.linalg.eigvals(jacobian)
-
+# Compute the max eigenvalues for calculating the time evolution
+def compute_eigmax(characteristics, axis):
     # Local max eigenvalue for each cell (1- or 3-Riemann invariant; shock wave or rarefaction wave)
     local_max_eigvals = np.max(np.abs(characteristics), axis=-1)
 
     # Local max eigenvalue between consecutive pairs of cell
-    max_eigvals = np.maximum(local_max_eigvals[:-1], local_max_eigvals[1:])
+    max_eigvals = np.maximum(slice_along_axis(local_max_eigvals, axis, end=-1), slice_along_axis(local_max_eigvals, axis, start=1))
 
     # Maximum wave speed (max eigenvalue) for time evolution
-    eigmax = np.max(max_eigvals)
-
-    return characteristics, eigmax
+    return np.max(max_eigvals)

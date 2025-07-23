@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+import numpy as np
+
 from functions import constructor, fv
 from num_methods import mag_field
 
@@ -8,10 +10,12 @@ from num_methods import mag_field
 ##############################################################################
 
 def run(grid, sim_variables):
-    gamma, subgrid, dimension, boundary, permutations, magnetic = sim_variables.gamma, sim_variables.subgrid, sim_variables.dimension, sim_variables.boundary, sim_variables.permutations, sim_variables.magnetic
+    gamma, subgrid, boundary, axes, magnetic = sim_variables.gamma, sim_variables.subgrid, sim_variables.boundary, sim_variables.axes, sim_variables.magnetic
     convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
+
+    Bx, By, Bz = range(5,8)
 
     """WENO reconstruction [Shu, 2009; San & Kara, 2015]
     |                        w(i-1/2)                    w(i+1/2)                       |
@@ -19,15 +23,15 @@ def run(grid, sim_variables):
     |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
     |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |   w+(i+1/2)   w-(i+3/2)   |
     """
-    def reconstruct(_wS, _boundary, _order=5):
+    def reconstruct(_grid, _boundary, _axis, _order=5):
         eps = 1e-6
 
         if _order == 3:
-            w = fv.add_boundary(_wS, _boundary)
+            padded_grid = fv.add_boundary(_grid, _boundary, axis=_axis)
 
             # Define frequently used terms
-            zeroth = w[1:-1]
-            minus_one, plus_one = w[:-2], w[2:]
+            zeroth = fv.slice_along_axis(padded_grid, _axis, *[1,-1])
+            minus_one, plus_one = fv.slice_along_axis(padded_grid, _axis, end=-2), fv.slice_along_axis(padded_grid, _axis, start=2)
 
             # Define the linear weights
             g0, g1 = 1/3, 2/3
@@ -45,14 +49,15 @@ def run(grid, sim_variables):
             wL = (a1(g0)/(a0(g1) + a1(g0)))*(1.5*zeroth - .5*plus_one) + (a0(g1)/(a0(g1) + a1(g0)))*(.5*zeroth + .5*minus_one)
 
         elif _order == 7:
-            w3 = fv.add_boundary(_wS, _boundary, 3)
+            padded_grid_3 = fv.add_boundary(_grid, _boundary, stencil=3, axis=_axis)
 
             # Define frequently used terms
-            w2 = w3[1:-1]
-            w = w2[1:-1]
-            zeroth = w[1:-1]
-            minus_one, minus_two, minus_three = w[:-2], w2[:-4], w3[:-6]
-            plus_one, plus_two, plus_three = w[2:], w2[4:], w3[6:]
+            padded_grid_2 = fv.slice_along_axis(padded_grid_3, axis, *[1,-1])
+            padded_grid = fv.slice_along_axis(padded_grid_2, axis, *[1,-1])
+
+            zeroth = fv.slice_along_axis(padded_grid, axis, *[1,-1])
+            minus_one, minus_two, minus_three = fv.slice_along_axis(padded_grid, axis, end=-2), fv.slice_along_axis(padded_grid_2, axis, end=-4), fv.slice_along_axis(padded_grid_3, axis, end=-6)
+            plus_one, plus_two, plus_three = fv.slice_along_axis(padded_grid, axis, start=2), fv.slice_along_axis(padded_grid_2, axis, start=4), fv.slice_along_axis(padded_grid_3, axis, start=6)
 
             # Define the linear weights
             g0, g1, g2, g3 = 1/35, 12/35, 18/35, 4/35
@@ -104,13 +109,14 @@ def run(grid, sim_variables):
             )
 
         else:
-            w2 = fv.add_boundary(_wS, _boundary, 2)
+            padded_grid_2 = fv.add_boundary(_grid, _boundary, stencil=2, axis=_axis)
 
             # Define frequently used terms
-            w = w2[1:-1]
-            zeroth = w[1:-1]
-            minus_one, minus_two = w[:-2], w2[:-4]
-            plus_one, plus_two = w[2:], w2[4:]
+            padded_grid = fv.slice_along_axis(padded_grid_2, axis, *[1,-1])
+
+            zeroth = fv.slice_along_axis(padded_grid, axis, *[1,-1])
+            minus_one, minus_two = fv.slice_along_axis(padded_grid, axis, end=-2), fv.slice_along_axis(padded_grid_2, axis, end=-4)
+            plus_one, plus_two = fv.slice_along_axis(padded_grid, axis, start=2), fv.slice_along_axis(padded_grid_2, axis, start=4)
 
             # Define the linear weights
             g0, g1, g2 = 1/10, 3/5, 3/10
@@ -148,47 +154,48 @@ def run(grid, sim_variables):
 
         return wL, wR
 
-    # Rotate grid and apply algorithm for each axis
-    for axis, axes in permutations.items():
-        _grid = grid.transpose(axes)
+    for axis in axes:
 
         # Convert to primitive variables
-        wS = convert_conservative(_grid, sim_variables)
+        primitive = convert_conservative(grid, sim_variables, staggered=magnetic)
 
         # Reconstruct the interface states
         if len(subgrid.split("weno")) == 2:
             try:
-                wL, wR = reconstruct(wS, boundary, int(subgrid.replace('-','').split("weno")[-1]))
+                wL, wR = reconstruct(primitive, boundary, axis, int(subgrid.replace('-','').split("weno")[-1]))
             except Exception as e:
-                wL, wR = reconstruct(wS, boundary)
+                wL, wR = reconstruct(primitive, boundary, axis)
         else:
-            wL, wR = reconstruct(wS, boundary)
+            wL, wR = reconstruct(primitive, boundary, axis)
 
+        # Magnetic component after computing to interface
         if magnetic:
-            padded_stag_grid = fv.add_boundary(_grid, boundary)
-            wL[...,5:5+dimension] = padded_stag_grid[:-2][...,5:5+dimension]
-            wR[...,5:5+dimension] = padded_stag_grid[1:-1][...,5:5+dimension]
-            data[axes]['wTs'] = mag_field.reconstruct_transverse(wR, sim_variables)
+            padded_grid = fv.add_boundary(grid, boundary, axis=axis)
+            wR[...,(Bx,By)] = grid[...,(Bx,By)]
+            data[axis]['transverse_grid'] = mag_field.reconstruct_transverse(wR, sim_variables, axis=axis)
 
         # Re-align the interfaces so that cell wall is in between interfaces
-        w_plus, w_minus = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
+        prim_plus, prim_minus = fv.slice_along_axis(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_along_axis(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)
+        if magnetic:
+            prim_plus[...,(Bx,By)] = prim_minus[...,(Bx,By)] = fv.slice_along_axis(padded_grid, axis, end=-1)[...,(Bx,By)]
 
         # Get the average solution between the interfaces at the boundaries
-        intf_avg = constructor.make_Roe_average(w_plus, w_minus)[1:]
-        padded_intf_avg = fv.add_boundary(intf_avg, boundary)
+        intf_avg = fv.slice_along_axis(constructor.make_Roe_average(prim_plus, prim_minus), axis, start=1)
+        padded_intf_avg = fv.add_boundary(intf_avg, boundary, axis=axis)
 
         # Convert the primitive variables
-        q_plus, q_minus = convert_primitive(w_plus, sim_variables, compute_face=True), convert_primitive(w_minus, sim_variables, compute_face=True)
+        cons_plus, cons_minus = convert_primitive(prim_plus, sim_variables, compute_face=True), convert_primitive(prim_minus, sim_variables, compute_face=True)
 
         # Compute the fluxes and the Jacobian
-        flux_plus, flux_minus = constructor.make_flux(w_plus, gamma, axis), constructor.make_flux(w_minus, gamma, axis)
-        A = constructor.make_Jacobian(padded_intf_avg, gamma, axis)
+        flux_plus, flux_minus = constructor.make_flux(prim_plus, gamma, axis=axis), constructor.make_flux(prim_minus, gamma, axis=axis)
+
+        jacobian = constructor.make_Jacobian(padded_intf_avg, gamma, axis=axis)
 
         # Update dict
-        data[axes]['wS'] = wS
-        data[axes]['wFs'] = w_plus, w_minus
-        data[axes]['qFs'] = q_plus, q_minus
-        data[axes]['fluxFs'] = flux_plus, flux_minus
-        data[axes]['Jacobian'] = A
+        data[axis]['primitive'] = primitive
+        data[axis]['prim_interfaces'] = prim_plus, prim_minus
+        data[axis]['cons_interfaces'] = cons_plus, cons_minus
+        data[axis]['flux_interfaces'] = flux_plus, flux_minus
+        data[axis]['characteristics'] = np.linalg.eigvals(jacobian)
 
     return data

@@ -50,9 +50,9 @@ def core_run(hdf5, sim_variables):
     while t <= sim_variables.t_end:
         # Transform grid for visualisation; always use cell-averaged grid for visualisation, not staggered grid
         if sim_variables.magnetic:
-            grid_snapshot = sim_variables.convert_conservative(fv.inverse_reconstruct(grid, sim_variables), sim_variables).transpose(sim_variables.ortho_axis)
+            grid_snapshot = sim_variables.convert_conservative(fv.inverse_reconstruct(grid, sim_variables), sim_variables)
         else:
-            grid_snapshot = sim_variables.convert_conservative(grid, sim_variables).transpose(sim_variables.ortho_axis)
+            grid_snapshot = sim_variables.convert_conservative(grid, sim_variables)
 
         # Save each instance of the system (primitive variables) at time t
         with h5py.File(hdf5, "a") as f:
@@ -101,7 +101,7 @@ def core_run(hdf5, sim_variables):
             t += dt
 
             # Change the order of the axis sweep
-            sim_variables.permutations = dict(reversed(list(sim_variables.permutations.items())))
+            sim_variables.axes = sim_variables.axes[::-1]
 
     with h5py.File(hdf5, "a") as f:
         f[sim_variables.access_key].attrs['max_values'] = np.append(var_max, _Emax)

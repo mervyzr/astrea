@@ -10,21 +10,21 @@ from num_methods import limiters, mag_field
 ##############################################################################
 
 def run(grid, sim_variables):
-    gamma, dimension, boundary, permutations, magnetic = sim_variables.gamma, sim_variables.dimension, sim_variables.boundary, sim_variables.permutations, sim_variables.magnetic
+    gamma, boundary, axes, magnetic = sim_variables.gamma, sim_variables.boundary, sim_variables.axes, sim_variables.magnetic
     convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
-    # Rotate grid and apply algorithm for each axis
-    for axis, axes in permutations.items():
-        _grid = grid.transpose(axes)
+    Bx, By, Bz = range(5,8)
+
+    for axis in axes:
 
         # Convert to primitive variables
-        wS = convert_conservative(_grid, sim_variables)
+        primitive = convert_conservative(grid, sim_variables, staggered=magnetic)
 
         # Pad array with boundary & apply (TVD) slope limiters
-        w = fv.add_boundary(wS, boundary)
-        limited_values = limiters.minmod_limiter(w)
+        padded_primitive = fv.add_boundary(primitive, boundary, axis=axis)
+        limited_values = limiters.minmod_limiter(padded_primitive, axis=axis)
 
         """Linear reconstruction [Derigs et al., 2017]
         |                        w(i-1/2)                    w(i+1/2)                       |
@@ -33,33 +33,37 @@ def run(grid, sim_variables):
         |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
         """
         gradients = .5 * limited_values
-        wL, wR = wS - gradients, wS + gradients  # (eq. 4.13)
+        wL, wR = primitive - gradients, primitive + gradients  # (eq. 4.13)
 
+        # Magnetic component after computing to interface
         if magnetic:
-            padded_stag_grid = fv.add_boundary(_grid, boundary)
-            wL[...,5:5+dimension] = padded_stag_grid[:-2][...,5:5+dimension]
-            wR[...,5:5+dimension] = padded_stag_grid[1:-1][...,5:5+dimension]
-            data[axes]['wTs'] = mag_field.reconstruct_transverse(wR, sim_variables)
+            padded_grid = fv.add_boundary(grid, boundary, axis=axis)
+            wR[...,(Bx,By)] = grid[...,(Bx,By)]
+            data[axis]['transverse_grid'] = mag_field.reconstruct_transverse(wR, sim_variables, axis=axis)
 
         # Re-align the interfaces so that cell wall is in between interfaces
-        w_plus, w_minus = fv.add_boundary(wL, boundary)[1:], fv.add_boundary(wR, boundary)[:-1]
+        prim_plus, prim_minus = fv.slice_along_axis(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_along_axis(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)
+        if magnetic:
+            prim_plus[...,(Bx,By)] = prim_minus[...,(Bx,By)] = fv.slice_along_axis(padded_grid, axis, end=-1)[...,(Bx,By)]
 
         # Get the average solution between the interfaces at the boundaries
-        intf_avg = (.5 * (w_plus + w_minus))[1:]
-        padded_intf_avg = fv.add_boundary(intf_avg, boundary)
+        intf_avg = fv.slice_along_axis(.5* (prim_plus + prim_minus), axis, start=1)
+        padded_intf_avg = fv.add_boundary(intf_avg, boundary, axis=axis)
 
-        # Convert the primitive variables
-        q_plus, q_minus = convert_primitive(w_plus, sim_variables), convert_primitive(w_minus, sim_variables)
+        # Convert the primitive interface variables
+        cons_plus, cons_minus = convert_primitive(prim_plus, sim_variables), convert_primitive(prim_minus, sim_variables)
+        if magnetic:
+            cons_plus[...,(Bx,By)] = cons_minus[...,(Bx,By)] = fv.slice_along_axis(padded_grid, axis, end=-1)[...,(Bx,By)]
 
         # Compute the fluxes and the Jacobian
-        flux_plus, flux_minus = constructor.make_flux(w_plus, gamma, axis), constructor.make_flux(w_minus, gamma, axis)
-        A = constructor.make_Jacobian(padded_intf_avg, gamma, axis)
+        flux_plus, flux_minus = constructor.make_flux(prim_plus, gamma, axis=axis), constructor.make_flux(prim_minus, gamma, axis=axis)
+        jacobian = constructor.make_Jacobian(padded_intf_avg, gamma, axis=axis)
 
         # Update dict
-        data[axes]['wS'] = wS
-        data[axes]['wFs'] = w_plus, w_minus
-        data[axes]['qFs'] = q_plus, q_minus
-        data[axes]['fluxFs'] = flux_plus, flux_minus
-        data[axes]['Jacobian'] = A
+        data[axis]['primitive'] = primitive
+        data[axis]['prim_interfaces'] = prim_plus, prim_minus
+        data[axis]['cons_interfaces'] = cons_plus, cons_minus
+        data[axis]['flux_interfaces'] = flux_plus, flux_minus
+        data[axis]['characteristics'] = np.linalg.eigvals(jacobian)
 
     return data

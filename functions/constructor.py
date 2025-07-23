@@ -153,13 +153,14 @@ def make_Jacobian(grid, gamma, axis, permeability=1):
 
 # Calculate the Roe-averaged primitive variables at the interface from the minus- & plus-interface states for use in Roe solver in order to better capture shocks [Roe & Pike, 1984; Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
 def make_Roe_average(left_interface, right_interface):
+    rho, pressure, vels, Bfields = 0, 4, slice(1,4), slice(5,8)
     avg = np.zeros_like(left_interface)
-    rho_minus, rho_plus = np.sqrt(right_interface[...,0]), np.sqrt(left_interface[...,0])
+    rho_minus, rho_plus = np.sqrt(right_interface[...,rho]), np.sqrt(left_interface[...,rho])
 
-    avg[...,0] = rho_minus * rho_plus
-    avg[...,1:4] = fv.divide((left_interface[...,1:4] * rho_plus[...,None]) + (right_interface[...,1:4] * rho_minus[...,None]), (rho_minus + rho_plus)[...,None])
-    avg[...,4] = fv.divide((rho_plus * left_interface[...,4]) + (rho_minus * right_interface[...,4]), rho_minus + rho_plus)
-    avg[...,5:8] = fv.divide((left_interface[...,5:8] * rho_minus[...,None]) + (right_interface[...,5:8] * rho_plus[...,None]), (rho_minus + rho_plus)[...,None])
+    avg[...,rho] = rho_minus * rho_plus
+    avg[...,vels] = fv.divide((left_interface[...,vels] * rho_plus[...,None]) + (right_interface[...,vels] * rho_minus[...,None]), (rho_minus + rho_plus)[...,None])
+    avg[...,pressure] = fv.divide((rho_plus * left_interface[...,pressure]) + (rho_minus * right_interface[...,pressure]), rho_minus + rho_plus)
+    avg[...,Bfields] = fv.divide((left_interface[...,Bfields] * rho_minus[...,None]) + (right_interface[...,Bfields] * rho_plus[...,None]), (rho_minus + rho_plus)[...,None])
 
     return avg
 

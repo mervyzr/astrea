@@ -9,17 +9,19 @@ from num_methods import limiters
 
 # Reconstruct the transverse values for each face average (computation done entirely for orthogonal axis)
 # Returns array aligned with input axis, e.g., ax=1 means returned array is aligned with y-axis-transposed grid
-def reconstruct_transverse(wF, sim_variables, ax, method=None):
+def reconstruct_transverse(interface, sim_variables, axis, method=None):
     if not method:
         method = sim_variables.subgrid
     boundary = sim_variables.boundary
 
-    padded_grid = fv.add_boundary(wF, boundary, axis=ax)
-    padded_grid_2 = fv.add_boundary(wF, boundary, stencil=2, axis=ax)
+    ortho_axis = 1 - axis
 
-    zeroth = np.copy(wF)
-    minus_one, minus_two = fv.slice_along_axis(padded_grid, ax, end=-2), fv.slice_along_axis(padded_grid_2, ax, end=-4)
-    plus_one, plus_two = fv.slice_along_axis(padded_grid, ax, start=2), fv.slice_along_axis(padded_grid_2, ax, start=4)
+    padded_grid = fv.add_boundary(interface, boundary, axis=ortho_axis)
+    padded_grid_2 = fv.add_boundary(interface, boundary, stencil=2, axis=ortho_axis)
+
+    zeroth = np.copy(interface)
+    minus_one, minus_two = fv.slice_along_axis(padded_grid, ortho_axis, end=-2), fv.slice_along_axis(padded_grid_2, ortho_axis, end=-4)
+    plus_one, plus_two = fv.slice_along_axis(padded_grid, ortho_axis, start=2), fv.slice_along_axis(padded_grid_2, ortho_axis, start=4)
 
     # 5th-order WENO reconstruction
     if "weno" in method:
@@ -103,15 +105,15 @@ def reconstruct_transverse(wF, sim_variables, ax, method=None):
 
             # Limit interface values [Peterson & Hammett, 2008, eq. 3.33-3.34]
             limited_wUs = limiters.interface_limiter(wD, minus_two, minus_one, zeroth, plus_one), limiters.interface_limiter(wU, minus_one, zeroth, plus_one, plus_two)
-            padded_wU_2 = np.zeros_like(fv.add_boundary(wU, boundary, 2))
+            padded_wU_2 = np.zeros_like(fv.add_boundary(wU, boundary, stencil=2, axis=ortho_axis))
         else:
             if author == "c" or author == "collela":
                 # Limit interface values [Colella et al., 2011, p. 25-26]
                 wU = limiters.interface_limiter(wU, minus_one, zeroth, plus_one, plus_two)
 
             # Define the top and bottom parabolic extrapolants
-            padded_wU_2 = fv.add_boundary(wU, boundary, stencil=2, axis=ax)
-            limited_wUs = fv.slice_along_axis(padded_wU_2, ax, [1,-3]), fv.slice_along_axis(padded_wU_2, ax, [2,-2])
+            padded_wU_2 = fv.add_boundary(wU, boundary, stencil=2, axis=ortho_axis)
+            limited_wUs = fv.slice_along_axis(padded_wU_2, ortho_axis, *[1,-3]), fv.slice_along_axis(padded_wU_2, ortho_axis, *[2,-2])
 
         """Reconstruct the limited extrapolants from the interface values. Returns the face averages in the form of w+(y) & w-(y) when considering x-axis, and w+(x) & w-(x) when considering y-axis
         |                w(i-1/2)            w(i+1/2)               |
@@ -129,10 +131,10 @@ def reconstruct_transverse(wF, sim_variables, ax, method=None):
         |                   |                   |                   |
         |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
         """
-        wD, wU = limiters.extrapolant_limiter(zeroth, padded_grid, padded_grid_2, padded_wU_2, author, boundary, *limited_wUs)
+        wD, wU = limiters.extrapolant_limiter(zeroth, padded_grid, padded_grid_2, padded_wU_2, author, boundary, ortho_axis, *limited_wUs)
 
     elif method == "plm":
-        limited_values = limiters.minmod_limiter(padded_grid)
+        limited_values = limiters.minmod_limiter(padded_grid, ortho_axis)
         gradients = .5 * limited_values
         wD, wU = zeroth - gradients, zeroth + gradients
 
