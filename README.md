@@ -6,7 +6,7 @@
 
 # astrea
 
-**_astrea_** (**A**strophysical **S**hockwave and **T**urbulence **RE**search for interstellar **A**pplications) is a one-/two-dimensional (magneto-)hydrodynamics simulation toy model code for the purpose of modelling shockwaves in the interstellar medium, with possible implementation of a chemical network and radiative cooling.
+**_astrea_** (**A**strophysical **S**hockwave and **T**urbulence **RE**search for interstellar **A**pplications) is a one-/two-dimensional ideal magnetohydrodynamics simulation toy model code for the purpose of modelling shockwaves in the interstellar medium, with possible implementation of a chemical network and radiative cooling.
 
 **_This code is created as part of the Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner._**
 
@@ -42,7 +42,7 @@ The parabolic reconstruction method by McCorquodale & Colella (2011) also allows
 
 Due to the nature of the finite volume method and the discretisation of space in the grid, a Riemann problem is created at each interface between consecutive cells, with each cell containing the subgrid profile. In this code, approximate Riemann solvers are used (linear and non-linear) in order to compute the flux across interfaces.
 
-The Local Lax-Friedrichs (LLF) solver (LeVeque, 1992) is an approximate linearised Riemann solver (i.e. the method aims to find an exact solution to the _linearised_ or _approximate_ version of the (magneto-)hydrodynamic equations). This scheme is very stable and robust, however it is highly dissipative and only first-order accurate. The code also allows for the Lax-Wendroff scheme (Lax & Wendroff, 1960), which is another approximate linearised Riemann solver and is second-order accurate. The Beam-Warming scheme (Beam & Warming, 1976) and the Fromm scheme (Fromm, 1968) are not included in this code as modifications to the update steps are required to adapt to those schemes.
+The Local Lax-Friedrichs (LLF) solver (LeVeque, 1992) is an approximate linearised Riemann solver (i.e. the method aims to find an exact solution to the _linearised_ or _approximate_ version of the ideal magnetohydrodynamic equations). This scheme is very stable and robust, however it is highly dissipative and only first-order accurate. The code also allows for the Lax-Wendroff scheme (Lax & Wendroff, 1960), which is another approximate linearised Riemann solver and is second-order accurate. The Beam-Warming scheme (Beam & Warming, 1976) and the Fromm scheme (Fromm, 1968) are not included in this code as modifications to the update steps are required to adapt to those schemes.
 
 The fluxes are calculated from the interpolated interfaces, and the Jacobian matrices are calculated from the Roe average of these interfaces (Roe & Pike, 1984; Cargo & Gallice, 1997).
 
@@ -62,9 +62,9 @@ In the following, the (explicit) SSPRK methods are denoted as SSPRK (_i_,_j_), w
 
 For a _j_-order reconstruction scheme, _j_ > 4, the Dormand-Prince 8(7) (Dormand & Prince, 1981) method can be considered. However, this method is not a SSP variant as no methods with order _j_ > 4 with positive SSP coefficients can exist (Kraaijevanger, 1991; Ruuth & Spiteri, 2002), and therefore might not be suitable for solutions with discontinuities.
 
-### Hydrodynamical tests
+### Simulation benchmarks
 
-Several (magneto)hydrodynamical tests are in place:
+Several hydrodynamics and magnetohydrodynamics tests are in place:
 
 - Hydrodynamics
   - Sod shock-tube test (Sod, 1978)
