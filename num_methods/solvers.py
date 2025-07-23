@@ -64,7 +64,7 @@ def calculate_LaxFriedrich_flux(axis, sim_variables, **kwargs):
     characteristics = kwargs["characteristics"]
 
     local_max_eigvals = np.max(np.abs(characteristics), axis=-1)
-    max_eigvals = np.maximum(fv.slice_along_axis(local_max_eigvals, axis, end=-1), fv.slice_along_axis(local_max_eigvals, axis, start=1))
+    max_eigvals = np.maximum(fv.slice_(local_max_eigvals, axis, end=-1), fv.slice_(local_max_eigvals, axis, start=1))
     return .5*(flux_minus+flux_plus) - .5*((cons_plus-cons_minus) * max_eigvals[...,None])
 
 
@@ -77,7 +77,7 @@ def calculate_LaxWendroff_flux(axis, sim_variables, **kwargs):
     # Sound speed for each cell (2-Riemann invariant; entropy wave or contact discontinuity); indexing 1 only works for hydrodynamics
     sound_speed = np.unique(characteristics, axis=-1)[...,1+axis]
     normalised_eigvals = fv.divide(sound_speed**2, np.max(np.abs(characteristics), axis=-1))
-    max_normalised_eigvals = np.maximum(fv.slice_along_axis(normalised_eigvals, axis, end=-1), fv.slice_along_axis(normalised_eigvals, axis, start=1))
+    max_normalised_eigvals = np.maximum(fv.slice_(normalised_eigvals, axis, end=-1), fv.slice_(normalised_eigvals, axis, start=1))
 
     return .5*(flux_minus+flux_plus) - .5*((cons_plus-cons_minus) * max_normalised_eigvals[...,None])
 
@@ -161,7 +161,7 @@ def calculate_HLLD_flux(axis, sim_variables, **kwargs):
         |   w_R(i-1)     w_L(i-1)   |   w_R(i)         w_L(i)   |   w_R(i+1)     w_L(i+1)   |
     --> |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
     """
-    primitive = fv.slice_along_axis(fv.add_boundary(primitive, sim_variables.boundary, axis=axis), axis, start=1)
+    primitive = fv.slice_(fv.add_boundary(primitive, sim_variables.boundary, axis=axis), axis, start=1)
     rhoL, vecL, pL, BL, QL = prim_minus[...,rho], prim_minus[...,vels], prim_minus[...,pressure], prim_minus[...,Bfields], cons_minus
     rhoR, vecR, pR, BR, QR = prim_plus[...,rho], prim_plus[...,vels], prim_plus[...,pressure], prim_plus[...,Bfields], cons_plus
 

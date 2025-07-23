@@ -25,10 +25,10 @@ def run(grid, sim_variables, author="mc", dissipate=False):
 
         # Pad array with boundary; PPM requires additional ghost cells
         padded_primitive_2 = fv.add_boundary(primitive, boundary, stencil=2, axis=axis)
-        padded_primitive = fv.slice_along_axis(padded_primitive_2, axis, *[1,-1])
+        padded_primitive = fv.slice_(padded_primitive_2, axis, *[1,-1])
 
-        minus_one, minus_two = fv.slice_along_axis(padded_primitive, axis, end=-2), fv.slice_along_axis(padded_primitive_2, axis, end=-4)
-        plus_one, plus_two = fv.slice_along_axis(padded_primitive, axis, start=2), fv.slice_along_axis(padded_primitive_2, axis, start=4)
+        minus_one, minus_two = fv.slice_(padded_primitive, axis, end=-2), fv.slice_(padded_primitive_2, axis, end=-4)
+        plus_one, plus_two = fv.slice_(padded_primitive, axis, start=2), fv.slice_(padded_primitive_2, axis, start=4)
 
         """Interpolate the cell averages to face averages (forward/upwind)
         |               w(i-1/2)            w(i+1/2)                |
@@ -72,7 +72,7 @@ def run(grid, sim_variables, author="mc", dissipate=False):
 
             # Define the left and right parabolic extrapolants
             padded_interface_2 = fv.add_boundary(interface, boundary, stencil=2, axis=axis)
-            limited_wFs = fv.slice_along_axis(padded_interface_2, axis, *[1,-3]), fv.slice_along_axis(padded_interface_2, axis, *[2,-2])
+            limited_wFs = fv.slice_(padded_interface_2, axis, *[1,-3]), fv.slice_(padded_interface_2, axis, *[2,-2])
 
         """Reconstruct the limited parabolic extrapolants from the interface values [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
         |                        w(i-1/2)                    w(i+1/2)                       |
@@ -83,12 +83,12 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         wL, wR = limiters.extrapolant_limiter(primitive, padded_primitive, padded_primitive_2, padded_interface_2, author, boundary, axis, *limited_wFs)
 
         # Re-align the interfaces so that cell wall is in between interfaces
-        prim_plus, prim_minus = fv.slice_along_axis(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_along_axis(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)
+        prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)
         if magnetic:
-            prim_plus[...,(Bx,By)] = prim_minus[...,(Bx,By)] = fv.slice_along_axis(padded_grid, axis, end=-1)[...,(Bx,By)]
+            prim_plus[...,(Bx,By)] = prim_minus[...,(Bx,By)] = fv.slice_(padded_grid, axis, end=-1)[...,(Bx,By)]
 
         # Get the average solution between the interfaces at the boundaries
-        intf_avg = fv.slice_along_axis(constructor.make_Roe_average(prim_plus, prim_minus), axis, start=1)
+        intf_avg = fv.slice_(constructor.make_Roe_average(prim_plus, prim_minus), axis, start=1)
         padded_intf_avg = fv.add_boundary(intf_avg, boundary, axis=axis)
 
         # Convert the primitive variables
@@ -119,8 +119,8 @@ def apply_flattener(grid, axis, boundary, slope_determinants=[.33, .75, .85]):
     padded_grid_2 = fv.add_boundary(grid, boundary, stencil=2, axis=axis)
     padded_grid = fv.add_boundary(grid, boundary, axis=axis)
 
-    minus_one, minus_two = fv.slice_along_axis(padded_grid, axis, end=-2), fv.slice_along_axis(padded_grid_2, axis, end=-4)
-    plus_one, plus_two = fv.slice_along_axis(padded_grid, axis, start=2), fv.slice_along_axis(padded_grid_2, axis, start=4)
+    minus_one, minus_two = fv.slice_(padded_grid, axis, end=-2), fv.slice_(padded_grid_2, axis, end=-4)
+    plus_one, plus_two = fv.slice_(padded_grid, axis, start=2), fv.slice_(padded_grid_2, axis, start=4)
 
     def zeta_func(_z, _z0, _z1):
         _arr = np.copy(1 - fv.divide(_z-_z0, _z1-_z0))
@@ -135,8 +135,8 @@ def apply_flattener(grid, axis, boundary, slope_determinants=[.33, .75, .85]):
     signage = np.sign(plus_one[...,4]-minus_one[...,4])
 
     chi = np.copy(chi_bar)
-    chi[signage < 0] = np.minimum(chi_bar, fv.slice_along_axis(chi_bar_padded, axis, start=2))[signage < 0]
-    chi[signage > 0] = np.minimum(chi_bar, fv.slice_along_axis(chi_bar_padded, axis, end=-2))[signage > 0]
+    chi[signage < 0] = np.minimum(chi_bar, fv.slice_(chi_bar_padded, axis, start=2))[signage < 0]
+    chi[signage > 0] = np.minimum(chi_bar, fv.slice_(chi_bar_padded, axis, end=-2))[signage > 0]
 
     arr_expander = np.ones_like(grid)
     return arr_expander * chi[...,None]
@@ -153,17 +153,17 @@ def apply_artificial_viscosity(grid, axis, sim_variables, viscosity_determinants
     velocity_w = padded_grid[...,1+axis]
 
     # Calculate face-centred divergence of velocity [eq. 35]
-    lambda_R = fv.slice_along_axis(velocity_w, axis, start=2) - fv.slice_along_axis(velocity_w, axis, [1,-1])
+    lambda_R = fv.slice_(velocity_w, axis, start=2) - fv.slice_(velocity_w, axis, [1,-1])
 
     for ax in range(1, dimension):
         padded_velocity = fv.add_boundary(velocity, boundary, axis=ax)
         padded_w = fv.add_boundary(velocity_w, boundary, axis=ax)
 
-        lambda_R += .25 * (np.diff(fv.slice_along_axis(padded_w, ax, start=1), axis=ax) + np.diff(fv.slice_along_axis(padded_velocity, ax, start=1), axis=ax))
+        lambda_R += .25 * (np.diff(fv.slice_(padded_w, ax, start=1), axis=ax) + np.diff(fv.slice_(padded_velocity, ax, start=1), axis=ax))
 
     # Calculate sound speed
     cs = np.sqrt(fv.divide(gamma*padded_grid[...,4], padded_grid[...,0]))
-    c_min = np.minimum(fv.slice_along_axis(cs, axis, [1,-1]) , fv.slice_along_axis(cs, axis, start=2))
+    c_min = np.minimum(fv.slice_(cs, axis, [1,-1]) , fv.slice_(cs, axis, start=2))
 
     # Calculate artificial viscosity coefficient [eq. 36]
     reference = np.copy(lambda_R)
@@ -173,6 +173,6 @@ def apply_artificial_viscosity(grid, axis, sim_variables, viscosity_determinants
     # Calculate the coefficient [eq. 38]
     arr_expander = np.ones_like(grid)
     coeff = nu * arr_expander
-    mu = alpha * (coeff * np.diff(fv.slice_along_axis(padded_grid, axis, start=1), axis=axis))
+    mu = alpha * (coeff * np.diff(fv.slice_(padded_grid, axis, start=1), axis=axis))
 
     return mu

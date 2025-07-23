@@ -30,8 +30,8 @@ def run(grid, sim_variables):
             padded_grid = fv.add_boundary(_grid, _boundary, axis=_axis)
 
             # Define frequently used terms
-            zeroth = fv.slice_along_axis(padded_grid, _axis, *[1,-1])
-            minus_one, plus_one = fv.slice_along_axis(padded_grid, _axis, end=-2), fv.slice_along_axis(padded_grid, _axis, start=2)
+            zeroth = fv.slice_(padded_grid, _axis, *[1,-1])
+            minus_one, plus_one = fv.slice_(padded_grid, _axis, end=-2), fv.slice_(padded_grid, _axis, start=2)
 
             # Define the linear weights
             g0, g1 = 1/3, 2/3
@@ -52,12 +52,12 @@ def run(grid, sim_variables):
             padded_grid_3 = fv.add_boundary(_grid, _boundary, stencil=3, axis=_axis)
 
             # Define frequently used terms
-            padded_grid_2 = fv.slice_along_axis(padded_grid_3, axis, *[1,-1])
-            padded_grid = fv.slice_along_axis(padded_grid_2, axis, *[1,-1])
+            padded_grid_2 = fv.slice_(padded_grid_3, axis, *[1,-1])
+            padded_grid = fv.slice_(padded_grid_2, axis, *[1,-1])
 
-            zeroth = fv.slice_along_axis(padded_grid, axis, *[1,-1])
-            minus_one, minus_two, minus_three = fv.slice_along_axis(padded_grid, axis, end=-2), fv.slice_along_axis(padded_grid_2, axis, end=-4), fv.slice_along_axis(padded_grid_3, axis, end=-6)
-            plus_one, plus_two, plus_three = fv.slice_along_axis(padded_grid, axis, start=2), fv.slice_along_axis(padded_grid_2, axis, start=4), fv.slice_along_axis(padded_grid_3, axis, start=6)
+            zeroth = fv.slice_(padded_grid, axis, *[1,-1])
+            minus_one, minus_two, minus_three = fv.slice_(padded_grid, axis, end=-2), fv.slice_(padded_grid_2, axis, end=-4), fv.slice_(padded_grid_3, axis, end=-6)
+            plus_one, plus_two, plus_three = fv.slice_(padded_grid, axis, start=2), fv.slice_(padded_grid_2, axis, start=4), fv.slice_(padded_grid_3, axis, start=6)
 
             # Define the linear weights
             g0, g1, g2, g3 = 1/35, 12/35, 18/35, 4/35
@@ -112,11 +112,11 @@ def run(grid, sim_variables):
             padded_grid_2 = fv.add_boundary(_grid, _boundary, stencil=2, axis=_axis)
 
             # Define frequently used terms
-            padded_grid = fv.slice_along_axis(padded_grid_2, axis, *[1,-1])
+            padded_grid = fv.slice_(padded_grid_2, axis, *[1,-1])
 
-            zeroth = fv.slice_along_axis(padded_grid, axis, *[1,-1])
-            minus_one, minus_two = fv.slice_along_axis(padded_grid, axis, end=-2), fv.slice_along_axis(padded_grid_2, axis, end=-4)
-            plus_one, plus_two = fv.slice_along_axis(padded_grid, axis, start=2), fv.slice_along_axis(padded_grid_2, axis, start=4)
+            zeroth = fv.slice_(padded_grid, axis, *[1,-1])
+            minus_one, minus_two = fv.slice_(padded_grid, axis, end=-2), fv.slice_(padded_grid_2, axis, end=-4)
+            plus_one, plus_two = fv.slice_(padded_grid, axis, start=2), fv.slice_(padded_grid_2, axis, start=4)
 
             # Define the linear weights
             g0, g1, g2 = 1/10, 3/5, 3/10
@@ -174,12 +174,12 @@ def run(grid, sim_variables):
             data[axis]['ortho_interfaces'] = mag_field.reconstruct_transverse(wR, sim_variables, axis=axis)
 
         # Re-align the interfaces so that cell wall is in between interfaces
-        prim_plus, prim_minus = fv.slice_along_axis(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_along_axis(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)
+        prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)
         if magnetic:
-            prim_plus[...,(Bx,By)] = prim_minus[...,(Bx,By)] = fv.slice_along_axis(padded_grid, axis, end=-1)[...,(Bx,By)]
+            prim_plus[...,(Bx,By)] = prim_minus[...,(Bx,By)] = fv.slice_(padded_grid, axis, end=-1)[...,(Bx,By)]
 
         # Get the average solution between the interfaces at the boundaries
-        intf_avg = fv.slice_along_axis(constructor.make_Roe_average(prim_plus, prim_minus), axis, start=1)
+        intf_avg = fv.slice_(constructor.make_Roe_average(prim_plus, prim_minus), axis, start=1)
         padded_intf_avg = fv.add_boundary(intf_avg, boundary, axis=axis)
 
         # Convert the primitive variables

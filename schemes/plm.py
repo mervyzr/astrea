@@ -41,18 +41,18 @@ def run(grid, sim_variables):
             data[axis]['ortho_interfaces'] = mag_field.reconstruct_transverse(wR, sim_variables, axis=axis)
 
         # Re-align the interfaces so that cell wall is in between interfaces
-        prim_plus, prim_minus = fv.slice_along_axis(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_along_axis(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)
+        prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)
         if magnetic:
-            prim_plus[...,(Bx,By)] = prim_minus[...,(Bx,By)] = fv.slice_along_axis(padded_grid, axis, end=-1)[...,(Bx,By)]
+            prim_plus[...,(Bx,By)] = prim_minus[...,(Bx,By)] = fv.slice_(padded_grid, axis, end=-1)[...,(Bx,By)]
 
         # Get the average solution between the interfaces at the boundaries
-        intf_avg = fv.slice_along_axis(.5* (prim_plus + prim_minus), axis, start=1)
+        intf_avg = fv.slice_(.5* (prim_plus + prim_minus), axis, start=1)
         padded_intf_avg = fv.add_boundary(intf_avg, boundary, axis=axis)
 
         # Convert the primitive interface variables
         cons_plus, cons_minus = convert_primitive(prim_plus, sim_variables), convert_primitive(prim_minus, sim_variables)
         if magnetic:
-            cons_plus[...,(Bx,By)] = cons_minus[...,(Bx,By)] = fv.slice_along_axis(padded_grid, axis, end=-1)[...,(Bx,By)]
+            cons_plus[...,(Bx,By)] = cons_minus[...,(Bx,By)] = fv.slice_(padded_grid, axis, end=-1)[...,(Bx,By)]
 
         # Compute the fluxes and the Jacobian
         flux_plus, flux_minus = constructor.make_flux(prim_plus, gamma, axis=axis), constructor.make_flux(prim_minus, gamma, axis=axis)

@@ -16,12 +16,12 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
 
     ortho_axis = 1 - axis
 
-    padded_grid = fv.add_boundary(interface, boundary, axis=ortho_axis)
     padded_grid_2 = fv.add_boundary(interface, boundary, stencil=2, axis=ortho_axis)
+    padded_grid = fv.slice_(padded_grid_2, ortho_axis, *[1,-1])
 
     zeroth = np.copy(interface)
-    minus_one, minus_two = fv.slice_along_axis(padded_grid, ortho_axis, end=-2), fv.slice_along_axis(padded_grid_2, ortho_axis, end=-4)
-    plus_one, plus_two = fv.slice_along_axis(padded_grid, ortho_axis, start=2), fv.slice_along_axis(padded_grid_2, ortho_axis, start=4)
+    minus_one, minus_two = fv.slice_(padded_grid, ortho_axis, end=-2), fv.slice_(padded_grid_2, ortho_axis, end=-4)
+    plus_one, plus_two = fv.slice_(padded_grid, ortho_axis, start=2), fv.slice_(padded_grid_2, ortho_axis, start=4)
 
     # 5th-order WENO reconstruction
     if "weno" in method:
@@ -113,7 +113,7 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
 
             # Define the top and bottom parabolic extrapolants
             padded_wU_2 = fv.add_boundary(wU, boundary, stencil=2, axis=ortho_axis)
-            limited_wUs = fv.slice_along_axis(padded_wU_2, ortho_axis, *[1,-3]), fv.slice_along_axis(padded_wU_2, ortho_axis, *[2,-2])
+            limited_wUs = fv.slice_(padded_wU_2, ortho_axis, *[1,-3]), fv.slice_(padded_wU_2, ortho_axis, *[2,-2])
 
         """Reconstruct the limited extrapolants from the interface values. Returns the face averages in the form of w+(y) & w-(y) when considering x-axis, and w+(x) & w-(x) when considering y-axis
         |                w(i-1/2)            w(i+1/2)               |
@@ -141,11 +141,52 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
     else:
         wD, wU = zeroth, zeroth
 
-    return wD, wU
+    # Re-align the interfaces so that cell wall is in between interfaces
+    prim_plus, prim_minus = fv.slice_(fv.add_boundary(wD, boundary, axis=ortho_axis), ortho_axis, start=1), fv.slice_(fv.add_boundary(wU, boundary, axis=ortho_axis), ortho_axis, end=-1)
+
+    return prim_plus, prim_minus
 
 
+# Compute the corner electric fields wrt to corner; gives 4-fold values for each corner [Mignone & del Zanna, 2021]
+def compute_corner(data, sim_variables):
+    alphas, magnetic_components = [], []
+    rho, vx, vy, vz, pressure, Bx, By, Bz = range(8)
 
-# Compute the corner electric fields wrt to corner; gives 4-fold values for each corner for now [Mignone & del Zanna, 2021]
+    # Collate the magnetic components and alphas
+    for axis in sim_variables.axes:
+        prim_plus, prim_minus = data[axis]['ortho_interfaces']
+        characteristics = data[axis]['characteristics']
+
+        # alpha+/- refers to the maximum/minimum eigenvalues respectively; alpha is aligned to the axis
+        local_max, local_min = np.max(characteristics, axis=-1), np.min(characteristics, axis=-1)
+        max_eigvals = np.maximum(fv.slice_(local_max, axis, end=-1), fv.slice_(local_max, axis, start=1))
+        min_eigvals = np.minimum(fv.slice_(local_min, axis, end=-1), fv.slice_(local_min, axis, start=1))
+        alpha_plus, alpha_minus = fv.slice_(np.maximum(0, max_eigvals), axis, start=1), fv.slice_(-np.minimum(0, min_eigvals), axis, start=1)
+
+        # alpha_1/2 refers to the x-/y-axis respectively
+        alphas.append([alpha_plus, alpha_minus])
+
+        # magnetic components are reconstructed orthogonal to the axis;
+        # [ (m1, m2), (m1, m2) ] refers to the [ x(w+, w-), y(w+, w-) ] axis, which corresponds to [ x(N,S), y(E,W) ]
+        magnetic_components.append([fv.slice_(prim_plus, axis=1-axis, start=1), fv.slice_(prim_minus, axis=1-axis, start=1)])
+
+    # Compute the corner B-fields wrt to corner; take note of the order in the axes
+    if sim_variables.axes[0] == 0:
+        [north, south], [east, west] = magnetic_components
+        [ap_x, am_x], [ap_y, am_y] = alphas
+    elif sim_variables.axes[0] == 1:
+        [east, west], [north, south] = magnetic_components
+        [ap_y, am_y], [ap_x, am_x] = alphas
+
+    SW = .5*(west[...,vy]+south[...,vy])*south[...,Bx] - .5*(west[...,vx]+south[...,vx])*west[...,By]
+    SE = .5*(east[...,vy]+south[...,vy])*south[...,Bx] - .5*(east[...,vx]+south[...,vx])*east[...,By]
+    NW = .5*(west[...,vy]+north[...,vy])*north[...,Bx] - .5*(west[...,vx]+north[...,vx])*west[...,By]
+    NE = .5*(east[...,vy]+north[...,vy])*north[...,Bx] - .5*(east[...,vx]+north[...,vx])*east[...,By]
+
+    return fv.divide(ap_x*ap_y*SW + am_x*ap_y*SE + ap_x*am_y*NW + am_x*am_y*NE, (ap_x+am_x)*(ap_y+am_y)) - fv.divide(ap_y*am_y, ap_y+am_y)*(north[...,Bx]-south[...,Bx]) + fv.divide(ap_x*am_x, ap_x+am_x)*(east[...,By]-west[...,By])
+
+
+"""# Compute the corner electric fields wrt to corner; gives 4-fold values for each corner for now [Mignone & del Zanna, 2021]
 def compute_corner(data, sim_variables):
 
     # Calculate the eigenvalues for the Riemann problem at the corner; crucial for selecting the corner
@@ -207,4 +248,4 @@ def compute_corner(data, sim_variables):
     [ap_y, am_y], [ap_x, am_x] = alphas
 
     return fv.divide(ap_x*ap_y*SW + am_x*ap_y*SE + ap_x*am_y*NW + am_x*am_y*NE, (ap_x+am_x)*(ap_y+am_y)) - fv.divide(ap_y*am_y, ap_y+am_y)*(north[...,5]-south[...,5]) + fv.divide(ap_x*am_x, ap_x+am_x)*(east[...,6]-west[...,6])
-    #return -(west[...,1]*west[...,6] + east[...,1]*east[...,6]) + (north[...,2]*north[...,5] + south[...,2]*south[...,5])
+    #return -(west[...,1]*west[...,6] + east[...,1]*east[...,6]) + (north[...,2]*north[...,5] + south[...,2]*south[...,5])"""

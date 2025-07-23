@@ -44,7 +44,7 @@ def norm(arr):
 
 
 # Slice ndarray along axis
-def slice_along_axis(arr, axis, *args, **kwargs):
+def slice_(arr, axis, start=None, end=None, step=1, *args):
     slc = [slice(None)] * arr.ndim
 
     if args and (2 <= len(args) <= 3):
@@ -55,23 +55,14 @@ def slice_along_axis(arr, axis, *args, **kwargs):
                 start, end = args
                 step = 1
             except ValueError:
-                start, end, step = 0, len(arr.shape[axis]), 1
-        slc[axis] = slice(start, end, step)
+                start, end, step = 0, arr.shape[axis], 1
 
-    elif kwargs:
-        try:
-            end = kwargs['end']
-        except KeyError:
-            end = arr.shape[axis]
-        try:
-            start = kwargs['start']
-        except KeyError:
-            start = 0
-        try:
-            step = kwargs['step']
-        except KeyError:
-            step = 1
-        slc[axis] = slice(start, end, step)
+    if not start:
+        start = 0
+    if not end:
+        end = arr.shape[axis]
+
+    slc[axis] = slice(start, end, step)
 
     return arr[tuple(slc)]
 
@@ -79,7 +70,7 @@ def slice_along_axis(arr, axis, *args, **kwargs):
 # Finite difference derivative (second order) of a padded grid
 # [ W(i+1) - W(i) ] - [ W(i) - W(i-1) ] = W(i+1) - 2W(i) + W(i-1)
 def derivative(grid, axis=0):
-    return np.diff(slice_along_axis(grid, axis, start=1), axis=axis) - np.diff(slice_along_axis(grid, axis, end=-1), axis=axis)
+    return np.diff(slice_(grid, axis, start=1), axis=axis) - np.diff(slice_(grid, axis, end=-1), axis=axis)
 
 
 # Add boundary conditions
@@ -205,14 +196,14 @@ def inverse_reconstruct(grid, sim_variables):
 
             # Interpolate the face-centred values to cell-centred values (eq. 39)
             face_cntrd_padded_2 = add_boundary(face_cntrd, sim_variables.boundary, stencil=2, axis=axis)
-            face_cntrd_padded = slice_along_axis(face_cntrd_padded_2, axis, *[1,-1])
-            cell_cntrd = -1/16 * (slice_along_axis(face_cntrd_padded, axis, end=-2) + slice_along_axis(face_cntrd_padded_2, axis, start=4)) + 9/16 * (face_cntrd + slice_along_axis(face_cntrd_padded, axis, start=2))
+            face_cntrd_padded = slice_(face_cntrd_padded_2, axis, *[1,-1])
+            cell_cntrd = -1/16 * (slice_(face_cntrd_padded, axis, end=-2) + slice_(face_cntrd_padded_2, axis, start=4)) + 9/16 * (face_cntrd + slice_(face_cntrd_padded, axis, start=2))
 
             # Apply Laplacian operator to convert cell-centred values to cell-averaged values (eq. 40)
             cell_avgd = high_order_convert('cell', 'cntr', cell_cntrd, sim_variables)
         elif sim_variables.subgrid in ['plm', 'l', 'linear']:
             padded_grid = add_boundary(grid, sim_variables.boundary, axis=axis)
-            cell_avgd = slice_along_axis(.5 * (slice_along_axis(padded_grid, axis, start=1) + slice_along_axis(padded_grid, axis, end=-1)), axis, end=-1)
+            cell_avgd = slice_(.5 * (slice_(padded_grid, axis, start=1) + slice_(padded_grid, axis, end=-1)), axis, end=-1)
         else:
             cell_avgd = grid
 
@@ -228,7 +219,7 @@ def compute_eigmax(characteristics, axis):
     local_max_eigvals = np.max(np.abs(characteristics), axis=-1)
 
     # Local max eigenvalue between consecutive pairs of cell
-    max_eigvals = np.maximum(slice_along_axis(local_max_eigvals, axis, end=-1), slice_along_axis(local_max_eigvals, axis, start=1))
+    max_eigvals = np.maximum(slice_(local_max_eigvals, axis, end=-1), slice_(local_max_eigvals, axis, start=1))
 
     # Maximum wave speed (max eigenvalue) for time evolution
     return np.max(max_eigvals)

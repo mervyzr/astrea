@@ -33,9 +33,9 @@ def run(grid, sim_variables):
 
         # Update data dictionary
         data[axis]['primitive'] = primitive
-        data[axis]['prim_interfaces'] = fv.slice_along_axis(padded_primitive, axis, start=1), fv.slice_along_axis(padded_primitive, axis, end=-1)
-        data[axis]['cons_interfaces'] = fv.slice_along_axis(padded_conservative, axis, start=1), fv.slice_along_axis(padded_conservative, axis, end=-1)
-        data[axis]['flux_interfaces'] = fv.slice_along_axis(fluxes, axis, start=1), fv.slice_along_axis(fluxes, axis, end=-1)
+        data[axis]['prim_interfaces'] = fv.slice_(padded_primitive, axis, start=1), fv.slice_(padded_primitive, axis, end=-1)
+        data[axis]['cons_interfaces'] = fv.slice_(padded_conservative, axis, start=1), fv.slice_(padded_conservative, axis, end=-1)
+        data[axis]['flux_interfaces'] = fv.slice_(fluxes, axis, start=1), fv.slice_(fluxes, axis, end=-1)
         data[axis]['characteristics'] = np.linalg.eigvals(jacobian)
 
     return data
