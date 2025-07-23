@@ -1,6 +1,6 @@
 import numpy as np
 
-from functions import fv, constructor
+from functions import fv
 from num_methods import limiters
 
 ##############################################################################
