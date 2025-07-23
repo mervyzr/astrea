@@ -80,7 +80,7 @@ Several (magneto)hydrodynamical tests are in place:
     - sine
     - square
     - isentropic vortex (Yee et al., 1999)
-- Magnetohydrodynamics (_2D not stable_)
+- Magnetohydrodynamics
   - Ryu-Jones 2a shockwave test (Ryu & Jones, 1995)
   - Brio-Wu shockwave test (Brio & Wu, 1988)
   - Orszag-Tang test (Orszag & Tang, 1998)
