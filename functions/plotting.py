@@ -101,6 +101,17 @@ def make_figure(options, sim_variables, variable="normal"):
                     error = rf"$\epsilon_N(B_{option[-1]})$"
                     tv = rf"TV($B_{option[-1]}$)"
 
+            elif 'div' in option or 'db' in option:
+                name = "div. Mag. field"
+                if option[-1] == 'b':
+                    label = r"$\nabla \cdot B$"
+                    error = r"$\epsilon_N(\nabla \cdot B)$"
+                    tv = r"TV($\nabla \cdot B$)"
+                else:
+                    label = rf"$\nabla \cdot B_{option[-1]}$"
+                    error = rf"$\epsilon_N(\nabla \cdot B_{option[-1]})$"
+                    tv = rf"TV($\nabla \cdot B_{option[-1]}$)"
+
             else:
                 name = "Density"
                 label = r"$\rho$"
@@ -214,6 +225,12 @@ def make_data(options, grid, sim_variables):
             else:
                 axis = {"x":0, "y":1, "z":2}[option[-1]]
                 quantity = grid[...,5+axis]
+        elif 'div' in option or 'db' in option:
+            if option[-1] == 'b':
+                quantity = fv.slice_(np.diff(grid[...,5], axis=0), axis=1, start=1) + fv.slice_(np.diff(grid[...,6], axis=1), axis=0, start=1)
+            else:
+                axis = {"x":0, "y":1, "z":2}[option[-1]]
+                quantity = np.diff(grid[...,5+axis], axis=axis)
         else:
             quantity = grid[...,rho]
 
