@@ -168,19 +168,18 @@ def high_order_convert_conservative(grid, sim_variables, staggered=False, comput
 def high_order_convert(var_pos, grid_rep, grid, sim_variables):
     new_grid = np.copy(grid)
 
-    if sim_variables.higher_order:
-        if "face" in var_pos:
-            _range = range(1, sim_variables.dimension)
+    if "face" in var_pos:
+        _range = range(1, sim_variables.dimension)
+    else:
+        _range = range(sim_variables.dimension)
+
+    for ax in _range:
+        padded_grid = add_boundary(grid, sim_variables.boundary, axis=ax)
+
+        if grid_rep.startswith("a"):
+            new_grid -= 1/24 * derivative(padded_grid, axis=ax)
         else:
-            _range = range(sim_variables.dimension)
-
-        for ax in _range:
-            padded_grid = add_boundary(grid, sim_variables.boundary, axis=ax)
-
-            if grid_rep.startswith("a"):
-                new_grid -= 1/24 * derivative(padded_grid, axis=ax)
-            else:
-                new_grid += 1/24 * derivative(padded_grid, axis=ax)
+            new_grid += 1/24 * derivative(padded_grid, axis=ax)
     return new_grid
 
 
@@ -199,29 +198,26 @@ def high_order_compute_flux(_cntr_flux, _avg_flux, sim_variables):
 def inverse_reconstruct(grid, sim_variables):
     new_grid = np.copy(grid)
 
-    for axis, axes in sim_variables.permutations.items():
-        reversed_axes = np.argsort(axes)
-        face_avgd = grid.transpose(axes)
-
+    for axis in sim_variables.axes:
         if sim_variables.higher_order:
             # Approximate the face-averaged values to face-centred values (eq. 38)
-            face_cntrd = high_order_convert('face', 'avg', face_avgd, sim_variables)
+            face_cntrd = high_order_convert('face', 'avg', grid, sim_variables)
 
             # Interpolate the face-centred values to cell-centred values (eq. 39)
-            face_cntrd_pad2 = add_boundary(face_cntrd, sim_variables.boundary, 2)
-            face_cntrd_pad1 = np.copy(face_cntrd_pad2[1:-1])
-            cell_cntrd = -1/16*(face_cntrd_pad1[:-2] + face_cntrd_pad2[4:]) + 9/16*(face_cntrd + face_cntrd_pad1[2:])
+            face_cntrd_padded_2 = add_boundary(face_cntrd, sim_variables.boundary, stencil=2, axis=axis)
+            face_cntrd_padded = slice_along_axis(face_cntrd_padded_2, axis, *[1,-1])
+            cell_cntrd = -1/16 * (slice_along_axis(face_cntrd_padded, axis, end=-2) + slice_along_axis(face_cntrd_padded_2, axis, start=4)) + 9/16 * (face_cntrd + slice_along_axis(face_cntrd_padded, axis, start=2))
 
             # Apply Laplacian operator to convert cell-centred values to cell-averaged values (eq. 40)
             cell_avgd = high_order_convert('cell', 'cntr', cell_cntrd, sim_variables)
         elif sim_variables.subgrid in ['plm', 'l', 'linear']:
-            padded_grid = add_boundary(face_avgd, sim_variables.boundary)
-            cell_avgd = .5 * (padded_grid[1:] + padded_grid[:-1])[:-1]
+            padded_grid = add_boundary(grid, sim_variables.boundary, axis=axis)
+            cell_avgd = slice_along_axis(.5 * (slice_along_axis(padded_grid, axis, start=1) + slice_along_axis(padded_grid, axis, end=-1)), axis, end=-1)
         else:
-            cell_avgd = face_avgd
+            cell_avgd = grid
 
         # Update the grid values with the updated B-field values
-        new_grid[...,5+axis] = cell_avgd.transpose(reversed_axes)[...,5+axis]
+        new_grid[...,5+axis] = cell_avgd[...,5+axis]
 
     return new_grid
 
