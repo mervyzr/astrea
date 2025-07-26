@@ -4,11 +4,6 @@ import numpy as np
 # Generic functions used throughout the finite volume code
 ##############################################################################
 
-rho, vx, vy, vz, pressure, Bx, By, Bz = range(8)
-vels, Bfields = slice(1,4), slice(5,8)
-energy, momentums = pressure, vels
-
-
 # Generic Gaussian function
 def gauss_func(x, params):
     return params['y_offset'] + params['ampl']*np.exp(-((x-params['peak_pos'])**2)/params['fwhm'])
@@ -84,6 +79,9 @@ def add_boundary(grid, boundary, stencil=1, axis=0):
 # Convert between pressure P and total energy density e_tot; P is also related to the internal energy density e_int: P = (gamma-1) * e_int
 # Do note that the energy densities e are related to the energies E: e_tot = rho * E_tot, e_int = rho * E_int
 def convert_variable(variable, grid, sim_variables, staggered=False, permeability=1):
+    rho, pressure, vels, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields
+    energy, momentums = pressure, vels
+
     if staggered:
         arr = inverse_reconstruct(grid, sim_variables)
     else:
@@ -92,11 +90,13 @@ def convert_variable(variable, grid, sim_variables, staggered=False, permeabilit
     if variable.lower().startswith('p'):
         return arr[...,pressure]/(sim_variables.gamma-1) + .5 * (arr[...,rho]*norm(arr[...,vels])**2 + (norm(arr[...,Bfields])**2)/permeability)
     elif variable.lower().startswith('e') or 'energy' in variable.lower():
-        return (sim_variables.gamma-1) * (arr[...,energy] - .5 * (arr[...,rho]*norm(divide(arr[...,vels], arr[...,rho][...,None]))**2 + (norm(arr[...,Bfields])**2)/permeability))
+        return (sim_variables.gamma-1) * (arr[...,energy] - .5 * (arr[...,rho]*norm(divide(arr[...,momentums], arr[...,rho][...,None]))**2 + (norm(arr[...,Bfields])**2)/permeability))
 
 
 # Pointwise (exact) conversion of primitive variables w to conservative variables q (up to 2nd-order accurate)
 def point_convert_primitive(grid, sim_variables, staggered=False):
+    rho, energy, vels, momentums = sim_variables.rho, sim_variables.energy, sim_variables.vels, sim_variables.momentums
+
     arr = np.copy(grid)
     arr[...,energy] = convert_variable('pressure', grid, sim_variables, staggered=staggered)
     arr[...,momentums] = grid[...,vels] * grid[...,rho][...,None]
@@ -105,6 +105,8 @@ def point_convert_primitive(grid, sim_variables, staggered=False):
 
 # Pointwise (exact) conversion of conservative variables q to primitive variables w (up to 2nd-order accurate)
 def point_convert_conservative(grid, sim_variables, staggered=False):
+    rho, pressure, vels, momentums = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.momentums
+
     arr = np.copy(grid)
     arr[...,pressure] = convert_variable('energy', grid, sim_variables, staggered=staggered)
     arr[...,vels] = divide(grid[...,momentums], grid[...,rho][...,None])
@@ -113,6 +115,7 @@ def point_convert_conservative(grid, sim_variables, staggered=False):
 
 # Converting (cell-/face-averaged) primitive variables w to (cell-/face-averaged) conservative variables q through a Laplacian (2nd-deriv, 2nd-order) approx.
 def high_order_convert_primitive(grid, sim_variables, staggered=False, compute_face=False):
+    Bx, By = sim_variables.Bx, sim_variables.By
     w, q = np.copy(grid), np.zeros_like(grid)
 
     if compute_face:
@@ -135,6 +138,7 @@ def high_order_convert_primitive(grid, sim_variables, staggered=False, compute_f
 
 # Converting (cell-/face-averaged) conservative variables q to (cell-/face-averaged) primitive variables q through a Laplacian (2nd-deriv, 2nd-order) approx.
 def high_order_convert_conservative(grid, sim_variables, staggered=False, compute_face=False):
+    Bx, By = sim_variables.Bx, sim_variables.By
     w, q = np.zeros_like(grid), np.copy(grid)
 
     if compute_face:

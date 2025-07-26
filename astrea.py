@@ -24,9 +24,12 @@ from functions.generic import SimulationVariables
 
 # Globals
 CURRENT_DIR = os.getcwd()
-SAVE_DIR = f"{CURRENT_DIR}/saved_data"
+SAVE_DIR = "saved_data"
 SEED = np.random.randint(0, 1e8)
+
+DB_PATH = "static/.db.json"
 PLOT_STYLE = "default"
+BEAUTIFY_1D_PLOTS = False
 
 
 # Finite volume shock function
@@ -110,7 +113,7 @@ def core_run(hdf5, sim_variables):
 ##############################################################################
 
 # Main script; includes handlers and core execution of simulation code
-def run(seed, current_dir, save_dir, plot_style) -> None:
+def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
     np.random.seed(seed)
 
     # Save the HDF5 file (with seed) to store the temporary data
@@ -128,7 +131,7 @@ def run(seed, current_dir, save_dir, plot_style) -> None:
 
     # Check CLI arguments
     if len(sys.argv) > 1:
-        cli_variables, debug = generic.handle_CLI()
+        cli_variables, debug = generic.handle_CLI(f"{current_dir}/{db_path}")
     else:
         cli_variables, debug = {}, False
 
@@ -136,13 +139,13 @@ def run(seed, current_dir, save_dir, plot_style) -> None:
         np.seterr(all='ignore')
 
     # Tidy up configuration variables
-    config_variables = generic.parse_cli_variables(config_variables, cli_variables)
+    config_variables = generic.parse_cli_variables(config_variables, cli_variables, f"{current_dir}/{db_path}")
 
     # Generate test configuration based on configuration
     test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'])
 
     # Initialise simulation variables
-    sim_variables = SimulationVariables(seed, config_variables, test_variables)
+    sim_variables = SimulationVariables(seed, config_variables, test_variables, f"{current_dir}/{db_path}")
 
     # Auto-generate the resolutions/grid-sizes for run type
     if sim_variables.run_type.startswith('m'):
@@ -155,8 +158,9 @@ def run(seed, current_dir, save_dir, plot_style) -> None:
 
     ###################################### SCRIPT INITIATE ######################################
     script_start = datetime.now().strftime('%Y%m%d%H%M')
-    save_path = f"{save_dir}/sim{script_start}_{seed}"
+    save_path = f"{current_dir}/{save_dir}/sim{script_start}_{seed}"
     sim_variables.plot_style = plot_style
+    sim_variables.beautify = beautify
 
     # Make directories if they do not exist
     if sim_variables.take_snaps or sim_variables.save_plots or sim_variables.save_video or sim_variables.save_file:
@@ -257,6 +261,6 @@ if __name__ == "__main__":
         _ = [_filename for _filename in filenames if _filename.endswith('.env')]
         if len(_) == 1:
             dotenv.load_dotenv(os.path.join(dirpath, _[0]))
-    _globals = [SEED, CURRENT_DIR, SAVE_DIR, PLOT_STYLE]
+    _globals = [SEED, CURRENT_DIR, SAVE_DIR, DB_PATH, PLOT_STYLE, BEAUTIFY_1D_PLOTS]
 
     run(*_globals)

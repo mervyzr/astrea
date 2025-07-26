@@ -1,7 +1,5 @@
-import os
 import random
 import argparse
-import itertools
 from datetime import timedelta
 
 import yaml
@@ -14,11 +12,6 @@ from static import tests
 ##############################################################################
 # Generic functions not specific to the finite volume method
 ##############################################################################
-
-CURRENTDIR = os.getcwd()
-DB = TinyDB(f"{CURRENTDIR}/static/.db.json")
-PARAMS, ACCEPTED = Query(), Query()
-
 
 # Colours for printing to terminal
 class BColours:
@@ -93,14 +86,17 @@ def print_final(sim_variables, timestep_count):
 
 
 # CLI arguments handler; updates the simulation variables (which is a dict) and checks for any invalid values
-def handle_CLI():
+def handle_CLI(db_path):
 
     def bool_handler(value):
         return (value.lower() == 'true' or value.lower() == '1')
 
+    db = TinyDB(db_path)
+    params = Query()
+
     bool_choices = ['true','false','True','False',1,0]
-    accepted_values = lambda _type: [value for category in DB.search(PARAMS.type == _type) for value in category['accepted']]
-    quotes = DB.get(PARAMS.type == 'quotes')['name']
+    accepted_values = lambda _type: [value for category in db.search(params.type == _type) for value in category['accepted']]
+    quotes = db.get(params.type == 'quotes')['name']
 
     parser = argparse.ArgumentParser(description='Run the astrea simulation.\n\nastrea is a 1D or 2D (magneto-)hydrodynamics finite volume simulation written in Python3. Refer to the README for more information.', 
                                      epilog=f"--- {BColours.ITALIC}{quotes[random.randint(0,len(quotes)-1)]}{BColours.ENDC} ---", 
@@ -110,12 +106,12 @@ def handle_CLI():
     parser.add_argument('--cells', '--N', '--n', dest='cells', metavar='', type=int, default=argparse.SUPPRESS, help='number of cells in the grid')
     parser.add_argument('--cfl', metavar='', type=float, default=argparse.SUPPRESS, help='courant number in the Courant-Friedrichs-Lewy stability condition')
     parser.add_argument('--gamma', metavar='', type=float, default=argparse.SUPPRESS, help='adiabatic index')
-    parser.add_argument('--dimension', '--dim', dest='dimension', type=int, metavar='', default=argparse.SUPPRESS, help='dimension of the simulation', choices=DB.get(PARAMS.type == 'dimension')['accepted'])
+    parser.add_argument('--dimension', '--dim', dest='dimension', type=int, metavar='', default=argparse.SUPPRESS, help='dimension of the simulation', choices=db.get(params.type == 'dimension')['accepted'])
     parser.add_argument('--subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='subgrid model used in the reconstruction of the grid', choices=accepted_values('subgrid'))
     parser.add_argument('--timestep', metavar='', type=str.lower, default=argparse.SUPPRESS, help='sime-stepping algorithm used in the update step of the simulation', choices=accepted_values('timestep'))
     parser.add_argument('--solver', metavar='', type=str.lower, default=argparse.SUPPRESS, help='solver used for the Riemann problem', choices=accepted_values('solver'))
 
-    parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='run a single run or multiple runs for each simulation', choices=DB.get(PARAMS.type == 'run_type')['accepted'])
+    parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='run a single run or multiple runs for each simulation', choices=db.get(params.type == 'run_type')['accepted'])
     parser.add_argument('--checkpoints', '--chkpts', dest='checkpoints', metavar='', type=int, default=argparse.SUPPRESS, help='number of checkpoints in simulation')
 
     parser.add_argument('--plot_options', '--plot-options', dest='plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot')
@@ -134,8 +130,11 @@ def handle_CLI():
     return vars(args), args.debug
 
 
-def parse_cli_variables(_config_variables, _cli_variables):
+def parse_cli_variables(_config_variables, _cli_variables, _db_path):
+    db = TinyDB(_db_path)
+    params = Query()
     temp_dct = {}
+
     # Remove nested configuration dictionary
     for parameters in _config_variables.values():
         for k,v in parameters.items():
@@ -185,7 +184,7 @@ def parse_cli_variables(_config_variables, _cli_variables):
                 elif v > 1:
                     v = 1
         elif k == "plot_options":
-            accepted_plot_options, invalid = DB.get(PARAMS.type == k)['accepted'], []
+            accepted_plot_options, invalid = db.get(params.type == k)['accepted'], []
             try:
                 if isinstance(v, str):
                     v = v.replace(' ','').replace('-',',').replace('/',',').replace('|',',').split(',')
@@ -197,7 +196,7 @@ def parse_cli_variables(_config_variables, _cli_variables):
                 v = [i.lower() for i in v]
                 _ = v[0]
             except (IndexError, TypeError):
-                v = DB.get(PARAMS.type == 'default')[k]
+                v = db.get(params.type == 'default')[k]
                 print(f"{BColours.WARNING}No valid plot options; reverting to default values..{BColours.ENDC}")
             finally:
                 if invalid != []:
@@ -209,13 +208,13 @@ def parse_cli_variables(_config_variables, _cli_variables):
                 v = v.lower()
 
             found = False
-            for dct in DB.search(PARAMS.type == k):
+            for dct in db.search(params.type == k):
                 if v in dct['accepted']:
                     found = True
                     break
 
             if not found:
-                v = DB.get(PARAMS.type == 'default')[k]
+                v = db.get(params.type == 'default')[k]
                 print(f"{BColours.WARNING}{k.upper()} value not valid; reverting back to default value: {v}..{BColours.ENDC}")
 
         config_variables[k] = v
@@ -226,22 +225,34 @@ def parse_cli_variables(_config_variables, _cli_variables):
 class SimulationVariables(object):
     __slots__ = [
         '__dict__',
+        'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'energy', 'vels', 'Bfields', 'momentums',
         'config', 'cells', 'cfl', 'gamma', 'dimension', 'precision', 'subgrid', 'timestep', 'solver',
-        'seed', 'now', 'elapsed', 'access_key', 'datetime',
+        'seed', 'now', 'elapsed', 'access_key', 'datetime', 'save_path',
         'permeability', 'magnetic', 'roots', 'weights', 'axes', 'ortho_axis', 'permutations',
         'config_category', 'solver_category', 'convert_primitive', 'convert_conservative', 'higher_order',
         'start_pos', 'end_pos', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'dx', 'dy', 'dz',
-        'run_type', 'checkpoints', 'live_plot', 'take_snaps', 'save_plots', 'save_video', 'save_file', 'plot_options', 'plot_style',
+        'run_type', 'checkpoints', 'live_plot', 'take_snaps', 'save_plots', 'save_video', 'save_file', 'plot_options', 'plot_style', 'beautify',
         'debug', 'quiet', 'test'
     ]
 
-    def __init__(self, seed, config_variables, test_variables):
+    def __init__(self, seed, config_variables, test_variables, db_path):
+        db = TinyDB(db_path)
+        params = Query()
+
+        # Declare physical variables and their index in the array: [density, vx/px, vy/py, vz/pz, pressure/energy, Bx, By, Bz]
+        self.rho, self.vx, self.vy, self.vz, self.pressure, self.Bx, self.By, self.Bz = range(8)
+        self.vels, self.Bfields = slice(1,4), slice(5,8)
+        self.energy, self.momentums = self.pressure, self.vels
+
+        # Parse configuration variables into the class
         for key in config_variables:
             setattr(self, key, config_variables[key])
 
+        # Parse test variables into the class
         for key in test_variables:
             setattr(self, key, test_variables[key])
 
+        # Parse additional variables into the class
         # 5th-order Gauss-Legendre quadrature with interval [0,1] for OS solver
         roots, weights = np.array(list(np.polynomial.legendre.leggauss(5)))/2
 
@@ -255,9 +266,9 @@ class SimulationVariables(object):
         self.roots = roots + .5
         self.weights = weights
 
-        self.config_category = DB.get(PARAMS.accepted.any([self.config]))['category']
-        self.solver_category = DB.get(PARAMS.accepted.any([self.solver]))['category']
-        self.magnetic = 'magnetic' in DB.get(PARAMS.accepted.any([self.config]))['category']
+        self.config_category = db.get(params.accepted.any([self.config]))['category']
+        self.solver_category = db.get(params.accepted.any([self.solver]))['category']
+        self.magnetic = 'magnetic' in db.get(params.accepted.any([self.config]))['category']
 
         self.convert_primitive = fv.point_convert_primitive
         self.convert_conservative = fv.point_convert_conservative
@@ -275,10 +286,10 @@ class SimulationVariables(object):
         self.axes = tuple(range(self.dimension))
 
         # Exclusion cases
-        if self.solver in DB.get(PARAMS.type == 'solver' and PARAMS.category == 'hll')['accepted']:
-            if (self.solver_category == "hll" and self.solver.endswith('c')) and self.config in DB.get(PARAMS.type == 'config' and PARAMS.category == 'magnetic')['accepted']:
+        if self.solver in db.get(params.type == 'solver' and params.category == 'hll')['accepted']:
+            if (self.solver_category == "hll" and self.solver.endswith('c')) and self.config in db.get(params.type == 'config' and params.category == 'magnetic')['accepted']:
                 print(f"{BColours.WARNING}HLLC solver does not work with magnetic fields present..{BColours.ENDC}")
-                self.solver = DB.get(PARAMS.type == 'default')['solver']
+                self.solver = db.get(params.type == 'default')['solver']
 
         if self.run_type.startswith('m'):
             if self.save_video:

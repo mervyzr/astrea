@@ -16,9 +16,6 @@ from functions import analytic, constructor, fv, generic
 # Plotting functions and media handling
 ##############################################################################
 
-BEAUTIFY_1D_PLOTS = False
-
-
 # Make figures and axes for plotting
 def make_figure(options, sim_variables, variable="normal"):
     if 0 < len(options) < 13:
@@ -310,7 +307,7 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
 def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
     config, N, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
-    options = sim_variables.plot_options
+    options, beautify = sim_variables.plot_options, sim_variables.beautify
 
     fig, ax, plot_ = make_figure(options, sim_variables)
     y_data = make_data(options, grid_snapshot, sim_variables)
@@ -325,7 +322,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
             x = np.linspace(start_pos, end_pos, N)
-            if BEAUTIFY_1D_PLOTS:
+            if beautify:
                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
             else:
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
@@ -358,7 +355,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
     config, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
     precision, t_end, checkpoints = sim_variables.precision, sim_variables.t_end, sim_variables.checkpoints
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
-    options = sim_variables.plot_options
+    options, beautify = sim_variables.plot_options, sim_variables.beautify
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -407,7 +404,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
                         cax = divider.append_axes('right', size='5%', pad=0.05)
                         fig.colorbar(graph, cax=cax, orientation='vertical')
                     else:
-                        if BEAUTIFY_1D_PLOTS:
+                        if beautify:
                             gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
                         else:
                             #ax[_i,_j].plot(x, y, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=plot_['colours']['1d'], color=plot_['colours']['1d'])
@@ -715,6 +712,7 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
 def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
     config, gamma, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.gamma, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
     start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
+    beautify = sim_variables.beautify
 
     def make_limits(_options, _gamma, _min_values, _max_values, scale_factor=1.):
         limits = []
@@ -788,7 +786,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                             fig.colorbar(graph, cax=cax, orientation='vertical')
                             graph.set_clim(limits[idx][0], limits[idx][1])
                         else:
-                            if BEAUTIFY_1D_PLOTS:
+                            if beautify:
                                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
                             else:
                                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
@@ -895,6 +893,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 # Function for plotting instance of the grid; insert into any part of the code
 def plot_this(grid, sim_variables, **kwargs):
     options = ['density', 'pressure', 'total energy', 'vx', 'vy', 'vz', 'Bx', 'By', 'Bz']
+    beautify = sim_variables.beautify
 
     try:
         t = kwargs['t']
@@ -919,7 +918,7 @@ def plot_this(grid, sim_variables, **kwargs):
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
             x = np.linspace(sim_variables.start_pos, sim_variables.end_pos, len(y))
-            if BEAUTIFY_1D_PLOTS:
+            if beautify:
                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
             else:
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
