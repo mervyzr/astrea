@@ -106,7 +106,9 @@ def initialise(sim_variables, convert=False):
 
 
 # Make flux as a function of cell-averaged (primitive) variables
-def make_flux(grid, gamma, axis, permeability=1):
+def make_flux(grid, sim_variables, axis):
+    gamma, permeability = sim_variables.gamma, sim_variables.permeability
+
     rhos, vels, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
     abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
     arr = np.zeros_like(grid)
@@ -123,7 +125,9 @@ def make_flux(grid, gamma, axis, permeability=1):
 
 
 # Jacobian matrix based on primitive variables [Winters & Gassner, 2016]
-def make_Jacobian(grid, gamma, axis, permeability=1):
+def make_Jacobian(grid, sim_variables, axis):
+    gamma, permeability = sim_variables.gamma, sim_variables.permeability
+
     rhos, vels, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
     abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
 

@@ -355,6 +355,7 @@
       "type": "default",
       "config": "sod",
       "dimension": 1,
+      "permeability": 1,
       "precision": "float64",
       "subgrid": "pcm",
       "timestep": "euler",

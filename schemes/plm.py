@@ -10,7 +10,7 @@ from num_methods import limiters, mag_field
 ##############################################################################
 
 def run(grid, sim_variables):
-    gamma, boundary, axes, magnetic = sim_variables.gamma, sim_variables.boundary, sim_variables.axes, sim_variables.magnetic
+    boundary, axes, magnetic = sim_variables.boundary, sim_variables.axes, sim_variables.magnetic
     convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
@@ -55,8 +55,8 @@ def run(grid, sim_variables):
             cons_plus[...,(Bx,By)] = cons_minus[...,(Bx,By)] = fv.slice_(padded_grid, axis, end=-1)[...,(Bx,By)]
 
         # Compute the fluxes and the Jacobian
-        flux_plus, flux_minus = constructor.make_flux(prim_plus, gamma, axis=axis), constructor.make_flux(prim_minus, gamma, axis=axis)
-        jacobian = constructor.make_Jacobian(padded_intf_avg, gamma, axis=axis)
+        flux_plus, flux_minus = constructor.make_flux(prim_plus, sim_variables, axis=axis), constructor.make_flux(prim_minus, sim_variables, axis=axis)
+        jacobian = constructor.make_Jacobian(padded_intf_avg, sim_variables, axis=axis)
 
         # Update dict
         data[axis]['primitive'] = primitive

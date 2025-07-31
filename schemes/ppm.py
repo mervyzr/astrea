@@ -11,7 +11,7 @@ from num_methods import limiters, mag_field
 
 # [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
 def run(grid, sim_variables, author="mc", dissipate=False):
-    gamma, boundary, axes, magnetic = sim_variables.gamma, sim_variables.boundary, sim_variables.axes, sim_variables.magnetic
+    boundary, axes, magnetic = sim_variables.boundary, sim_variables.axes, sim_variables.magnetic
     convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
@@ -95,12 +95,12 @@ def run(grid, sim_variables, author="mc", dissipate=False):
         cons_plus, cons_minus = convert_primitive(prim_plus, sim_variables, compute_face=True), convert_primitive(prim_minus, sim_variables, compute_face=True)
 
         # Compute the fluxes and the Jacobian
-        flux_plus, flux_minus = constructor.make_flux(prim_plus, gamma, axis=axis), constructor.make_flux(prim_minus, gamma, axis=axis)
+        flux_plus, flux_minus = constructor.make_flux(prim_plus, sim_variables, axis=axis), constructor.make_flux(prim_minus, sim_variables, axis=axis)
 
         if (author == "mc" or "mccorquodale" in author) and dissipate:
             data[axis]['mu'] = apply_artificial_viscosity(primitive, axis, sim_variables)
 
-        jacobian = constructor.make_Jacobian(padded_intf_avg, gamma, axis=axis)
+        jacobian = constructor.make_Jacobian(padded_intf_avg, sim_variables, axis=axis)
 
         # Update dict
         data[axis]['primitive'] = primitive
