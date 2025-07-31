@@ -43,7 +43,6 @@ def print_progress(t, sim_variables):
     _seed = f"{BColours.OKBLUE}{sim_variables.seed}{BColours.ENDC}"
     _config = f"{BColours.OKCYAN}{sim_variables.config.upper()}{BColours.ENDC}"
     _subgrid = f"{BColours.OKCYAN}{sim_variables.subgrid.upper()}{BColours.ENDC}"
-    _mhd_subgrid = f"{BColours.OKCYAN}{sim_variables.mhd_subgrid.upper()}{BColours.ENDC}"
     _timestep = f"{BColours.OKCYAN}{sim_variables.timestep.upper()}{BColours.ENDC}"
     _solver = f"{BColours.OKCYAN}{sim_variables.solver.upper()}{BColours.ENDC}"
     _cfl = f"{BColours.OKCYAN}{sim_variables.cfl}{BColours.ENDC}"
@@ -55,7 +54,7 @@ def print_progress(t, sim_variables):
     else:
         _cells = f"{BColours.OKCYAN}{sim_variables.cells}{BColours.ENDC}"
 
-    print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, MHD-SUBGRID={_mhd_subgrid}, SOLVER={_solver}, TIMESTEP={_timestep} || {_instance}", end='\r')
+    print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SOLVER={_solver}, TIMESTEP={_timestep} || {_instance}", end='\r')
     pass
 
 
@@ -64,7 +63,6 @@ def print_final(sim_variables, timestep_count):
     _seed = f"{BColours.OKBLUE}{sim_variables.seed}{BColours.ENDC}"
     _config = f"{BColours.OKCYAN}{sim_variables.config.upper()}{BColours.ENDC}"
     _subgrid = f"{BColours.OKCYAN}{sim_variables.subgrid.upper()}{BColours.ENDC}"
-    _mhd_subgrid = f"{BColours.OKCYAN}{sim_variables.mhd_subgrid.upper()}{BColours.ENDC}"
     _timestep = f"{BColours.OKCYAN}{sim_variables.timestep.upper()}{BColours.ENDC}"
     _solver = f"{BColours.OKCYAN}{sim_variables.solver.upper()}{BColours.ENDC}"
     _cfl = f"{BColours.OKCYAN}{sim_variables.cfl}{BColours.ENDC}"
@@ -83,7 +81,7 @@ def print_final(sim_variables, timestep_count):
     else:
         _elapsed = f"{BColours.OKGREEN}{str(timedelta(seconds=sim_variables.elapsed))}s{BColours.ENDC}"
 
-    print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, MHD-SUBGRID={_mhd_subgrid}, SOLVER={_solver}, TIMESTEP={_timestep} || Elapsed: {_elapsed} ({timestep_count})", flush=True)
+    print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SOLVER={_solver}, TIMESTEP={_timestep} || Elapsed: {_elapsed} ({timestep_count})", flush=True)
     pass
 
 
@@ -112,7 +110,6 @@ def handle_CLI(db_path):
     parser.add_argument('--dimension', '--dim', dest='dimension', type=int, metavar='', default=argparse.SUPPRESS, help='dimension of the simulation', choices=db.get(params.type == 'dimension')['accepted'])
 
     parser.add_argument('--subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='subgrid model used in the reconstruction of the grid', choices=accepted_values('subgrid'))
-    parser.add_argument('--mhd-subgrid', '--mhd_subgrid', dest='mhd_subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='subgrid model used in the (transverse) reconstruction of the magnetic field components', choices=accepted_values('subgrid'))
     parser.add_argument('--timestep', metavar='', type=str.lower, default=argparse.SUPPRESS, help='sime-stepping algorithm used in the update step of the simulation', choices=accepted_values('timestep'))
     parser.add_argument('--solver', metavar='', type=str.lower, default=argparse.SUPPRESS, help='solver used for the Riemann problem', choices=accepted_values('solver'))
 
@@ -236,7 +233,7 @@ class SimulationVariables(object):
     __slots__ = [
         '__dict__',
         'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'energy', 'vels', 'Bfields', 'momentums',
-        'config', 'cells', 'cfl', 'gamma', 'permeability', 'dimension', 'precision', 'subgrid', 'mhd_subgrid', 'timestep', 'solver',
+        'config', 'cells', 'cfl', 'gamma', 'permeability', 'dimension', 'precision', 'subgrid', 'timestep', 'solver',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'save_path',
         'permeability', 'magnetic', 'roots', 'weights', 'axes', 'ortho_axis', 'permutations',
         'config_category', 'solver_category', 'convert_primitive', 'convert_conservative', 'higher_order',
