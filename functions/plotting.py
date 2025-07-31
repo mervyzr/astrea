@@ -74,6 +74,12 @@ def make_figure(options, sim_variables, variable="normal"):
                 error = r"$\epsilon_N(m)$"
                 tv = r"TV($m$)"
 
+            elif "mach" in option:
+                name = "Mach number"
+                label = r"$\mathcal{M}$"
+                error = r"$\epsilon_N(\mathcal{M})$"
+                tv = r"TV($\mathcal{M}$)"
+
             elif option.startswith("p"):
                 name = "Pressure"
                 label = r"$P$"
@@ -228,6 +234,8 @@ def make_data(options, grid, sim_variables):
             else:
                 axis = {"x":0, "y":1, "z":2}[option[-1]]
                 quantity = np.diff(grid[...,5+axis], axis=axis)
+        elif "mach" in option:
+            quantity = np.sqrt(fv.divide(fv.norm(grid[...,vels])**2, fv.divide(sim_variables.gamma*grid[...,pressure], grid[...,rho])))
         else:
             quantity = grid[...,rho]
 
