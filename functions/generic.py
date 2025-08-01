@@ -235,7 +235,7 @@ class SimulationVariables(object):
         'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'energy', 'vels', 'Bfields', 'momentums',
         'config', 'cells', 'cfl', 'gamma', 'permeability', 'dimension', 'precision', 'subgrid', 'timestep', 'solver',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'save_path',
-        'permeability', 'magnetic', 'roots', 'weights', 'axes', 'ortho_axis', 'permutations',
+        'permeability', 'magnetic', 'roots', 'weights', 'axes',
         'config_category', 'solver_category', 'convert_primitive', 'convert_conservative', 'higher_order',
         'start_pos', 'end_pos', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'dx', 'dy', 'dz',
         'run_type', 'checkpoints', 'live_plot', 'take_snaps', 'save_plots', 'save_video', 'save_file', 'plot_options', 'plot_style', 'beautify',

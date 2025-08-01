@@ -131,6 +131,17 @@ def generate_test_conditions(config, cells):
         initial_right = np.array([1,0,0,0,1,0,0,0])
         misc = {'vortex_str':.5, 'freq':2}
 
+    # [Gresho & Chan, 1990]
+    elif "gresho" in config:
+        start_pos = 0
+        end_pos = 1
+        shock_pos = .5
+        t_end = 1
+        boundary = "wrap"
+        initial_left = np.array([1,0,0,0,0,0,0,0])
+        initial_right = np.array([1,0,0,0,0,0,0,0])
+        misc = {'mach':1}
+
     # [Orszag & Tang, 1998; Stone et al., 2008]
     elif "orszag" in config or "tang" in config or config == "ot":
         start_pos = 0
