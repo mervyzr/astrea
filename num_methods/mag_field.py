@@ -73,7 +73,7 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
 
     elif method == "ppm":
 
-        author = "mc"
+        author = "McCorquodale&Colella2011"
 
         """Interpolate the face averages to the top corners (upwards) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
         |                w(i-1/2)            w(i+1/2)               |
@@ -86,7 +86,7 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
         """
         wU = 7/12 * (zeroth + plus_one) - 1/12 * (minus_one + plus_two)
 
-        if "x" in author or "ph" in author or author in ["peterson", "hammett"]:
+        if author.lower().startswith(("peterson", "p", "x")):
             """Interpolate the face averages to both corners (upwards & downwards)
             |                w(i-1/2)            w(i+1/2)               |
             |-------------------|-------------------|-------------------|
@@ -107,7 +107,7 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
             limited_wUs = limiters.interface_limiter(wD, minus_two, minus_one, zeroth, plus_one), limiters.interface_limiter(wU, minus_one, zeroth, plus_one, plus_two)
             padded_wU_2 = np.zeros_like(fv.add_boundary(wU, boundary, stencil=2, axis=ortho_axis))
         else:
-            if author == "c" or author == "collela":
+            if author.lower().startswith(("colella", "c")):
                 # Limit interface values [Colella et al., 2011, p. 25-26]
                 wU = limiters.interface_limiter(wU, minus_one, zeroth, plus_one, plus_two)
 

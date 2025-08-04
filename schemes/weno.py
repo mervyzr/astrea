@@ -12,10 +12,13 @@ from num_methods import mag_field
 def run(grid, sim_variables):
     subgrid, boundary, axes, magnetic = sim_variables.subgrid, sim_variables.boundary, sim_variables.axes, sim_variables.magnetic
     convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
+    Bx, By, Bz = range(5,8)
+
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
-    Bx, By, Bz = range(5,8)
+    # Convert to primitive variables
+    primitive = convert_conservative(grid, sim_variables, staggered=magnetic)
 
     """WENO reconstruction [Shu, 2009; San & Kara, 2015]
     |                        w(i-1/2)                    w(i+1/2)                       |
@@ -155,9 +158,6 @@ def run(grid, sim_variables):
         return wL, wR
 
     for axis in axes:
-        # Convert to primitive variables
-        primitive = convert_conservative(grid, sim_variables, staggered=magnetic)
-
         # Reconstruct the interface states
         if len(subgrid.split("weno")) == 2:
             try:

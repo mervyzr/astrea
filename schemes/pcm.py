@@ -15,10 +15,10 @@ def run(grid, sim_variables):
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
-    for axis in axes:
-        # Convert to primitive variables
-        primitive = convert_conservative(grid, sim_variables, staggered=magnetic)
+    # Convert to primitive variables
+    primitive = convert_conservative(grid, sim_variables, staggered=magnetic)
 
+    for axis in axes:
         # Magnetic component after computing to interface (interface = centre for PCM)
         if magnetic:
             data[axis]['ortho_interfaces'] = mag_field.reconstruct_transverse(primitive, sim_variables, axis=axis)
