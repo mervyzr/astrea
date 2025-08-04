@@ -21,7 +21,7 @@ def generate_test_conditions(config, cells):
         start_pos = -10
         end_pos = 10
         shock_pos = .5  # blast boundary
-        t_end = .6
+        t_end = 1
         boundary = "wrap"  # periodic
         initial_left = np.array([1,0,0,0,100,0,0,0])
         initial_right = np.array([1,0,0,0,1,0,0,0])
