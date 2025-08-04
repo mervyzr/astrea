@@ -30,7 +30,7 @@ SEED = np.random.randint(0, 1e8)
 DB_PATH = "static/.db.json"
 PLOT_STYLE = "default"
 BEAUTIFY_1D_PLOTS = False
-np.set_printoptions(linewidth=1000, suppress=True)
+
 
 # Finite volume shock function
 def core_run(hdf5, sim_variables):
