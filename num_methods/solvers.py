@@ -52,6 +52,10 @@ def calculate_Riemann_flux(data, sim_variables):
             # Orthogonal Laplacian in 1D is zero
             final_fluxes = intf_fluxes_avgd
 
+        # Add additional dissipation for strong shocks, if switched on (should not apply for mag. fields) [McCorquodale & Colella, 2011]
+        if "artf_visc" in arrays.keys():
+            final_fluxes = final_fluxes + arrays['artf_visc']
+
         fluxes[axis] = {'flux':final_fluxes, 'eigmax':eigmax}
 
     return fluxes

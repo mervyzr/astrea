@@ -75,6 +75,7 @@ Several hydrodynamics and magnetohydrodynamics tests are in place:
   - Slow-moving shockwave (Zingale, 2023, p.148)
   - Kelvin-Helmholtz instability
   - Noh problem (Noh, 1987)
+  - Gresho vortex (Gresho & Chan, 1990)
   - Simple advection wave tests
     - Gaussian
     - sine

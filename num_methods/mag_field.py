@@ -73,7 +73,7 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
 
     elif method == "ppm":
 
-        author = "mc"
+        author = "McCorquodale&Colella2011"
 
         """Interpolate the face averages to the top corners (upwards) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
         |                w(i-1/2)            w(i+1/2)               |
@@ -86,7 +86,7 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
         """
         wU = 7/12 * (zeroth + plus_one) - 1/12 * (minus_one + plus_two)
 
-        if "x" in author or "ph" in author or author in ["peterson", "hammett"]:
+        if author.lower().startswith(("peterson", "p", "x")):
             """Interpolate the face averages to both corners (upwards & downwards)
             |                w(i-1/2)            w(i+1/2)               |
             |-------------------|-------------------|-------------------|
@@ -107,7 +107,7 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
             limited_wUs = limiters.interface_limiter(wD, minus_two, minus_one, zeroth, plus_one), limiters.interface_limiter(wU, minus_one, zeroth, plus_one, plus_two)
             padded_wU_2 = np.zeros_like(fv.add_boundary(wU, boundary, stencil=2, axis=ortho_axis))
         else:
-            if author == "c" or author == "collela":
+            if author.lower().startswith(("colella", "c")):
                 # Limit interface values [Colella et al., 2011, p. 25-26]
                 wU = limiters.interface_limiter(wU, minus_one, zeroth, plus_one, plus_two)
 
@@ -184,68 +184,3 @@ def compute_corner(data, sim_variables):
     NE = .5*(east[...,vy]+north[...,vy])*north[...,Bx] - .5*(east[...,vx]+north[...,vx])*east[...,By]
 
     return fv.divide(ap_x*ap_y*SW + am_x*ap_y*SE + ap_x*am_y*NW + am_x*am_y*NE, (ap_x+am_x)*(ap_y+am_y)) - fv.divide(ap_y*am_y, ap_y+am_y)*(north[...,Bx]-south[...,Bx]) + fv.divide(ap_x*am_x, ap_x+am_x)*(east[...,By]-west[...,By])
-
-
-"""# Compute the corner electric fields wrt to corner; gives 4-fold values for each corner for now [Mignone & del Zanna, 2021]
-def compute_corner(data, sim_variables):
-
-    # Calculate the eigenvalues for the Riemann problem at the corner; crucial for selecting the corner
-    def get_wavespeeds(_wD, _wU, _sim_variables, _axis):
-        # Re-align the interfaces so that cell wall is in between interfaces
-        plus, minus = fv.add_boundary(_wD, _sim_variables.boundary)[1:], fv.add_boundary(_wU, _sim_variables.boundary)[:-1]
-
-        # Get the average solution between the interfaces at the boundaries
-        intf_avg = constructor.make_Roe_average(plus, minus)[1:]
-
-        # HLL-family solver
-        if _sim_variables.solver_category == "hll":
-            # Define the variables
-            rhos, vels, pressures, B_fields = intf_avg[...,0], intf_avg[...,1:4], intf_avg[...,4], intf_avg[...,5:8]
-            vx, Bx = vels[...,_axis%3], B_fields[...,_axis%3]
-
-            # Define speeds
-            sound_speed = np.sqrt(_sim_variables.gamma * fv.divide(pressures, rhos))
-            alfven_speed = fv.divide(fv.norm(B_fields), np.sqrt(rhos))
-            alfven_speed_x = fv.divide(Bx, np.sqrt(rhos))
-            fast_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 + np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
-
-            # Local min/max characteristic waves for each cell
-            local_max_eigvals = np.maximum(np.zeros_like(vx), vx+fast_magnetosonic_wave)
-            local_min_eigvals = -np.minimum(np.zeros_like(vx), vx-fast_magnetosonic_wave)
-
-        # Default to Local Lax-Friedrich solver
-        else:
-            # Compute the eigenvalues for the Riemann fan at the corner; crucial in selecting the corner
-            A = constructor.make_Jacobian(intf_avg, _sim_variables.gamma, _axis%3)
-            characteristics = np.linalg.eigvals(A)
-
-            # Local min/max eigenvalues for each cell
-            local_max_eigvals = np.max(characteristics, axis=-1)
-            local_min_eigvals = -np.min(characteristics, axis=-1)
-
-        return local_max_eigvals, local_min_eigvals
-
-    alphas, magnetic_components = [], []
-    for axis, axes in sim_variables.swapped_permutations.items():
-        wD, wU = data[axes]['wTs']
-
-        # Solve Riemann problem for corners; compute with transverse axes, but the 'axis' must match the 'axes'
-        a_plus, a_minus = get_wavespeeds(wD, wU, sim_variables, axis)
-
-        # Collate and align the magnetic components and the alphas (rotate array to make x-axis as 'reference axis')
-        alignment_axes = sim_variables.permutations[axis]
-        alphas.append([a_plus.transpose(alignment_axes[:-1]), a_minus.transpose(alignment_axes[:-1])])
-        magnetic_components.append([wD.transpose(alignment_axes), wU.transpose(alignment_axes)])
-
-    # Compute the corner B-fields wrt to corner
-    [north, south], [east, west] = magnetic_components
-    SW = .5*(west[...,2]+south[...,2])*south[...,5] - .5*(west[...,1]+south[...,1])*west[...,6]
-    SE = .5*(east[...,2]+south[...,2])*south[...,5] - .5*(east[...,1]+south[...,1])*east[...,6]
-    NW = .5*(west[...,2]+north[...,2])*north[...,5] - .5*(west[...,1]+north[...,1])*west[...,6]
-    NE = .5*(east[...,2]+north[...,2])*north[...,5] - .5*(east[...,1]+north[...,1])*east[...,6]
-
-    # Determine the alphas
-    [ap_y, am_y], [ap_x, am_x] = alphas
-
-    return fv.divide(ap_x*ap_y*SW + am_x*ap_y*SE + ap_x*am_y*NW + am_x*am_y*NE, (ap_x+am_x)*(ap_y+am_y)) - fv.divide(ap_y*am_y, ap_y+am_y)*(north[...,5]-south[...,5]) + fv.divide(ap_x*am_x, ap_x+am_x)*(east[...,6]-west[...,6])
-    #return -(west[...,1]*west[...,6] + east[...,1]*east[...,6]) + (north[...,2]*north[...,5] + south[...,2]*south[...,5])"""

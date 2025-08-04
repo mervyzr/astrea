@@ -39,7 +39,7 @@ def norm(arr):
 
 
 # Slice ndarray along axis
-def slice_(arr, axis, start=None, end=None, step=1, *args):
+def slice_(arr, axis, start=0, end=None, step=1, *args):
     slc = [slice(None)] * arr.ndim
 
     if args and (2 <= len(args) <= 3):
@@ -52,8 +52,6 @@ def slice_(arr, axis, start=None, end=None, step=1, *args):
             except ValueError:
                 start, end, step = 0, arr.shape[axis], 1
 
-    if not start:
-        start = 0
     if not end:
         end = arr.shape[axis]
 
@@ -78,7 +76,7 @@ def add_boundary(grid, boundary, stencil=1, axis=0):
 
 # Convert between pressure P and total energy density e_tot; P is also related to the internal energy density e_int: P = (gamma-1) * e_int
 # Do note that the energy densities e are related to the energies E: e_tot = rho * E_tot, e_int = rho * E_int
-def convert_variable(variable, grid, sim_variables, staggered=False, permeability=1):
+def convert_variable(variable, grid, sim_variables, staggered=False):
     rho, pressure, vels, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields
     energy, momentums = pressure, vels
 
@@ -88,9 +86,9 @@ def convert_variable(variable, grid, sim_variables, staggered=False, permeabilit
         arr = grid
 
     if variable.lower().startswith('p'):
-        return arr[...,pressure]/(sim_variables.gamma-1) + .5 * (arr[...,rho]*norm(arr[...,vels])**2 + (norm(arr[...,Bfields])**2)/permeability)
+        return arr[...,pressure]/(sim_variables.gamma-1) + .5 * (arr[...,rho]*norm(arr[...,vels])**2 + (norm(arr[...,Bfields])**2)/sim_variables.permeability)
     elif variable.lower().startswith('e') or 'energy' in variable.lower():
-        return (sim_variables.gamma-1) * (arr[...,energy] - .5 * (arr[...,rho]*norm(divide(arr[...,momentums], arr[...,rho][...,None]))**2 + (norm(arr[...,Bfields])**2)/permeability))
+        return (sim_variables.gamma-1) * (arr[...,energy] - .5 * (arr[...,rho]*norm(divide(arr[...,momentums], arr[...,rho][...,None]))**2 + (norm(arr[...,Bfields])**2)/sim_variables.permeability))
 
 
 # Pointwise (exact) conversion of primitive variables w to conservative variables q (up to 2nd-order accurate)

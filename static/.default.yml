@@ -2,20 +2,21 @@
 simulation_parameters:
   # List of available configurations to run
   # : Sod, Sedov, Shu-Osher, Ryu-Jones, Brio-Wu, Gaussian, sine wave, square wave, slow-moving shock, isentropic vortex,
-  # : Kelvin-Helmholtz instability, Noh problem, Orszag-Tang, MHD-rotor, MHD-blast, Toro 1-5, Lax-Liu 1-19
+  # : Kelvin-Helmholtz instability, Gresho vortex, Noh problem, Orszag-Tang vortex, MHD-rotor, MHD-blast, Toro 1-5, Lax-Liu 1-19
   config        : Sod
   cells         : 128
   cfl           : .5
   gamma         : 1.4
+  permeability  : 1.
   dimension     : 1
 
 numerical_parameters:
   # Floating-point precision : float16, float32, float64
   precision     : float64
-  # Subgrid models : PCM, PLM, PPM, WENO-3/5/7
-  subgrid       : PPM
+  # Subgrid models for hydro and mag. components : PCM, PLM, PPM, WENO-3/5/7
+  subgrid       : PCM
   # Iteration methods : Euler, RK4, SSPRK(2,2), SSPRK(3,3), SSPRK(4,3), SSPRK(5,3), SSPRK(5,4), SSPRK(10,4)
-  timestep      : SSPRK(5,4)
+  timestep      : EULER
   # Update schemes : Lax-Friedrich (LF), Lax-Wendroff (LW), HLLC (C), HLLD (D), Osher-Solomon (OS)
   solver        : LF
 
@@ -25,12 +26,14 @@ runtime_parameters:
   checkpoints   : 1
 
 media_options:
-  live_plot     : false
+  live_plot     : true
   take_snaps    : false
   save_plots    : false
   save_video    : false
   save_file     : false
-  # Options: density, pressure, velocity Vx/Vy/Vz, total/internal energy, magnetic field Bx/By/Bz, magnetic divergence divBx/divBy/divBz/divB, magnetic pressure
+  # Plot options
+  # : density, pressure, velocity Vx/Vy/Vz, total/internal energy, Mach number,
+  # : magnetic field Bx/By/Bz, magnetic pressure, magnetic divergence divBx/divBy/divBz/divB
   plot_options  :
     - density
     - pressure

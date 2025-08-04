@@ -57,6 +57,25 @@ def initialise(sim_variables, convert=False):
             computational_grid[...,vy] = b/(freq*np.pi) * np.exp((1-r**2)/freq) * (x-centre)
             computational_grid[...,pressure] = T**(gamma)
 
+        elif "gresho" in config:
+            r = np.sqrt((x-centre)**2 + (y-centre)**2)
+            core, ring = np.where((0 <= r) & (r < .2)), np.where((.2 <= r) & (r < .4))
+            rx, ry = -np.sin(np.arctan2(y,x)), np.cos(np.arctan2(y,x))
+
+            v_phi = 5 * r
+            computational_grid[...,vx][core] = (v_phi * rx)[core]
+            computational_grid[...,vy][core] = (v_phi * ry)[core]
+
+            v_phi = 2 - 5*r
+            computational_grid[...,vx][ring] = (v_phi * rx)[ring]
+            computational_grid[...,vy][ring] = (v_phi * ry)[ring]
+
+            v_phi = 1
+            p0 = (initial_left[...,rho] * v_phi)/(gamma*params['mach']**2) - .5
+            computational_grid[...,pressure] = p0 - 2 + 4*np.log(2)
+            computational_grid[...,pressure][core] = (p0 + (25/2)*r**2)[core]
+            computational_grid[...,pressure][ring] = (p0 + (25/2)*r**2 + 4*(1 - 5*r + np.log(5*r)))[ring]
+
         elif "ll" in config or "lax-liu" in config:
             computational_grid[np.where(x <= shock_pos)] = initial_left
             computational_grid[np.where((x <= shock_pos) & (y >= shock_pos))] = params['bottom_left']
@@ -106,7 +125,9 @@ def initialise(sim_variables, convert=False):
 
 
 # Make flux as a function of cell-averaged (primitive) variables
-def make_flux(grid, gamma, axis, permeability=1):
+def make_flux(grid, sim_variables, axis):
+    gamma, permeability = sim_variables.gamma, sim_variables.permeability
+
     rhos, vels, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
     abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
     arr = np.zeros_like(grid)
@@ -123,7 +144,9 @@ def make_flux(grid, gamma, axis, permeability=1):
 
 
 # Jacobian matrix based on primitive variables [Winters & Gassner, 2016]
-def make_Jacobian(grid, gamma, axis, permeability=1):
+def make_Jacobian(grid, sim_variables, axis):
+    gamma, permeability = sim_variables.gamma, sim_variables.permeability
+
     rhos, vels, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
     abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
 

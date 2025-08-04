@@ -10,15 +10,15 @@ from num_methods import mag_field
 ##############################################################################
 
 def run(grid, sim_variables):
-    gamma, boundary, axes, magnetic = sim_variables.gamma, sim_variables.boundary, sim_variables.axes, sim_variables.magnetic
+    boundary, axes, magnetic = sim_variables.boundary, sim_variables.axes, sim_variables.magnetic
     convert_conservative = sim_variables.convert_conservative
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
-    for axis in axes:
-        # Convert to primitive variables
-        primitive = convert_conservative(grid, sim_variables, staggered=magnetic)
+    # Convert to primitive variables
+    primitive = convert_conservative(grid, sim_variables, staggered=magnetic)
 
+    for axis in axes:
         # Magnetic component after computing to interface (interface = centre for PCM)
         if magnetic:
             data[axis]['ortho_interfaces'] = mag_field.reconstruct_transverse(primitive, sim_variables, axis=axis)
@@ -28,8 +28,8 @@ def run(grid, sim_variables):
         padded_primitive = fv.add_boundary(primitive, boundary, axis=axis)
 
         # Compute the fluxes and the Jacobian
-        fluxes = constructor.make_flux(padded_primitive, gamma, axis=axis)
-        jacobian = constructor.make_Jacobian(padded_primitive, gamma, axis=axis)
+        fluxes = constructor.make_flux(padded_primitive, sim_variables, axis=axis)
+        jacobian = constructor.make_Jacobian(padded_primitive, sim_variables, axis=axis)
 
         # Update data dictionary
         data[axis]['primitive'] = primitive

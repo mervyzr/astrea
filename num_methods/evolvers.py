@@ -14,7 +14,7 @@ def evolve_space(grid, sim_variables):
     if sim_variables.subgrid.startswith("w"):
         data = weno.run(grid, sim_variables)
     elif sim_variables.subgrid in ["ppm", "parabolic", "p"]:
-        data = ppm.run(grid, sim_variables, author='mc')
+        data = ppm.run(grid, sim_variables)
     elif sim_variables.subgrid in ["plm", "linear", "l"]:
         data = plm.run(grid, sim_variables)
     else:
@@ -39,17 +39,16 @@ def evolve_time(grid, fluxes, dt, sim_variables):
     def compute_L(_fluxes, _sim_variables):
         total_flux = 0
 
-        # Finite difference for hydrodynamic components
         for _axis in _sim_variables.axes:
             flux_diff = np.diff(_fluxes[_axis]['flux'], axis=_axis)/_sim_variables.dx
+
+            # Reset flux calculations for magnetic components using corner fluxes
+            if _sim_variables.magnetic and _sim_variables.dimension == 2:
+                ortho_axis = 1 - _axis
+                flux_diff[...,5+_axis] = (-1)**_axis * np.diff(fv.slice_(_fluxes[_axis]['emf'], axis=ortho_axis, end=-1), axis=ortho_axis)/_sim_variables.dx
+                flux_diff[...,5+ortho_axis] = 0
+
             total_flux += flux_diff
-
-        # Finite difference for magnetic components (DO NOT combine with hydrodynamic loop, because each loop will overwrite the previous values)
-        if sim_variables.magnetic and sim_variables.dimension == 2:
-            for _axis in _sim_variables.axes:
-                mag_flux_diff = (-1)**_axis * np.diff(fv.slice_(_fluxes[_axis]['emf'], axis=1-_axis, end=-1), axis=1-_axis)/_sim_variables.dx
-                total_flux[...,5+_axis] = mag_flux_diff
-
         return -total_flux
 
     # Compute first-step fluxes

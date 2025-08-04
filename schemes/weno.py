@@ -10,12 +10,15 @@ from num_methods import mag_field
 ##############################################################################
 
 def run(grid, sim_variables):
-    gamma, subgrid, boundary, axes, magnetic = sim_variables.gamma, sim_variables.subgrid, sim_variables.boundary, sim_variables.axes, sim_variables.magnetic
+    subgrid, boundary, axes, magnetic = sim_variables.subgrid, sim_variables.boundary, sim_variables.axes, sim_variables.magnetic
     convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
+    Bx, By, Bz = range(5,8)
+
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
-    Bx, By, Bz = range(5,8)
+    # Convert to primitive variables
+    primitive = convert_conservative(grid, sim_variables, staggered=magnetic)
 
     """WENO reconstruction [Shu, 2009; San & Kara, 2015]
     |                        w(i-1/2)                    w(i+1/2)                       |
@@ -155,9 +158,6 @@ def run(grid, sim_variables):
         return wL, wR
 
     for axis in axes:
-        # Convert to primitive variables
-        primitive = convert_conservative(grid, sim_variables, staggered=magnetic)
-
         # Reconstruct the interface states
         if len(subgrid.split("weno")) == 2:
             try:
@@ -186,9 +186,9 @@ def run(grid, sim_variables):
         cons_plus, cons_minus = convert_primitive(prim_plus, sim_variables, compute_face=True), convert_primitive(prim_minus, sim_variables, compute_face=True)
 
         # Compute the fluxes and the Jacobian
-        flux_plus, flux_minus = constructor.make_flux(prim_plus, gamma, axis=axis), constructor.make_flux(prim_minus, gamma, axis=axis)
+        flux_plus, flux_minus = constructor.make_flux(prim_plus, sim_variables, axis=axis), constructor.make_flux(prim_minus, sim_variables, axis=axis)
 
-        jacobian = constructor.make_Jacobian(padded_intf_avg, gamma, axis=axis)
+        jacobian = constructor.make_Jacobian(padded_intf_avg, sim_variables, axis=axis)
 
         # Update dict
         data[axis]['primitive'] = primitive

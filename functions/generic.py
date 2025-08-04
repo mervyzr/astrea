@@ -106,7 +106,9 @@ def handle_CLI(db_path):
     parser.add_argument('--cells', '--N', '--n', dest='cells', metavar='', type=int, default=argparse.SUPPRESS, help='number of cells in the grid')
     parser.add_argument('--cfl', metavar='', type=float, default=argparse.SUPPRESS, help='courant number in the Courant-Friedrichs-Lewy stability condition')
     parser.add_argument('--gamma', metavar='', type=float, default=argparse.SUPPRESS, help='adiabatic index')
+    parser.add_argument('--permeability', metavar='', type=float, default=argparse.SUPPRESS, help='magnetic permeability')
     parser.add_argument('--dimension', '--dim', dest='dimension', type=int, metavar='', default=argparse.SUPPRESS, help='dimension of the simulation', choices=db.get(params.type == 'dimension')['accepted'])
+
     parser.add_argument('--subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='subgrid model used in the reconstruction of the grid', choices=accepted_values('subgrid'))
     parser.add_argument('--timestep', metavar='', type=str.lower, default=argparse.SUPPRESS, help='sime-stepping algorithm used in the update step of the simulation', choices=accepted_values('timestep'))
     parser.add_argument('--solver', metavar='', type=str.lower, default=argparse.SUPPRESS, help='solver used for the Riemann problem', choices=accepted_values('solver'))
@@ -166,7 +168,7 @@ def parse_cli_variables(_config_variables, _cli_variables, _db_path):
                 v = int(v) - int(v)%2
             else:
                 v = 128
-        elif k in ['gamma', 'cfl']:
+        elif k in ['gamma', 'cfl', 'permeability']:
             if not isinstance(v, (int, float)):
                 if "/" in v:
                     num, dem = v.split('/')
@@ -174,8 +176,10 @@ def parse_cli_variables(_config_variables, _cli_variables, _db_path):
                 else:
                     if k == "gamma":
                         v = 1.4
-                    else:
+                    elif k == "cfl":
                         v = .5
+                    else:
+                        v = 1.
             if k == "gamma" and v == 1:
                 v += np.finfo(_config_variables['precision']).eps
             if k == "cfl":
@@ -183,6 +187,9 @@ def parse_cli_variables(_config_variables, _cli_variables, _db_path):
                     v = np.finfo(_config_variables['precision']).eps
                 elif v > 1:
                     v = 1
+            if k == "permeability":
+                if v < 1:
+                    v = 1.
         elif k == "plot_options":
             accepted_plot_options, invalid = db.get(params.type == k)['accepted'], []
             try:
@@ -226,9 +233,9 @@ class SimulationVariables(object):
     __slots__ = [
         '__dict__',
         'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'energy', 'vels', 'Bfields', 'momentums',
-        'config', 'cells', 'cfl', 'gamma', 'dimension', 'precision', 'subgrid', 'timestep', 'solver',
+        'config', 'cells', 'cfl', 'gamma', 'permeability', 'dimension', 'precision', 'subgrid', 'timestep', 'solver',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'save_path',
-        'permeability', 'magnetic', 'roots', 'weights', 'axes', 'ortho_axis', 'permutations',
+        'permeability', 'magnetic', 'roots', 'weights', 'axes',
         'config_category', 'solver_category', 'convert_primitive', 'convert_conservative', 'higher_order',
         'start_pos', 'end_pos', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'dx', 'dy', 'dz',
         'run_type', 'checkpoints', 'live_plot', 'take_snaps', 'save_plots', 'save_video', 'save_file', 'plot_options', 'plot_style', 'beautify',
