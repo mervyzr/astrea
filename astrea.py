@@ -179,6 +179,7 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
         with h5py.File(file_name, "w") as f:
             f.attrs['datetime'] = script_start
             f.attrs['seed'] = seed
+            f.attrs['code'] = 'astrea'
 
         for variable in itr_list:
             ############################# INDIVIDUAL SIMULATION #############################
