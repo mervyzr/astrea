@@ -24,7 +24,9 @@ The simulation employs a higher-order finite volume subgrid model (Eulerian) wit
 
 The code is written entirely in Python 3, and uses the `numpy` and `h5py` modules extensively for calculations and data handling respectively. The last _stable^_ Python version supported is _**Python 3.12**_.
 
-Some experimentation was done to parallelise the code with `Open MPI` and `MPICH`, or to enable multithreading. However, this is generally not recommended because of the global-interpreter-lock (GIL) in Python and the sequential nature of the simulation. Futhermore, `numpy` should already use multi-threading _wherever possible_, and 'parallelised Python' with `numpy` does not show a substantial increase in speed anyway over 'fully-parallel' code in Fortran or C (Ross, 2016).
+Is this simulation slow? _Yes_. It shows only _**one core**_ being used throughout the simulation, as is expected when running Python code.
+
+Some experimentation was done to parallelise the code with `Open MPI` and `MPICH`. However, this is generally not recommended because of the global-interpreter-lock (GIL) in Python. Some attempts have been made with the `multiprocessing` package, but the main slow-down comes from the sequential nature of the (explicit) time evolution method. Most of the functions have already been vectorised to make use of `numpy`'s multi-threading _wherever possible_, but 'parallelised Python' with `numpy` does not show a substantial increase in speed either way over 'fully-parallel' code in Fortran or C (Ross, 2016).
 
 ^_There are some issues with building the wheels for `h5py` and `scipy` in Python 3.13 with `PYTHON_GIL=0` and `PYTHON_JIT=1` (see <a href='https://github.com/h5py/h5py/issues/2475' target='_blank'>here</a> and <a href='https://docs.scipy.org/doc/scipy/dev/toolchain.html' target='_blank'>here</a>). So the code can only run for the Python 3.13 build, not Python 3.13t._
 
