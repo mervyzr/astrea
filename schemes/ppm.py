@@ -160,7 +160,7 @@ def get_artificial_viscosity(grid_slices, axis, sim_variables, viscosity_determi
 
     # Calculate face-centred divergence of velocity [eq. 35]
     lambda_d = plus_one - grid
-    if sim_variables.dimension >= 2:
+    if sim_variables.dimension == 2:
         ortho_padded_grid = fv.add_boundary(grid, sim_variables.boundary, axis=ortho_axis)
         ortho_padded_plus_one = fv.add_boundary(plus_one, sim_variables.boundary, axis=ortho_axis)
 

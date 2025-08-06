@@ -29,7 +29,7 @@ def calculate_Riemann_flux(data, sim_variables):
 
     fluxes = {}
     for axis, arrays in data.items():
-        eigmax = fv.compute_eigmax(arrays['characteristics'], axis=axis)
+        eigmax = sim_variables.ds[axis]/fv.compute_eigmax(arrays['characteristics'], axis=axis)
 
         # Calculate the interface-averaged fluxes
         intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **arrays)

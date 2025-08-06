@@ -192,7 +192,7 @@ def make_figure(options, sim_variables, variable="normal"):
                     ax[_i,_j].set_ylabel(labels[idx])
 
             if sim_variables.dimension < 2:
-                ax[_i,_j].set_xlim([sim_variables.start_pos, sim_variables.end_pos])
+                ax[_i,_j].set_xlim(sim_variables.x_axis)
                 ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
         return fig, ax, {'indexes':indexes, 'names':names, 'labels':labels, 'errors':errors, 'tvs':tvs, 'colours': {'theo':theo_colour, '1d':colours, '2d':twod_colours}}
@@ -239,13 +239,14 @@ def make_data(options, grid, sim_variables):
         else:
             quantity = grid[...,rho]
 
-        quantities.append(quantity)
+        # pyplot.imshow transposes the 2D plots (might be a column-major relic)
+        quantities.append(quantity.T)
     return quantities
 
 
 # Initiate the live plot feature
 def initiate_live_plot(sim_variables, title=False):
-    N, dimension, start_pos, end_pos = sim_variables.cells, sim_variables.dimension, sim_variables.start_pos, sim_variables.end_pos
+    cells, dimension, x_axis = sim_variables.cells, sim_variables.dimension, sim_variables.x_axis
     options = sim_variables.plot_options
     plt.ion()
 
@@ -255,14 +256,15 @@ def initiate_live_plot(sim_variables, title=False):
     for idx, (_i,_j) in enumerate(plot_['indexes']):
         ax[_i,_j].set_title(plot_['names'][idx], fontsize=20)
         if dimension == 2:
-            graph = ax[_i,_j].imshow(np.zeros((N,N)), interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
+            # pyplot.imshow transposes the 2D plots (might be a column-major relic)
+            graph = ax[_i,_j].imshow(np.zeros(cells[::-1]), interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes('right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
-            ax[_i,_j].set_xlim([start_pos, end_pos])
+            ax[_i,_j].set_xlim(x_axis)
             ax[_i,_j].grid(linestyle='--', linewidth=0.5)
-            graph, = ax[_i,_j].plot(np.linspace(start_pos, end_pos, N), np.linspace(start_pos, end_pos, N), color=plot_['colours']['1d'][idx])
+            graph, = ax[_i,_j].plot(np.linspace(x_axis[0], x_axis[1], cells[0]), np.linspace(x_axis[0], x_axis[1], cells[0]), color=plot_['colours']['1d'][idx])
         graphs.append(graph)
 
     if title:
@@ -313,9 +315,8 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
 
 # Function for plotting a snapshot of the grid
 def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
-    config, N, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
-    start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
-    options, beautify = sim_variables.plot_options, sim_variables.beautify
+    config, cells, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
+    x_axis, options, beautify = sim_variables.x_axis, sim_variables.plot_options, sim_variables.beautify
 
     fig, ax, plot_ = make_figure(options, sim_variables)
     y_data = make_data(options, grid_snapshot, sim_variables)
@@ -329,7 +330,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
             cax = divider.append_axes('right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
-            x = np.linspace(start_pos, end_pos, N)
+            x = np.linspace(x_axis[0], x_axis[1], cells[0])
             if beautify:
                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
             else:
@@ -340,7 +341,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
             grid_axes = "$(x,y)$"
         else:
             grid_axes = "$x$"
-        plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell indices {grid_axes} at $t = {round(t,3)}$ ($N = {N}^{dimension}$)")
+        plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell indices {grid_axes} at $t = {round(t,3)}$ ($N = {str(cells).strip('[]').replace(' ','').replace(',','x')}$)")
 
     plt.tight_layout()
 
@@ -362,14 +363,14 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
 def plot_quantities(hdf5, sim_variables, title=False):
     config, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
     precision, t_end, checkpoints = sim_variables.precision, sim_variables.t_end, sim_variables.checkpoints
-    start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
+    x_axis, y_axis = sim_variables.x_axis, sim_variables.y_axis
     options, beautify = sim_variables.plot_options, sim_variables.beautify
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
     datetimes.sort()
 
-    # Separate the timings based on the number of checkpoints; returns a dict of lists with the timing intervals for each N
+    # Separate the timings based on the number of checkpoints; returns a dict of lists with the timing intervals for each grid set-up
     plot_timings_for_each_grp = {}
     for datetime in datetimes:
         all_timings = np.fromiter(hdf5[datetime].keys(), dtype=precision)
@@ -377,10 +378,10 @@ def plot_quantities(hdf5, sim_variables, title=False):
         plot_timings_for_each_grp[datetime] = np.linspace(0, t_end, checkpoints+1)
 
     # Get the reference timing for plots; uses the highest resolution for better accuracy
-    ref_N = 0
+    ref_N, ref_datetime = 0, '0'
     for datetime, grp in hdf5.items():
-        ref_datetime = datetime if grp.attrs['cells'] > ref_N else ref_datetime
-        ref_N = grp.attrs['cells'] if grp.attrs['cells'] > ref_N else ref_N
+        ref_datetime = datetime if np.prod(grp.attrs['cells']) > ref_N else ref_datetime
+        ref_N = np.prod(grp.attrs['cells']) if np.prod(grp.attrs['cells']) > ref_N else ref_N
     ref_timings = plot_timings_for_each_grp[ref_datetime]
 
     # Iterate through the list of timings generated by the number of checkpoints
@@ -392,10 +393,10 @@ def plot_quantities(hdf5, sim_variables, title=False):
         ref_time = ref_timings[chkpt]
         for datetime in datetimes:
             simulation = hdf5[datetime]
-            N = simulation.attrs['cells']
+            cells = simulation.attrs['cells']
             timing = str(plot_timings_for_each_grp[datetime][chkpt])
 
-            x = np.linspace(start_pos, end_pos, N)
+            x = np.linspace(x_axis[0], x_axis[1], cells[0])
             y_data = make_data(options, simulation[timing], sim_variables)
 
             for idx, (_i,_j) in enumerate(plot_['indexes']):
@@ -403,7 +404,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
 
                 if len(hdf5) != 1:
                     if dimension < 2:
-                        ax[_i,_j].plot(x, y, label=f"N = {N}")
+                        ax[_i,_j].plot(x, y, label=rf"$N = {str(cells).strip('[]').replace(' ','').replace(',','x')}$")
                         legends_on = True
                 else:
                     if dimension == 2:
@@ -419,13 +420,12 @@ def plot_quantities(hdf5, sim_variables, title=False):
                             ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
 
             if title:
+                grid_axes, grid_cells = "$x$", f" ($N = {str(cells).strip('[]').replace(' ','').replace(',','x')}$)"
                 if dimension == 2:
-                    grid_axes, grid_cells = "$(x,y)$", f" ($N = {N}^{dimension}$)"
+                    grid_axes = "$(x,y)$"
                 else:
                     if len(hdf5) != 1:
-                        grid_axes, grid_cells = "$x$", ""
-                    else:
-                        grid_axes, grid_cells = "$x$", f" ($N = {N}$)"
+                        grid_cells = ""
                 plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(ref_time,3)}${grid_cells}")
 
             plt.tight_layout()
@@ -495,7 +495,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm, title=False):
 
     array = np.full((1+len(options), len(datetimes)), 0., dtype=sim_variables.precision)
     for idx, datetime in enumerate(datetimes):
-        _arr = [hdf5[datetime].attrs['cells']**dimension]
+        _arr = [np.prod(hdf5[datetime].attrs['cells']),]
 
         # Get last instance of the grid with largest time key
         time_key = max([float(t) for t in hdf5[datetime].keys()])
@@ -601,7 +601,7 @@ def plot_total_variation(hdf5, sim_variables, title=False):
     fig, ax, plot_ = make_figure(options, sim_variables, "tv")
 
     for datetime in datetimes:
-        N = hdf5[datetime].attrs['cells']
+        grid_size = str(hdf5[datetime].attrs['cells']).strip('[]').replace(' ','').replace(',','x')
         total_variations: dict = analytic.calculate_TV(hdf5[datetime], sim_variables)
 
         x = np.asarray(list(total_variations.keys()))
@@ -632,10 +632,6 @@ def plot_total_variation(hdf5, sim_variables, title=False):
             ax[_i,_j].set_xlim([min(x), max(x)])
 
         if title:
-            if dimension == 2:
-                grid_size = f"{N}^{dimension}"
-            else:
-                grid_size = N
             plt.suptitle(rf"Total variation of grid variables TV($\mathbf{{u}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)")
 
         plt.tight_layout()
@@ -643,7 +639,7 @@ def plot_total_variation(hdf5, sim_variables, title=False):
         fig.text(0.5, 0.04, rf"Time $t$ [arb. units]", ha='center')
         fig.subplots_adjust(bottom=0.1)
 
-        plt.savefig(f"{sim_variables.save_path}/TV_{config}_{subgrid}_{timestep}_{solver}_{N}.png", bbox_inches='tight')
+        plt.savefig(f"{sim_variables.save_path}/TV_{config}_{subgrid}_{timestep}_{solver}_{grid_size}.png", bbox_inches='tight')
 
         plt.cla()
         plt.clf()
@@ -662,7 +658,7 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
     fig, ax, plot_ = make_figure(options, sim_variables)
 
     for datetime in datetimes:
-        N = hdf5[datetime].attrs['cells']
+        grid_size = str(hdf5[datetime].attrs['cells']).strip('[]').replace(' ','').replace(',','x')
         conservation: dict = analytic.calculate_conservation(hdf5[datetime], sim_variables)
 
         x = np.asarray(list(conservation.keys()))
@@ -698,10 +694,6 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
             ax[_i,_j].annotate(round(y_final, decimal_point), xy=(x[-1], y_final), xytext=(0,0), textcoords='offset points')
 
         if title:
-            if dimension == 2:
-                grid_size = f"{N}^{dimension}"
-            else:
-                grid_size = N
             plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)")
 
         plt.tight_layout()
@@ -709,7 +701,7 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
         fig.text(0.5, 0.04, rf"Time $t$ [arb. units]", ha='center')
         fig.subplots_adjust(bottom=0.1)
 
-        plt.savefig(f"{sim_variables.save_path}/conserveEq_{config}_{subgrid}_{timestep}_{solver}_{N}.png", bbox_inches='tight')
+        plt.savefig(f"{sim_variables.save_path}/conserveEq_{config}_{subgrid}_{timestep}_{solver}_{grid_size}.png", bbox_inches='tight')
 
         plt.cla()
         plt.clf()
@@ -719,7 +711,7 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
 # Make a video of entire simulation; video of all plot options or specific variable
 def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
     config, gamma, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.gamma, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
-    start_pos, end_pos = sim_variables.start_pos, sim_variables.end_pos
+    x_axis, y_axis = sim_variables.x_axis, sim_variables.y_axis
     beautify = sim_variables.beautify
 
     def make_limits(_options, _gamma, _min_values, _max_values, scale_factor=1.):
@@ -764,8 +756,8 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
     for datetime in datetimes:
         simulation = hdf5[datetime]
-        N = simulation.attrs['cells']
-        x = np.linspace(start_pos, end_pos, N)
+        cells = simulation.attrs['cells']
+        x = np.linspace(x_axis[0], x_axis[1], cells[0])
 
         if isinstance(variable, str):
             variable = variable.lower()
@@ -801,10 +793,9 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                                 ax[_i,_j].set_ylim(limits[idx][0], limits[idx][1])
 
                     if title:
+                        grid_axes, grid_cells = "$x$", f" ($N = {str(cells).strip('[]').replace(' ','').replace(',','x')}$)"
                         if dimension == 2:
-                            grid_axes, grid_cells = "$(x,y)$", f" ($N = {N}^{dimension}$)"
-                        else:
-                            grid_axes, grid_cells = "$x$", f" ($N = {N}$)"
+                            grid_axes = "$(x,y)$"
                         plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(float(t),4)}${grid_cells}")
 
                     plt.tight_layout()
@@ -901,7 +892,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 # Function for plotting instance of the grid; insert into any part of the code
 def plot_this(grid, sim_variables, **kwargs):
     options = ['density', 'pressure', 'total energy', 'vx', 'vy', 'vz', 'Bx', 'By', 'Bz']
-    beautify = sim_variables.beautify
+    x_axis, beautify = sim_variables.x_axis, sim_variables.beautify
 
     try:
         t = kwargs['t']
@@ -925,7 +916,7 @@ def plot_this(grid, sim_variables, **kwargs):
             cax = divider.append_axes('right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
-            x = np.linspace(sim_variables.start_pos, sim_variables.end_pos, len(y))
+            x = np.linspace(x_axis[0], x_axis[1], len(y))
             if beautify:
                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
             else:

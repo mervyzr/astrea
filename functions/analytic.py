@@ -17,18 +17,20 @@ def round_off(value):
 
 # Calculate scaled entropy density for an array [Derigs et al., 2015]
 def calculate_entropy_density(grid, gamma):
-    return (grid[...,0] * np.log(grid[...,4]*grid[...,0]**-gamma))/(gamma-1)
+    density, pressure = 0, 4
+    return (grid[...,density] * np.log(grid[...,pressure]*grid[...,density]**-gamma))/(gamma-1)
 
 
 # Function for solution error calculation of sine-wave and Gaussian tests
 def calculate_solution_error(grid, sim_variables, norm):
-    gamma, dimension, axes = sim_variables.gamma, sim_variables.dimension, sim_variables.axes
+    gamma, axes = sim_variables.gamma, sim_variables.axes
     rho, pressure = 0, 4
     w_num = np.copy(grid)
+    grid_shape = w_num.shape[:-1]
 
     # Create theoretical array
-    normalising_factor = 1/(len(w_num) ** dimension)
-    sim_variables.cells = len(w_num)
+    normalising_factor = 1/(np.prod(grid_shape))
+    sim_variables.cells = list(grid_shape)
     w_theo = constructor.initialise(sim_variables)
 
     E_tot_num, E_tot_theo = fv.divide(fv.convert_variable('pressure', w_num, sim_variables), w_num[...,rho]), fv.divide(fv.convert_variable('pressure', w_theo, sim_variables), w_theo[...,rho])
@@ -47,7 +49,7 @@ def calculate_solution_error(grid, sim_variables, norm):
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
 def calculate_TV(simulation, sim_variables):
-    gamma, dimension, axes, permeability, tot_vary = sim_variables.gamma, sim_variables.dimension, sim_variables.axes, sim_variables.permeability, {}
+    gamma, dimension, axes, tot_vary = sim_variables.gamma, sim_variables.dimension, sim_variables.axes, {}
     rho, pressure = 0, 4
 
     for t in list(simulation.keys()):
@@ -67,13 +69,17 @@ def calculate_TV(simulation, sim_variables):
 # Function for checking the conservation equations; works with primitive variables but needs to be converted
 def calculate_conservation(simulation, sim_variables):
     dimension, axes, conservation = sim_variables.dimension, sim_variables.axes, {}
-    box_width = sim_variables.end_pos - sim_variables.start_pos
+
+    if dimension == 2:
+        area = np.diff(sim_variables.x_axis) * np.diff(sim_variables.y_axis)
+    else:
+        area = np.diff(sim_variables.x_axis)
 
     for t in list(simulation.keys()):
         _grid = simulation[t][:]  # Needs the '[:]' to access the array
         grid = sim_variables.convert_primitive(_grid, sim_variables)
         grid = np.sum(grid, axis=axes)
-        conservation[float(t)] = grid * (box_width)**dimension
+        conservation[float(t)] = grid * area
     return conservation
 
 
@@ -82,7 +88,11 @@ def calculate_conservation(simulation, sim_variables):
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
 def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
     dimension, axes, conservation = sim_variables.dimension, sim_variables.axes, {}
-    box_width = sim_variables.end_pos - sim_variables.start_pos
+
+    if dimension == 2:
+        area = np.diff(sim_variables.x_axis) * np.diff(sim_variables.y_axis)
+    else:
+        area = np.diff(sim_variables.x_axis)
 
     simulation_timings = list(simulation.keys())
     simulation_timings.sort()
@@ -92,13 +102,13 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
         _grid = simulation[t][:]  # Needs the '[:]' to access the array
         grid = sim_variables.convert_primitive(_grid, sim_variables)
         grid = np.sum(grid, axis=axes)
-        conservation[t] = grid * (box_width)**dimension
+        conservation[t] = grid * area
     return conservation
 
 
-# Determine the analytical solution for a Sod shock test, in 1D
+# Determine the analytical solution for a Sod shock test (only in 1D)
 def calculate_Sod_analytical(grid, t, sim_variables):
-    gamma, start_pos, end_pos, shock_pos = sim_variables.gamma, sim_variables.start_pos, sim_variables.end_pos, sim_variables.shock_pos
+    gamma, x_axis, x_shock_pos = sim_variables.gamma, sim_variables.x_axis, sim_variables.shock_pos[0]
 
     # Define array to be updated and returned
     arr = np.zeros_like(grid)
@@ -124,18 +134,18 @@ def calculate_Sod_analytical(grid, t, sim_variables):
     v_s = vx2/(1-(rho1/rho2))
 
     # Define boundary regions and number of cells within each region
-    boundary_54 = round_off(((shock_pos-(cs5*t)-start_pos)/(end_pos-start_pos)) * len(grid))
-    boundary_43 = round_off(((shock_pos-(v_t*t)-start_pos)/(end_pos-start_pos)) * len(grid))
-    boundary_32 = round_off(((shock_pos+(vx2*t)-start_pos)/(end_pos-start_pos)) * len(grid))
-    boundary_21 = round_off(((shock_pos+(v_s*t)-start_pos)/(end_pos-start_pos)) * len(grid))
+    boundary_54 = round_off(((x_shock_pos-(cs5*t)-x_axis[0])/np.diff(x_axis)) * len(grid))
+    boundary_43 = round_off(((x_shock_pos-(v_t*t)-x_axis[0])/np.diff(x_axis)) * len(grid))
+    boundary_32 = round_off(((x_shock_pos+(vx2*t)-x_axis[0])/np.diff(x_axis)) * len(grid))
+    boundary_21 = round_off(((x_shock_pos+(v_s*t)-x_axis[0])/np.diff(x_axis)) * len(grid))
 
     # Define number of cells in the rarefaction wave
-    rarefaction_cells = round_off(((cs5*t-v_t*t)/(end_pos-start_pos)) * len(grid))
+    rarefaction_cells = round_off(((cs5*t-v_t*t)/np.diff(x_axis)) * len(grid))
     if rarefaction_cells - (boundary_43-boundary_54) < 0:
         rarefaction_cells += 1
     elif rarefaction_cells - (boundary_43-boundary_54) > 0:
         rarefaction_cells -= 1
-    rarefaction = np.linspace(shock_pos-(cs5*t), shock_pos-(v_t*t), rarefaction_cells) - shock_pos
+    rarefaction = np.linspace(x_shock_pos-(cs5*t), x_shock_pos-(v_t*t), rarefaction_cells) - x_shock_pos
 
     # Update array for regions 1 and 5 (initial conditions)
     arr[:boundary_54] = grid[0]
@@ -155,11 +165,19 @@ def calculate_Sod_analytical(grid, t, sim_variables):
     return arr
 
 
-# Determine the analytical solution for a Sedov blast wave, in 1D [Kamm & Timmes, 2000]
+# Determine the analytical solution for a Sedov blast wave (only in 1D, doesn't work currently) [Kamm & Timmes, 2000]
 def calculate_Sedov_analytical(grid, t, sim_variables, w=0):
+
+    # Create a physical grid for a single axis
+    def make_physical_grid(_axis, _cells):
+        dh = np.abs(np.diff(_axis)[0])/_cells
+        half_cell = dh/2
+        return np.linspace(_axis[0]-half_cell, _axis[1]+half_cell, _cells+2)[1:-1]
+
     # Initialise initial conditions and variables
-    gamma, j = sim_variables.gamma, sim_variables.dimension
+    cells, gamma, j, x_axis = sim_variables.cells, sim_variables.gamma, sim_variables.dimension, sim_variables.x_axis
     rho0, vx0, vy0, vz0, P0, Bx0, By0, Bz0 = sim_variables.initial_right
+    rho, vx, vy, vz, pressure, Bx, By, Bz = range(8)
     eps = 1e-4
     E_blast = sim_variables.initial_left[4]/(rho0 *(gamma-1))
 
@@ -282,13 +300,13 @@ def calculate_Sedov_analytical(grid, t, sim_variables, w=0):
     arr = np.zeros_like(grid)
 
     # Generate the array of radii
-    centre = (sim_variables.end_pos + sim_variables.start_pos)/2
-    physical_grid = np.linspace(sim_variables.start_pos-sim_variables.dx/2, sim_variables.end_pos+sim_variables/2, sim_variables.cells+2)[1:-1]
-    radii = physical_grid[(centre <= physical_grid) & (physical_grid <= r2)]
+    x_centre = np.average(x_axis)
+    physical_grid_x = make_physical_grid(x_axis, cells[0])
+    radii = physical_grid_x[(x_centre <= physical_grid_x) & (physical_grid_x <= r2)]
 
     density = np.zeros_like(radii)
     pressure = np.zeros_like(radii)
-    vx = np.zeros_like(radii)
+    velx = np.zeros_like(radii)
 
     for index, r in enumerate(radii):
         f = lambda V: r2*_lambda(V) - r
@@ -296,13 +314,13 @@ def calculate_Sedov_analytical(grid, t, sim_variables, w=0):
 
         density[index] = rho2 * _g(_V)
         pressure[index] = P2 * _h(_V)
-        vx[index] = vx2 * _f(_V)
+        velx[index] = vx2 * _f(_V)
 
-    arr[...,0][physical_grid <= r2] = density
-    arr[...,4][physical_grid <= r2] = pressure
-    arr[...,1][physical_grid <= r2] = vx
-    arr[...,0][physical_grid > r2] = rho0
-    arr[...,4][physical_grid > r2] = P0
-    arr[...,1][physical_grid > r2] = vx0
+    arr[...,rho][physical_grid_x <= r2] = density
+    arr[...,pressure][physical_grid_x <= r2] = pressure
+    arr[...,vx][physical_grid_x <= r2] = velx
+    arr[...,rho][physical_grid_x > r2] = rho0
+    arr[...,pressure][physical_grid_x > r2] = P0
+    arr[...,vx][physical_grid_x > r2] = vx0
 
     return arr
