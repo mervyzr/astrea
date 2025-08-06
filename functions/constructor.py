@@ -129,7 +129,7 @@ def make_flux(grid, sim_variables, axis):
     gamma, permeability = sim_variables.gamma, sim_variables.permeability
 
     rhos, vels, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
-    abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
+    abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
     arr = np.zeros_like(grid)
 
     arr[...,0] = rhos * vels[...,abscissa]
@@ -148,7 +148,7 @@ def make_Jacobian(grid, sim_variables, axis):
     gamma, permeability = sim_variables.gamma, sim_variables.permeability
 
     rhos, vels, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
-    abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
+    abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
 
     # Create empty square arrays for each cell
     _arr = np.zeros_like(grid)
@@ -190,7 +190,7 @@ def make_Roe_average(left_interface, right_interface):
 
 # Make the right eigenvectors for adiabatic magnetohydrodynamics [Derigs]
 def make_right_eigenvectors(axis, grids, gamma):
-    abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
+    abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
     rhos, vels, pressures, B_fields = grids[...,0], grids[...,1:4], grids[...,4], grids[...,5:8]
     vx, vy, vz = vels[...,abscissa], vels[...,ordinate], vels[...,applicate]
     Bx, By, Bz = B_fields[...,abscissa], B_fields[...,ordinate], B_fields[...,applicate]
@@ -304,7 +304,7 @@ def make_right_eigenvectors(axis, grids, gamma):
 
 # Make the right eigenvector for adiabatic magnetohydrodynamics in entropy-stable flux (primitive variables)
 def make_ES_right_eigenvectors(axis, grids, gamma):
-    abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
+    abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
     rhos, vels, pressures, B_fields = grids[...,0], grids[...,1:4], grids[...,4], grids[...,5:8]
     vx, vy, vz = vels[...,abscissa], vels[...,ordinate], vels[...,applicate]
 

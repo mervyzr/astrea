@@ -59,7 +59,6 @@ def run(grid, sim_variables):
         jacobian = constructor.make_Jacobian(padded_intf_avg, sim_variables, axis=axis)
 
         # Update dict
-        data[axis]['primitive'] = primitive
         data[axis]['prim_interfaces'] = prim_plus, prim_minus
         data[axis]['cons_interfaces'] = cons_plus, cons_minus
         data[axis]['flux_interfaces'] = flux_plus, flux_minus

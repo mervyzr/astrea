@@ -32,7 +32,6 @@ def run(grid, sim_variables):
         jacobian = constructor.make_Jacobian(padded_primitive, sim_variables, axis=axis)
 
         # Update data dictionary
-        data[axis]['primitive'] = primitive
         data[axis]['prim_interfaces'] = fv.slice_(padded_primitive, axis, start=1), fv.slice_(padded_primitive, axis, end=-1)
         data[axis]['cons_interfaces'] = fv.slice_(padded_conservative, axis, start=1), fv.slice_(padded_conservative, axis, end=-1)
         data[axis]['flux_interfaces'] = fv.slice_(fluxes, axis, start=1), fv.slice_(fluxes, axis, end=-1)
