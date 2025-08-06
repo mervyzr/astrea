@@ -35,7 +35,7 @@ def initialise(sim_variables, convert=False):
         x_centre, y_centre = np.average(x_axis), np.average(y_axis)
 
         if config == "sedov" or "blast" in config:
-            mask = np.where(((x-x_centre)**2 + (y-y_centre)**2) <= ((x_shock_pos-x_centre)**2 + (y_shock_pos-y_centre)**2))
+            mask = np.where(((x-x_centre)**2 + (y-y_centre)**2) <= (x_shock_pos-x_centre)**2)
             computational_grid[mask] = initial_left
 
         elif config.startswith("gauss"):
@@ -78,9 +78,9 @@ def initialise(sim_variables, convert=False):
             computational_grid[...,pressure][ring] = (p0 + (25/2)*r**2 + 4*(1 - 5*r + np.log(5*r)))[ring]
 
         elif "ll" in config or "lax-liu" in config:
-            computational_grid[np.where(x <= x_shock_pos)] = initial_left
-            computational_grid[np.where((x <= x_shock_pos) & (y >= y_shock_pos))] = params['bottom_left']
-            computational_grid[np.where((x > x_shock_pos) & (y >= y_shock_pos))] = params['bottom_right']
+            computational_grid[np.where(x < x_shock_pos)] = initial_left
+            computational_grid[np.where((x < x_shock_pos) & (y < y_shock_pos))] = params['bottom_left']
+            computational_grid[np.where((x >= x_shock_pos) & (y < y_shock_pos))] = params['bottom_right']
 
         elif config in ["orszag-tang", "orszag", "tang", "ot"]:
             computational_grid[...,vx] = -np.sin(2*np.pi*y)
@@ -89,13 +89,13 @@ def initialise(sim_variables, convert=False):
             computational_grid[...,By] = params['ampl'] * np.sin(4*np.pi*x)
 
         elif "rotor" in config:
-            mask = np.where(((x-x_centre)**2 + (y-y_centre)**2) <= ((x_shock_pos-x_centre)**2 + (y_shock_pos-y_centre)**2))
+            mask = np.where(((x-x_centre)**2 + (y-y_centre)**2) <= (x_shock_pos-x_centre)**2)
             computational_grid[mask] = initial_left
             computational_grid[...,vx][mask] = (-params['omega']*(y-y_centre)/y_shock_pos)[mask]
             computational_grid[...,vy][mask] = (params['omega']*(x-x_centre)/x_shock_pos)[mask]
 
         elif "noh" in config:
-            mask = np.where(((x-x_axis[0])**2 + (y-y_axis[0])**2) > ((x_shock_pos-x_axis[0])**2 + (y_shock_pos-y_axis[0])**2))
+            mask = np.where(((x-x_axis[0])**2 + (y-y_axis[0])**2) > (x_shock_pos-x_axis[0])**2)
             computational_grid[...,vx][mask] = -np.sin(x)[mask]
             computational_grid[...,vy][mask] = -np.cos(x)[mask]
 

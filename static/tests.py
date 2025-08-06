@@ -59,8 +59,8 @@ def generate_test_conditions(config, cells):
         misc = {'peak_pos':0, 'ampl':.75, 'fwhm':.08, 'y_offset':1}
 
     elif "noh" in config:
-        x_axis = [0,np.pi/2]
-        y_axis = [0,np.pi/2]
+        x_axis = [0,1]
+        y_axis = [0,1]
         shock_pos = [.1,.1]
         t_end = 1
         boundary = "edge"
