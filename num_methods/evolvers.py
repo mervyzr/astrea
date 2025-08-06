@@ -35,17 +35,17 @@ def evolve_space(grid, sim_variables):
 # Evolve the system in time by a standardised workflow
 def evolve_time(grid, fluxes, dt, sim_variables):
 
-    # Operator L as a function of the reconstruction values; calculate the flux (and magnetic flux) through the surface [F(i+1/2) - F(i-1/2)]/dx
+    # Operator L as a function of the reconstruction values; calculate the fluxes through the surface [F(i+1/2,j) - F(i-1/2,j)]/dh
     def compute_L(_fluxes, _sim_variables):
         total_flux = 0
 
         for _axis in _sim_variables.axes:
-            flux_diff = np.diff(_fluxes[_axis]['flux'], axis=_axis)/_sim_variables.dx
+            flux_diff = np.diff(_fluxes[_axis]['flux'], axis=_axis)/_sim_variables.ds[_axis]
 
             # Reset flux calculations for magnetic components using corner fluxes
             if _sim_variables.magnetic and _sim_variables.dimension == 2:
                 ortho_axis = 1 - _axis
-                flux_diff[...,5+_axis] = (-1)**_axis * np.diff(fv.slice_(_fluxes[_axis]['emf'], axis=ortho_axis, end=-1), axis=ortho_axis)/_sim_variables.dx
+                flux_diff[...,5+_axis] = (-1)**_axis * np.diff(fv.slice_(_fluxes[_axis]['emf'], axis=ortho_axis, end=-1), axis=ortho_axis)/_sim_variables.ds[ortho_axis]
                 flux_diff[...,5+ortho_axis] = 0
 
             total_flux += flux_diff

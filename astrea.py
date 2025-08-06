@@ -87,8 +87,8 @@ def core_run(hdf5, sim_variables):
             fluxes = evolvers.evolve_space(grid, sim_variables)
 
             # Compute the maximum eigenvalues for determining the full time step
-            eigmaxes = [sim_variables.dx/Riemann_values['eigmax'] for Riemann_values in list(fluxes.values())]
-            dt = sim_variables.cfl * min(eigmaxes)
+            eigmax = np.min([Riemann_values['eigmax'] for Riemann_values in list(fluxes.values())])
+            dt = sim_variables.cfl * eigmax
 
             # Handle dt
             if t+dt >= chkpt*idx:
@@ -150,11 +150,13 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
     # Auto-generate the resolutions/grid-sizes for run type
     if sim_variables.run_type.startswith('m'):
         if sim_variables.dimension == 2:
-            itr_list = 2**np.arange(2,8)
+            _range = 2**np.arange(2,8)
         else:
-            itr_list = 2**np.arange(3,11)
+            _range = 2**np.arange(3,11)
+        grid_sizes = np.array([_range,] * sim_variables.dimension).T
     else:
-        itr_list = [sim_variables.cells]
+        grid_sizes = [sim_variables.cells]
+    grid_axes = [sim_variables.x_axis, sim_variables.y_axis]
 
     ###################################### SCRIPT INITIATE ######################################
     script_start = datetime.now().strftime('%Y%m%d%H%M')
@@ -181,15 +183,16 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
             f.attrs['seed'] = seed
             f.attrs['code'] = 'astrea'
 
-        for variable in itr_list:
+        for grid_size in grid_sizes:
             ############################# INDIVIDUAL SIMULATION #############################
             now = datetime.now()
 
-            # Update cells (and grid width) in simulation variables
+            # Update cells (and cell widths) in simulation variables
             sim_variables.access_key = now.strftime('%Y%m%d%H%M%S')+str(now.microsecond)
             sim_variables.now = now
-            sim_variables.cells = variable
-            sim_variables.dx = abs(sim_variables.end_pos-sim_variables.start_pos)/sim_variables.cells
+            sim_variables.cells = grid_size
+            for ax in sim_variables.ds.keys():
+                sim_variables.ds[ax] = np.abs(np.diff(grid_axes[ax]))/grid_size[ax]
 
             # Save simulation variables into HDF5 file
             with h5py.File(file_name, "a") as f:
@@ -198,6 +201,7 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
                 grp.attrs['cells'] = sim_variables.cells
                 grp.attrs['cfl'] = sim_variables.cfl
                 grp.attrs['gamma'] = sim_variables.gamma
+                grp.attrs['permeability'] = sim_variables.permeability
                 grp.attrs['dimension'] = sim_variables.dimension
                 grp.attrs['subgrid'] = sim_variables.subgrid
                 grp.attrs['timestep'] = sim_variables.timestep

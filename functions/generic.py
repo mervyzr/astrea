@@ -42,17 +42,13 @@ def make_sim_variables():
 def print_progress(t, sim_variables):
     _seed = f"{BColours.OKBLUE}{sim_variables.seed}{BColours.ENDC}"
     _config = f"{BColours.OKCYAN}{sim_variables.config.upper()}{BColours.ENDC}"
+    _cells = f"{BColours.OKCYAN}{str(sim_variables.cells).strip('[]').replace(' ','').replace(',','x')}{BColours.ENDC}"
     _subgrid = f"{BColours.OKCYAN}{sim_variables.subgrid.upper()}{BColours.ENDC}"
     _timestep = f"{BColours.OKCYAN}{sim_variables.timestep.upper()}{BColours.ENDC}"
     _solver = f"{BColours.OKCYAN}{sim_variables.solver.upper()}{BColours.ENDC}"
     _cfl = f"{BColours.OKCYAN}{sim_variables.cfl}{BColours.ENDC}"
     _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({sim_variables.dimension}D){BColours.ENDC}"
     _instance = f"{BColours.WARNING}{'%.6f'%t} / {'%.2f'%sim_variables.t_end}{BColours.ENDC}"
-
-    if sim_variables.dimension != 1:
-        _cells = f"{BColours.OKCYAN}{sim_variables.cells}^{sim_variables.dimension}{BColours.ENDC}"
-    else:
-        _cells = f"{BColours.OKCYAN}{sim_variables.cells}{BColours.ENDC}"
 
     print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SOLVER={_solver}, TIMESTEP={_timestep} || {_instance}", end='\r')
     pass
@@ -62,17 +58,13 @@ def print_progress(t, sim_variables):
 def print_final(sim_variables, timestep_count):
     _seed = f"{BColours.OKBLUE}{sim_variables.seed}{BColours.ENDC}"
     _config = f"{BColours.OKCYAN}{sim_variables.config.upper()}{BColours.ENDC}"
+    _cells = f"{BColours.OKCYAN}{str(sim_variables.cells).strip('[]').replace(' ','').replace(',','x')}{BColours.ENDC}"
     _subgrid = f"{BColours.OKCYAN}{sim_variables.subgrid.upper()}{BColours.ENDC}"
     _timestep = f"{BColours.OKCYAN}{sim_variables.timestep.upper()}{BColours.ENDC}"
     _solver = f"{BColours.OKCYAN}{sim_variables.solver.upper()}{BColours.ENDC}"
     _cfl = f"{BColours.OKCYAN}{sim_variables.cfl}{BColours.ENDC}"
     _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({sim_variables.dimension}D){BColours.ENDC}"
-    #_performance = f"{BColours.OKGREEN}{round(kwargs['elapsed']*1e6/(sim_variables.cells*run_length), 3)} \u03BCs/(dt*N){BColours.ENDC}"
-
-    if sim_variables.dimension != 1:
-        _cells = f"{BColours.OKCYAN}{sim_variables.cells}^{sim_variables.dimension}{BColours.ENDC}"
-    else:
-        _cells = f"{BColours.OKCYAN}{sim_variables.cells}{BColours.ENDC}"
+    #_performance = f"{BColours.OKGREEN}{round(sim_variables.elapsed*1e6/(np.prod(sim_variables.cells)*timestep_count), 3)} \u03BCs/(dt*cells){BColours.ENDC}"
 
     if sim_variables.elapsed >= 60*60:
         _elapsed = f"{BColours.FAIL}{str(timedelta(seconds=sim_variables.elapsed))}s{BColours.ENDC}"
@@ -103,7 +95,7 @@ def handle_CLI(db_path):
                                      formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument('--config', metavar='', type=str.lower, default=argparse.SUPPRESS, help='configuration to run in the simulation', choices=accepted_values('config'))
-    parser.add_argument('--cells', '--N', '--n', dest='cells', metavar='', type=int, default=argparse.SUPPRESS, help='number of cells in the grid')
+    parser.add_argument('--grid', '--cells', '--cell', '--N', '--n', dest='cells', metavar='', default=argparse.SUPPRESS, help='number of cells in the grid')
     parser.add_argument('--cfl', metavar='', type=float, default=argparse.SUPPRESS, help='courant number in the Courant-Friedrichs-Lewy stability condition')
     parser.add_argument('--gamma', metavar='', type=float, default=argparse.SUPPRESS, help='adiabatic index')
     parser.add_argument('--permeability', metavar='', type=float, default=argparse.SUPPRESS, help='magnetic permeability')
@@ -165,9 +157,24 @@ def parse_cli_variables(_config_variables, _cli_variables, _db_path):
                 v = 1
         elif k == "cells":
             if isinstance(v, (int, float)):
-                v = int(v) - int(v)%2
+                v = [int(v)-int(v)%2,] * temp_dct['dimension']
+            elif isinstance(v, str):
+                try:
+                    v = [int(n)-int(n)%2 for n in v.strip('()').replace(' ','').replace('-',',').split(',')]
+                except Exception:
+                    v = [128,] * temp_dct['dimension']
+                else:
+                    if len(v) > temp_dct['dimension']:
+                        v = v[:temp_dct['dimension']]
+            elif isinstance(v, list):
+                try:
+                    v = [int(_)-int(_)%2 for _ in v]
+                except Exception:
+                    v = [128,] * temp_dct['dimension']
+                else:
+                    v = v[:temp_dct['dimension']]
             else:
-                v = 128
+                v = [128,] * temp_dct['dimension']
         elif k in ['gamma', 'cfl', 'permeability']:
             if not isinstance(v, (int, float)):
                 if "/" in v:
@@ -237,7 +244,7 @@ class SimulationVariables(object):
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'save_path',
         'permeability', 'magnetic', 'roots', 'weights', 'axes',
         'config_category', 'solver_category', 'convert_primitive', 'convert_conservative', 'higher_order',
-        'start_pos', 'end_pos', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'dx', 'dy', 'dz',
+        'x_axis', 'y_axis', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'ds',
         'run_type', 'checkpoints', 'live_plot', 'take_snaps', 'save_plots', 'save_video', 'save_file', 'plot_options', 'plot_style', 'beautify',
         'debug', 'quiet', 'test'
     ]
@@ -290,6 +297,8 @@ class SimulationVariables(object):
         # Permutations for axes
         if '2D' in self.config_category and self.dimension != 2:
             self.dimension = 2
+            if len(self.cells) != 2:
+                self.cells *= 2
         self.axes = tuple(range(self.dimension))
 
         # Exclusion cases
