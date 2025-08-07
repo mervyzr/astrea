@@ -38,16 +38,23 @@ def calculate_Riemann_flux(data, sim_variables):
             # Compute the orthogonal L/R Riemann states and fluxes at higher-order
             higher_order_intfs = {}
             for key, array in arrays.items():
-                if key == "primitive" or key == "characteristics":
+                if key == "characteristics":
                     higher_order_intfs[key] = array
                 elif len(array) == 2:
-                    plus_intf, minus_intf = array
-                    higher_order_intfs[key] = fv.high_order_convert('face', 'avg', plus_intf, sim_variables), fv.high_order_convert('face', 'avg', minus_intf, sim_variables)
+                    # Convert between CENTRED cell/face variables and AVERAGED cell/face variables (i.e. FD <-> FV) (at higher order) with the Laplacian operator and centred difference coefficients (up to 2nd derivative because parabolic function)
+                    _plus_intf, _minus_intf = array
+                    plus_intf, minus_intf = np.copy(_plus_intf), np.copy(_minus_intf)
+                    padded_plus_intf, padded_minus_intf = fv.add_boundary(_plus_intf, sim_variables.boundary, axis=1-axis), fv.add_boundary(_minus_intf, sim_variables.boundary, axis=1-axis)
+                    plus_intf -= 1/24 * fv.derivative(padded_plus_intf, axis=1-axis)
+                    minus_intf -= 1/24 * fv.derivative(padded_minus_intf, axis=1-axis)
+                    higher_order_intfs[key] = plus_intf, minus_intf
 
             intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **higher_order_intfs)
 
-            # Compute higher-order fluxes using approximation with fluxes from transverse interfaces
-            final_fluxes = fv.high_order_compute_flux(intf_fluxes_cntrd, intf_fluxes_avgd, sim_variables)
+            # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation
+            final_fluxes, avg_flux = np.copy(intf_fluxes_cntrd), np.copy(intf_fluxes_avgd)
+            padded_avg_flux = fv.add_boundary(avg_flux, sim_variables.boundary, axis=1-axis)
+            final_fluxes -= 1/24 * fv.derivative(padded_avg_flux, axis=1-axis)
         else:
             # Orthogonal Laplacian in 1D is zero
             final_fluxes = intf_fluxes_avgd
