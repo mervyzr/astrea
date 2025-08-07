@@ -175,15 +175,6 @@ def high_order_convert(var_pos, grid_rep, grid, sim_variables):
     return new_grid
 
 
-# Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation
-def high_order_compute_flux(_cntr_flux, _avg_flux, sim_variables):
-    cntr_flux, avg_flux = np.copy(_cntr_flux), np.copy(_avg_flux)
-    for ax in range(1, sim_variables.dimension):
-        padded_avg_flux = add_boundary(avg_flux, sim_variables.boundary, axis=ax)
-        cntr_flux -= 1/24 * derivative(padded_avg_flux, ax)
-    return cntr_flux
-
-
 # 'Inverse reconstruct' the centred grid cell-averages from the staggered grid face-averages [Felker & Stone, 2018]
 def inverse_reconstruct(grid, sim_variables):
     new_grid = np.copy(grid)
