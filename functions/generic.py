@@ -282,7 +282,7 @@ class SimulationVariables(object):
 
         self.config_category = db.get(params.accepted.any([self.config]))['category']
         self.solver_category = db.get(params.accepted.any([self.solver]))['category']
-        self.magnetic = 'magnetic' in db.get(params.accepted.any([self.config]))['category']
+        self.magnetic = self.initial_left[self.Bfields].any() or self.initial_right[self.Bfields].any()
 
         self.convert_primitive = fv.point_convert_primitive
         self.convert_conservative = fv.point_convert_conservative

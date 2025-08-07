@@ -1,7 +1,7 @@
 import numpy as np
 
 from functions import fv
-from num_methods import solvers, mag_field
+from num_methods import ct, solvers
 from schemes import pcm, plm, ppm, weno
 
 ##############################################################################
@@ -24,7 +24,7 @@ def evolve_space(grid, sim_variables):
 
     # Magneto-component reconstruction
     if sim_variables.magnetic and sim_variables.dimension == 2:
-        e3U = mag_field.compute_corner(data, sim_variables)
+        e3U = ct.compute_corner(data, sim_variables)
 
         for axis in sim_variables.axes:
             fluxes[axis]['emf'] = fv.add_boundary(e3U, sim_variables.boundary, axis=1-axis)

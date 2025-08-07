@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 
 from functions import constructor, fv
-from num_methods import limiters, mag_field
+from num_methods import ct, limiters
 
 ##############################################################################
 # Piecewise parabolic reconstruction method (PPM) [Colella & Woodward, 1984]
@@ -47,7 +47,7 @@ def run(grid, sim_variables, author="McCorquodale&Colella2011", dissipate=False)
         if magnetic:
             padded_grid = fv.add_boundary(grid, boundary, axis=axis)
             interface[...,(Bx,By)] = grid[...,(Bx,By)]
-            data[axis]['ortho_interfaces'] = mag_field.reconstruct_transverse(interface, sim_variables, axis=axis)
+            data[axis]['ortho_interfaces'] = ct.reconstruct_transverse(interface, sim_variables, axis=axis)
 
         if author.lower().startswith(("peterson", "p", "x")):
             """Interpolate the cell averages to face averages (both sides)
@@ -90,7 +90,7 @@ def run(grid, sim_variables, author="McCorquodale&Colella2011", dissipate=False)
             prim_plus[...,(Bx,By)] = prim_minus[...,(Bx,By)] = fv.slice_(padded_grid, axis, end=-1)[...,(Bx,By)]
 
         # Get the average solution between the interfaces at the boundaries
-        intf_avg = fv.slice_(constructor.make_Roe_average(prim_plus, prim_minus), axis, start=1)
+        intf_avg = fv.slice_(fv.compute_Roe_average(prim_plus, prim_minus), axis, start=1)
         padded_intf_avg = fv.add_boundary(intf_avg, boundary, axis=axis)
 
         # Convert the primitive variables

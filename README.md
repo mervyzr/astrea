@@ -145,7 +145,7 @@ astrea.run()
 │   ├── __init__.py
 │   ├── evolvers.py      : Collates the schemes for space and time evolution
 │   ├── limiters.py      : Implements flux/slope limiters in the reconstructed states
-│   ├── mag_field.py     : Functions for magnetic componenets computation (currently not stable)
+│   ├── ct.py            : Functions for the constrained transport implementation
 │   ├── solvers.py       : Contains the Riemann solvers
 ├── parameters.yml       : Parameters for the simulation
 ├── schemes
@@ -153,7 +153,7 @@ astrea.run()
 │   ├── pcm.py           : Piecewise constant method [Godunov, 1959]
 │   ├── plm.py           : Piecewise linear method [Derigs et al., 2018]
 │   ├── ppm.py           : Piecewise parabolic method [McCorquodale & Colella, 2011; Felker & Stone, 2015]
-│   ├── weno.py          : WENO method [Shu, 2009; San & Kara, 2015]
+│   ├── weno.py          : WENO method [Shu, 2009]
 ├── setup.py             : Installation script
 ├── static
 │   ├── __init__.py

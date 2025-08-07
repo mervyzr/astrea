@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 
 from functions import constructor, fv
-from num_methods import limiters, mag_field
+from num_methods import ct, limiters
 
 ##############################################################################
 # Piecewise linear reconstruction method (PLM) [van Leer, 1979]
@@ -38,7 +38,7 @@ def run(grid, sim_variables):
         if magnetic:
             padded_grid = fv.add_boundary(grid, boundary, axis=axis)
             wR[...,(Bx,By)] = grid[...,(Bx,By)]
-            data[axis]['ortho_interfaces'] = mag_field.reconstruct_transverse(wR, sim_variables, axis=axis)
+            data[axis]['ortho_interfaces'] = ct.reconstruct_transverse(wR, sim_variables, axis=axis)
 
         # Re-align the interfaces so that cell wall is in between interfaces
         prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)

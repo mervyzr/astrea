@@ -175,20 +175,6 @@ def make_Jacobian(grid, sim_variables, axis):
     return arr
 
 
-# Calculate the Roe-averaged primitive variables at the interface from the minus- & plus-interface states for use in Roe solver in order to better capture shocks [Roe & Pike, 1984; Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
-def make_Roe_average(left_interface, right_interface):
-    rho, pressure, vels, Bfields = 0, 4, slice(1,4), slice(5,8)
-    avg = np.zeros_like(left_interface)
-    rho_minus, rho_plus = np.sqrt(right_interface[...,rho]), np.sqrt(left_interface[...,rho])
-
-    avg[...,rho] = rho_minus * rho_plus
-    avg[...,vels] = fv.divide((left_interface[...,vels] * rho_plus[...,None]) + (right_interface[...,vels] * rho_minus[...,None]), (rho_minus + rho_plus)[...,None])
-    avg[...,pressure] = fv.divide((rho_plus * left_interface[...,pressure]) + (rho_minus * right_interface[...,pressure]), rho_minus + rho_plus)
-    avg[...,Bfields] = fv.divide((left_interface[...,Bfields] * rho_minus[...,None]) + (right_interface[...,Bfields] * rho_plus[...,None]), (rho_minus + rho_plus)[...,None])
-
-    return avg
-
-
 # Make the right eigenvectors for adiabatic magnetohydrodynamics [Derigs]
 def make_right_eigenvectors(axis, grids, gamma):
     abscissa, ordinate, applicate = (axis + np.array(range(3)))%3

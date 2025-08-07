@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 
 from functions import constructor, fv
-from num_methods import mag_field
+from num_methods import ct
 
 ##############################################################################
 # Piecewise constant reconstruction method (PCM) [Godunov, 1959]
@@ -21,7 +21,7 @@ def run(grid, sim_variables):
     for axis in axes:
         # Magnetic component after computing to interface (interface = centre for PCM)
         if magnetic:
-            data[axis]['ortho_interfaces'] = mag_field.reconstruct_transverse(primitive, sim_variables, axis=axis)
+            data[axis]['ortho_interfaces'] = ct.reconstruct_transverse(primitive, sim_variables, axis=axis)
 
         # Pad array with boundaries
         padded_conservative = fv.add_boundary(grid, boundary, axis=axis)
