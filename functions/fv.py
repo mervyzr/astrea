@@ -178,11 +178,9 @@ def high_order_convert(var_pos, grid_rep, grid, sim_variables):
 # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation
 def high_order_compute_flux(_cntr_flux, _avg_flux, sim_variables):
     cntr_flux, avg_flux = np.copy(_cntr_flux), np.copy(_avg_flux)
-
-    if sim_variables.higher_order:
-        for ax in range(1, sim_variables.dimension):
-            padded_avg_flux = add_boundary(avg_flux, sim_variables.boundary, axis=ax)
-            cntr_flux -= 1/24 * derivative(padded_avg_flux, ax)
+    for ax in range(1, sim_variables.dimension):
+        padded_avg_flux = add_boundary(avg_flux, sim_variables.boundary, axis=ax)
+        cntr_flux -= 1/24 * derivative(padded_avg_flux, ax)
     return cntr_flux
 
 

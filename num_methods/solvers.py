@@ -38,7 +38,7 @@ def calculate_Riemann_flux(data, sim_variables):
             # Compute the orthogonal L/R Riemann states and fluxes at higher-order
             higher_order_intfs = {}
             for key, array in arrays.items():
-                if key == "primitive" or key == "characteristics":
+                if key == "characteristics":
                     higher_order_intfs[key] = array
                 elif len(array) == 2:
                     plus_intf, minus_intf = array
