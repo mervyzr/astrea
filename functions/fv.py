@@ -56,7 +56,6 @@ def slice_(arr, axis, start=0, end=None, step=1, *args):
         end = arr.shape[axis]
 
     slc[axis] = slice(start, end, step)
-
     return arr[tuple(slc)]
 
 
