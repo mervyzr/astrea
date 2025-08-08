@@ -243,7 +243,7 @@ class SimulationVariables(object):
         'config', 'cells', 'cfl', 'gamma', 'permeability', 'dimension', 'precision', 'subgrid', 'timestep', 'solver',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'save_path',
         'permeability', 'magnetic', 'roots', 'weights', 'axes',
-        'config_category', 'solver_category', 'convert_primitive', 'convert_conservative', 'higher_order',
+        'config_category', 'solver_category', 'convert', 'higher_order',
         'x_axis', 'y_axis', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'ds',
         'run_type', 'checkpoints', 'live_plot', 'take_snaps', 'save_plots', 'save_video', 'save_file', 'plot_options', 'plot_style', 'beautify',
         'debug', 'quiet', 'test'
@@ -284,14 +284,12 @@ class SimulationVariables(object):
         self.solver_category = db.get(params.accepted.any([self.solver]))['category']
         self.magnetic = self.initial_left[self.Bfields].any() or self.initial_right[self.Bfields].any()
 
-        self.convert_primitive = fv.point_convert_primitive
-        self.convert_conservative = fv.point_convert_conservative
+        self.convert = fv.point_convert
         self.higher_order = False
 
         # Higher-order conversion functions
         if self.subgrid.startswith("w") or self.subgrid in ["ppm", "parabolic", "p"]:
-            self.convert_primitive = fv.high_order_convert_primitive
-            self.convert_conservative = fv.high_order_convert_conservative
+            self.convert = fv.high_order_convert
             self.higher_order = True
 
         # Permutations for axes

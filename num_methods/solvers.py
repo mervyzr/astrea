@@ -34,34 +34,35 @@ def calculate_Riemann_flux(data, sim_variables):
         # Calculate the interface-averaged fluxes
         intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **arrays)
 
+        # Compute the orthogonal L/R Riemann states and fluxes at higher-order
         if sim_variables.dimension == 2 and sim_variables.higher_order:
-            # Compute the orthogonal L/R Riemann states and fluxes at higher-order
-            higher_order_intfs = {}
+            higher_order_intfs, ortho_axis = {}, 1-axis
             for key, array in arrays.items():
                 if key == "characteristics":
                     higher_order_intfs[key] = array
                 elif len(array) == 2:
-                    # Convert between CENTRED cell/face variables and AVERAGED cell/face variables (i.e. FD <-> FV) (at higher order) with the Laplacian operator and centred difference coefficients (up to 2nd derivative because parabolic function)
-                    _plus_intf, _minus_intf = array
-                    plus_intf, minus_intf = np.copy(_plus_intf), np.copy(_minus_intf)
-                    padded_plus_intf, padded_minus_intf = fv.add_boundary(_plus_intf, sim_variables.boundary, axis=1-axis), fv.add_boundary(_minus_intf, sim_variables.boundary, axis=1-axis)
-                    plus_intf -= 1/24 * fv.derivative(padded_plus_intf, axis=1-axis)
-                    minus_intf -= 1/24 * fv.derivative(padded_minus_intf, axis=1-axis)
-                    higher_order_intfs[key] = plus_intf, minus_intf
+                    # Approximate the face-averaged values to face-centred values
+                    plus_intf, minus_intf = array
+                    padded_plus_intf, padded_minus_intf = fv.add_boundary(plus_intf, sim_variables.boundary, axis=ortho_axis), fv.add_boundary(minus_intf, sim_variables.boundary, axis=ortho_axis)
+                    higher_order_intfs[key] = [
+                        np.copy(plus_intf) - 1/24 * fv.derivative(padded_plus_intf, axis=ortho_axis),
+                        np.copy(minus_intf) - 1/24 * fv.derivative(padded_minus_intf, axis=ortho_axis)
+                    ]
 
             intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **higher_order_intfs)
 
             # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation
-            final_fluxes, avg_flux = np.copy(intf_fluxes_cntrd), np.copy(intf_fluxes_avgd)
-            padded_avg_flux = fv.add_boundary(avg_flux, sim_variables.boundary, axis=1-axis)
-            final_fluxes -= 1/24 * fv.derivative(padded_avg_flux, axis=1-axis)
+            padded_avg_flux = fv.add_boundary(intf_fluxes_avgd, sim_variables.boundary, axis=ortho_axis)
+            intf_fluxes_cntrd -= 1/24 * fv.derivative(padded_avg_flux, axis=ortho_axis)
         else:
-            # Orthogonal Laplacian in 1D is zero
-            final_fluxes = intf_fluxes_avgd
+            # Pointwise & averaged values are the same for lower-order schemes; orthogonal Laplacian in 1D is also zero
+            intf_fluxes_cntrd = intf_fluxes_avgd
 
         # Add additional dissipation for strong shocks, if switched on (should not apply for mag. fields) [McCorquodale & Colella, 2011]
         if "artf_visc" in arrays.keys():
-            final_fluxes = final_fluxes + arrays['artf_visc']
+            final_fluxes = intf_fluxes_cntrd + arrays['artf_visc']
+        else:
+            final_fluxes = intf_fluxes_cntrd
 
         fluxes[axis] = {'flux':final_fluxes, 'eigmax':eigmax}
 
@@ -96,8 +97,7 @@ def calculate_LaxWendroff_flux(axis, sim_variables, **kwargs):
 # HLLC Riemann solver [Fleischmann et al., 2020]
 def calculate_HLLC_flux(axis, sim_variables, low_mach=False, **kwargs):
     Ma_limit = .1
-    gamma = sim_variables.gamma
-    rho, pressure = 0, 4
+    rho, pressure, gamma = sim_variables.rho, sim_variables.pressure, sim_variables.gamma
     energy = pressure
 
     prim_plus, prim_minus = kwargs["prim_interfaces"]
@@ -153,8 +153,7 @@ def calculate_HLLC_flux(axis, sim_variables, low_mach=False, **kwargs):
 
 # HLLD Riemann solver [Miyoshi & Kusano, 2005]
 def calculate_HLLD_flux(axis, sim_variables, **kwargs):
-    rho, pressure, vels, Bfields = 0, 4, slice(1,4), slice(5,8)
-    energy, momentums = pressure, vels
+    rho, pressure, vels, Bfields, energy, momentums = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields, sim_variables.energy, sim_variables.momentums
     axes = (axis + np.array(range(3)))%3
     abscissa, ordinate, applicate = axes
     Bx, By, Bz = 5 + axes
@@ -291,7 +290,7 @@ def calculate_DOTS_flux(axis, sim_variables, **kwargs):
 # Entropy-stable flux calculation based on left and right interpolated primitive variables [Winters & Gassner, 2015; Derigs et al., 2016]
 def calculate_ES_flux(axis, sim_variables, **kwargs):
     prim_plus, prim_minus = kwargs["prim_interfaces"]
-    rho, pressure, vels, Bfields = 0, 4, slice(1,4), slice(5,8)
+    rho, pressure, vels, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields
     abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
     gamma = sim_variables.gamma
 

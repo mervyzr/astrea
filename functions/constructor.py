@@ -7,11 +7,10 @@ from functions import fv
 ##############################################################################
 
 # Initialise the discrete POINTWISE solution array with initial conditions and primitive variables w, and transform into discrete AVERAGES <w>
-# Gives option to convert to conservative variables <q>
 # For magnetohydrodynamics, this returns a staggered grid
-def initialise(sim_variables, convert=False):
+def initialise(sim_variables):
 
-    rho, vx, vy, vz, pressure, Bx, By, Bz = range(8)
+    rho, vx, vy, pressure, Bx, By = sim_variables.rho, sim_variables.vx, sim_variables.vy, sim_variables.pressure, sim_variables.Bx, sim_variables.By
 
     # Create a physical grid for a single axis
     def make_physical_grid(_axis, _cells):
@@ -119,10 +118,7 @@ def initialise(sim_variables, convert=False):
         elif config.startswith('gauss'):
             computational_grid[...,rho] = fv.gauss_func(x, params)
 
-    if convert:
-        return fv.point_convert_primitive(computational_grid, sim_variables, staggered=magnetic)
-    else:
-        return computational_grid
+    return computational_grid
 
 
 # Make flux as a function of cell-averaged (primitive) variables

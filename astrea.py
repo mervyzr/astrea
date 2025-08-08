@@ -36,8 +36,9 @@ BEAUTIFY_1D_PLOTS = False
 def core_run(hdf5, sim_variables):
     chkpt = sim_variables.t_end/sim_variables.checkpoints
 
-    # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables
-    grid = constructor.initialise(sim_variables, convert=True)
+    # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables <q>
+    grid = constructor.initialise(sim_variables)
+    grid = fv.point_convert("primitive", grid, sim_variables, sim_variables.magnetic)
 
     # Initiate live or snapshot plotting, if enabled
     if sim_variables.live_plot:
@@ -51,11 +52,12 @@ def core_run(hdf5, sim_variables):
     # Start simulation run
     t, idx = 0., 1
     while t <= sim_variables.t_end:
-        # Transform grid for visualisation; always use cell-averaged grid for visualisation, not staggered grid
+        # Transform grid for visualisation; always use centred grid for visualisation, not staggered grid
         if sim_variables.magnetic:
-            grid_snapshot = sim_variables.convert_conservative(fv.inverse_reconstruct(grid, sim_variables), sim_variables)
+            centred_grid = fv.inverse_reconstruct(grid, sim_variables)
         else:
-            grid_snapshot = sim_variables.convert_conservative(grid, sim_variables)
+            centred_grid = grid
+        grid_snapshot = sim_variables.convert("conservative", centred_grid, sim_variables)
 
         # Save each instance of the system (primitive variables) at time t
         with h5py.File(hdf5, "a") as f:

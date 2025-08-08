@@ -11,12 +11,12 @@ from num_methods import ct
 
 def run(grid, sim_variables):
     boundary, axes, magnetic = sim_variables.boundary, sim_variables.axes, sim_variables.magnetic
-    convert_conservative = sim_variables.convert_conservative
+    convert = sim_variables.convert
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
     # Convert to primitive variables
-    primitive = convert_conservative(grid, sim_variables, staggered=magnetic)
+    primitive = convert("conservative", grid, sim_variables, staggered=magnetic)
 
     for axis in axes:
         # Magnetic component after computing to interface (interface = centre for PCM)

@@ -75,114 +75,72 @@ def add_boundary(grid, boundary, stencil=1, axis=0):
 
 # Convert between pressure P and total energy density e_tot; P is also related to the internal energy density e_int: P = (gamma-1) * e_int
 # Do note that the energy densities e are related to the energies E: e_tot = rho * E_tot, e_int = rho * E_int
-def convert_variable(variable, grid, sim_variables, staggered=False):
+def convert_variable(variable, grid, sim_variables):
     rho, pressure, vels, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields
     energy, momentums = pressure, vels
 
-    if staggered:
-        arr = inverse_reconstruct(grid, sim_variables)
-    else:
-        arr = grid
-
     if variable.lower().startswith('p'):
-        return arr[...,pressure]/(sim_variables.gamma-1) + .5 * (arr[...,rho]*norm(arr[...,vels])**2 + (norm(arr[...,Bfields])**2)/sim_variables.permeability)
+        return grid[...,pressure]/(sim_variables.gamma-1) + .5 * (grid[...,rho]*norm(grid[...,vels])**2 + (norm(grid[...,Bfields])**2)/sim_variables.permeability)
     elif variable.lower().startswith('e') or 'energy' in variable.lower():
-        return (sim_variables.gamma-1) * (arr[...,energy] - .5 * (arr[...,rho]*norm(divide(arr[...,momentums], arr[...,rho][...,None]))**2 + (norm(arr[...,Bfields])**2)/sim_variables.permeability))
+        return (sim_variables.gamma-1) * (grid[...,energy] - .5 * (grid[...,rho]*norm(divide(grid[...,momentums], grid[...,rho][...,None]))**2 + (norm(grid[...,Bfields])**2)/sim_variables.permeability))
 
 
-# Pointwise (exact) conversion of primitive variables w to conservative variables q (up to 2nd-order accurate)
-def point_convert_primitive(grid, sim_variables, staggered=False):
-    rho, energy, vels, momentums = sim_variables.rho, sim_variables.energy, sim_variables.vels, sim_variables.momentums
-
+# Pointwise (exact) conversion of conservative variables q <-> primitive variables w (up to 2nd-order accurate)
+def point_convert(variable_form, grid, sim_variables, staggered=False):
+    rho, pressure, energy, vels, momentums = sim_variables.rho, sim_variables.pressure, sim_variables.energy, sim_variables.vels, sim_variables.momentums
     arr = np.copy(grid)
-    arr[...,energy] = convert_variable('pressure', grid, sim_variables, staggered=staggered)
-    arr[...,momentums] = grid[...,vels] * grid[...,rho][...,None]
+
+    if staggered:
+        _grid = inverse_reconstruct(grid, sim_variables)
+    else:
+        _grid = grid
+
+    if variable_form.lower().startswith("p"):
+        arr[...,energy] = convert_variable('pressure', _grid, sim_variables)
+        arr[...,momentums] = _grid[...,vels] * _grid[...,rho][...,None]
+    elif variable_form.lower().startswith("c"):
+        arr[...,pressure] = convert_variable('energy', _grid, sim_variables)
+        arr[...,vels] = divide(_grid[...,momentums], _grid[...,rho][...,None])
     return arr
 
 
-# Pointwise (exact) conversion of conservative variables q to primitive variables w (up to 2nd-order accurate)
-def point_convert_conservative(grid, sim_variables, staggered=False):
-    rho, pressure, vels, momentums = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.momentums
-
-    arr = np.copy(grid)
-    arr[...,pressure] = convert_variable('energy', grid, sim_variables, staggered=staggered)
-    arr[...,vels] = divide(grid[...,momentums], grid[...,rho][...,None])
-    return arr
-
-
-# Converting (cell-/face-averaged) primitive variables w to (cell-/face-averaged) conservative variables q through a Laplacian (2nd-deriv, 2nd-order) approx.
-def high_order_convert_primitive(grid, sim_variables, staggered=False, compute_face=False):
+# Converting cell-averaged conservative variables <q> <-> cell-averaged primitive variables <w> through a Laplacian (2nd-deriv, 2nd-order) approx. (up to 4th-order accurate)
+def high_order_convert(variable_form, grid, sim_variables, staggered=False):
     Bx, By = sim_variables.Bx, sim_variables.By
-    w, q = np.copy(grid), np.zeros_like(grid)
+    base, expansion = np.copy(grid), np.zeros_like(grid)
 
-    if compute_face:
-        _range = range(1, sim_variables.dimension)
-    else:
-        _range = range(sim_variables.dimension)
-
-    for ax in _range:
-        _w = add_boundary(grid, sim_variables.boundary, axis=ax)
-        w -= 1/24 * derivative(_w, axis=ax)
-
-        _q = point_convert_primitive(_w, sim_variables, staggered=staggered)
-        q += 1/24 * derivative(_q, axis=ax)
-
-    conservative_grid = point_convert_primitive(w, sim_variables, staggered=staggered) + q
     if staggered:
-        conservative_grid[...,(Bx,By)] = grid[...,(Bx,By)]
-    return conservative_grid
-
-
-# Converting (cell-/face-averaged) conservative variables q to (cell-/face-averaged) primitive variables q through a Laplacian (2nd-deriv, 2nd-order) approx.
-def high_order_convert_conservative(grid, sim_variables, staggered=False, compute_face=False):
-    Bx, By = sim_variables.Bx, sim_variables.By
-    w, q = np.zeros_like(grid), np.copy(grid)
-
-    if compute_face:
-        _range = range(1, sim_variables.dimension)
+        _grid = inverse_reconstruct(grid, sim_variables)
     else:
-        _range = range(sim_variables.dimension)
+        _grid = grid
 
-    for ax in _range:
-        _q = add_boundary(grid, sim_variables.boundary, axis=ax)
-        q -= 1/24 * derivative(_q, axis=ax)
+    for axis in sim_variables.axes:
+        _base = add_boundary(_grid, sim_variables.boundary, axis=axis)
+        base -= 1/24 * derivative(_base, axis=axis)
 
-        _w = point_convert_conservative(_q, sim_variables, staggered=staggered)
-        w += 1/24 * derivative(_w, axis=ax)
+        _expansion = point_convert(variable_form, _base, sim_variables)
+        expansion += 1/24 * derivative(_expansion, axis=axis)
 
-    primitive_grid = point_convert_conservative(q, sim_variables, staggered=staggered) + w
+    new_grid = point_convert(variable_form, base, sim_variables) + expansion
+
     if staggered:
-        primitive_grid[...,(Bx,By)] = grid[...,(Bx,By)]
-    return primitive_grid
-
-
-# Convert between CENTRED cell/face variables and AVERAGED cell/face variables (i.e. FD <-> FV) (at higher order) with the Laplacian operator and centred difference coefficients (up to 2nd derivative because parabolic function)
-def high_order_convert(var_pos, grid_rep, grid, sim_variables):
-    new_grid = np.copy(grid)
-
-    if "face" in var_pos:
-        _range = range(1, sim_variables.dimension)
-    else:
-        _range = range(sim_variables.dimension)
-
-    for ax in _range:
-        padded_grid = add_boundary(grid, sim_variables.boundary, axis=ax)
-
-        if grid_rep.startswith("a"):
-            new_grid -= 1/24 * derivative(padded_grid, axis=ax)
-        else:
-            new_grid += 1/24 * derivative(padded_grid, axis=ax)
+        new_grid[...,(Bx,By)] = grid[...,(Bx,By)]
     return new_grid
 
 
-# 'Inverse reconstruct' the centred grid cell-averages from the staggered grid face-averages [Felker & Stone, 2018]
+# 'Inverse reconstruct' the mag. fields' cell-averaged values from the (staggered grid) face-averaged values [Felker & Stone, 2018]
 def inverse_reconstruct(grid, sim_variables):
     new_grid = np.copy(grid)
 
     for axis in sim_variables.axes:
         if sim_variables.higher_order:
-            # Approximate the face-averaged values to face-centred values (eq. 38)
-            face_cntrd = high_order_convert('face', 'avg', grid, sim_variables)
+            ortho_axis = 1 - axis
+            face_cntrd = np.copy(grid)
+
+            if sim_variables.dimension == 2:
+                # Approximate the face-averaged values to face-centred values (eq. 38)
+                padded_grid = add_boundary(grid, sim_variables.boundary, axis=ortho_axis)
+                face_cntrd -= 1/24 * derivative(padded_grid, axis=ortho_axis)
 
             # Interpolate the face-centred values to cell-centred values (eq. 39)
             face_cntrd_padded_2 = add_boundary(face_cntrd, sim_variables.boundary, stencil=2, axis=axis)
@@ -190,17 +148,41 @@ def inverse_reconstruct(grid, sim_variables):
             cell_cntrd = -1/16 * (slice_(face_cntrd_padded, axis, end=-2) + slice_(face_cntrd_padded_2, axis, start=4)) + 9/16 * (face_cntrd + slice_(face_cntrd_padded, axis, start=2))
 
             # Apply Laplacian operator to convert cell-centred values to cell-averaged values (eq. 40)
-            cell_avgd = high_order_convert('cell', 'cntr', cell_cntrd, sim_variables)
+            cell_avgd = np.copy(cell_cntrd) + 1/24 * derivative(add_boundary(cell_cntrd, sim_variables.boundary, axis=axis), axis=axis)
+
+            if sim_variables.dimension == 2:
+                cell_avgd += 1/24 * derivative(add_boundary(cell_cntrd, sim_variables.boundary, axis=ortho_axis), axis=ortho_axis)
+
         elif sim_variables.subgrid in ['plm', 'l', 'linear']:
             padded_grid = add_boundary(grid, sim_variables.boundary, axis=axis)
-            cell_avgd = slice_(.5 * (slice_(padded_grid, axis, start=1) + slice_(padded_grid, axis, end=-1)), axis, end=-1)
+            cell_avgd = slice_(.5 * (slice_(padded_grid, axis, start=1) + slice_(padded_grid, axis, end=-1)), axis, start=1)
+
         else:
             cell_avgd = grid
 
         # Update the grid values with the updated B-field values
         new_grid[...,5+axis] = cell_avgd[...,5+axis]
-
     return new_grid
+
+
+# Converting face-averaged conservative variables <q>_{i+1/2,j} <-> face-averaged primitive variables <w>_{i+1/2,j}
+def convert_interface(variable_form, interfaces, axis, sim_variables):
+    Bx, By = sim_variables.Bx, sim_variables.By
+    base, expansion = np.copy(interfaces), np.zeros_like(interfaces)
+
+    if sim_variables.higher_order and sim_variables.dimension == 2:
+        ortho_axis = 1 - axis
+        _base = add_boundary(interfaces, sim_variables.boundary, axis=ortho_axis)
+        base -= 1/24 * derivative(_base, axis=ortho_axis)
+
+        _expansion = point_convert(variable_form, _base, sim_variables)
+        expansion -= 1/24 * derivative(_expansion, axis=ortho_axis)
+
+    new_interfaces = point_convert(variable_form, base, sim_variables) + expansion
+
+    if sim_variables.magnetic:
+        new_interfaces[...,(Bx,By)] = interfaces[...,(Bx,By)]
+    return new_interfaces
 
 
 # Compute the max eigenvalues for calculating the time evolution
@@ -225,5 +207,4 @@ def compute_Roe_average(plus_interface, minus_interface):
     avg[...,vels] = divide((plus_interface[...,vels] * rho_plus[...,None]) + (minus_interface[...,vels] * rho_minus[...,None]), (rho_minus + rho_plus)[...,None])
     avg[...,pressure] = divide((rho_plus * plus_interface[...,pressure]) + (rho_minus * minus_interface[...,pressure]), rho_minus + rho_plus)
     avg[...,Bfields] = divide((plus_interface[...,Bfields] * rho_minus[...,None]) + (minus_interface[...,Bfields] * rho_plus[...,None]), (rho_minus + rho_plus)[...,None])
-
     return avg

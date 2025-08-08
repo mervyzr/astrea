@@ -11,14 +11,14 @@ from num_methods import ct, limiters
 
 def run(grid, sim_variables):
     boundary, axes, magnetic = sim_variables.boundary, sim_variables.axes, sim_variables.magnetic
-    convert_primitive, convert_conservative = sim_variables.convert_primitive, sim_variables.convert_conservative
+    convert = sim_variables.convert
     Bx, By, Bz = range(5,8)
 
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
 
     # Convert to primitive variables
-    primitive = convert_conservative(grid, sim_variables, staggered=magnetic)
+    primitive = convert("conservative", grid, sim_variables, staggered=magnetic)
 
     for axis in axes:
         # Pad array with boundary & apply (TVD) slope limiters
@@ -36,13 +36,13 @@ def run(grid, sim_variables):
 
         # Magnetic component after computing to interface
         if magnetic:
-            padded_grid = fv.add_boundary(grid, boundary, axis=axis)
             wR[...,(Bx,By)] = grid[...,(Bx,By)]
             data[axis]['ortho_interfaces'] = ct.reconstruct_transverse(wR, sim_variables, axis=axis)
 
         # Re-align the interfaces so that cell wall is in between interfaces
         prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)
         if magnetic:
+            padded_grid = fv.add_boundary(grid, boundary, axis=axis)
             prim_plus[...,(Bx,By)] = prim_minus[...,(Bx,By)] = fv.slice_(padded_grid, axis, end=-1)[...,(Bx,By)]
 
         # Get the average solution between the interfaces at the boundaries
@@ -50,9 +50,7 @@ def run(grid, sim_variables):
         padded_intf_avg = fv.add_boundary(intf_avg, boundary, axis=axis)
 
         # Convert the primitive interface variables
-        cons_plus, cons_minus = convert_primitive(prim_plus, sim_variables), convert_primitive(prim_minus, sim_variables)
-        if magnetic:
-            cons_plus[...,(Bx,By)] = cons_minus[...,(Bx,By)] = fv.slice_(padded_grid, axis, end=-1)[...,(Bx,By)]
+        cons_plus, cons_minus = fv.convert_interface("primitive", prim_plus, axis, sim_variables), fv.convert_interface("primitive", prim_minus, axis, sim_variables)
 
         # Compute the fluxes and the Jacobian
         flux_plus, flux_minus = constructor.make_flux(prim_plus, sim_variables, axis=axis), constructor.make_flux(prim_minus, sim_variables, axis=axis)

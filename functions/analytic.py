@@ -77,7 +77,7 @@ def calculate_conservation(simulation, sim_variables):
 
     for t in list(simulation.keys()):
         _grid = simulation[t][:]  # Needs the '[:]' to access the array
-        grid = sim_variables.convert_primitive(_grid, sim_variables)
+        grid = sim_variables.convert("primitive", _grid, sim_variables)
         grid = np.sum(grid, axis=axes)
         conservation[float(t)] = grid * area
     return conservation
@@ -100,7 +100,7 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
 
     for t in intervals:
         _grid = simulation[t][:]  # Needs the '[:]' to access the array
-        grid = sim_variables.convert_primitive(_grid, sim_variables)
+        grid = sim_variables.convert("primitive", _grid, sim_variables)
         grid = np.sum(grid, axis=axes)
         conservation[t] = grid * area
     return conservation
