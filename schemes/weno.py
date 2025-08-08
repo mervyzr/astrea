@@ -12,7 +12,7 @@ from num_methods import ct
 def run(grid, sim_variables):
     subgrid, boundary, axes, magnetic = sim_variables.subgrid, sim_variables.boundary, sim_variables.axes, sim_variables.magnetic
     convert = sim_variables.convert
-    Bx, By, Bz = range(5,8)
+    Bx, By = sim_variables.Bx, sim_variables.By
 
     nested_dict = lambda: defaultdict(nested_dict)
     data = nested_dict()
