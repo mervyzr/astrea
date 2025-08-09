@@ -147,7 +147,7 @@ def generate_test_conditions(config, cells):
         x_axis = [0,1]
         y_axis = [0,1]
         shock_pos = [1,1]
-        t_end = 1.5
+        t_end = 1
         boundary = "wrap"
         initial_left = np.array([25/(36*np.pi),0,0,0,5/(12*np.pi),0,0,0])
         initial_right = np.array([25/(36*np.pi),0,0,0,5/(12*np.pi),0,0,0])

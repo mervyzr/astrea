@@ -744,8 +744,7 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
 # Make a video of entire simulation; video of all plot options or specific variable
 def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
     config, gamma, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.gamma, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
-    x_axis, y_axis = sim_variables.x_axis, sim_variables.y_axis
-    beautify = sim_variables.beautify
+    x_axis, beautify = sim_variables.x_axis, sim_variables.beautify
 
     def make_limits(_options, _gamma, _min_values, _max_values, scale_factor=1.):
         limits = []
