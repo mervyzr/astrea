@@ -10,15 +10,14 @@ from functions import fv
 # For magnetohydrodynamics, this returns a staggered grid
 def initialise(sim_variables):
 
-    rho, vx, vy, pressure, Bx, By = sim_variables.rho, sim_variables.vx, sim_variables.vy, sim_variables.pressure, sim_variables.Bx, sim_variables.By
-
     # Create a physical grid for a single axis
     def make_physical_grid(_axis, _cells):
         dh = np.abs(np.diff(_axis)[0])/_cells
         half_cell = dh/2
         return np.linspace(_axis[0]-half_cell, _axis[1]+half_cell, _cells+2)[1:-1]
 
-    config, cells, gamma, dimension, precision, magnetic = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimension, sim_variables.precision, sim_variables.magnetic
+    config, cells, gamma, dimension, precision = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimension, sim_variables.precision
+    rho, vx, vy, pressure, Bx, By = sim_variables.rho, sim_variables.vx, sim_variables.vy, sim_variables.pressure, sim_variables.Bx, sim_variables.By
     x_axis, y_axis, params = sim_variables.x_axis, sim_variables.y_axis, sim_variables.misc
     initial_left, initial_right = sim_variables.initial_left, sim_variables.initial_right
     x_shock_pos, y_shock_pos = sim_variables.shock_pos

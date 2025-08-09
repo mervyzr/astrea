@@ -160,7 +160,9 @@ def parse_cli_variables(_config_variables, _cli_variables, _db_path):
                 v = [int(v)-int(v)%2,] * temp_dct['dimension']
             elif isinstance(v, str):
                 try:
-                    v = [int(n)-int(n)%2 for n in v.strip('()').replace(' ','').replace('-',',').split(',')]
+                    v = [int(n)-int(n)%2 for n in v.strip('()').replace(' ','').replace('x',',').split(',')]
+                    if len(v) < 2:
+                        v *= temp_dct['dimension']
                 except Exception:
                     v = [128,] * temp_dct['dimension']
                 else:
