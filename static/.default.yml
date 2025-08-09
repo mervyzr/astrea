@@ -33,7 +33,7 @@ media_options:
   save_file     : false
   # Plot options
   # : density, pressure, velocity Vx/Vy/Vz, total/internal energy, Mach number,
-  # : magnetic field Bx/By/Bz, magnetic pressure, magnetic divergence divBx/divBy/divBz/divB
+  # : magnetic field Bx/By/Bz, magnetic pressure, magnetic divergence divB
   plot_options  :
     - density
     - pressure

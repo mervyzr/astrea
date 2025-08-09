@@ -30,17 +30,39 @@ def make_figure(options, sim_variables, variable="normal"):
             else:
                 theo_colour = "black"
         finally:
-            colours = plt.rcParams['axes.prop_cycle'].by_key()['color']
-            twod_colours = ["viridis", "hot", "cividis", "plasma", "inferno", "ocean", "terrain", "cubehelix", "magma", "gist_earth"]
+            colours = plt.rcParams['axes.prop_cycle'].by_key()['color'] * 2
+            cmap_colours = {
+                "density": "viridis",
+                "pressure": "plasma",
+                "magnetic pressure": "inferno",
+                "total energy": "cividis",
+                "internal energy": "PuBuGn",
+                "vels": {"x":"berlin", "y":"managua", "z":"vanimo"},
+                "momentums": {"x":"RdYlBu", "y":"PuOr", "z":"PRGn"},
+                "Bfields": {"x":"RdBu", "y":"BrBG", "z":"PiYG"},
+                "Mach": "bone",
+                "divergence": "binary",
+                "mass": "pink",
+            }
+
+            twod_colours = [
+                "viridis", "plasma", "cividis", "inferno", 
+                "copper", "gist_earth", "ocean", "cubehelix",
+                "pink", "summer", "bone", "binary", 
+                "berlin", "managua", "vanimo", "twilight",
+                "ocean", "gist_earth", "terrain", "cubehelix", 
+                ]
 
         # Set up labels and axes names
-        names, labels, errors, tvs = [], [], [], []
+        names, labels, errors, tvs, twod_colours = [], [], [], [], []
+        axis_idx = {'x':0, 'y':1, 'z':2}
         for option in options:
             option = option.lower()
 
             if "energy" in option or "temp" in option or option.startswith("e"):
                 if "int" in option:
                     name = "Internal energy"
+                    twod_colour = cmap_colours['internal energy']
                     if "density" in option:
                         name += ' density'
                         label = r"$e_\mathrm{int}$"
@@ -52,6 +74,7 @@ def make_figure(options, sim_variables, variable="normal"):
                         tv = r"TV($E_\mathrm{int}$)"
                 else:
                     name = "Total energy"
+                    twod_colour = cmap_colours['total energy']
                     if "density" in option:
                         name += ' density'
                         label = r"$e_\mathrm{tot}$"
@@ -64,30 +87,35 @@ def make_figure(options, sim_variables, variable="normal"):
 
             elif "mom" in option:
                 name = "Momentum"
+                twod_colour = cmap_colours['momentums'][option[-1]]
                 label = rf"$p_{option[-1]}$"
                 error = rf"$\epsilon_N(p_{option[-1]})$"
                 tv = rf"TV($p_{option[-1]}$)"
 
             elif "mass" in option:
                 name = "Mass"
+                twod_colour = cmap_colours['mass']
                 label = r"$m$"
                 error = r"$\epsilon_N(m)$"
                 tv = r"TV($m$)"
 
             elif "mach" in option:
                 name = "Mach number"
+                twod_colour = cmap_colours['Mach']
                 label = r"$\mathcal{M}$"
                 error = r"$\epsilon_N(\mathcal{M})$"
                 tv = r"TV($\mathcal{M}$)"
 
             elif option.startswith("p"):
                 name = "Pressure"
+                twod_colour = cmap_colours['pressure']
                 label = r"$P$"
                 error = r"$\epsilon_N(P)$"
                 tv = r"TV($P$)"
 
             elif option.startswith("v"):
                 name = "Velocity"
+                twod_colour = cmap_colours['vels'][option[-1]]
                 label = rf"$v_{option[-1]}$"
                 error = rf"$\epsilon_N(v_{option[-1]})$"
                 tv = rf"TV($v_{option[-1]}$)"
@@ -95,17 +123,20 @@ def make_figure(options, sim_variables, variable="normal"):
             elif option.startswith("b") or option.startswith("mag"):
                 if "p" in option:
                     name = "Mag. pressure"
+                    twod_colour = cmap_colours['magnetic pressure']
                     label = r"$P_B$"
                     error = r"$\epsilon_N(P_B)$"
                     tv = r"TV($P_B$)"
                 else:
                     name = "Mag. field"
+                    twod_colour = cmap_colours['Bfields'][option[-1]]
                     label = rf"$B_{option[-1]}$"
                     error = rf"$\epsilon_N(B_{option[-1]})$"
                     tv = rf"TV($B_{option[-1]}$)"
 
             elif 'div' in option or 'db' in option:
                 name = "div. Mag. field"
+                twod_colour = cmap_colours['divergence']
                 if option[-1] == 'b':
                     label = r"$\nabla \cdot B$"
                     error = r"$\epsilon_N(\nabla \cdot B)$"
@@ -117,6 +148,7 @@ def make_figure(options, sim_variables, variable="normal"):
 
             else:
                 name = "Density"
+                twod_colour = cmap_colours['density']
                 label = r"$\rho$"
                 error = r"$\epsilon_N(\rho)$"
                 tv = r"TV($\rho$)"
@@ -125,6 +157,7 @@ def make_figure(options, sim_variables, variable="normal"):
             labels.append(rf"{label} [arb. units]")
             errors.append(rf"{error} [arb. units]")
             tvs.append(rf"{tv} [arb. units]")
+            twod_colours.append(twod_colour)
 
         # Set up rows and columns
         indexes = []
