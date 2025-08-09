@@ -45,14 +45,6 @@ def make_figure(options, sim_variables, variable="normal"):
                 "mass": "pink",
             }
 
-            twod_colours = [
-                "viridis", "plasma", "cividis", "inferno", 
-                "copper", "gist_earth", "ocean", "cubehelix",
-                "pink", "summer", "bone", "binary", 
-                "berlin", "managua", "vanimo", "twilight",
-                "ocean", "gist_earth", "terrain", "cubehelix", 
-                ]
-
         # Set up labels and axes names
         names, labels, errors, tvs, twod_colours = [], [], [], [], []
         axis_idx = {'x':0, 'y':1, 'z':2}
