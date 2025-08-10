@@ -150,7 +150,7 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
 # Compute the corner electric fields wrt to corner; gives 4-fold values for each corner [Mignone & del Zanna, 2021]
 def compute_corner(data, sim_variables):
     alphas, magnetic_components = [], []
-    rho, vx, vy, vz, pressure, Bx, By, Bz = range(8)
+    vx, vy, Bx, By = sim_variables.vx, sim_variables.vy, sim_variables.Bx, sim_variables.By
 
     # Collate the magnetic components and alphas
     for axis in sim_variables.axes:

@@ -47,7 +47,6 @@ def make_figure(options, sim_variables, variable="normal"):
 
         # Set up labels and axes names
         names, labels, errors, tvs, twod_colours = [], [], [], [], []
-        axis_idx = {'x':0, 'y':1, 'z':2}
         for option in options:
             option = option.lower()
 
@@ -738,42 +737,6 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
     config, gamma, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.gamma, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
     x_axis, beautify = sim_variables.x_axis, sim_variables.beautify
 
-    def make_limits(_options, _gamma, _min_values, _max_values, scale_factor=1.):
-        limits = []
-
-        for _option in _options:
-            _option = _option.lower()
-
-            if "energy" in _option or "temp" in _option or _option.startswith("e"):
-                if "int" in _option:
-                    if "density" in _option:
-                        limit = np.array([fv.divide(_min_values[...,4],_gamma-1), fv.divide(_max_values[...,4],_gamma-1)])
-                    else:
-                        limit = np.array([fv.divide(_min_values[...,4],_min_values[...,0] * (_gamma-1)), fv.divide(_max_values[...,4],_max_values[...,0] * (_gamma-1))])
-                else:
-                    if "density" in _option:
-                        limit = np.array([_min_values[...,-1], _max_values[...,-1]])
-                    else:
-                        limit = np.array([fv.divide(_min_values[...,-1],_min_values[...,0]), fv.divide(_max_values[...,-1],_max_values[...,0])])
-            elif _option.startswith("p"):
-                limit = np.array([_min_values[...,4], _max_values[...,4]])
-            elif _option.startswith("v") or "mom" in _option or _option.startswith("b") or _option.startswith("mag"):
-                axis = {"x":0, "y":1, "z":2}[_option[-1]]
-                if _option.startswith("v") or "mom" in _option:
-                    limit = np.array([_min_values[...,1+axis], _max_values[...,1+axis]])
-                    if "mom" in _option:
-                        limit = np.array([_min_values[...,1+axis]*_min_values[...,0], _max_values[...,1+axis]*_max_values[...,0]])
-                else:
-                    limit = np.array([_min_values[...,5+axis], _max_values[...,5+axis]])
-            else:
-                limit = np.array([_min_values[...,0], _max_values[...,0]])
-
-            if np.diff(limit) <= 1e-10:
-                limit[1] += np.finfo(np.float64).eps
-
-            limits.append(limit*scale_factor)
-        return limits
-
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
     datetimes.sort()
@@ -797,7 +760,6 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
                 fig, ax, plot_ = make_figure(options, sim_variables)
                 y_data = make_data(options, grid, sim_variables)
-                limits = make_limits(options, gamma, simulation.attrs['min_values'], simulation.attrs['max_values'])
 
                 if variable == "all":
                     for idx, (_i,_j) in enumerate(plot_['indexes']):
@@ -808,13 +770,12 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                             divider = make_axes_locatable(ax[_i,_j])
                             cax = divider.append_axes('right', size='5%', pad=0.05)
                             fig.colorbar(graph, cax=cax, orientation='vertical')
-                            graph.set_clim(limits[idx][0], limits[idx][1])
+                            #graph.set_clim(0, 1)
                         else:
                             if beautify:
                                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
                             else:
                                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
-                                ax[_i,_j].set_ylim(limits[idx][0], limits[idx][1])
 
                     if title:
                         grid_axes, grid_cells = "$x$", f" ($N = {str(cells).strip('[]').replace(' ','').replace(',','x')}$)"
@@ -838,10 +799,9 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                     if dimension == 2:
                         plt.axis('off')
                         graph = ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
-                        graph.set_clim(limits[idx][0], limits[idx][1])
+                        #graph.set_clim(0, 1)
                     else:
                         ax[idx,idx].plot(x, y_data[idx], color=plot_['colours']['1d'][idx])
-                        ax[idx,idx].set_ylim(limits[idx][0], limits[idx][1])
 
                     ax[idx,idx].set_title('')
 
@@ -874,17 +834,15 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
                     fig, ax, plot_ = make_figure([_variable], sim_variables)
                     y_data = make_data([_variable], grid, sim_variables)
-                    limits = make_limits([_variable], gamma, simulation.attrs['min_values'], simulation.attrs['max_values'])
 
                     idx = 0
 
                     if dimension == 2:
                         plt.axis('off')
-                        graph = ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][style_counter], origin="lower")
-                        graph.set_clim(limits[idx][0], limits[idx][1])
+                        graph = ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][0], origin="lower")
+                        #graph.set_clim(0, 1)
                     else:
                         ax[idx,idx].plot(x, y_data[idx], color=plot_['colours']['1d'][style_counter])
-                        ax[idx,idx].set_ylim(limits[idx][0], limits[idx][1])
 
                     ax[idx,idx].set_title('')
 
