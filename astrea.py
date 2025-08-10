@@ -46,9 +46,6 @@ def core_run(hdf5, sim_variables):
     elif sim_variables.take_snaps:
         take_snapshot = True
 
-    # Set up min/max arrays
-    var_max, var_min, _Emax, _Emin = np.zeros(8), np.zeros(8), 0, 0
-
     # Start simulation run
     t, idx = 0., 1
     while t <= sim_variables.t_end:
@@ -63,13 +60,6 @@ def core_run(hdf5, sim_variables):
         with h5py.File(hdf5, "a") as f:
             dataset = f[sim_variables.access_key].create_dataset(str(float(t)), data=grid_snapshot, compression="gzip", compression_opts=9)
             dataset.attrs['t'] = float(t)
-
-        # Save min/max values
-        pmax, pmin = np.max(grid_snapshot, axis=sim_variables.axes), np.min(grid_snapshot, axis=sim_variables.axes)
-        var_max[pmax > var_max] = pmax[pmax > var_max]
-        var_min[pmin < var_min] = pmin[pmin < var_min]
-        _Emax = np.max(grid[...,4]) if np.max(grid[...,4]) > _Emax else _Emax
-        _Emin = np.min(grid[...,4]) if np.min(grid[...,4]) < _Emin else _Emin
 
         # Miscellaneous media/print options
         if not sim_variables.quiet:
@@ -107,10 +97,6 @@ def core_run(hdf5, sim_variables):
 
             # Change the order of the axis sweep
             sim_variables.axes = sim_variables.axes[::-1]
-
-    with h5py.File(hdf5, "a") as f:
-        f[sim_variables.access_key].attrs['max_values'] = np.append(var_max, _Emax)
-        f[sim_variables.access_key].attrs['min_values'] = np.append(var_min, _Emin)
 
 ##############################################################################
 
