@@ -47,7 +47,6 @@ def make_figure(options, sim_variables, variable="normal"):
 
         # Set up labels and axes names
         names, labels, errors, tvs, twod_colours = [], [], [], [], []
-        axis_idx = {'x':0, 'y':1, 'z':2}
         for option in options:
             option = option.lower()
 
@@ -880,7 +879,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
                     if dimension == 2:
                         plt.axis('off')
-                        graph = ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][style_counter], origin="lower")
+                        graph = ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][0], origin="lower")
                         graph.set_clim(limits[idx][0], limits[idx][1])
                     else:
                         ax[idx,idx].plot(x, y_data[idx], color=plot_['colours']['1d'][style_counter])

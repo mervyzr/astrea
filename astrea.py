@@ -240,7 +240,7 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
                 vidpath = f"{save_path}/.vidplots"
                 if not os.path.exists(vidpath):
                     os.makedirs(vidpath)
-                plotting.make_video(f, sim_variables, vidpath, variable='all')
+                plotting.make_video(f, sim_variables, vidpath)
 
     # Exception handling; deletes the temporary HDF5 database to prevent clutter
     except Exception as e:
