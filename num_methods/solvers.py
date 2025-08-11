@@ -7,66 +7,25 @@ from functions import constructor, fv
 ##############################################################################
 
 # Intercell numerical fluxes between L and R interfaces based on Riemann solver
-def calculate_Riemann_flux(data, sim_variables):
+def get_Riemann_solver(sim_variables):
     # HLL-type solvers
     if sim_variables.solver_category == "hll":
         if sim_variables.solver.endswith("d"):
-            Riemann_solver = calculate_HLLD_flux
+            return calculate_HLLD_flux
         else:
-            Riemann_solver = calculate_HLLC_flux
+            return calculate_HLLC_flux
     # 'Complete Riemann' solvers
     elif sim_variables.solver_category == "complete":
         if sim_variables.solver.startswith("o"):
-            Riemann_solver = calculate_DOTS_flux
+            return calculate_DOTS_flux
         else:
-            Riemann_solver = calculate_ES_flux
+            return calculate_ES_flux
     # Roe-type/Lax-type solvers
     else:
         if sim_variables.solver.endswith("w"):
-            Riemann_solver = calculate_LaxWendroff_flux
+            return calculate_LaxWendroff_flux
         else:
-            Riemann_solver = calculate_LaxFriedrich_flux
-
-    fluxes = {}
-    for axis, arrays in data.items():
-        eigmax = sim_variables.ds[axis]/fv.compute_eigmax(arrays['characteristics'], axis=axis)
-
-        # Calculate the interface-averaged fluxes
-        intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **arrays)
-
-        # Compute the orthogonal L/R Riemann states and fluxes at higher-order
-        if sim_variables.dimension == 2 and sim_variables.higher_order:
-            higher_order_intfs, ortho_axis = {}, 1-axis
-            for key, array in arrays.items():
-                if key == "characteristics":
-                    higher_order_intfs[key] = array
-                elif len(array) == 2:
-                    # Approximate the face-averaged values to face-centred values
-                    plus_intf, minus_intf = array
-                    padded_plus_intf, padded_minus_intf = fv.add_boundary(plus_intf, sim_variables.boundary, axis=ortho_axis), fv.add_boundary(minus_intf, sim_variables.boundary, axis=ortho_axis)
-                    higher_order_intfs[key] = [
-                        np.copy(plus_intf) - 1/24 * fv.derivative(padded_plus_intf, axis=ortho_axis),
-                        np.copy(minus_intf) - 1/24 * fv.derivative(padded_minus_intf, axis=ortho_axis)
-                    ]
-
-            intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **higher_order_intfs)
-
-            # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation
-            padded_avg_flux = fv.add_boundary(intf_fluxes_avgd, sim_variables.boundary, axis=ortho_axis)
-            intf_fluxes_cntrd -= 1/24 * fv.derivative(padded_avg_flux, axis=ortho_axis)
-        else:
-            # Pointwise & averaged values are the same for lower-order schemes; orthogonal Laplacian in 1D is also zero
-            intf_fluxes_cntrd = intf_fluxes_avgd
-
-        # Add additional dissipation for strong shocks, if switched on (should not apply for mag. fields) [McCorquodale & Colella, 2011]
-        if "artf_visc" in arrays.keys():
-            final_fluxes = intf_fluxes_cntrd + arrays['artf_visc']
-        else:
-            final_fluxes = intf_fluxes_cntrd
-
-        fluxes[axis] = {'flux':final_fluxes, 'eigmax':eigmax}
-
-    return fluxes
+            return calculate_LaxFriedrich_flux
 
 
 # (Local) Lax-Friedrich solver (1st-order; highly diffusive)

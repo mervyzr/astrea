@@ -244,7 +244,7 @@ class SimulationVariables(object):
         'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'energy', 'vels', 'Bfields', 'momentums',
         'config', 'cells', 'cfl', 'gamma', 'permeability', 'dimension', 'precision', 'subgrid', 'timestep', 'solver',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'save_path',
-        'permeability', 'magnetic', 'roots', 'weights', 'axes',
+        'permeability', 'magnetic', 'roots', 'weights', 'axes', 'ppm_dissipate',
         'config_category', 'solver_category', 'convert', 'higher_order',
         'x_axis', 'y_axis', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'ds',
         'run_type', 'checkpoints', 'live_plot', 'take_snaps', 'save_plots', 'save_video', 'save_file', 'plot_options', 'plot_style', 'beautify',
@@ -288,6 +288,7 @@ class SimulationVariables(object):
 
         self.convert = fv.point_convert
         self.higher_order = False
+        self.ppm_dissipate = False
 
         # Higher-order conversion functions
         if self.subgrid.startswith("w") or self.subgrid in ["ppm", "parabolic", "p"]:
