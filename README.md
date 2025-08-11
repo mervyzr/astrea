@@ -140,20 +140,21 @@ astrea.run()
 │   ├── constructors.py  : Constructors for math objects, such as eigenvectors and Jacobian matrices
 │   ├── fv.py            : Frequently used functions specific to FVM
 │   ├── generic.py       : Generic functions not specific to FVM
-│   └── plotting.py      : Functions for (live-)plotting
+│   ├── io.py            : Functions for I/O, e.g., simulation variables
+│   └── plotting.py      : Functions for media, e.g., (live-)plotting, videos
 ├── num_methods
 │   ├── __init__.py
-│   ├── evolvers.py      : Collates the schemes for space and time evolution
-│   ├── limiters.py      : Implements flux/slope limiters in the reconstructed states
+│   ├── evolvers.py      : Computation of fluxes and eigenvalues for space and time evolution
+│   ├── limiters.py      : Implements slope limiters for the reconstructed states
 │   ├── ct.py            : Functions for the constrained transport implementation
-│   ├── solvers.py       : Contains the Riemann solvers
+│   ├── solvers.py       : Contains the various Riemann solvers
 ├── parameters.yml       : Parameters for the simulation
 ├── schemes
 │   ├── __init__.py
 │   ├── pcm.py           : Piecewise constant method [Godunov, 1959]
 │   ├── plm.py           : Piecewise linear method [Derigs et al., 2018]
 │   ├── ppm.py           : Piecewise parabolic method [McCorquodale & Colella, 2011; Felker & Stone, 2015]
-│   ├── weno.py          : WENO method [Shu, 2009]
+│   ├── weno.py          : Weighted essentially non-oscillatory method [Shu, 2009]
 ├── setup.py             : Installation script
 ├── static
 │   ├── __init__.py
