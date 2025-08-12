@@ -50,8 +50,10 @@ def superbee_limiter(padded_grid, axis):
 
 
 # Function for limiting the interface values interpolated from cell centre for PPM [Colella et al., 2011, p. 26; Peterson & Hammett, 2008, eq. 3.33-3.34]
-def interface_limiter(interface, minus_one, zeroth, plus_one, plus_two):
+def interface_limiter(interface, *grid_slices):
+    minus_one, zeroth, plus_one, plus_two = grid_slices
     C = 5/4
+
     # Initial check for local extrema (eq. 84)
     local_extrema = (interface - zeroth)*(plus_one - interface) < 0
 
@@ -79,8 +81,9 @@ def interface_limiter(interface, minus_one, zeroth, plus_one, plus_two):
 
 
 # Parabolic extrapolant limiter for PPM [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
-def extrapolant_limiter(grid, padded_grid, padded_grid_2, padded_interface_2, author, boundary, axis, *args):
+def extrapolant_limiter(grid, boundary, axis, author, *args, **kwargs):
     left_of_centre, right_of_centre = args
+    padded_grid, padded_grid_2, padded_interface_2 = kwargs['padded_grid'], kwargs['padded_grid_2'], kwargs['padded_interface_2']
     C = 5/4
 
     author = author.lower()
@@ -88,7 +91,7 @@ def extrapolant_limiter(grid, padded_grid, padded_grid_2, padded_interface_2, au
     # Set differences
     dw_minus, dw_plus = grid - left_of_centre, right_of_centre - grid
 
-    if author.startswith(("mccorquodale", "m")):
+    if author.startswith(("mccorquodale", "m", "mc")):
         # Define functions
         wL, wR = np.copy(left_of_centre), np.copy(right_of_centre)
         d2w = 6 * (left_of_centre - 2*grid + right_of_centre)
@@ -167,7 +170,7 @@ def extrapolant_limiter(grid, padded_grid, padded_grid_2, padded_interface_2, au
         # Check for cell extrema in cells [Colella et al., 2011, eq. 89; Peterson & Hammett, 2008, eq. 3.31]
         cell_extrema = dw_minus*dw_plus <= 0
 
-        if author.startswith(("peterson", "p", "x")):
+        if author.startswith(("peterson", "p", "ph", "x")):
             extrapolant_extrema = (fv.slice_(padded_grid, axis, end=-2)-grid)*(grid-fv.slice_(padded_grid, axis, start=2)) <= 0
         else:
             # Check for overshoot in cells [Colella et al., 2011, eq. 90]
@@ -206,7 +209,7 @@ def extrapolant_limiter(grid, padded_grid, padded_grid_2, padded_interface_2, au
             # Update the limited local curvature estimates based on the conditions [Peterson & Hammett, 2008, eq. 3.38]
             D2w_lim[cell_extrema & non_monotonic] = limited_curvature[cell_extrema & non_monotonic]
 
-            if author.startswith(("peterson", "p", "x")):
+            if author.startswith(("peterson", "p", "ph", "x")):
                 # Get the final limited values [Peterson & Hammett, 2008, eq. 3.39]
                 phi = fv.divide(D2w_lim, D2w)
 

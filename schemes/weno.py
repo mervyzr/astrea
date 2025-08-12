@@ -1,24 +1,19 @@
-from collections import defaultdict
-
 import numpy as np
 
 from functions import constructor, fv
-from num_methods import ct
+from num_methods import ct, solvers
 
 ##############################################################################
 # WENO reconstruction method [Shu, 2009]
 ##############################################################################
 
-def run(grid, sim_variables):
-    subgrid, boundary, axes, magnetic = sim_variables.subgrid, sim_variables.boundary, sim_variables.axes, sim_variables.magnetic
-    convert = sim_variables.convert
+def run(grid, sim_variables, axis, **kwargs):
+    subgrid, dimension, boundary, magnetic, ds = sim_variables.subgrid, sim_variables.dimension, sim_variables.boundary, sim_variables.magnetic, sim_variables.ds
     Bx, By = sim_variables.Bx, sim_variables.By
+    data = {}
 
-    nested_dict = lambda: defaultdict(nested_dict)
-    data = nested_dict()
-
-    # Convert to primitive variables
-    primitive = convert("conservative", grid, sim_variables, staggered=magnetic)
+    Riemann_solver = solvers.get_Riemann_solver(sim_variables)
+    ortho_axis = 1 - axis if (magnetic or dimension == 2) else 0
 
     """WENO reconstruction [Shu, 2009; San & Kara, 2015]
     |                        w(i-1/2)                    w(i+1/2)                       |
@@ -29,13 +24,16 @@ def run(grid, sim_variables):
     def reconstruct(_grid, _boundary, _axis, _order=5):
         eps = 1e-6
 
+        # Define frequently used terms    
+        padded_grid_3 = fv.add_boundary(_grid, _boundary, stencil=3, axis=_axis)
+        padded_grid_2 = fv.slice_(padded_grid_3, _axis, *[1,-1])
+        padded_grid = fv.slice_(padded_grid_2, _axis, *[1,-1])
+
+        zeroth = np.copy(_grid)
+        minus_one, minus_two, minus_three = fv.slice_(padded_grid, _axis, end=-2), fv.slice_(padded_grid_2, _axis, end=-4), fv.slice_(padded_grid_3, _axis, end=-6)
+        plus_one, plus_two, plus_three = fv.slice_(padded_grid, _axis, start=2), fv.slice_(padded_grid_2, _axis, start=4), fv.slice_(padded_grid_3, _axis, start=6)
+
         if _order == 3:
-            padded_grid = fv.add_boundary(_grid, _boundary, axis=_axis)
-
-            # Define frequently used terms
-            zeroth = fv.slice_(padded_grid, _axis, *[1,-1])
-            minus_one, plus_one = fv.slice_(padded_grid, _axis, end=-2), fv.slice_(padded_grid, _axis, start=2)
-
             # Define the linear weights
             g0, g1 = 1/3, 2/3
 
@@ -52,16 +50,6 @@ def run(grid, sim_variables):
             wL = (a1(g0)/(a0(g1) + a1(g0)))*(1.5*zeroth - .5*plus_one) + (a0(g1)/(a0(g1) + a1(g0)))*(.5*zeroth + .5*minus_one)
 
         elif _order == 7:
-            padded_grid_3 = fv.add_boundary(_grid, _boundary, stencil=3, axis=_axis)
-
-            # Define frequently used terms
-            padded_grid_2 = fv.slice_(padded_grid_3, axis, *[1,-1])
-            padded_grid = fv.slice_(padded_grid_2, axis, *[1,-1])
-
-            zeroth = fv.slice_(padded_grid, axis, *[1,-1])
-            minus_one, minus_two, minus_three = fv.slice_(padded_grid, axis, end=-2), fv.slice_(padded_grid_2, axis, end=-4), fv.slice_(padded_grid_3, axis, end=-6)
-            plus_one, plus_two, plus_three = fv.slice_(padded_grid, axis, start=2), fv.slice_(padded_grid_2, axis, start=4), fv.slice_(padded_grid_3, axis, start=6)
-
             # Define the linear weights
             g0, g1, g2, g3 = 1/35, 12/35, 18/35, 4/35
 
@@ -112,15 +100,6 @@ def run(grid, sim_variables):
             )
 
         else:
-            padded_grid_2 = fv.add_boundary(_grid, _boundary, stencil=2, axis=_axis)
-
-            # Define frequently used terms
-            padded_grid = fv.slice_(padded_grid_2, axis, *[1,-1])
-
-            zeroth = fv.slice_(padded_grid, axis, *[1,-1])
-            minus_one, minus_two = fv.slice_(padded_grid, axis, end=-2), fv.slice_(padded_grid_2, axis, end=-4)
-            plus_one, plus_two = fv.slice_(padded_grid, axis, start=2), fv.slice_(padded_grid_2, axis, start=4)
-
             # Define the linear weights
             g0, g1, g2 = 1/10, 3/5, 3/10
 
@@ -157,43 +136,83 @@ def run(grid, sim_variables):
 
         return wL, wR
 
-    for axis in axes:
-        # Reconstruct the interface states
-        if len(subgrid.split("weno")) == 2:
-            try:
-                wL, wR = reconstruct(primitive, boundary, axis, int(subgrid.replace('-','').split("weno")[-1]))
-            except Exception as e:
-                wL, wR = reconstruct(primitive, boundary, axis)
-        else:
-            wL, wR = reconstruct(primitive, boundary, axis)
+    # Approximate the face-averaged values to face-centred values (for higher-order flux calculations)
+    def approx_face_avg(_axis, _boundary, *_interfaces):
+        plus_intf, minus_intf = _interfaces
+        padded_plus_intf, padded_minus_intf = fv.add_boundary(plus_intf, _boundary, axis=_axis), fv.add_boundary(minus_intf, _boundary, axis=_axis)
+        return np.copy(plus_intf) - 1/24 * fv.derivative(padded_plus_intf, axis=_axis), np.copy(minus_intf) - 1/24 * fv.derivative(padded_minus_intf, axis=_axis)
 
-        # Magnetic component after computing to interface
-        if magnetic:
-            wR[...,(Bx,By)] = grid[...,(Bx,By)]
-            data[axis]['ortho_interfaces'] = ct.reconstruct_transverse(wR, sim_variables, axis=axis)
 
-        # Re-align the interfaces so that cell wall is in between interfaces
-        prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)
-        if magnetic:
-            padded_grid = fv.add_boundary(grid, boundary, axis=axis)
-            prim_plus[...,(Bx,By)] = prim_minus[...,(Bx,By)] = fv.slice_(padded_grid, axis, end=-1)[...,(Bx,By)]
+    # Reconstruct the interface states
+    if len(subgrid.split("weno")) == 2:
+        try:
+            wL, wR = reconstruct(grid, boundary, axis, int(subgrid.replace('-','').split("weno")[-1]))
+        except Exception as e:
+            wL, wR = reconstruct(grid, boundary, axis)
+    else:
+        wL, wR = reconstruct(grid, boundary, axis)
+    if magnetic:
+        wR[...,(Bx,By)] = grid[...,(Bx,By)]
 
-        # Get the average solution between the interfaces at the boundaries
-        intf_avg = fv.slice_(fv.compute_Roe_average(prim_plus, prim_minus), axis, start=1)
-        padded_intf_avg = fv.add_boundary(intf_avg, boundary, axis=axis)
+        # Magnetic transverse interfaces reconstructed orthogonal to the axis
+        ortho_plus, ortho_minus = ct.reconstruct_transverse(wR, sim_variables, axis=ortho_axis)
+        data['ortho_interfaces'] = fv.slice_(ortho_plus, axis=ortho_axis, start=1), fv.slice_(ortho_minus, axis=ortho_axis, start=1)
 
-        # Convert the primitive variables
-        cons_plus, cons_minus = fv.convert_interface("primitive", prim_plus, axis, sim_variables), fv.convert_interface("primitive", prim_minus, axis, sim_variables)
+    # Re-align the interfaces so that cell wall is in between interfaces
+    prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)
+    if magnetic:
+        padded_grid = fv.add_boundary(grid, boundary, axis=axis)
+        prim_plus[...,(Bx,By)] = prim_minus[...,(Bx,By)] = fv.slice_(padded_grid, axis, end=-1)[...,(Bx,By)]
 
-        # Compute the fluxes and the Jacobian
-        flux_plus, flux_minus = constructor.make_flux(prim_plus, sim_variables, axis=axis), constructor.make_flux(prim_minus, sim_variables, axis=axis)
+    # Get the average solution between the interfaces at the boundaries
+    intf_avg = fv.slice_(fv.compute_Roe_average(prim_plus, prim_minus), axis, start=1)
+    padded_intf_avg = fv.add_boundary(intf_avg, boundary, axis=axis)
 
-        jacobian = constructor.make_Jacobian(padded_intf_avg, sim_variables, axis=axis)
+    # Convert the primitive variables
+    cons_plus, cons_minus = fv.convert_interface("primitive", prim_plus, axis, sim_variables), fv.convert_interface("primitive", prim_minus, axis, sim_variables)
 
-        # Update dict
-        data[axis]['prim_interfaces'] = prim_plus, prim_minus
-        data[axis]['cons_interfaces'] = cons_plus, cons_minus
-        data[axis]['flux_interfaces'] = flux_plus, flux_minus
-        data[axis]['characteristics'] = np.linalg.eigvals(jacobian)
+    # Compute the fluxes and the Jacobian
+    flux_plus, flux_minus = constructor.make_flux(prim_plus, sim_variables, axis=axis), constructor.make_flux(prim_minus, sim_variables, axis=axis)
+    jacobian = constructor.make_Jacobian(padded_intf_avg, sim_variables, axis=axis)
+
+    # Compute eigmax for time stepping limits
+    characteristics = np.linalg.eigvals(jacobian)
+    data['eigmax'] = ds[axis]/fv.compute_eigmax(characteristics, axis=axis)
+
+    # Magnetic alpha computation
+    if magnetic:
+        # alphas refers to the maximum(+)/minimum(-) eigenvalues respectively
+        local_max, local_min = np.max(characteristics, axis=-1), np.min(characteristics, axis=-1)
+        max_eigvals = np.maximum(fv.slice_(local_max, axis, end=-1), fv.slice_(local_max, axis, start=1))
+        min_eigvals = np.minimum(fv.slice_(local_min, axis, end=-1), fv.slice_(local_min, axis, start=1))
+        data['alphas'] = fv.slice_(np.maximum(0, max_eigvals), axis, start=1), fv.slice_(-np.minimum(0, min_eigvals), axis, start=1)
+
+    # Calculate the interface-averaged fluxes
+    intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **{
+        'prim_interfaces': [prim_plus, prim_minus],
+        'cons_interfaces': [cons_plus, cons_minus],
+        'flux_interfaces': [flux_plus, flux_minus],
+        'characteristics': characteristics,
+    })
+
+    # Compute the orthogonal L/R Riemann states and fluxes at higher-order accuracy
+    if dimension == 2:
+        # Calculate the interface-centred fluxes
+        intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
+            'prim_interfaces': approx_face_avg(ortho_axis, sim_variables.boundary, *[prim_plus, prim_minus]),
+            'cons_interfaces': approx_face_avg(ortho_axis, sim_variables.boundary, *[cons_plus, cons_minus]),
+            'flux_interfaces': approx_face_avg(ortho_axis, sim_variables.boundary, *[flux_plus, flux_minus]),
+            'characteristics': characteristics,
+        })
+
+        # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation
+        padded_avg_flux = fv.add_boundary(intf_fluxes_avgd, sim_variables.boundary, axis=ortho_axis)
+        intf_fluxes_cntrd -= 1/24 * fv.derivative(padded_avg_flux, axis=ortho_axis)
+    else:
+        # Orthogonal Laplacian in 1D is zero
+        intf_fluxes_cntrd = intf_fluxes_avgd
+
+    # Compute flux difference for hydrodynamic components
+    data['fluxes'] = np.diff(intf_fluxes_cntrd, axis=axis)/ds[axis]
 
     return data

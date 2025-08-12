@@ -10,7 +10,8 @@ import matplotlib.gridspec as gridspec
 from matplotlib.patches import Polygon
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from functions import analytic, constructor, fv, generic
+from functions import analytic, constructor, fv
+from functions.generic import BColours
 
 ##############################################################################
 # Plotting functions and media handling
@@ -482,7 +483,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
                         soln = analytic.calculate_Sedov_analytical(_grid, _t, sim_variables)
                         plot_label = r"Sedov$_{theo}$"
                 except Exception as e:
-                    print(f"{generic.BColours.WARNING}Analytic plot error: {e}{generic.BColours.ENDC}")
+                    print(f"{BColours.WARNING}Analytic plot error: {e}{BColours.ENDC}")
                     pass
                 else:
                     y_theo = make_data(options, soln, sim_variables)
@@ -818,7 +819,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                 print(f"Creating video ... [{variable}]", end='\r')
                 subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "error", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{sim_variables.save_path}/vid_{config}_{subgrid}_{timestep}_{solver}_{variable}.mp4"])
             except Exception as e:
-                print(f"{generic.BColours.FAIL}Video creation failed{generic.BColours.ENDC}")
+                print(f"{BColours.FAIL}Video creation failed{BColours.ENDC}")
                 pass
 
         elif isinstance(variable, list) and all(isinstance(_, str) for _ in variable):
@@ -861,7 +862,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                     print(f"Creating video ... [{_variable}]", end='\r')
                     subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "error", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{sim_variables.save_path}/vid_{config}_{subgrid}_{timestep}_{solver}_{_variable}.mp4"])
                 except Exception as e:
-                    print(f"{generic.BColours.FAIL}Video creation failed: {e}{generic.BColours.ENDC}")
+                    print(f"{BColours.FAIL}Video creation failed: {e}{BColours.ENDC}")
                     pass
                 else:
                     for filename in os.listdir(vidpath):

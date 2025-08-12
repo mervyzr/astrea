@@ -14,14 +14,12 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
         method = sim_variables.subgrid
     boundary = sim_variables.boundary
 
-    ortho_axis = 1 - axis
-
-    padded_grid_2 = fv.add_boundary(interface, boundary, stencil=2, axis=ortho_axis)
-    padded_grid = fv.slice_(padded_grid_2, ortho_axis, *[1,-1])
+    padded_grid_2 = fv.add_boundary(interface, boundary, stencil=2, axis=axis)
+    padded_grid = fv.slice_(padded_grid_2, axis, *[1,-1])
 
     zeroth = np.copy(interface)
-    minus_one, minus_two = fv.slice_(padded_grid, ortho_axis, end=-2), fv.slice_(padded_grid_2, ortho_axis, end=-4)
-    plus_one, plus_two = fv.slice_(padded_grid, ortho_axis, start=2), fv.slice_(padded_grid_2, ortho_axis, start=4)
+    minus_one, minus_two = fv.slice_(padded_grid, axis, end=-2), fv.slice_(padded_grid_2, axis, end=-4)
+    plus_one, plus_two = fv.slice_(padded_grid, axis, start=2), fv.slice_(padded_grid_2, axis, start=4)
 
     # 5th-order WENO reconstruction
     if "weno" in method:
@@ -74,6 +72,7 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
     elif method == "ppm":
 
         author = "McCorquodale&Colella2011"
+        grid_slices = [minus_one, zeroth, plus_one, plus_two]
 
         """Interpolate the face averages to the top corners (upwards) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
         |                w(i-1/2)            w(i+1/2)               |
@@ -104,16 +103,16 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
             wD = 7/12 * (minus_one + zeroth) - 1/12 * (minus_two + plus_one)
 
             # Limit interface values [Peterson & Hammett, 2008, eq. 3.33-3.34]
-            limited_wUs = limiters.interface_limiter(wD, minus_two, minus_one, zeroth, plus_one), limiters.interface_limiter(wU, minus_one, zeroth, plus_one, plus_two)
-            padded_wU_2 = np.zeros_like(fv.add_boundary(wU, boundary, stencil=2, axis=ortho_axis))
+            limited_wUs = limiters.interface_limiter(wD, *[minus_two, minus_one, zeroth, plus_one]), limiters.interface_limiter(wU, *grid_slices)
+            padded_wU_2 = np.zeros_like(fv.add_boundary(wU, boundary, stencil=2, axis=axis))
         else:
             if author.lower().startswith(("colella", "c")):
                 # Limit interface values [Colella et al., 2011, p. 25-26]
-                wU = limiters.interface_limiter(wU, minus_one, zeroth, plus_one, plus_two)
+                wU = limiters.interface_limiter(wU, *grid_slices)
 
             # Define the top and bottom parabolic extrapolants
-            padded_wU_2 = fv.add_boundary(wU, boundary, stencil=2, axis=ortho_axis)
-            limited_wUs = fv.slice_(padded_wU_2, ortho_axis, *[1,-3]), fv.slice_(padded_wU_2, ortho_axis, *[2,-2])
+            padded_wU_2 = fv.add_boundary(wU, boundary, stencil=2, axis=axis)
+            limited_wUs = fv.slice_(padded_wU_2, axis, *[1,-3]), fv.slice_(padded_wU_2, axis, *[2,-2])
 
         """Reconstruct the limited extrapolants from the interface values. Returns the face averages in the form of w+(y) & w-(y) when considering x-axis, and w+(x) & w-(x) when considering y-axis
         |                w(i-1/2)            w(i+1/2)               |
@@ -131,10 +130,12 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
         |                   |                   |                   |
         |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
         """
-        wD, wU = limiters.extrapolant_limiter(zeroth, padded_grid, padded_grid_2, padded_wU_2, author, boundary, ortho_axis, *limited_wUs)
+        wD, wU = limiters.extrapolant_limiter(zeroth, boundary, axis, author, *limited_wUs, **{
+            'padded_grid':padded_grid, 'padded_grid_2':padded_grid_2, 'padded_interface_2':padded_wU_2
+            })
 
     elif method == "plm":
-        limited_values = limiters.minmod_limiter(padded_grid, ortho_axis)
+        limited_values = limiters.minmod_limiter(padded_grid, axis)
         gradients = .5 * limited_values
         wD, wU = zeroth - gradients, zeroth + gradients
 
@@ -142,45 +143,34 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
         wD, wU = zeroth, zeroth
 
     # Re-align the interfaces so that cell wall is in between interfaces
-    prim_plus, prim_minus = fv.slice_(fv.add_boundary(wD, boundary, axis=ortho_axis), ortho_axis, start=1), fv.slice_(fv.add_boundary(wU, boundary, axis=ortho_axis), ortho_axis, end=-1)
+    prim_plus, prim_minus = fv.slice_(fv.add_boundary(wD, boundary, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wU, boundary, axis=axis), axis, end=-1)
 
     return prim_plus, prim_minus
 
 
 # Compute the corner electric fields wrt to corner; gives 4-fold values for each corner [Mignone & del Zanna, 2021]
 def compute_corner(data, sim_variables):
-    alphas, magnetic_components = [], []
     vx, vy, Bx, By = sim_variables.vx, sim_variables.vy, sim_variables.Bx, sim_variables.By
 
-    # Collate the magnetic components and alphas
-    for axis in sim_variables.axes:
-        prim_plus, prim_minus = data[axis]['ortho_interfaces']
-        characteristics = data[axis]['characteristics']
+    # [ (m1, m2), (m1, m2) ] refers to the [ x(w+, w-), y(w+, w-) ] axis, which corresponds to [ x(N,S), y(E,W) ]; take note of the order in the axes
+    [north, south], [east, west] = data[0]['ortho_interfaces'], data[1]['ortho_interfaces']
+    [ap_x, am_x], [ap_y, am_y] = data[0]['alphas'], data[1]['alphas']
 
-        # alpha+/- refers to the maximum/minimum eigenvalues respectively; alpha is aligned to the axis
-        local_max, local_min = np.max(characteristics, axis=-1), np.min(characteristics, axis=-1)
-        max_eigvals = np.maximum(fv.slice_(local_max, axis, end=-1), fv.slice_(local_max, axis, start=1))
-        min_eigvals = np.minimum(fv.slice_(local_min, axis, end=-1), fv.slice_(local_min, axis, start=1))
-        alpha_plus, alpha_minus = fv.slice_(np.maximum(0, max_eigvals), axis, start=1), fv.slice_(-np.minimum(0, min_eigvals), axis, start=1)
-
-        # alpha_1/2 refers to the x-/y-axis respectively
-        alphas.append([alpha_plus, alpha_minus])
-
-        # magnetic components are reconstructed orthogonal to the axis;
-        # [ (m1, m2), (m1, m2) ] refers to the [ x(w+, w-), y(w+, w-) ] axis, which corresponds to [ x(N,S), y(E,W) ]
-        magnetic_components.append([fv.slice_(prim_plus, axis=1-axis, start=1), fv.slice_(prim_minus, axis=1-axis, start=1)])
-
-    # Compute the corner B-fields wrt to corner; take note of the order in the axes
-    if sim_variables.axes[0] == 0:
-        [north, south], [east, west] = magnetic_components
-        [ap_x, am_x], [ap_y, am_y] = alphas
-    elif sim_variables.axes[0] == 1:
-        [east, west], [north, south] = magnetic_components
-        [ap_y, am_y], [ap_x, am_x] = alphas
-
+    # Compute the corner B-fields wrt to corner
     SW = .5*(west[...,vy]+south[...,vy])*south[...,Bx] - .5*(west[...,vx]+south[...,vx])*west[...,By]
     SE = .5*(east[...,vy]+south[...,vy])*south[...,Bx] - .5*(east[...,vx]+south[...,vx])*east[...,By]
     NW = .5*(west[...,vy]+north[...,vy])*north[...,Bx] - .5*(west[...,vx]+north[...,vx])*west[...,By]
     NE = .5*(east[...,vy]+north[...,vy])*north[...,Bx] - .5*(east[...,vx]+north[...,vx])*east[...,By]
 
     return fv.divide(ap_x*ap_y*SW + am_x*ap_y*SE + ap_x*am_y*NW + am_x*am_y*NE, (ap_x+am_x)*(ap_y+am_y)) - fv.divide(ap_y*am_y, ap_y+am_y)*(north[...,Bx]-south[...,Bx]) + fv.divide(ap_x*am_x, ap_x+am_x)*(east[...,By]-west[...,By])
+
+
+# Compute constrained transport flux using corners
+def compute_ct_flux(corners, flux_diff, sim_variables, axis):
+    ortho_axis = 1 - axis
+    padded_e3U = fv.add_boundary(corners, sim_variables.boundary, axis=ortho_axis)
+
+    flux_diff[...,5+axis] = (-1)**axis * np.diff(fv.slice_(padded_e3U, axis=ortho_axis, end=-1), axis=ortho_axis)/sim_variables.ds[ortho_axis]
+    flux_diff[...,5+ortho_axis] = 0
+
+    return flux_diff

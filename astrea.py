@@ -15,8 +15,9 @@ import numpy as np
 
 from static import tests
 from num_methods import evolvers
-from functions import constructor, fv, generic, plotting
-from functions.generic import SimulationVariables
+from functions import constructor, fv, generic, io, plotting
+from functions.io import SimulationVariables
+from functions.generic import BColours
 
 ##############################################################################
 # Main script
@@ -76,10 +77,9 @@ def core_run(hdf5, sim_variables):
             break
         else:
             # Compute the numerical fluxes at each interface
-            fluxes = evolvers.evolve_space(grid, sim_variables)
+            fluxes, eigmax = evolvers.evolve_space(grid, sim_variables, first_stage=True)
 
             # Compute the maximum eigenvalues for determining the full time step
-            eigmax = np.min([Riemann_values['eigmax'] for Riemann_values in list(fluxes.values())])
             dt = sim_variables.cfl * eigmax
 
             # Handle dt
@@ -110,7 +110,7 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
     # Signal handler for Ctrl+C
     def graceful_exit(sig, frame):
         sys.stdout.write('\033[2K\033[1G')
-        print(f"{generic.BColours.WARNING}Simulation end by SIGINT; exiting gracefully..{generic.BColours.ENDC}")
+        print(f"{BColours.WARNING}Simulation end by SIGINT; exiting gracefully..{BColours.ENDC}")
         sys.exit(0)
 
     # Generate the simulation variables from settings (dict)
@@ -119,7 +119,7 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
 
     # Check CLI arguments
     if len(sys.argv) > 1:
-        cli_variables, debug = generic.handle_CLI(f"{current_dir}/{db_path}")
+        cli_variables, debug = io.handle_CLI(f"{current_dir}/{db_path}")
     else:
         cli_variables, debug = {}, False
 
@@ -127,7 +127,7 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
         np.seterr(all='ignore')
 
     # Tidy up configuration variables
-    config_variables = generic.parse_cli_variables(config_variables, cli_variables, f"{current_dir}/{db_path}")
+    config_variables = io.parse_cli_variables(config_variables, cli_variables, f"{current_dir}/{db_path}")
 
     # Generate test configuration based on configuration
     test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'])
@@ -232,10 +232,10 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
     except Exception as e:
         print(end='\x1b[2K')
         if debug:
-            print(f"\n{generic.BColours.FAIL}-------    Error    -------{generic.BColours.ENDC}")
+            print(f"\n{BColours.FAIL}-------    Error    -------{BColours.ENDC}")
             print(traceback.format_exc())
         else:
-            print(f"{generic.BColours.FAIL}-- Error: {e}{generic.BColours.ENDC} (use --debug option for more details)")
+            print(f"{BColours.FAIL}-- Error: {e}{BColours.ENDC} (use --debug option for more details)")
 
     finally:
         # Save the temporary HDF5 database (!! Possibly large file sizes > 100 GB !!)
