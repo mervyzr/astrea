@@ -1,6 +1,5 @@
 import random
 import argparse
-from datetime import timedelta
 
 import yaml
 import numpy as np
@@ -195,7 +194,7 @@ class SimulationVariables(object):
         'permeability', 'magnetic', 'roots', 'weights', 'axes', 'ppm_dissipate',
         'config_category', 'solver_category', 'convert', 'higher_order',
         'x_axis', 'y_axis', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'ds',
-        'run_type', 'checkpoints', 'live_plot', 'take_snaps', 'save_plots', 'save_video', 'save_file', 'plot_options', 'plot_style', 'beautify',
+        'run_type', 'checkpoints', 'full_set_required', 'live_plot', 'take_snaps', 'save_plots', 'save_video', 'save_file', 'plot_options', 'plot_style', 'beautify',
         'debug', 'quiet', 'test'
     ]
 
