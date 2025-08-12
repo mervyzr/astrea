@@ -24,11 +24,12 @@ The simulation employs a higher-order finite volume subgrid model (Eulerian) wit
 
 The code is written entirely in Python 3, and uses the `numpy` and `h5py` modules extensively for calculations and data handling respectively. The last _stable^_ Python version supported is _**Python 3.13**_.
 
-**Is this simulation slow? _Yes_.** It shows only _**one core**_ being used throughout the simulation, as is expected when running Python code.
+#### Is this simulation slow? _Yes_.
+Due to the nature of Python and the global-interpreter-lock (GIL).
 
-Some experimentation was done to parallelise the code with `Open MPI` and `MPICH`. However, this is generally not recommended because of the global-interpreter-lock (GIL) in Python. Some attempts have been made with the `multiprocessing` package, but the main slow-down comes from the sequential nature of the (explicit) time evolution method. Most of the functions have already been vectorised to make use of `numpy`'s multi-threading _wherever possible_, but 'parallelised Python' with `numpy` does not show a substantial increase in speed either way over 'fully-parallel' code in Fortran or C (Ross, 2016).
+Some experimentation was done to parallelise the code with `Open MPI` and `MPICH`. However, this is generally not recommended because of the GIL in Python. Attempts have been made with multi-processing (`multiprocessing`) and multi-threading (`concurrent.futures`), with limited success. Some of the main slow-downs come from the sequential nature of the (explicit) time evolution method and the I/O of the `hdf5` data file. Most of the functions have also been vectorised to make use of `numpy`'s multi-threading _wherever possible_. But ultimately the benefits of having a 'parallelised' Python with `numpy` code might not outweigh the benefits of having a 'fully-parallelised' code with Fortran or C (Ross, 2016).
 
-^_There are some issues with building the wheels for `h5py` and `scipy` in Python 3.13 with `PYTHON_GIL=0` and `PYTHON_JIT=1` (see <a href='https://github.com/h5py/h5py/issues/2475' target='_blank'>here</a> and <a href='https://docs.scipy.org/doc/scipy/dev/toolchain.html' target='_blank'>here</a>). So the code can only run for the Python 3.13 build, not Python 3.13t._
+^_`h5py` is not fully optimised for the experimental free-threading build or the experimental just-in-time compiler introduced in Python 3.13t, but there are some roadmaps to make the package compatible (see <a href='https://github.com/h5py/h5py/issues/2475' target='_blank'>here</a>). So the code should only run for the Python 3.13 build, not Python 3.13t._
 
 ### Spatial discretisation
 
