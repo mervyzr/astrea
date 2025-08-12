@@ -7,7 +7,7 @@ from num_methods import ct, limiters, solvers
 # Piecewise linear reconstruction method (PLM) [van Leer, 1979]
 ##############################################################################
 
-def run(grid, sim_variables, axis, **kwargs):
+def run(grid, sim_variables, axis):
     boundary, magnetic, ds = sim_variables.boundary, sim_variables.magnetic, sim_variables.ds
     Bx, By = sim_variables.Bx, sim_variables.By
     data = {}

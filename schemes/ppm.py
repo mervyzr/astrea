@@ -8,7 +8,7 @@ from num_methods import ct, limiters, solvers
 # [McCorquodale & Colella, 2011 (MC:2011); Colella et al., 2011 (C+:2011); Peterson & Hammett, 2008 (PH:2008)]
 ##############################################################################
 
-def run(grid, sim_variables, axis, author="MC:2011", **kwargs):
+def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     boundary, dimension, magnetic, ds, dissipate = sim_variables.boundary, sim_variables.dimension, sim_variables.magnetic, sim_variables.ds, sim_variables.ppm_dissipate
     Bx, By = sim_variables.Bx, sim_variables.By
     data = {}
@@ -79,8 +79,8 @@ def run(grid, sim_variables, axis, author="MC:2011", **kwargs):
         })
 
     if dissipate:
-        wL = wL * kwargs['eta'][...,None] + grid * (1-kwargs['eta'])[...,None]
-        wR = wR * kwargs['eta'][...,None] + grid * (1-kwargs['eta'])[...,None]
+        wL = wL * eta[...,None] + grid * (1-eta)[...,None]
+        wR = wR * eta[...,None] + grid * (1-eta)[...,None]
 
     # Re-align the interfaces so that cell wall is in between interfaces
     prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)

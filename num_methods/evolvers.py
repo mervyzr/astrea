@@ -1,4 +1,5 @@
-import concurrent.futures
+import concurrent.futures as cfutures
+from itertools import repeat
 
 import numpy as np
 
@@ -11,53 +12,60 @@ from schemes import pcm, plm, ppm, weno
 
 # Evolve the system in space by a standardised workflow
 def evolve_space(grid, sim_variables, first_stage=False):
+    dimension, subgrid, axes, magnetic = sim_variables.dimension, sim_variables.subgrid, sim_variables.axes, sim_variables.magnetic
+    pressure, dissipate = sim_variables.pressure, sim_variables.ppm_dissipate
     data = {}
 
     # Convert to primitive variables
-    primitive = sim_variables.convert("conservative", grid, sim_variables, staggered=sim_variables.magnetic)
+    primitive = sim_variables.convert("conservative", grid, sim_variables, staggered=magnetic)
 
 
-    if sim_variables.subgrid.startswith("w"):
-        script, kwargs = weno, {}
+    # Compute additional dissipation for PPM, if active
+    if dissipate and subgrid in ["ppm", "parabolic", "p"]:
+        eta = np.ones_like(grid[...,pressure])
+        with cfutures.ThreadPoolExecutor() as executor:
+            for flattening_coeff in executor.map(ppm.get_flattening_coeff, repeat(primitive), repeat(sim_variables), axes):
+                eta = np.minimum(eta, flattening_coeff)
 
-    elif sim_variables.subgrid in ["ppm", "parabolic", "p"]:
-        script, kwargs = ppm, {}
-
-        # Compute additional dissipation for PPM, if active
-        if sim_variables.ppm_dissipate:
-            eta = np.ones_like(grid[...,sim_variables.pressure])
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                for axis in sim_variables.axes:
-                    job = executor.submit(ppm.get_flattening_coeff, grid=primitive, sim_variables=sim_variables, axis=axis)
-                    eta = np.minimum(eta, job.result())
-            kwargs['eta'] = eta
-
-    elif sim_variables.subgrid in ["plm", "linear", "l"]:
-        script, kwargs = plm, {}
-
-    else:
-        script, kwargs = pcm, {}
 
     # Hydrodynamics computation (with fluxes and eigmax)
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        for axis in sim_variables.axes:
-            job = executor.submit(script.run, grid=primitive, sim_variables=sim_variables, axis=axis, kwargs=kwargs)
-            data[axis] = job.result()
+    with cfutures.ThreadPoolExecutor() as executor:
+        if subgrid.startswith("w"):
+            jobs = executor.map(weno.run, repeat(primitive), repeat(sim_variables), axes)
+
+        elif subgrid in ["ppm", "parabolic", "p"]:            
+            if dissipate:
+                jobs = executor.map(ppm.run, repeat(primitive), repeat(sim_variables), axes, repeat(eta))
+            else:
+                jobs = executor.map(ppm.run, repeat(primitive), repeat(sim_variables), axes)
+
+        elif subgrid in ["plm", "linear", "l"]:
+            jobs = executor.map(plm.run, repeat(primitive), repeat(sim_variables), axes)
+
+        else:
+            jobs = executor.map(pcm.run, repeat(primitive), repeat(sim_variables), axes)
+
+        for idx, result in enumerate(jobs):
+            data[axes[idx]] = result
+
+
+    get_flux = lambda dct: [axis_dict['fluxes'] for axis_dict in list(dct.values())]
 
     # Compute the maximum eigenvalues for determining the full time step
     eigmax = np.min([axis_dict['eigmax'] for axis_dict in list(data.values())])
 
+
     # Magnetohydrodynamics computation
-    if sim_variables.magnetic and sim_variables.dimension == 2:
+    if magnetic and dimension == 2:
         e3U = ct.compute_corner(data, sim_variables)
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            for axis in sim_variables.axes:
-                job = executor.submit(ct.compute_ct_flux, corners=e3U, flux_diff=data[axis]['fluxes'], sim_variables=sim_variables, axis=axis)
-                data[axis]['fluxes'] = job.result()
+        with cfutures.ThreadPoolExecutor() as executor:
+            jobs = executor.map(ct.compute_ct_flux, repeat(e3U), get_flux(data), repeat(sim_variables), axes)
+            for idx, result in enumerate(jobs):
+                data[axes[idx]]['fluxes'] = result
 
     # Calculate the total fluxes through all upwind surfaces [F(i+1/2,j) - F(i-1/2,j)]/dx, [G(i,j+1/2) - G(i,j-1/2)]/dy
-    fluxes = -np.sum([axis_dict['fluxes'] for axis_dict in list(data.values())], axis=0)
+    fluxes = -np.sum(get_flux(data), axis=0)
 
     if first_stage:
         return fluxes, eigmax

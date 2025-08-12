@@ -7,7 +7,7 @@ from num_methods import ct, solvers
 # WENO reconstruction method [Shu, 2009]
 ##############################################################################
 
-def run(grid, sim_variables, axis, **kwargs):
+def run(grid, sim_variables, axis):
     subgrid, dimension, boundary, magnetic, ds = sim_variables.subgrid, sim_variables.dimension, sim_variables.boundary, sim_variables.magnetic, sim_variables.ds
     Bx, By = sim_variables.Bx, sim_variables.By
     data = {}

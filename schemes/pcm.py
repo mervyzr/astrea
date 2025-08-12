@@ -7,7 +7,7 @@ from num_methods import ct, solvers
 # Piecewise constant reconstruction method (PCM) [Godunov, 1959]
 ##############################################################################
 
-def run(grid, sim_variables, axis, **kwargs):
+def run(grid, sim_variables, axis):
     boundary, magnetic, ds = sim_variables.boundary, sim_variables.magnetic, sim_variables.ds
     convert = sim_variables.convert
     data = {}

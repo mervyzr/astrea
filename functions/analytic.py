@@ -24,7 +24,7 @@ def calculate_entropy_density(grid, gamma):
 # Function for solution error calculation of sine-wave and Gaussian tests
 def calculate_solution_error(grid, sim_variables, norm):
     gamma, axes = sim_variables.gamma, sim_variables.axes
-    rho, pressure = 0, 4
+    rho, pressure = sim_variables.rho, sim_variables.pressure
     w_num = np.copy(grid)
     grid_shape = w_num.shape[:-1]
 
@@ -50,7 +50,7 @@ def calculate_solution_error(grid, sim_variables, norm):
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
 def calculate_TV(simulation, sim_variables):
     gamma, dimension, axes, tot_vary = sim_variables.gamma, sim_variables.dimension, sim_variables.axes, {}
-    rho, pressure = 0, 4
+    rho, pressure = sim_variables.rho, sim_variables.pressure
 
     for t in list(simulation.keys()):
         grid = simulation[t]
