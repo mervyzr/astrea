@@ -24,7 +24,7 @@ The simulation employs a higher-order finite volume subgrid model (Eulerian) wit
 
 The code is written entirely in Python 3, and uses the `numpy` and `h5py` modules extensively for calculations and data handling respectively. The last _stable^_ Python version supported is _**Python 3.13**_.
 
-#### Is this simulation slow? _Yes_.
+### Is this simulation slow? _Yes_.
 Due to the nature of Python and the global-interpreter-lock (GIL).
 
 Some experimentation was done to parallelise the code with `Open MPI` and `MPICH`. However, this is generally not recommended because of the GIL in Python. Attempts have been made with multi-processing (`multiprocessing`) and multi-threading (`concurrent.futures`), with limited success. Some of the main slow-downs come from the sequential nature of the (explicit) time evolution method and the I/O of the `hdf5` data file. Most of the functions have also been vectorised to make use of `numpy`'s multi-threading _wherever possible_. But ultimately the benefits of having a 'parallelised' Python with `numpy` code might not outweigh the benefits of having a 'fully-parallelised' code with Fortran or C (Ross, 2016).
