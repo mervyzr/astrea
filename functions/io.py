@@ -285,7 +285,7 @@ class SimulationVariables(object):
 # Write grid to HDF5 checkpoint files
 def write_chkpt_file(grid, t, sim_variables):
     if sim_variables.run_type.startswith('m'):
-        file_name = f"astrea_hdf5_{sim_variables.cells}_chk_{sim_variables.timesteps}"
+        file_name = f"astrea_hdf5_{sim_variables.cells}_chk_{sim_variables.timesteps:05}"
     else:
         file_name = f"astrea_hdf5_chk_{sim_variables.timesteps:05}"
 
