@@ -340,7 +340,7 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
 
 # Function for plotting a snapshot of the grid
 def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
-    config, cells, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
+    config, cells, dimension, subgrid, time_evo, solver = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     x_axis, options, beautify = sim_variables.x_axis, sim_variables.plot_options, sim_variables.beautify
 
     fig, ax, plot_ = make_figure(options, sim_variables)
@@ -376,7 +376,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
         fig.text(0.04, 0.5, r"$y$", ha='center', rotation='vertical')
         fig.subplots_adjust(left=0.1)
 
-    plt.savefig(f"{sim_variables.save_path}/snapshots/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{solver}_{'%.3f' % round(t,3)}.png", bbox_inches='tight')
+    plt.savefig(f"{sim_variables.save_path}/snapshots/varPlot_{dimension}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(t,3)}.png", bbox_inches='tight')
 
     plt.cla()
     plt.clf()
@@ -386,7 +386,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
 
 # Generic plot of simulation variables
 def plot_quantities(hdf5, sim_variables, title=False):
-    config, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
+    config, dimension, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     precision, t_end, checkpoints = sim_variables.precision, sim_variables.t_end, sim_variables.checkpoints
     x_axis, y_axis = sim_variables.x_axis, sim_variables.y_axis
     options, beautify = sim_variables.plot_options, sim_variables.beautify
@@ -499,7 +499,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
             handles, labels = plt.gca().get_legend_handles_labels()
             fig.legend(handles, labels, ncol=_ncol)
 
-        plt.savefig(f"{sim_variables.save_path}/varPlot_{dimension}D_{config}_{subgrid}_{timestep}_{solver}_{'%.3f' % round(ref_time,3)}.png", bbox_inches='tight')
+        plt.savefig(f"{sim_variables.save_path}/varPlot_{dimension}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(ref_time,3)}.png", bbox_inches='tight')
 
         plt.cla()
         plt.clf()
@@ -509,7 +509,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
 # Plot solution errors to determine order of convergence of numerical scheme
 def plot_solution_errors(hdf5, sim_variables, error_norm, title=False):
     options = ["density"]
-    config, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
+    config, dimension, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -573,7 +573,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm, title=False):
     fig.text(0.5, 0.04, r"Resolution $N$", ha='center')
     fig.subplots_adjust(bottom=0.1)
 
-    plt.savefig(f"{sim_variables.save_path}/solErr_L{error_norm}_{subgrid}_{timestep}_{solver}.png", bbox_inches='tight')
+    plt.savefig(f"{sim_variables.save_path}/solErr_L{error_norm}_{subgrid}_{time_evo}_{solver}.png", bbox_inches='tight')
 
     plt.cla()
     plt.clf()
@@ -607,7 +607,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm, title=False):
     ax.set_xticklabels(_xticklabels, rotation=45, ha="right")
     ax.legend()
 
-    plt.savefig(f"{sim_variables.save_path}/convergenceOrder_{subgrid}_{timestep}_{solver}.png", bbox_inches='tight')
+    plt.savefig(f"{sim_variables.save_path}/convergenceOrder_{subgrid}_{time_evo}_{solver}.png", bbox_inches='tight')
 
     plt.cla()
     plt.clf()
@@ -616,7 +616,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm, title=False):
 
 # Total variation to determine if numerical scheme prevents oscillation
 def plot_total_variation(hdf5, sim_variables, title=False):
-    config, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
+    config, subgrid, time_evo, solver = sim_variables.config, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     options = sim_variables.plot_options
 
     # hdf5 keys are datetime strings
@@ -664,7 +664,7 @@ def plot_total_variation(hdf5, sim_variables, title=False):
         fig.text(0.5, 0.04, rf"Time $t$ [arb. units]", ha='center')
         fig.subplots_adjust(bottom=0.1)
 
-        plt.savefig(f"{sim_variables.save_path}/TV_{config}_{subgrid}_{timestep}_{solver}_{grid_size}.png", bbox_inches='tight')
+        plt.savefig(f"{sim_variables.save_path}/TV_{config}_{subgrid}_{time_evo}_{solver}_{grid_size}.png", bbox_inches='tight')
 
         plt.cla()
         plt.clf()
@@ -674,7 +674,7 @@ def plot_total_variation(hdf5, sim_variables, title=False):
 # Determines if numerical scheme is conservative to machine precision
 def plot_conservation_equations(hdf5, sim_variables, title=False):
     options = ["mass", "momentum_x", "energy"]
-    config, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
+    config, subgrid, time_evo, solver = sim_variables.config, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -726,7 +726,7 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
         fig.text(0.5, 0.04, rf"Time $t$ [arb. units]", ha='center')
         fig.subplots_adjust(bottom=0.1)
 
-        plt.savefig(f"{sim_variables.save_path}/conserveEq_{config}_{subgrid}_{timestep}_{solver}_{grid_size}.png", bbox_inches='tight')
+        plt.savefig(f"{sim_variables.save_path}/conserveEq_{config}_{subgrid}_{time_evo}_{solver}_{grid_size}.png", bbox_inches='tight')
 
         plt.cla()
         plt.clf()
@@ -735,7 +735,7 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
 
 # Make a video of entire simulation; video of all plot options or specific variable
 def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
-    config, gamma, dimension, subgrid, timestep, solver = sim_variables.config, sim_variables.gamma, sim_variables.dimension, sim_variables.subgrid, sim_variables.timestep, sim_variables.solver
+    config, dimension, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     x_axis, beautify = sim_variables.x_axis, sim_variables.beautify
 
     # hdf5 keys are datetime strings
@@ -817,7 +817,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
             try:
                 print(f"                                                                                ", end='\r')
                 print(f"Creating video ... [{variable}]", end='\r')
-                subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "error", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{sim_variables.save_path}/vid_{config}_{subgrid}_{timestep}_{solver}_{variable}.mp4"])
+                subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "error", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{sim_variables.save_path}/vid_{config}_{subgrid}_{time_evo}_{solver}_{variable}.mp4"])
             except Exception as e:
                 print(f"{BColours.FAIL}Video creation failed{BColours.ENDC}")
                 pass
@@ -860,7 +860,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                 try:
                     print(f"                                                                                ", end='\r')
                     print(f"Creating video ... [{_variable}]", end='\r')
-                    subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "error", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{sim_variables.save_path}/vid_{config}_{subgrid}_{timestep}_{solver}_{_variable}.mp4"])
+                    subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "error", "-framerate", "60", "-pattern_type", "glob", "-i", f"{vidpath}/*.png", "-c:v", "libx264", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p", f"{sim_variables.save_path}/vid_{config}_{subgrid}_{time_evo}_{solver}_{_variable}.mp4"])
                 except Exception as e:
                     print(f"{BColours.FAIL}Video creation failed: {e}{BColours.ENDC}")
                     pass

@@ -77,9 +77,9 @@ def evolve_space(grid, sim_variables, first_stage=False):
 def evolve_time(grid, fluxes, dt, sim_variables):
 
     # Methods for linear and non-linear systems [Shu & Osher, 1988]
-    if sim_variables.timestep.startswith("ssprk"):
-        timestep = sim_variables.timestep.replace(',','').replace('(','').replace(')','').replace('ssprk','')
-        register, order = int(timestep[:-1]), int(timestep[-1])
+    if sim_variables.time_evo.startswith("ssprk"):
+        time_evo = sim_variables.time_evo.replace(',','').replace('(','').replace(')','').replace('ssprk','')
+        register, order = int(time_evo[:-1]), int(time_evo[-1])
 
         if order == 4:
             if register == 10:
@@ -209,7 +209,7 @@ def evolve_time(grid, fluxes, dt, sim_variables):
             # Computation of 2nd register
             return .5*(grid + k1 + dt*fluxes1)
 
-    elif sim_variables.timestep.startswith("r"):
+    elif sim_variables.time_evo.startswith("r"):
         # Evolve the system by RK4 method (4th-order); effective SSP coeff = 0.25
         # Computation of 1st register
         k1 = grid + .5*dt*fluxes
@@ -227,5 +227,5 @@ def evolve_time(grid, fluxes, dt, sim_variables):
         return grid + 1/6 * (dt * (fluxes + 2*fluxes1 + 2*fluxes2 + fluxes3))
 
     else:
-        # Evolve system by a full timestep (1st-order)
+        # Evolve system by a full time-step (1st-order)
         return grid + dt*fluxes

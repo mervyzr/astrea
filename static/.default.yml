@@ -16,19 +16,19 @@ numerical_parameters:
   # Subgrid models for hydro and mag. components : PCM, PLM, PPM, WENO-3/5/7
   subgrid       : PCM
   # Iteration methods : Euler, RK4, SSPRK(2,2), SSPRK(3,3), SSPRK(4,3), SSPRK(5,3), SSPRK(5,4), SSPRK(10,4)
-  timestep      : EULER
+  time_evo      : EULER
   # Update schemes : Lax-Friedrich (LF), Lax-Wendroff (LW), HLLC (C), HLLD (D), Osher-Solomon (OS)
   solver        : LF
 
 runtime_parameters:
   # Run types : single, multiple
   run_type      : single
-  checkpoints   : 1
+  checkpoints   : -1
 
 media_options:
   live_plot     : true
-  take_snaps    : false
   save_plots    : false
+  full_plots    : false
   save_video    : false
   save_file     : false
   # Plot options

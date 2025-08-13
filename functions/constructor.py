@@ -22,7 +22,7 @@ def initialise(sim_variables):
     initial_left, initial_right = sim_variables.initial_left, sim_variables.initial_right
     x_shock_pos, y_shock_pos = sim_variables.shock_pos
 
-    computational_grid = np.zeros(cells+[len(initial_right),], dtype=precision)
+    computational_grid = np.zeros(list(cells)+[len(initial_right),], dtype=precision)
     computational_grid[:] = initial_right
 
     physical_grid_x = make_physical_grid(x_axis, cells[0])

@@ -260,7 +260,7 @@
       ]
     },
     "15": {
-      "type": "timestep",
+      "type": "time_evo",
       "category": "euler",
       "accepted": [
         "euler",
@@ -270,7 +270,7 @@
       ]
     },
     "16": {
-      "type": "timestep",
+      "type": "time_evo",
       "category": "rk",
       "accepted": [
         "rk4",
@@ -282,7 +282,7 @@
       ]
     },
     "17": {
-      "type": "timestep",
+      "type": "time_evo",
       "category": "ssprk",
       "accepted": [
         "ssprk(2,2)",
@@ -361,7 +361,7 @@
       "permeability": 1,
       "precision": "float64",
       "subgrid": "pcm",
-      "timestep": "euler",
+      "time_evo": "euler",
       "solver": "lf",
       "run_type": "single",
       "plot_options": [

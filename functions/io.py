@@ -2,6 +2,7 @@ import random
 import argparse
 
 import yaml
+import h5py
 import numpy as np
 from tinydb import TinyDB, Query
 
@@ -49,7 +50,7 @@ def handle_CLI(db_path):
     parser.add_argument('--dimension', '--dim', dest='dimension', type=int, metavar='', default=argparse.SUPPRESS, help='dimension of the simulation', choices=db.get(params.type == 'dimension')['accepted'])
 
     parser.add_argument('--subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='subgrid model used in the reconstruction of the grid', choices=accepted_values('subgrid'))
-    parser.add_argument('--timestep', metavar='', type=str.lower, default=argparse.SUPPRESS, help='sime-stepping algorithm used in the update step of the simulation', choices=accepted_values('timestep'))
+    parser.add_argument('--time_evo', '--time-evo', dest='time_evo', metavar='', type=str.lower, default=argparse.SUPPRESS, help='sime-stepping algorithm used in the update step of the simulation', choices=accepted_values('time_evo'))
     parser.add_argument('--solver', metavar='', type=str.lower, default=argparse.SUPPRESS, help='solver used for the Riemann problem', choices=accepted_values('solver'))
 
     parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='run a single run or multiple runs for each simulation', choices=db.get(params.type == 'run_type')['accepted'])
@@ -57,8 +58,8 @@ def handle_CLI(db_path):
 
     parser.add_argument('--plot_options', '--plot-options', dest='plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot')
     parser.add_argument('--live_plot', '--live-plot', '--live', dest='live_plot', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
-    parser.add_argument('--take_snaps', '--take-snaps', dest='take_snaps', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
-    parser.add_argument('--save_plots', '--save-plots', dest='save_plots', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving final plots of the simulation', choices=bool_choices)
+    parser.add_argument('--save_plots', '--save-plots', dest='save_plots', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
+    parser.add_argument('--full_plots', '--full-plots', dest='full_plots', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving full plots of the simulation, including quantities, conservation, total variation, etc.', choices=bool_choices)
     parser.add_argument('--save_video', '--save-video', dest='save_video', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving a video of the simulation', choices=bool_choices)
     parser.add_argument('--save_file', '--save-file', dest='save_file', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving the simulation data file (.hdf5)', choices=bool_choices)
 
@@ -96,11 +97,13 @@ def parse_cli_variables(_config_variables, _cli_variables, _db_path):
     # Check validity of variables; revert to default values if not valid
     config_variables = {}
     for k,v in temp_dct.items():
-        if k in ['live_plot', 'take_snaps', 'save_video', 'save_plots', 'save_file']:
+        if k in ['live_plot', 'save_plots', 'full_plots', 'save_video', 'save_file']:
             if not isinstance(v, bool):
                 v = False
         elif k in ['checkpoints', 'dimension']:
             if not isinstance(v, int):
+                v = 1
+            if k == 'dimension' and not (0 < v < 3):
                 v = 1
         elif k == "cells":
             if isinstance(v, (int, float)):
@@ -189,12 +192,12 @@ class SimulationVariables(object):
     __slots__ = [
         '__dict__',
         'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'energy', 'vels', 'Bfields', 'momentums',
-        'config', 'cells', 'cfl', 'gamma', 'permeability', 'dimension', 'precision', 'subgrid', 'timestep', 'solver',
-        'seed', 'now', 'elapsed', 'access_key', 'datetime', 'save_path',
+        'config', 'cells', 'cfl', 'gamma', 'permeability', 'dimension', 'precision', 'subgrid', 'time_evo', 'solver',
+        'seed', 'now', 'elapsed', 'access_key', 'datetime', 'save_path', 'timesteps',
         'permeability', 'magnetic', 'roots', 'weights', 'axes', 'ppm_dissipate',
         'config_category', 'solver_category', 'convert', 'higher_order',
         'x_axis', 'y_axis', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'ds',
-        'run_type', 'checkpoints', 'full_set_required', 'live_plot', 'take_snaps', 'save_plots', 'save_video', 'save_file', 'plot_options', 'plot_style', 'beautify',
+        'run_type', 'checkpoints', 'full_set_required', 'write_chkpt', 'live_plot', 'save_plots', 'full_plots', 'save_video', 'save_file', 'plot_options', 'plot_style', 'beautify',
         'debug', 'quiet', 'test'
     ]
 
@@ -223,6 +226,7 @@ class SimulationVariables(object):
         self.now = None
         self.elapsed = None
         self.access_key = None
+        self.timesteps = 0
 
         self.plot_style = None
         self.permeability = 1.
@@ -255,6 +259,7 @@ class SimulationVariables(object):
                 print(f"{BColours.WARNING}HLLC solver does not work with magnetic fields present..{BColours.ENDC}")
                 self.solver = db.get(params.type == 'default')['solver']
 
+        # Media options
         if self.run_type.startswith('m'):
             if self.save_video:
                 print(f"{BColours.WARNING}Videos can only be saved for single simulation runs..{BColours.ENDC}")
@@ -262,12 +267,40 @@ class SimulationVariables(object):
             if self.live_plot:
                 print(f"{BColours.WARNING}Live plots can only be switched on for single simulation runs..{BColours.ENDC}")
                 self.live_plot = False
-            if self.take_snaps:
+            if self.save_plots:
                 print(f"{BColours.WARNING}Saving snapshots can only be switched on for single simulation runs..{BColours.ENDC}")
-                self.take_snaps = False
+                self.save_plots = False
         else:
-            if (self.take_snaps or self.save_plots or self.save_video) and (self.live_plot):
+            if (self.save_plots or self.full_plots or self.save_video) and (self.live_plot):
                 print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live plot interferes with matplotlib.savefig..{BColours.ENDC}")
                 self.live_plot = False
-            if self.take_snaps or self.save_plots or self.save_video or self.save_file:
+            if self.save_plots or self.full_plots or self.save_video or self.save_file:
                 self.save_path = ''
+
+        self.full_set_required = True if (self.full_plots or self.save_video or self.save_file) else False
+
+
+# Write grid to HDF5 checkpoint files
+def write_chkpt(grid, t, sim_variables):
+    if sim_variables.run_type.startswith('m'):
+        file_name = f"astrea_hdf5_{sim_variables.cells}_chk_{sim_variables.timesteps}"
+    else:
+        file_name = f"astrea_hdf5_chk_{sim_variables.timesteps:05}"
+
+    with h5py.File(f"{sim_variables.save_path}/{file_name}", "w") as f:
+        f.attrs['datetime'] = sim_variables.access_key
+        f.attrs['seed'] = sim_variables.seed
+        f.attrs['code'] = 'astrea'
+        f.attrs['time'] = float(t)
+        f.attrs['config'] = sim_variables.config
+        f.attrs['cells'] = sim_variables.cells
+        f.attrs['cfl'] = sim_variables.cfl
+        f.attrs['gamma'] = sim_variables.gamma
+        f.attrs['permeability'] = sim_variables.permeability
+        f.attrs['dimension'] = sim_variables.dimension
+        f.attrs['subgrid'] = sim_variables.subgrid
+        f.attrs['time_evo'] = sim_variables.time_evo
+        f.attrs['solver'] = sim_variables.solver
+
+        f.create_dataset('grid', data=grid, compression="gzip", compression_opts=9)
+    pass

@@ -35,18 +35,19 @@ BEAUTIFY_1D_PLOTS = False
 
 # Finite volume shock function
 def core_run(hdf5, sim_variables):
-    chkpt = sim_variables.t_end/sim_variables.checkpoints
-
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables <q>
     grid = constructor.initialise(sim_variables)
     grid = fv.point_convert("primitive", grid, sim_variables, sim_variables.magnetic)
 
     # Initiate live or snapshot plotting, if enabled
+    plot_snapshot = True if sim_variables.save_plots else False
     if sim_variables.live_plot:
         plotting_params = plotting.initiate_live_plot(sim_variables)
-    elif sim_variables.take_snaps:
-        take_snapshot = True
 
+    # Activates only when checkpoints > 0; checkpoints still required to be > 0 for simulation to run
+    chkpt = sim_variables.t_end/sim_variables.checkpoints if sim_variables.checkpoints > 0 else sim_variables.t_end
+    write_chkpt = True if sim_variables.checkpoints > 0 else False
+ 
     # Start simulation run
     t, idx = 0., 1
     while t <= sim_variables.t_end:
@@ -57,23 +58,27 @@ def core_run(hdf5, sim_variables):
             centred_grid = grid
         grid_snapshot = sim_variables.convert("conservative", centred_grid, sim_variables)
 
-        # Save each instance of the system (primitive variables) at time t
-        with h5py.File(hdf5, "a") as f:
-            dataset = f[sim_variables.access_key].create_dataset(str(float(t)), data=grid_snapshot, compression="gzip", compression_opts=9)
-            dataset.attrs['t'] = float(t)
+        # Save each instance of the system (primitive variables) at time t, if full_set_required
+        if sim_variables.full_set_required:
+            with h5py.File(hdf5, "a") as f:
+                dataset = f[sim_variables.access_key].create_dataset(str(float(t)), data=grid_snapshot, compression="gzip", compression_opts=9)
+                dataset.attrs['t'] = float(t)
 
         # Miscellaneous media/print options
         if not sim_variables.quiet:
-            generic.print_progress(t, sim_variables)
+            generic.print_status(sim_variables, t=t)
         if sim_variables.live_plot:
             plotting.update_plot(grid_snapshot, t, sim_variables, *plotting_params)
-        elif sim_variables.take_snaps and take_snapshot:
+        if plot_snapshot:
             plotting.plot_snapshot(grid_snapshot, t, sim_variables)
-            take_snapshot = False
+            plot_snapshot = False
+        if write_chkpt:
+            io.write_chkpt(grid_snapshot, t, sim_variables)
+            write_chkpt = False
 
         # Actual computation starts here
         if t == sim_variables.t_end:
-            # Exact stop for the simulation; prevents adding an additional computation step
+            # Hard exact stop for the simulation; prevents adding an additional computation step
             break
         else:
             # Compute the numerical fluxes at each interface
@@ -85,8 +90,10 @@ def core_run(hdf5, sim_variables):
             # Handle dt
             if t+dt >= chkpt*idx:
                 dt = chkpt*idx - t
-                if sim_variables.take_snaps:
-                    take_snapshot = True
+                if sim_variables.save_plots:
+                    plot_snapshot = True
+                if sim_variables.checkpoints > 0:
+                    write_chkpt = True
                 idx += 1
 
             # Update the solution with the numerical fluxes using iterative methods
@@ -94,6 +101,7 @@ def core_run(hdf5, sim_variables):
 
             # Update time step
             t += dt
+            sim_variables.timesteps += 1
 
             # Change the order of the axis sweep
             sim_variables.axes = sim_variables.axes[::-1]
@@ -104,8 +112,8 @@ def core_run(hdf5, sim_variables):
 def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
     np.random.seed(seed)
 
-    # Save the HDF5 file (with seed) to store the temporary data
-    file_name = f"{current_dir}/.tempSimData_{seed}.hdf5"
+    # Save the HDF5 file (with seed) to store the temporary data, if full_set_required
+    file_name = f"{current_dir}/.astrea_hdf5_temp_{seed}"
 
     # Signal handler for Ctrl+C
     def graceful_exit(sig, frame):
@@ -153,11 +161,11 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
     sim_variables.beautify = beautify
 
     # Make directories if they do not exist
-    if sim_variables.take_snaps or sim_variables.save_plots or sim_variables.save_video or sim_variables.save_file:
+    if sim_variables.save_plots or sim_variables.full_plots or sim_variables.save_video or sim_variables.save_file or sim_variables.checkpoints > 0:
         sim_variables.save_path = save_path
         if not os.path.exists(save_path):
             os.makedirs(save_path)
-    if sim_variables.take_snaps and not os.path.exists(f"{save_path}/snapshots"):
+    if sim_variables.save_plots and not os.path.exists(f"{save_path}/snapshots"):
         os.makedirs(f"{save_path}/snapshots")
 
     # Run in a try-except-else to handle crashes and prevent exiting code entirely, with signal handler
@@ -165,11 +173,12 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
     signal.signal(signal.SIGINT, graceful_exit)
 
     try:
-        # Initiate the HDF5 database to store data
-        with h5py.File(file_name, "w") as f:
-            f.attrs['datetime'] = script_start
-            f.attrs['seed'] = seed
-            f.attrs['code'] = 'astrea'
+        # Initiate the HDF5 database to store data, if full_set_required
+        if sim_variables.full_set_required:
+            with h5py.File(file_name, "w") as f:
+                f.attrs['datetime'] = script_start
+                f.attrs['seed'] = seed
+                f.attrs['code'] = 'astrea'
 
         for grid_size in grid_sizes:
             ############################# INDIVIDUAL SIMULATION #############################
@@ -183,17 +192,18 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
                 sim_variables.ds[ax] = np.abs(np.diff(grid_axes[ax]))/grid_size[ax]
 
             # Save simulation variables into HDF5 file
-            with h5py.File(file_name, "a") as f:
-                grp = f.create_group(sim_variables.access_key)
-                grp.attrs['config'] = sim_variables.config
-                grp.attrs['cells'] = sim_variables.cells
-                grp.attrs['cfl'] = sim_variables.cfl
-                grp.attrs['gamma'] = sim_variables.gamma
-                grp.attrs['permeability'] = sim_variables.permeability
-                grp.attrs['dimension'] = sim_variables.dimension
-                grp.attrs['subgrid'] = sim_variables.subgrid
-                grp.attrs['timestep'] = sim_variables.timestep
-                grp.attrs['solver'] = sim_variables.solver
+            if sim_variables.full_set_required:
+                with h5py.File(file_name, "a") as f:
+                    grp = f.create_group(sim_variables.access_key)
+                    grp.attrs['config'] = sim_variables.config
+                    grp.attrs['cells'] = sim_variables.cells
+                    grp.attrs['cfl'] = sim_variables.cfl
+                    grp.attrs['gamma'] = sim_variables.gamma
+                    grp.attrs['permeability'] = sim_variables.permeability
+                    grp.attrs['dimension'] = sim_variables.dimension
+                    grp.attrs['subgrid'] = sim_variables.subgrid
+                    grp.attrs['time_evo'] = sim_variables.time_evo
+                    grp.attrs['solver'] = sim_variables.solver
 
             ################### CORE ###################
             lap = perf_counter()
@@ -203,16 +213,16 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
 
             # Save attributes after individual run is completed
             sim_variables.elapsed = elapsed
-            with h5py.File(file_name, "a") as f:
-                f[sim_variables.access_key].attrs['elapsed'] = elapsed
-                timestep_count = len(f[sim_variables.access_key])
+            if sim_variables.full_set_required:
+                with h5py.File(file_name, "a") as f:
+                    f[sim_variables.access_key].attrs['elapsed'] = elapsed
             if not sim_variables.quiet:
-                generic.print_final(sim_variables, timestep_count)
+                generic.print_status(sim_variables, final=True)
             ############################# END INDIVIDUAL SIMULATION #############################
 
         # Save plots; primitive quantities, total variation, conservation equation quantities, solution errors (errors only for run_type=multiple)
-        with h5py.File(file_name, "r") as f:
-            if sim_variables.save_plots:
+        if sim_variables.full_plots:
+            with h5py.File(file_name, "r") as f:
                 plotting.plot_quantities(f, sim_variables)
                 if sim_variables.run_type.startswith("m"):
                     if sim_variables.config_category == "smooth":
@@ -221,8 +231,9 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
                     plotting.plot_total_variation(f, sim_variables)
                     plotting.plot_conservation_equations(f, sim_variables)
 
-            # Save video (only for run_type=single)
-            if sim_variables.save_video:
+        # Save video (only for run_type=single)
+        if sim_variables.save_video:
+            with h5py.File(file_name, "r") as f:
                 vidpath = f"{save_path}/.vidplots"
                 if not os.path.exists(vidpath):
                     os.makedirs(vidpath)
@@ -239,10 +250,11 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
 
     finally:
         # Save the temporary HDF5 database (!! Possibly large file sizes > 100 GB !!)
-        if sim_variables.save_file:
-            shutil.move(file_name, f"{save_path}/astrea_{sim_variables.config}_{sim_variables.subgrid}_{sim_variables.timestep}_{sim_variables.seed}.hdf5")
-        else:
-            os.remove(file_name)
+        if sim_variables.full_set_required:
+            if sim_variables.save_file:
+                shutil.move(file_name, f"{save_path}/astrea_{sim_variables.config}_{sim_variables.subgrid}_{sim_variables.time_evo}_{sim_variables.seed}.hdf5")
+            else:
+                os.remove(file_name)
 
         signal.signal(signal.SIGINT, original_sigint_handler)
 
