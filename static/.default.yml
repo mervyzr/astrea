@@ -23,14 +23,15 @@ numerical_parameters:
 runtime_parameters:
   # Run types : single, multiple
   run_type      : single
-  checkpoints   : -1
+  checkpoints   : 1
 
 media_options:
-  live_plot     : true
+  live_plot     : false
   save_plots    : false
   full_plots    : false
   save_video    : false
   save_file     : false
+  write_chkpt   : true
   # Plot options
   # : density, pressure, velocity Vx/Vy/Vz, total/internal energy, Mach number,
   # : magnetic field Bx/By/Bz, magnetic pressure, magnetic divergence divB

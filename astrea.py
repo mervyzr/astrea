@@ -46,7 +46,7 @@ def core_run(hdf5, sim_variables):
 
     # Activates only when checkpoints > 0; checkpoints still required to be > 0 for simulation to run
     chkpt = sim_variables.t_end/sim_variables.checkpoints if sim_variables.checkpoints > 0 else sim_variables.t_end
-    write_chkpt = True if sim_variables.checkpoints > 0 else False
+    create_chkpt_file = True if sim_variables.write_chkpt else False
  
     # Start simulation run
     t, idx = 0., 1
@@ -72,9 +72,9 @@ def core_run(hdf5, sim_variables):
         if plot_snapshot:
             plotting.plot_snapshot(grid_snapshot, t, sim_variables)
             plot_snapshot = False
-        if write_chkpt:
-            io.write_chkpt(grid_snapshot, t, sim_variables)
-            write_chkpt = False
+        if create_chkpt_file:
+            io.write_chkpt_file(grid_snapshot, t, sim_variables)
+            create_chkpt_file = False
 
         # Actual computation starts here
         if t == sim_variables.t_end:
@@ -92,8 +92,8 @@ def core_run(hdf5, sim_variables):
                 dt = chkpt*idx - t
                 if sim_variables.save_plots:
                     plot_snapshot = True
-                if sim_variables.checkpoints > 0:
-                    write_chkpt = True
+                if sim_variables.write_chkpt:
+                    create_chkpt_file = True
                 idx += 1
 
             # Update the solution with the numerical fluxes using iterative methods
@@ -161,7 +161,7 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
     sim_variables.beautify = beautify
 
     # Make directories if they do not exist
-    if sim_variables.save_plots or sim_variables.full_plots or sim_variables.save_video or sim_variables.save_file or sim_variables.checkpoints > 0:
+    if sim_variables.save_plots or sim_variables.full_plots or sim_variables.save_video or sim_variables.save_file or sim_variables.write_chkpt:
         sim_variables.save_path = save_path
         if not os.path.exists(save_path):
             os.makedirs(save_path)
@@ -199,6 +199,7 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
                     grp.attrs['cells'] = sim_variables.cells
                     grp.attrs['cfl'] = sim_variables.cfl
                     grp.attrs['gamma'] = sim_variables.gamma
+                    grp.attrs['precision'] = sim_variables.precision
                     grp.attrs['permeability'] = sim_variables.permeability
                     grp.attrs['dimension'] = sim_variables.dimension
                     grp.attrs['subgrid'] = sim_variables.subgrid
