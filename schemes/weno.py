@@ -165,7 +165,7 @@ def run(grid, sim_variables, axis):
         prim_plus[...,(Bx,By)] = prim_minus[...,(Bx,By)] = fv.slice_(padded_grid, axis, end=-1)[...,(Bx,By)]
 
     # Get the average solution between the interfaces at the boundaries
-    intf_avg = fv.slice_(fv.compute_Roe_average(prim_plus, prim_minus), axis, start=1)
+    intf_avg = fv.slice_(fv.compute_Roe_average([prim_plus,prim_minus], sim_variables), axis, start=1)
     padded_intf_avg = fv.add_boundary(intf_avg, boundary, axis=axis)
 
     # Convert the primitive variables

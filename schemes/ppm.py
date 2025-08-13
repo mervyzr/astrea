@@ -88,7 +88,7 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
         prim_plus[...,(Bx,By)] = prim_minus[...,(Bx,By)] = fv.slice_(padded_grid, axis, end=-1)[...,(Bx,By)]
 
     # Get the average solution between the interfaces at the boundaries
-    intf_avg = fv.slice_(fv.compute_Roe_average(prim_plus, prim_minus), axis, start=1)
+    intf_avg = fv.slice_(fv.compute_Roe_average([prim_plus,prim_minus], sim_variables), axis, start=1)
     padded_intf_avg = fv.add_boundary(intf_avg, boundary, axis=axis)
 
     # Convert the primitive variables
@@ -183,7 +183,7 @@ def get_flattening_coeff(grid, sim_variables, axis, slope_determinants=[.33, .75
 # Implement artificial viscosity [McCorquodale & Colella, 2011]
 def get_artificial_viscosity(grid_slices, axis, sim_variables, viscosity_determinants=[.3, .3]):
     alpha, beta = viscosity_determinants
-    rho, pressure, Bfields = 0, 4, slice(5,8)
+    rho, pressure, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.Bfields
 
     grid, plus_one = grid_slices
     ortho_axis = 1 - axis

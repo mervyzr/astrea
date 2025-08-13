@@ -227,7 +227,7 @@ def make_figure(options, sim_variables, variable="normal"):
 
 # Create list of data plots; accepts primitive grid
 def make_data(options, grid, sim_variables):
-    rho, pressure, vels, Bfields = 0, 4, slice(1,4), slice(5,8)
+    rho, pressure, vels, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields
     quantities = []
 
     for option in options:

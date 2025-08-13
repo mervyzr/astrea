@@ -198,8 +198,10 @@ def compute_eigmax(characteristics, axis):
 
 
 # Calculate the Roe-averaged primitive variables at the interface from the minus- & plus-interface states for use in Roe solver in order to better capture shocks [Roe & Pike, 1984; Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
-def compute_Roe_average(plus_interface, minus_interface):
-    rho, pressure, vels, Bfields = 0, 4, slice(1,4), slice(5,8)
+def compute_Roe_average(interfaces, sim_variables):
+    rho, pressure, vels, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields
+
+    plus_interface, minus_interface = interfaces
     avg = np.zeros_like(plus_interface)
     rho_plus, rho_minus = np.sqrt(plus_interface[...,rho]), np.sqrt(minus_interface[...,rho])
 
