@@ -673,7 +673,7 @@ def plot_total_variation(hdf5, sim_variables, title=False):
 
 # Determines if numerical scheme is conservative to machine precision
 def plot_conservation_equations(hdf5, sim_variables, title=False):
-    options = ["mass", "momentum_x", "energy"]
+    options = ["mass", "momentum_x", "total energy"]
     config, subgrid, time_evo, solver = sim_variables.config, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     
     # hdf5 keys are datetime strings

@@ -47,7 +47,7 @@ def core_run(hdf5, sim_variables):
     # Activates only when checkpoints > 0; checkpoints still required to be > 0 for simulation to run
     chkpt = sim_variables.t_end/sim_variables.checkpoints if sim_variables.checkpoints > 0 else sim_variables.t_end
     create_chkpt_file = True if sim_variables.write_chkpt else False
- 
+
     # Start simulation run
     t, idx = 0., 1
     while t <= sim_variables.t_end:
