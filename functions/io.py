@@ -58,8 +58,8 @@ def handle_CLI(db_path):
 
     parser.add_argument('--plot_options', '--plot-options', dest='plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot')
     parser.add_argument('--live_plot', '--live-plot', '--live', dest='live_plot', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
-    parser.add_argument('--save_plots', '--save-plots', dest='save_plots', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
-    parser.add_argument('--full_plots', '--full-plots', dest='full_plots', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving full plots of the simulation, including quantities, conservation, total variation, etc.', choices=bool_choices)
+    parser.add_argument('--save_snaps', '--save-snaps', dest='save_snaps', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
+    parser.add_argument('--save_plots', '--save-plots', dest='save_plots', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving other plots of the simulation, including quantities, conservation, total variation, etc.', choices=bool_choices)
     parser.add_argument('--save_video', '--save-video', dest='save_video', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving a video of the simulation', choices=bool_choices)
     parser.add_argument('--save_file', '--save-file', dest='save_file', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving the entire simulation data file (.hdf5)', choices=bool_choices)
     parser.add_argument('--write_chkpt', '--write-chkpt', '--write_checkpoint', '--write-checkpoint', dest='write_chkpt', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving checkpoint files', choices=bool_choices)
@@ -99,7 +99,7 @@ def parse_cli_variables(_config_variables, _cli_variables, _db_path):
     # Check validity of variables; revert to default values if not valid
     config_variables = {}
     for k,v in temp_dct.items():
-        if k in ['live_plot', 'save_plots', 'full_plots', 'save_video', 'save_file', 'write_chkpt']:
+        if k in ['live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'write_chkpt']:
             if not isinstance(v, bool):
                 v = False
         elif k in ['checkpoints', 'dimension']:
@@ -199,7 +199,7 @@ class SimulationVariables(object):
         'permeability', 'magnetic', 'roots', 'weights', 'axes', 'ppm_dissipate',
         'config_category', 'solver_category', 'convert', 'higher_order',
         'x_axis', 'y_axis', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'ds',
-        'run_type', 'live_plot', 'save_plots', 'full_plots', 'save_video', 'save_file', 'plot_options', 'plot_style', 'beautify',
+        'run_type', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_options', 'plot_style', 'beautify',
         'checkpoints', 'full_set_required', 'write_chkpt', 'quiet',
     ]
 
@@ -269,17 +269,17 @@ class SimulationVariables(object):
             if self.live_plot:
                 print(f"{BColours.WARNING}Live plots can only be switched on for single simulation runs..{BColours.ENDC}")
                 self.live_plot = False
-            if self.save_plots:
+            if self.save_snaps:
                 print(f"{BColours.WARNING}Saving snapshots can only be switched on for single simulation runs..{BColours.ENDC}")
-                self.save_plots = False
+                self.save_snaps = False
         else:
-            if (self.save_plots or self.full_plots or self.save_video) and (self.live_plot):
+            if (self.save_snaps or self.save_plots or self.save_video) and (self.live_plot):
                 print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live plot interferes with matplotlib.savefig..{BColours.ENDC}")
                 self.live_plot = False
-            if self.save_plots or self.full_plots or self.save_video or self.save_file:
+            if self.save_snaps or self.save_plots or self.save_video or self.save_file:
                 self.save_path = ''
 
-        self.full_set_required = True if (self.full_plots or self.save_video or self.save_file) else False
+        self.full_set_required = True if (self.save_plots or self.save_video or self.save_file) else False
 
 
 # Write grid to HDF5 checkpoint files

@@ -166,11 +166,11 @@ def compute_corner(data, sim_variables):
 
 
 # Compute constrained transport flux using corners
-def compute_ct_flux(corners, flux_diff, sim_variables, axis):
+def compute_ct_flux(corners, flux, sim_variables, axis):
     ortho_axis = 1 - axis
     padded_e3U = fv.add_boundary(corners, sim_variables.boundary, axis=ortho_axis)
 
-    flux_diff[...,5+axis] = (-1)**axis * np.diff(fv.slice_(padded_e3U, axis=ortho_axis, end=-1), axis=ortho_axis)/sim_variables.ds[ortho_axis]
-    flux_diff[...,5+ortho_axis] = 0
+    flux[...,5+axis] = (-1)**axis * np.diff(fv.slice_(padded_e3U, axis=ortho_axis, end=-1), axis=ortho_axis)/sim_variables.ds[ortho_axis]
+    flux[...,5+ortho_axis] = 0
 
-    return flux_diff
+    return flux

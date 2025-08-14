@@ -40,7 +40,7 @@ def core_run(hdf5, sim_variables):
     grid = fv.point_convert("primitive", grid, sim_variables, sim_variables.magnetic)
 
     # Initiate live or snapshot plotting, if enabled
-    plot_snapshot = True if sim_variables.save_plots else False
+    plot_snapshot = True if sim_variables.save_snaps else False
     if sim_variables.live_plot:
         plotting_params = plotting.initiate_live_plot(sim_variables)
 
@@ -90,7 +90,7 @@ def core_run(hdf5, sim_variables):
             # Handle dt
             if t+dt >= chkpt*idx:
                 dt = chkpt*idx - t
-                if sim_variables.save_plots:
+                if sim_variables.save_snaps:
                     plot_snapshot = True
                 if sim_variables.write_chkpt:
                     create_chkpt_file = True
@@ -161,11 +161,11 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
     sim_variables.beautify = beautify
 
     # Make directories if they do not exist
-    if sim_variables.save_plots or sim_variables.full_plots or sim_variables.save_video or sim_variables.save_file or sim_variables.write_chkpt:
+    if sim_variables.save_snaps or sim_variables.save_plots or sim_variables.save_video or sim_variables.save_file or sim_variables.write_chkpt:
         sim_variables.save_path = save_path
         if not os.path.exists(save_path):
             os.makedirs(save_path)
-    if sim_variables.save_plots and not os.path.exists(f"{save_path}/snapshots"):
+    if sim_variables.save_snaps and not os.path.exists(f"{save_path}/snapshots"):
         os.makedirs(f"{save_path}/snapshots")
 
     # Run in a try-except-else to handle crashes and prevent exiting code entirely, with signal handler
@@ -222,7 +222,7 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
             ############################# END INDIVIDUAL SIMULATION #############################
 
         # Save plots; primitive quantities, total variation, conservation equation quantities, solution errors (errors only for run_type=multiple)
-        if sim_variables.full_plots:
+        if sim_variables.save_plots:
             with h5py.File(file_name, "r") as f:
                 plotting.plot_quantities(f, sim_variables)
                 if sim_variables.run_type.startswith("m"):

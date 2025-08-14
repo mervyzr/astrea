@@ -14,7 +14,6 @@ from schemes import pcm, plm, ppm, weno
 def evolve_space(grid, sim_variables, first_stage=False):
     dimension, subgrid, axes, magnetic = sim_variables.dimension, sim_variables.subgrid, sim_variables.axes, sim_variables.magnetic
     pressure, dissipate = sim_variables.pressure, sim_variables.ppm_dissipate
-    data = {}
 
     # Convert to primitive variables
     primitive = sim_variables.convert("conservative", grid, sim_variables, staggered=magnetic)
@@ -45,27 +44,30 @@ def evolve_space(grid, sim_variables, first_stage=False):
         else:
             jobs = executor.map(pcm.run, repeat(primitive), repeat(sim_variables), axes)
 
-        for idx, result in enumerate(jobs):
-            data[axes[idx]] = result
+        data = {axes[idx]: result for idx, result in enumerate(jobs)}
 
 
-    get_flux = lambda dct: [axis_dict['fluxes'] for axis_dict in list(dct.values())]
+    # Extract specific values needed from data dict
+    extract = lambda variable, _dict: [axis_dict[variable] for axis_dict in list(_dict.values())]
+    eigmaxes = extract('eigmax', data)
+    fluxes = extract('fluxes', data)
 
     # Compute the maximum eigenvalues for determining the full time step
-    eigmax = np.min([axis_dict['eigmax'] for axis_dict in list(data.values())])
+    eigmax = np.min(eigmaxes)
 
 
     # Magnetohydrodynamics computation
     if magnetic and dimension == 2:
+        # Must use data dict for corner computation; the assignment of the corners is very important so the dict key (axes) are used for this assignment
         e3U = ct.compute_corner(data, sim_variables)
 
+        # Update fluxes with CT implementation
         with cfutures.ThreadPoolExecutor() as executor:
-            jobs = executor.map(ct.compute_ct_flux, repeat(e3U), get_flux(data), repeat(sim_variables), axes)
-            for idx, result in enumerate(jobs):
-                data[axes[idx]]['fluxes'] = result
+            jobs = executor.map(ct.compute_ct_flux, repeat(e3U), fluxes, repeat(sim_variables), axes)
+            fluxes = [flux for flux in jobs]
 
     # Calculate the total fluxes through all upwind surfaces [F(i+1/2,j) - F(i-1/2,j)]/dx, [G(i,j+1/2) - G(i,j-1/2)]/dy
-    fluxes = -np.sum(get_flux(data), axis=0)
+    fluxes = -np.sum(fluxes, axis=0)
 
     if first_stage:
         return fluxes, eigmax
