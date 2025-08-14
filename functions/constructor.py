@@ -92,6 +92,11 @@ def initialise(sim_variables):
             computational_grid[...,vx][mask] = (-params['omega']*(y-y_centre)/y_shock_pos)[mask]
             computational_grid[...,vy][mask] = (params['omega']*(x-x_centre)/x_shock_pos)[mask]
 
+        elif "sheet" in config or "current" in config:
+            computational_grid[...,vx] = params['ampl'] * np.sin(2*np.pi*y)
+            mask = np.where((-x_shock_pos < x) & (x < x_shock_pos))
+            computational_grid[...,By][mask] = -computational_grid[...,By][mask]
+
         elif "noh" in config:
             mask = np.where(((x-x_axis[0])**2 + (y-y_axis[0])**2) > (x_shock_pos-x_axis[0])**2)
             computational_grid[...,vx][mask] = -np.sin(x)[mask]

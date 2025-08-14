@@ -175,6 +175,17 @@ def generate_test_conditions(config, cells):
         initial_right = np.array([1,0,0,0,.1,1/np.sqrt(2),1/np.sqrt(2),0])
         misc = None
 
+    # [Gardiner & Stone, 2005]
+    elif "sheet" in config or "current" in config:
+        x_axis = [-.5,.5]
+        y_axis = [-.5,.5]
+        shock_pos = [.25,.25]
+        t_end = 10
+        boundary = "wrap"
+        initial_left = np.array([1,0,0,0,.05/(4*np.pi),0,1/np.sqrt(4*np.pi),0])
+        initial_right = np.array([1,0,0,0,.05/(4*np.pi),0,1/np.sqrt(4*np.pi),0])
+        misc = {'ampl':.1}
+
     # [Toro, 1999, p.225]
     elif "toro" in config:
         x_axis = [0,1]

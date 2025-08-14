@@ -102,7 +102,13 @@
         "mhd blast",
         "mhd-blast",
         "mhd blast wave",
-        "mhd-blast-wave"
+        "mhd-blast-wave",
+        "sheet",
+        "mhd sheet",
+        "mhd-sheet",
+        "current",
+        "mhd current",
+        "mhd-current"
       ]
     },
     "8": {
