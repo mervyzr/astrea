@@ -42,31 +42,32 @@ def handle_CLI(db_path):
                                      epilog=f"--- {BColours.ITALIC}{quotes[random.randint(0,len(quotes)-1)]}{BColours.ENDC} ---", 
                                      formatter_class=argparse.RawTextHelpFormatter)
 
+    parser.add_argument('-v', '-d', '--debug', dest='debug', help='toggle for more detailed description of errors/bugs', action='store_true')
+    parser.add_argument('-q', '--quiet', dest='quiet', help='toggle printing to screen', action='store_true')
+    parser.add_argument('-w', '--write_chkpt', dest='write_chkpt', default=argparse.SUPPRESS, help='toggle saving checkpoint files', action='store_true')
+
     parser.add_argument('--config', metavar='', type=str.lower, default=argparse.SUPPRESS, help='configuration to run in the simulation', choices=accepted_values('config'))
-    parser.add_argument('--grid', '--cells', '--cell', '--N', '--n', dest='cells', metavar='', default=argparse.SUPPRESS, help='number of cells in the grid')
-    parser.add_argument('--cfl', metavar='', type=float, default=argparse.SUPPRESS, help='courant number in the Courant-Friedrichs-Lewy stability condition')
+    parser.add_argument('--grid', '--cells', dest='cells', metavar='', default=argparse.SUPPRESS, help='number of cells in the grid')
+    parser.add_argument('--cfl', metavar='', type=float, default=argparse.SUPPRESS, help='Courant number in the Courant-Friedrichs-Lewy stability condition')
     parser.add_argument('--gamma', metavar='', type=float, default=argparse.SUPPRESS, help='adiabatic index')
     parser.add_argument('--permeability', metavar='', type=float, default=argparse.SUPPRESS, help='magnetic permeability')
-    parser.add_argument('--dimension', '--dim', dest='dimension', type=int, metavar='', default=argparse.SUPPRESS, help='dimension of the simulation', choices=db.get(params.type == 'dimension')['accepted'])
+    parser.add_argument('--dimension', '--dim', dest='dimension', type=int, metavar='', default=argparse.SUPPRESS, help='dimensionality of the simulation', choices=db.get(params.type == 'dimension')['accepted'])
 
-    parser.add_argument('--subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='subgrid model used in the reconstruction of the grid', choices=accepted_values('subgrid'))
-    parser.add_argument('--time_evo', '--time-evo', dest='time_evo', metavar='', type=str.lower, default=argparse.SUPPRESS, help='sime-stepping algorithm used in the update step of the simulation', choices=accepted_values('time_evo'))
-    parser.add_argument('--solver', metavar='', type=str.lower, default=argparse.SUPPRESS, help='solver used for the Riemann problem', choices=accepted_values('solver'))
+    parser.add_argument('--subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='subgrid model used for reconstruction within grid cells', choices=accepted_values('subgrid'))
+    parser.add_argument('--time_evo', metavar='', type=str.lower, default=argparse.SUPPRESS, help='time integration method used for temporal evolution', choices=accepted_values('time_evo'))
+    parser.add_argument('--solver', metavar='', type=str.lower, default=argparse.SUPPRESS, help='solver method for the Riemann problem', choices=accepted_values('solver'))
 
     parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='run a single run or multiple runs for each simulation', choices=db.get(params.type == 'run_type')['accepted'])
     parser.add_argument('--checkpoints', '--chkpts', dest='checkpoints', metavar='', type=int, default=argparse.SUPPRESS, help='number of checkpoints in simulation')
 
-    parser.add_argument('--plot_options', '--plot-options', dest='plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot')
-    parser.add_argument('--live_plot', '--live-plot', '--live', dest='live_plot', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
-    parser.add_argument('--save_snaps', '--save-snaps', dest='save_snaps', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
-    parser.add_argument('--save_plots', '--save-plots', dest='save_plots', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving other plots of the simulation, including quantities, conservation, total variation, etc.', choices=bool_choices)
-    parser.add_argument('--save_video', '--save-video', dest='save_video', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving a video of the simulation', choices=bool_choices)
-    parser.add_argument('--save_file', '--save-file', dest='save_file', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving the entire simulation data file (.hdf5)', choices=bool_choices)
-    parser.add_argument('--file', '--chkpt_file', '--chkpt-file', '--checkpoint_file', '--checkpoint-file', dest='chkpt_file', metavar='', type=str.lower, default=argparse.SUPPRESS, help='load an astrea checkpoint file')
+    parser.add_argument('--live_plot', '--live', dest='live_plot', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
+    parser.add_argument('--save_snaps', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
+    parser.add_argument('--save_plots', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving other plots of the simulation, including quantities, conservation, total variation, etc.', choices=bool_choices)
+    parser.add_argument('--save_video', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving a video of the simulation', choices=bool_choices)
+    parser.add_argument('--save_file', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving the entire simulation data file (.hdf5)', choices=bool_choices)
+    parser.add_argument('--plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot')
 
-    parser.add_argument('-v', '-d', '--debug', '--DEBUG', dest='debug', help='toggle for more detailed description of errors/bugs', action='store_true')
-    parser.add_argument('-q', '--quiet', dest='quiet', help='toggle printing to screen', action='store_true')
-    parser.add_argument('-c', '--write_chkpt', '--write-chkpt', '--write_checkpoint', '--write-checkpoint', dest='write_chkpt', default=argparse.SUPPRESS, help='toggle saving checkpoint files', action='store_true')
+    parser.add_argument('--file', '--chkpt_file', '--checkpoint_file', dest='chkpt_file', metavar='', type=str.lower, default=argparse.SUPPRESS, help=argparse.SUPPRESS)
     parser.add_argument('-t', '--test', dest='test', default=argparse.SUPPRESS, help=argparse.SUPPRESS, action='store_true')
 
     args = parser.parse_args()
