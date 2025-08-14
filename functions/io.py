@@ -62,12 +62,12 @@ def handle_CLI(db_path):
     parser.add_argument('--save_plots', '--save-plots', dest='save_plots', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving other plots of the simulation, including quantities, conservation, total variation, etc.', choices=bool_choices)
     parser.add_argument('--save_video', '--save-video', dest='save_video', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving a video of the simulation', choices=bool_choices)
     parser.add_argument('--save_file', '--save-file', dest='save_file', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving the entire simulation data file (.hdf5)', choices=bool_choices)
-    parser.add_argument('--write_chkpt', '--write-chkpt', '--write_checkpoint', '--write-checkpoint', dest='write_chkpt', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving checkpoint files', choices=bool_choices)
+    parser.add_argument('--file', '--chkpt_file', '--chkpt-file', '--checkpoint_file', '--checkpoint-file', dest='chkpt_file', metavar='', type=str.lower, default=argparse.SUPPRESS, help='load an astrea checkpoint file')
 
-    parser.add_argument('--debug', '--DEBUG', dest='debug', help='toggle for more detailed description of errors/bugs', action='store_true')
-    parser.add_argument('--quiet', '-q', dest='quiet', help='toggle printing to screen', action='store_true')
-    parser.add_argument('--test', default=argparse.SUPPRESS, help=argparse.SUPPRESS, action='store_true')
-    parser.add_argument('--file', '--chkpt', '--checkpoint', dest='chkpt_file', metavar='', type=str.lower, default=argparse.SUPPRESS, help='load an astrea checkpoint file')
+    parser.add_argument('-v', '-d', '--debug', '--DEBUG', dest='debug', help='toggle for more detailed description of errors/bugs', action='store_true')
+    parser.add_argument('-q', '--quiet', dest='quiet', help='toggle printing to screen', action='store_true')
+    parser.add_argument('-c', '--write_chkpt', '--write-chkpt', '--write_checkpoint', '--write-checkpoint', dest='write_chkpt', default=argparse.SUPPRESS, help='toggle saving checkpoint files', action='store_true')
+    parser.add_argument('-t', '--test', dest='test', default=argparse.SUPPRESS, help=argparse.SUPPRESS, action='store_true')
 
     args = parser.parse_args()
 
@@ -96,10 +96,15 @@ def parse_cli_variables(_config_variables, _cli_variables, _db_path):
     except KeyError:
         temp_dct['quiet'] = False
 
+    try:
+        temp_dct['write_chkpt'] = _cli_variables["write_chkpt"]
+    except KeyError:
+        temp_dct['write_chkpt'] = False
+
     # Check validity of variables; revert to default values if not valid
     config_variables = {}
     for k,v in temp_dct.items():
-        if k in ['live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'write_chkpt']:
+        if k in ['live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file']:
             if not isinstance(v, bool):
                 v = False
         elif k in ['checkpoints', 'dimension']:
@@ -169,7 +174,7 @@ def parse_cli_variables(_config_variables, _cli_variables, _db_path):
             finally:
                 if invalid != []:
                     print(f"{BColours.WARNING}Invalid plot options: {invalid}{BColours.ENDC}")
-        elif k == 'quiet':
+        elif k in ['quiet', 'write_chkpt']:
             pass
         else:
             if isinstance(v, str):
@@ -200,7 +205,7 @@ class SimulationVariables(object):
         'config_category', 'solver_category', 'convert', 'higher_order',
         'x_axis', 'y_axis', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'ds',
         'run_type', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_options', 'plot_style', 'beautify',
-        'checkpoints', 'full_set_required', 'write_chkpt', 'quiet',
+        'checkpoints', 'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'test',
     ]
 
     def __init__(self, seed, config_variables, test_variables, db_path):

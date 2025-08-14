@@ -31,7 +31,6 @@ media_options:
   save_plots    : false
   save_video    : false
   save_file     : false
-  write_chkpt   : true
   # Plot options
   # : density, pressure, velocity Vx/Vy/Vz, total/internal energy, Mach number,
   # : magnetic field Bx/By/Bz, magnetic pressure, magnetic divergence divB
