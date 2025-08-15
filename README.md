@@ -11,9 +11,9 @@
 **_This code is created as part of the Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner._**
 
 <p align='center'>
-  <video width=30% autoplay loop muted><source src="./static/khi-energy.mp4" type="video/mp4">Kelvin-Helmholtz instability</video>
-  <video width=30% autoplay loop muted><source src="./static/ll3-density.mp4" type="video/mp4">Lax-Liu config. 3</video>
-  <video width=30% autoplay loop muted><source src="./static/ot-magpres.mp4" type="video/mp4">Orszag-Tang vortex</video>
+  <img src='./static/khi-energy.gif' width=30% alt='Kelvin-Helmholtz instability'>
+  <img src='./static/ll3-density.gif' width=30% alt='Lax-Liu config. 3'>
+  <img src='./static/ot-magpressure.gif' width=30% alt='Orszag-Tang vortex'>
 </p>
 
 # Description
