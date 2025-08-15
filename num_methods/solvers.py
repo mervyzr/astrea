@@ -1,7 +1,7 @@
 import numpy as np
 
 from functions import constructor, fv
-
+import time
 ##############################################################################
 # Approximate linearised and non-linearised Riemann solvers
 ##############################################################################
@@ -62,6 +62,7 @@ def calculate_HLLC_flux(axis, sim_variables, low_mach=False, **kwargs):
     prim_plus, prim_minus = kwargs["prim_interfaces"]
     cons_plus, cons_minus = kwargs["cons_interfaces"]
     flux_plus, flux_minus = kwargs["flux_interfaces"]
+    characteristics = kwargs["characteristics"]
 
     """The convention here uses L & R states, i.e. L state = w-, R state = w+
         |                        w(i-1/2)                    w(i+1/2)                       |
@@ -72,17 +73,10 @@ def calculate_HLLC_flux(axis, sim_variables, low_mach=False, **kwargs):
     rhoL, uL, pL, qL = prim_minus[...,rho], prim_minus[...,1+axis], prim_minus[...,pressure], cons_minus
     rhoR, uR, pR, qR = prim_plus[...,rho], prim_plus[...,1+axis], prim_plus[...,pressure], cons_plus
 
-    # Generic HLLC solver [Toro et al., 1994]
-    # Calculate sound speeds
-    cL, cR = np.sqrt(fv.divide(gamma*pL, rhoL)), np.sqrt(fv.divide(gamma*pR, rhoR))
-    u_hat = fv.divide(uL*np.sqrt(rhoL) + uR*np.sqrt(rhoR), np.sqrt(rhoL) + np.sqrt(rhoR))
-    c_hat = np.sqrt(
-        fv.divide(np.sqrt(rhoL)*cL**2 + np.sqrt(rhoR)*cR**2, np.sqrt(rhoL) + np.sqrt(rhoR))
-        + .5 * fv.divide(np.sqrt(rhoL) * np.sqrt(rhoR), (np.sqrt(rhoL) + np.sqrt(rhoR))**2) * (uR-uL)**2
-    )
-
-    # Calculate the non-linear signal speeds
-    sL, sR = np.minimum(uL-cL, u_hat-c_hat), np.maximum(uR+cR, u_hat+c_hat)
+    # Compute the wavespeeds
+    local_min_eigvals, local_max_eigvals = np.min(characteristics, axis=-1), np.max(characteristics, axis=-1)
+    sL = np.minimum(fv.slice_(local_min_eigvals, axis, end=-1), fv.slice_(local_min_eigvals, axis, start=1))
+    sR = np.maximum(fv.slice_(local_max_eigvals, axis, end=-1), fv.slice_(local_max_eigvals, axis, start=1))
     sM = fv.divide(pL - pR + rhoR*uR*(sR-uR) - rhoL*uL*(sL-uL), rhoR*(sR-uR) - rhoL*(sL-uL))
 
     # Calculate the intermediate states
@@ -97,6 +91,7 @@ def calculate_HLLC_flux(axis, sim_variables, low_mach=False, **kwargs):
 
     # Modification to HLLC solver for low Mach shocks [Fleischmann et al., 2020]
     if low_mach:
+        cL, cR = np.sqrt(fv.divide(gamma*pL, rhoL)), np.sqrt(fv.divide(gamma*pR, rhoR))
         Ma_local = np.maximum(np.abs(fv.divide(uL,cL)), np.abs(fv.divide(uR,cR)))
         phi = np.sin(.5 * np.pi * np.minimum(1, Ma_local/Ma_limit))
         sL = phi * sL
@@ -112,16 +107,17 @@ def calculate_HLLC_flux(axis, sim_variables, low_mach=False, **kwargs):
 
 # HLLD Riemann solver [Miyoshi & Kusano, 2005]
 def calculate_HLLD_flux(axis, sim_variables, **kwargs):
-    rho, pressure, vels, Bfields, energy, momentums = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields, sim_variables.energy, sim_variables.momentums
     axes = (axis + np.array(range(3)))%3
     abscissa, ordinate, applicate = axes
     Bx, By, Bz = 5 + axes
     momx, momy, momz = 1 + axes
 
+    rho, pressure, vels, Bfields, energy, momentums = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields, sim_variables.energy, sim_variables.momentums
+
     prim_plus, prim_minus = kwargs["prim_interfaces"]
     cons_plus, cons_minus = kwargs["cons_interfaces"]
     flux_plus, flux_minus = kwargs["flux_interfaces"]
-    characteristics = kwargs['characteristics']
+    characteristics = kwargs["characteristics"]
 
     """The convention here uses L & R states, i.e. L state = w-, R state = w+
         |                        w(i-1/2)                    w(i+1/2)                       |
@@ -200,35 +196,30 @@ def calculate_HLLD_flux(axis, sim_variables, **kwargs):
 def calculate_DOTS_flux(axis, sim_variables, **kwargs):
     cons_plus, cons_minus = kwargs["cons_interfaces"]
     flux_plus, flux_minus = kwargs["flux_interfaces"]
-    gamma, roots, weights = sim_variables.gamma, sim_variables.roots, sim_variables.weights
+    roots, weights = sim_variables.roots, sim_variables.weights
 
     # Define the path integral for the Osher-Solomon dissipation term
     arr_plus, arr_minus = np.repeat(cons_plus[None,:], len(roots), axis=0), np.repeat(cons_minus[None,:], len(roots), axis=0)
     psi = arr_minus + (roots*(arr_plus - arr_minus).T).T
 
     # Define the right eigenvectors
-    _right_eigenvectors = constructor.make_right_eigenvectors(axis, psi, gamma)
+    _right_eigenvectors = constructor.make_right_eigenvectors(psi, sim_variables, axis)
 
     # Generate the diagonal matrix of eigenvalues
     _lambda = np.zeros_like(_right_eigenvectors)
-    rhos, vxs, pressures, B_fields = psi[...,0], psi[...,1], psi[...,4], psi[...,5:8]
 
-    # Define speeds
-    sound_speed = np.sqrt(gamma * fv.divide(pressures, rhos))
-    alfven_speed = fv.divide(fv.norm(B_fields), np.sqrt(rhos))
-    alfven_speed_x = fv.divide(B_fields[...,axis], np.sqrt(rhos))
-    fast_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 + np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
-    slow_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 - np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
+    # Compute wavespeeds
+    sound_speed, alfven_speed_x, alfven_speed_x, fast_magnetosonic_wave, slow_magnetosonic_wave = constructor.make_wavespeeds(psi, sim_variables, axis)
 
     # Compute the diagonal matrix of eigenvalues
-    _lambda[...,0,0] = vxs - fast_magnetosonic_wave
-    _lambda[...,1,1] = vxs - alfven_speed_x
-    _lambda[...,2,2] = vxs - slow_magnetosonic_wave
-    _lambda[...,3,3] = vxs
-    _lambda[...,4,4] = vxs
-    _lambda[...,5,5] = vxs + slow_magnetosonic_wave
-    _lambda[...,6,6] = vxs + alfven_speed_x
-    _lambda[...,7,7] = vxs + fast_magnetosonic_wave
+    _lambda[...,0,0] = sound_speed - fast_magnetosonic_wave
+    _lambda[...,1,1] = sound_speed - alfven_speed_x
+    _lambda[...,2,2] = sound_speed - slow_magnetosonic_wave
+    _lambda[...,3,3] = sound_speed
+    _lambda[...,4,4] = sound_speed
+    _lambda[...,5,5] = sound_speed + slow_magnetosonic_wave
+    _lambda[...,6,6] = sound_speed + alfven_speed_x
+    _lambda[...,7,7] = sound_speed + fast_magnetosonic_wave
     _eigenvalues = np.abs(_lambda)
 
     # Compute the absolute value of the Jacobian
@@ -249,8 +240,8 @@ def calculate_DOTS_flux(axis, sim_variables, **kwargs):
 # Entropy-stable flux calculation based on left and right interpolated primitive variables [Winters & Gassner, 2015; Derigs et al., 2016]
 def calculate_ES_flux(axis, sim_variables, **kwargs):
     prim_plus, prim_minus = kwargs["prim_interfaces"]
+    abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
     rho, pressure, vels, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields
-    abscissa, ordinate, applicate = axis%3, (axis+1)%3, (axis+2)%3
     gamma = sim_variables.gamma
 
     # To construct the entropy-stable flux, 2 components are needed:
@@ -307,7 +298,7 @@ def calculate_ES_flux(axis, sim_variables, **kwargs):
 
     # Entropy-stable flux with dissipation term section [Derigs et al., 2016]
     # Make the right eigenvectors for each cell in each grid using the averaged primitive variables
-    right_eigenvectors = constructor.make_ES_right_eigenvectors(axis, np.array([rho_hat.T, u1_hat.T, v1_hat.T, w1_hat.T, P1_hat.T, B1_hat.T, B2_hat.T, B3_hat.T]).T, gamma)
+    right_eigenvectors = constructor.make_ES_right_eigenvectors(np.array([rho_hat.T, u1_hat.T, v1_hat.T, w1_hat.T, P1_hat.T, B1_hat.T, B2_hat.T, B3_hat.T]).T, sim_variables, axis)
 
     # Define speeds
     sound_speed = np.sqrt(gamma * fv.divide(P1_hat, rho_hat))
@@ -318,14 +309,14 @@ def calculate_ES_flux(axis, sim_variables, **kwargs):
 
     # Compute the diagonal matrix of eigenvalues for Roe
     roe_eigenvalues = np.zeros_like(right_eigenvectors)
-    roe_eigenvalues[...,0,0] = u1_hat + fast_magnetosonic_wave
-    roe_eigenvalues[...,1,1] = u1_hat + alfven_speed_x
-    roe_eigenvalues[...,2,2] = u1_hat + slow_magnetosonic_wave
+    roe_eigenvalues[...,0,0] = u1_hat - fast_magnetosonic_wave
+    roe_eigenvalues[...,1,1] = u1_hat - alfven_speed_x
+    roe_eigenvalues[...,2,2] = u1_hat - slow_magnetosonic_wave
     roe_eigenvalues[...,3,3] = u1_hat
     roe_eigenvalues[...,4,4] = u1_hat
-    roe_eigenvalues[...,5,5] = u1_hat - slow_magnetosonic_wave
-    roe_eigenvalues[...,6,6] = u1_hat - alfven_speed_x
-    roe_eigenvalues[...,7,7] = u1_hat - fast_magnetosonic_wave
+    roe_eigenvalues[...,5,5] = u1_hat + slow_magnetosonic_wave
+    roe_eigenvalues[...,6,6] = u1_hat + alfven_speed_x
+    roe_eigenvalues[...,7,7] = u1_hat + fast_magnetosonic_wave
     roe_eigenvalues = np.abs(roe_eigenvalues)
 
     # Compute the diagonal matrix of eigenvalues for Local Lax-Friedrich

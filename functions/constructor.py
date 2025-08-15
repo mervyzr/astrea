@@ -127,29 +127,29 @@ def initialise(sim_variables):
 
 # Make flux as a function of cell-averaged (primitive) variables
 def make_flux(grid, sim_variables, axis):
+    abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
     gamma, permeability = sim_variables.gamma, sim_variables.permeability
 
-    rhos, vels, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
-    abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
+    rhos, vels, pressures, Bfields = grid[...,sim_variables.rho], grid[...,sim_variables.vels], grid[...,sim_variables.pressure], grid[...,sim_variables.Bfields]
     arr = np.zeros_like(grid)
 
     arr[...,0] = rhos * vels[...,abscissa]
-    arr[...,abscissa+1] = rhos*vels[...,abscissa]**2 + pressures + .5*fv.norm(B_fields)**2 - (B_fields[...,abscissa]**2)/permeability
-    arr[...,ordinate+1] = rhos*vels[...,abscissa]*vels[...,ordinate] - (B_fields[...,abscissa]*B_fields[...,ordinate])/permeability
-    arr[...,applicate+1] = rhos*vels[...,abscissa]*vels[...,applicate] - (B_fields[...,abscissa]*B_fields[...,applicate])/permeability
-    arr[...,4] = vels[...,abscissa]*(.5*rhos*fv.norm(vels)**2 + (gamma*pressures)/(gamma-1) + fv.norm(B_fields)**2) - (B_fields[...,abscissa]*np.sum(vels*B_fields, axis=-1))/permeability
-    arr[...,ordinate+5] = B_fields[...,ordinate]*vels[...,abscissa] - B_fields[...,abscissa]*vels[...,ordinate]
-    arr[...,applicate+5] = B_fields[...,applicate]*vels[...,abscissa] - B_fields[...,abscissa]*vels[...,applicate]
+    arr[...,abscissa+1] = rhos*vels[...,abscissa]**2 + pressures + .5*fv.norm(Bfields)**2 - (Bfields[...,abscissa]**2)/permeability
+    arr[...,ordinate+1] = rhos*vels[...,abscissa]*vels[...,ordinate] - (Bfields[...,abscissa]*Bfields[...,ordinate])/permeability
+    arr[...,applicate+1] = rhos*vels[...,abscissa]*vels[...,applicate] - (Bfields[...,abscissa]*Bfields[...,applicate])/permeability
+    arr[...,4] = vels[...,abscissa]*(.5*rhos*fv.norm(vels)**2 + (gamma*pressures)/(gamma-1) + fv.norm(Bfields)**2) - (Bfields[...,abscissa]*np.sum(vels*Bfields, axis=-1))/permeability
+    arr[...,ordinate+5] = Bfields[...,ordinate]*vels[...,abscissa] - Bfields[...,abscissa]*vels[...,ordinate]
+    arr[...,applicate+5] = Bfields[...,applicate]*vels[...,abscissa] - Bfields[...,abscissa]*vels[...,applicate]
 
     return arr
 
 
 # Jacobian matrix based on primitive variables [Winters & Gassner, 2016]
 def make_Jacobian(grid, sim_variables, axis):
+    abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
     gamma, permeability = sim_variables.gamma, sim_variables.permeability
 
-    rhos, vels, pressures, B_fields = grid[...,0], grid[...,1:4], grid[...,4], grid[...,5:8]
-    abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
+    rhos, vels, pressures, Bfields = grid[...,sim_variables.rho], grid[...,sim_variables.vels], grid[...,sim_variables.pressure], grid[...,sim_variables.Bfields]
 
     # Create empty square arrays for each cell
     _arr = np.zeros_like(grid)
@@ -159,39 +159,51 @@ def make_Jacobian(grid, sim_variables, axis):
     # Input matrix with values at position [row i, col j]; positions refer to x-axis arrangement, but will permute based on the axis
     # Hydrodynamic components
     arr[...,i,j] = vels[...,abscissa][...,None]  # diagonal elements
-    arr[...,0,abscissa+1] = rhos  # [0,1]
-    arr[...,abscissa+1,4] = 1/rhos  # [1,4]
-    arr[...,4,abscissa+1] = gamma * pressures  # [4,1]
+    arr[...,0,1+abscissa] = rhos  # [0,1]
+    arr[...,1+abscissa,4] = 1/rhos  # [1,4]
+    arr[...,4,1+abscissa] = gamma * pressures  # [4,1]
 
     # Magnetic field components
-    arr[...,ordinate+1,ordinate+5] = arr[...,applicate+1,applicate+5] = -fv.divide(B_fields[...,abscissa], rhos*permeability)  # [2,6] = [3,7]
-    arr[...,abscissa+1,ordinate+5] = fv.divide(B_fields[...,ordinate], rhos*permeability)  # [1,6]
-    arr[...,abscissa+1,applicate+5] = fv.divide(B_fields[...,applicate], rhos*permeability)  # [1,7]
+    arr[...,1+ordinate,5+ordinate] = arr[...,applicate+1,applicate+5] = -fv.divide(Bfields[...,abscissa], rhos*permeability)  # [2,6] = [3,7]
+    arr[...,1+abscissa,5+ordinate] = fv.divide(Bfields[...,ordinate], rhos*permeability)  # [1,6]
+    arr[...,1+abscissa,5+applicate] = fv.divide(Bfields[...,applicate], rhos*permeability)  # [1,7]
 
-    arr[...,ordinate+5,ordinate+1] = arr[...,applicate+5,applicate+1] = -B_fields[...,abscissa]  # [6,2] = [7,3]
-    arr[...,ordinate+5,abscissa+1] = B_fields[...,ordinate]  # [6,1]
-    arr[...,applicate+5,abscissa+1] = B_fields[...,applicate]  # [7,1]
+    arr[...,5+ordinate,1+ordinate] = arr[...,applicate+5,applicate+1] = -Bfields[...,abscissa]  # [6,2] = [7,3]
+    arr[...,5+ordinate,1+abscissa] = Bfields[...,ordinate]  # [6,1]
+    arr[...,5+applicate,1+abscissa] = Bfields[...,applicate]  # [7,1]
 
     return arr
 
 
-# Make the right eigenvectors for adiabatic magnetohydrodynamics [Derigs]
-def make_right_eigenvectors(axis, grids, gamma):
+# Compute wavespeeds for a grid
+def make_wavespeeds(grid, sim_variables, axis):
+    gamma, permeability = sim_variables.gamma, sim_variables.permeability
+    rho, pressure, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.Bfields
+
+    sound_speed = np.sqrt(fv.divide(gamma*grid[...,pressure], grid[...,rho]))
+    alfven_speed = fv.divide(fv.norm(grid[...,Bfields]), np.sqrt(grid[...,rho]*permeability))
+    alfven_speed_x = fv.divide(grid[...,5+axis], np.sqrt(grid[...,rho]*permeability))
+    fast_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 + np.sqrt((sound_speed**2 + alfven_speed**2)**2 - (2 * sound_speed * alfven_speed_x)**2)))
+    slow_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 - np.sqrt((sound_speed**2 + alfven_speed**2)**2 - (2 * sound_speed * alfven_speed_x)**2)))
+
+    return sound_speed, alfven_speed_x, fast_magnetosonic_wave, slow_magnetosonic_wave
+
+
+# Make the right eigenvectors for adiabatic magnetohydrodynamics [Derigs et al., 2016]
+def make_right_eigenvectors(grids, sim_variables, axis):
     abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
-    rhos, vels, pressures, B_fields = grids[...,0], grids[...,1:4], grids[...,4], grids[...,5:8]
+    gamma = sim_variables.gamma
+
+    rhos, vels, Bfields = grids[...,sim_variables.rho], grids[...,sim_variables.vels], grids[...,sim_variables.Bfields]
     vx, vy, vz = vels[...,abscissa], vels[...,ordinate], vels[...,applicate]
-    Bx, By, Bz = B_fields[...,abscissa], B_fields[...,ordinate], B_fields[...,applicate]
+    Bx, By, Bz = Bfields[...,abscissa], Bfields[...,ordinate], Bfields[...,applicate]
 
     # Define the right eigenvectors for each cell in each grid
     _right_eigenvectors = np.zeros_like(grids)
     right_eigenvectors = np.repeat(_right_eigenvectors[...,None], _right_eigenvectors.shape[-1], axis=-1)
 
-    # Define speed
-    sound_speed = np.sqrt(gamma * fv.divide(pressures, rhos))
-    alfven_speed = fv.divide(fv.norm(B_fields), np.sqrt(rhos))
-    alfven_speed_x = fv.divide(Bx, np.sqrt(rhos))
-    fast_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 + np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
-    slow_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 - np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
+    # Compute wavespeeds
+    sound_speed, alfven_speed_x, fast_magnetosonic_wave, slow_magnetosonic_wave = make_wavespeeds(grids, sim_variables, axis)
 
     # Define frequently used components
     S = np.sign(Bx)
@@ -290,21 +302,19 @@ def make_right_eigenvectors(axis, grids, gamma):
 
 
 # Make the right eigenvector for adiabatic magnetohydrodynamics in entropy-stable flux (primitive variables)
-def make_ES_right_eigenvectors(axis, grids, gamma):
+def make_ES_right_eigenvectors(grids, sim_variables, axis):
     abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
-    rhos, vels, pressures, B_fields = grids[...,0], grids[...,1:4], grids[...,4], grids[...,5:8]
+    gamma = sim_variables.gamma
+
+    rhos, vels, pressures = grids[...,sim_variables.rho], grids[...,sim_variables.vels], grids[...,sim_variables.pressure]
     vx, vy, vz = vels[...,abscissa], vels[...,ordinate], vels[...,applicate]
 
     # Define the right eigenvectors for each cell in each grid
     _right_eigenvectors = np.zeros_like(grids)
     right_eigenvectors = np.repeat(_right_eigenvectors[...,None], _right_eigenvectors.shape[-1], axis=-1)
 
-    # Define speeds
-    sound_speed = np.sqrt(gamma * fv.divide(pressures, rhos))
-    alfven_speed = fv.divide(fv.norm(B_fields), np.sqrt(rhos))
-    alfven_speed_x = fv.divide(grids[...,abscissa+5], np.sqrt(rhos))
-    fast_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 + np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
-    slow_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 - np.sqrt(((sound_speed**2 + alfven_speed**2)**2) - (4*(sound_speed**2)*(alfven_speed_x**2)))))
+    # Compute wavespeeds
+    sound_speed, alfven_speed_x, fast_magnetosonic_wave, slow_magnetosonic_wave = make_wavespeeds(grids, sim_variables, axis)
 
     # Define frequently used components
     S = np.sign(grids[...,abscissa+5])
