@@ -45,7 +45,7 @@ def initialise(sim_variables):
             computational_grid[np.where(y <= y_shock_pos)] = initial_left
             computational_grid[...,vy] = params['perturb_ampl'] * np.sin(params['freq']*np.pi*x/np.diff(x_axis))
 
-        elif config in ["ivc", "vortex", "isentropic vortex"]:
+        elif config in ["ivc", "isentropic"]:
             r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
             b, freq = params['vortex_str'], params['freq']
 
@@ -59,20 +59,19 @@ def initialise(sim_variables):
         elif "gresho" in config:
             r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
             core, ring = np.where((0 <= r) & (r < .2)), np.where((.2 <= r) & (r < .4))
-            rx, ry = -np.sin(np.arctan2(y,x)), np.cos(np.arctan2(y,x))
+            rx, ry = -np.sin(np.arctan2(y-y_centre,x-x_centre)), np.cos(np.arctan2(y-y_centre,x-x_centre))
+            p0 = initial_left[...,rho]/(gamma*params['mach']**2)
+
+            computational_grid[...,pressure] = p0 - 2 + 4*np.log(2)
 
             v_phi = 5 * r
             computational_grid[...,vx][core] = (v_phi * rx)[core]
             computational_grid[...,vy][core] = (v_phi * ry)[core]
+            computational_grid[...,pressure][core] = (p0 + (25/2)*r**2)[core]
 
             v_phi = 2 - 5*r
             computational_grid[...,vx][ring] = (v_phi * rx)[ring]
             computational_grid[...,vy][ring] = (v_phi * ry)[ring]
-
-            v_phi = 1
-            p0 = (initial_left[...,rho] * v_phi)/(gamma*params['mach']**2) - .5
-            computational_grid[...,pressure] = p0 - 2 + 4*np.log(2)
-            computational_grid[...,pressure][core] = (p0 + (25/2)*r**2)[core]
             computational_grid[...,pressure][ring] = (p0 + (25/2)*r**2 + 4*(1 - 5*r + np.log(5*r)))[ring]
 
         elif "ll" in config or "lax-liu" in config:
@@ -99,8 +98,8 @@ def initialise(sim_variables):
 
         elif "noh" in config:
             mask = np.where(((x-x_axis[0])**2 + (y-y_axis[0])**2) > (x_shock_pos-x_axis[0])**2)
-            computational_grid[...,vx][mask] = -np.sin(x)[mask]
-            computational_grid[...,vy][mask] = -np.cos(x)[mask]
+            computational_grid[...,vx][mask] = -np.sin(x-x_shock_pos)[mask]
+            computational_grid[...,vy][mask] = -np.cos(x-x_shock_pos)[mask]
 
         else:
             computational_grid[np.where(x < x_shock_pos)] = initial_left
@@ -134,12 +133,12 @@ def make_flux(grid, sim_variables, axis):
     arr = np.zeros_like(grid)
 
     arr[...,0] = rhos * vels[...,abscissa]
-    arr[...,abscissa+1] = rhos*vels[...,abscissa]**2 + pressures + .5*fv.norm(Bfields)**2 - (Bfields[...,abscissa]**2)/permeability
-    arr[...,ordinate+1] = rhos*vels[...,abscissa]*vels[...,ordinate] - (Bfields[...,abscissa]*Bfields[...,ordinate])/permeability
-    arr[...,applicate+1] = rhos*vels[...,abscissa]*vels[...,applicate] - (Bfields[...,abscissa]*Bfields[...,applicate])/permeability
+    arr[...,1+abscissa] = rhos*vels[...,abscissa]**2 + pressures + .5*fv.norm(Bfields)**2 - (Bfields[...,abscissa]**2)/permeability
+    arr[...,1+ordinate] = rhos*vels[...,abscissa]*vels[...,ordinate] - (Bfields[...,abscissa]*Bfields[...,ordinate])/permeability
+    arr[...,1+applicate] = rhos*vels[...,abscissa]*vels[...,applicate] - (Bfields[...,abscissa]*Bfields[...,applicate])/permeability
     arr[...,4] = vels[...,abscissa]*(.5*rhos*fv.norm(vels)**2 + (gamma*pressures)/(gamma-1) + fv.norm(Bfields)**2) - (Bfields[...,abscissa]*np.sum(vels*Bfields, axis=-1))/permeability
-    arr[...,ordinate+5] = Bfields[...,ordinate]*vels[...,abscissa] - Bfields[...,abscissa]*vels[...,ordinate]
-    arr[...,applicate+5] = Bfields[...,applicate]*vels[...,abscissa] - Bfields[...,abscissa]*vels[...,applicate]
+    arr[...,5+ordinate] = Bfields[...,ordinate]*vels[...,abscissa] - Bfields[...,abscissa]*vels[...,ordinate]
+    arr[...,5+applicate] = Bfields[...,applicate]*vels[...,abscissa] - Bfields[...,abscissa]*vels[...,applicate]
 
     return arr
 

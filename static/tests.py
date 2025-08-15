@@ -121,7 +121,7 @@ def generate_test_conditions(config, cells):
         misc = {'perturb_ampl':.5, 'freq':4}
 
     # [Yee et. al., 1999]
-    elif "isentropic" in config or "vortex" in config or config == "ivc":
+    elif config in ["ivc", "isentropic"]:
         x_axis = [0,10]
         y_axis = [0,10]
         shock_pos = [5,5]
@@ -140,7 +140,7 @@ def generate_test_conditions(config, cells):
         boundary = "wrap"
         initial_left = np.array([1,0,0,0,0,0,0,0])
         initial_right = np.array([1,0,0,0,0,0,0,0])
-        misc = {'mach':1}
+        misc = {'mach':.1}
 
     # [Orszag & Tang, 1998; Stone et al., 2008]
     elif "orszag" in config or "tang" in config or config == "ot":
