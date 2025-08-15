@@ -13,6 +13,9 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     Bx, By = sim_variables.Bx, sim_variables.By
     data = {}
 
+    author = author.lower()
+    sim_variables.ppm_author = author
+
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
     ortho_axis = 1 - axis if (magnetic or dimension == 2) else 0
 
@@ -42,10 +45,13 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
         interface[...,(Bx,By)] = grid[...,(Bx,By)]
 
         # Magnetic transverse interfaces reconstructed orthogonal to the axis
-        ortho_plus, ortho_minus = ct.reconstruct_transverse(interface, sim_variables, axis=ortho_axis)
+        if dissipate:
+            ortho_plus, ortho_minus = ct.reconstruct_transverse(interface, sim_variables, axis=ortho_axis, extras=[grid, eta])
+        else:
+            ortho_plus, ortho_minus = ct.reconstruct_transverse(interface, sim_variables, axis=ortho_axis)
         data['ortho_interfaces'] = fv.slice_(ortho_plus, axis=ortho_axis, start=1), fv.slice_(ortho_minus, axis=ortho_axis, start=1)
 
-    if author.lower().startswith(("peterson", "p", "ph", "x")):
+    if author.startswith(("peterson", "p", "ph", "x")):
         """Interpolate the cell averages to face averages (both sides)
         |                        w(i-1/2)                    w(i+1/2)                       |
         |<--         i-1         -->|<--          i          -->|<--         i+1         -->|
@@ -61,7 +67,7 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
 
     else:
         # Limit interface values [Colella et al., 2011, p. 25-26]
-        if author.lower().startswith(("colella", "c", "c+")):
+        if author.startswith(("colella", "c", "c+")):
             interface = limiters.interface_limiter(interface, *grid_slices)
 
         # Define the left and right parabolic extrapolants
@@ -74,7 +80,7 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
     |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
     """
-    wL, wR = limiters.extrapolant_limiter(grid, boundary, axis, author, *limited_wFs, **{
+    wL, wR = limiters.extrapolant_limiter(grid, sim_variables, axis, *limited_wFs, **{
         'padded_grid':padded_grid, 'padded_grid_2':padded_grid_2, 'padded_interface_2':padded_interface_2
         })
 

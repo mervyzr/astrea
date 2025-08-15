@@ -9,7 +9,7 @@ from num_methods import limiters
 
 # Reconstruct the transverse values for each face average (computation done entirely for orthogonal axis)
 # Returns array aligned with input axis, e.g., ax=1 means returned array is aligned with y-axis-transposed grid
-def reconstruct_transverse(interface, sim_variables, axis, method=None):
+def reconstruct_transverse(interface, sim_variables, axis, method=None, extras=None):
     if not method:
         method = sim_variables.subgrid
     boundary = sim_variables.boundary
@@ -71,7 +71,6 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
 
     elif method == "ppm":
 
-        author = "McCorquodale&Colella2011"
         grid_slices = [minus_one, zeroth, plus_one, plus_two]
 
         """Interpolate the face averages to the top corners (upwards) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
@@ -85,7 +84,7 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
         """
         wU = 7/12 * (zeroth + plus_one) - 1/12 * (minus_one + plus_two)
 
-        if author.lower().startswith(("peterson", "p", "x")):
+        if sim_variables.ppm_author.startswith(("peterson", "p", "x")):
             """Interpolate the face averages to both corners (upwards & downwards)
             |                w(i-1/2)            w(i+1/2)               |
             |-------------------|-------------------|-------------------|
@@ -106,7 +105,7 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
             limited_wUs = limiters.interface_limiter(wD, *[minus_two, minus_one, zeroth, plus_one]), limiters.interface_limiter(wU, *grid_slices)
             padded_wU_2 = np.zeros_like(fv.add_boundary(wU, boundary, stencil=2, axis=axis))
         else:
-            if author.lower().startswith(("colella", "c")):
+            if sim_variables.ppm_author.startswith(("colella", "c")):
                 # Limit interface values [Colella et al., 2011, p. 25-26]
                 wU = limiters.interface_limiter(wU, *grid_slices)
 
@@ -130,9 +129,14 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None):
         |                   |                   |                   |
         |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
         """
-        wD, wU = limiters.extrapolant_limiter(zeroth, boundary, axis, author, *limited_wUs, **{
+        wD, wU = limiters.extrapolant_limiter(zeroth, sim_variables, axis, *limited_wUs, **{
             'padded_grid':padded_grid, 'padded_grid_2':padded_grid_2, 'padded_interface_2':padded_wU_2
             })
+
+        if sim_variables.ppm_dissipate:
+            grid, eta = extras
+            wD = wD * eta[...,None] + grid * (1-eta)[...,None]
+            wU = wU * eta[...,None] + grid * (1-eta)[...,None]
 
     elif method == "plm":
         limited_values = limiters.minmod_limiter(padded_grid, axis)

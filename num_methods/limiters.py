@@ -81,31 +81,29 @@ def interface_limiter(interface, *grid_slices):
 
 
 # Parabolic extrapolant limiter for PPM [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
-def extrapolant_limiter(grid, boundary, axis, author, *args, **kwargs):
+def extrapolant_limiter(grid, sim_variables, axis, *args, **kwargs):
     left_of_centre, right_of_centre = args
     padded_grid, padded_grid_2, padded_interface_2 = kwargs['padded_grid'], kwargs['padded_grid_2'], kwargs['padded_interface_2']
     C = 5/4
 
-    author = author.lower()
-
     # Set differences
     dw_minus, dw_plus = grid - left_of_centre, right_of_centre - grid
 
-    if author.startswith(("mccorquodale", "m", "mc")):
+    if sim_variables.ppm_author.startswith(("mccorquodale", "m", "mc")):
         # Define functions
         wL, wR = np.copy(left_of_centre), np.copy(right_of_centre)
         d2w = 6 * (left_of_centre - 2*grid + right_of_centre)
         d2w_C = fv.slice_(padded_grid, axis, end=-2) - 2*grid + fv.slice_(padded_grid, axis, start=2)
 
         # Approximation to the third derivative [McCorquodale & Colella, 2011, eq. 23]
-        d3w = fv.slice_(np.diff(fv.add_boundary(d2w_C, boundary, axis=axis), axis=axis), axis, start=1)
+        d3w = fv.slice_(np.diff(fv.add_boundary(d2w_C, sim_variables.boundary, axis=axis), axis=axis), axis, start=1)
 
         # Check for cell extrema in cells [McCorquodale & Colella, 2011, eq. 24-25]
         cell_extrema = (dw_minus*dw_plus <= 0) | ((grid-fv.slice_(padded_grid_2, axis, end=-4)) * (fv.slice_(padded_grid_2, axis, start=4)-grid) <= 0)
 
         # If there are extrema in the cells
         if cell_extrema.any():
-            d2w_Cw = fv.add_boundary(d2w_C, boundary, axis=axis)
+            d2w_Cw = fv.add_boundary(d2w_C, sim_variables.boundary, axis=axis)
             d2w_lim = np.zeros_like(grid)
 
             # Get the curvatures that have the same signs
@@ -142,7 +140,7 @@ def extrapolant_limiter(grid, boundary, axis, author, *args, **kwargs):
             rho_limiter[rho_sensitive] = phi[rho_sensitive]
 
             # Apply additional limiters
-            d3w_w2 = fv.add_boundary(d3w, boundary, stencil=2, axis=axis)
+            d3w_w2 = fv.add_boundary(d3w, sim_variables.boundary, stencil=2, axis=axis)
             d3w_w = fv.slice_(d3w_w2, axis, *[1,-1])
             d3w_min = np.minimum(
                 np.minimum(fv.slice_(d3w_w, axis, end=-2), d3w), \
@@ -170,7 +168,7 @@ def extrapolant_limiter(grid, boundary, axis, author, *args, **kwargs):
         # Check for cell extrema in cells [Colella et al., 2011, eq. 89; Peterson & Hammett, 2008, eq. 3.31]
         cell_extrema = dw_minus*dw_plus <= 0
 
-        if author.startswith(("peterson", "p", "ph", "x")):
+        if sim_variables.ppm_author.startswith(("peterson", "p", "ph", "x")):
             extrapolant_extrema = (fv.slice_(padded_grid, axis, end=-2)-grid)*(grid-fv.slice_(padded_grid, axis, start=2)) <= 0
         else:
             # Check for overshoot in cells [Colella et al., 2011, eq. 90]
@@ -209,7 +207,7 @@ def extrapolant_limiter(grid, boundary, axis, author, *args, **kwargs):
             # Update the limited local curvature estimates based on the conditions [Peterson & Hammett, 2008, eq. 3.38]
             D2w_lim[cell_extrema & non_monotonic] = limited_curvature[cell_extrema & non_monotonic]
 
-            if author.startswith(("peterson", "p", "ph", "x")):
+            if sim_variables.ppm_author.startswith(("peterson", "p", "ph", "x")):
                 # Get the final limited values [Peterson & Hammett, 2008, eq. 3.39]
                 phi = fv.divide(D2w_lim, D2w)
 
