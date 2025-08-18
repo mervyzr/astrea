@@ -17,7 +17,7 @@ def run(grid, sim_variables, axis):
 
     # Pad array with boundaries
     padded_primitive = fv.add_boundary(grid, boundary, axis=axis)
-    padded_conservative = convert("primitive", padded_primitive, sim_variables, staggered=magnetic)
+    padded_conservative = fv.convert_interface("primitive", padded_primitive, axis, sim_variables)
 
     # Compute the fluxes and the Jacobian
     fluxes = constructor.make_flux(padded_primitive, sim_variables, axis=axis)
