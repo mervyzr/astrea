@@ -210,16 +210,17 @@ def calculate_DOTS_flux(axis, sim_variables, **kwargs):
 
     # Compute wavespeeds
     sound_speed, alfven_speed_x, fast_magnetosonic_wave, slow_magnetosonic_wave = constructor.make_wavespeeds(psi, sim_variables, axis)
+    vxs = psi[...,1+axis]
 
     # Compute the diagonal matrix of eigenvalues
-    _lambda[...,0,0] = sound_speed - fast_magnetosonic_wave
-    _lambda[...,1,1] = sound_speed - alfven_speed_x
-    _lambda[...,2,2] = sound_speed - slow_magnetosonic_wave
-    _lambda[...,3,3] = sound_speed
-    _lambda[...,4,4] = sound_speed
-    _lambda[...,5,5] = sound_speed + slow_magnetosonic_wave
-    _lambda[...,6,6] = sound_speed + alfven_speed_x
-    _lambda[...,7,7] = sound_speed + fast_magnetosonic_wave
+    _lambda[...,0,0] = vxs - fast_magnetosonic_wave
+    _lambda[...,1,1] = vxs - alfven_speed_x
+    _lambda[...,2,2] = vxs - slow_magnetosonic_wave
+    _lambda[...,3,3] = vxs
+    _lambda[...,4,4] = vxs
+    _lambda[...,5,5] = vxs + slow_magnetosonic_wave
+    _lambda[...,6,6] = vxs + alfven_speed_x
+    _lambda[...,7,7] = vxs + fast_magnetosonic_wave
     _eigenvalues = np.abs(_lambda)
 
     # Compute the absolute value of the Jacobian
