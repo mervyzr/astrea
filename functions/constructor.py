@@ -305,8 +305,9 @@ def make_ES_right_eigenvectors(grids, sim_variables, axis):
     abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
     gamma = sim_variables.gamma
 
-    rhos, vels, pressures = grids[...,sim_variables.rho], grids[...,sim_variables.vels], grids[...,sim_variables.pressure]
+    rhos, vels, pressures, Bfields = grids[...,sim_variables.rho], grids[...,sim_variables.vels], grids[...,sim_variables.pressure], grids[...,sim_variables.Bfields]
     vx, vy, vz = vels[...,abscissa], vels[...,ordinate], vels[...,applicate]
+    Bx, By, Bz = Bfields[...,abscissa], Bfields[...,ordinate], Bfields[...,applicate]
 
     # Define the right eigenvectors for each cell in each grid
     _right_eigenvectors = np.zeros_like(grids)

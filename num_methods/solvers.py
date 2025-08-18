@@ -241,14 +241,71 @@ def calculate_DOTS_flux(axis, sim_variables, **kwargs):
 def calculate_ES_flux(axis, sim_variables, **kwargs):
     prim_plus, prim_minus = kwargs["prim_interfaces"]
     abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
-    rho, pressure, vels, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields
+    rho, vels, pressure, Bfields = sim_variables.rho, sim_variables.vels, sim_variables.pressure, sim_variables.Bfields
     gamma = sim_variables.gamma
 
+    """The convention here uses L & R states, i.e. L state = w-, R state = w+
+        |                        w(i-1/2)                    w(i+1/2)                       |
+        |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
+        |   w_R(i-1)     w_L(i-1)   |   w_R(i)         w_L(i)   |   w_R(i+1)     w_L(i+1)   |
+    --> |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
+    """
+    rhoL, vecL, pL, BfieldsL = prim_minus[...,rho], prim_minus[...,vels], prim_minus[...,pressure], prim_minus[...,Bfields]
+    rhoR, vecR, pR, BfieldsR = prim_plus[...,rho], prim_plus[...,vels], prim_plus[...,pressure], prim_plus[...,Bfields]
+
+    uL, vL, wL, bxL, byL, bzL = vecL[...,abscissa], vecL[...,ordinate], vecL[...,applicate], BfieldsL[...,abscissa], BfieldsL[...,ordinate], BfieldsL[...,applicate]
+    uR, vR, wR, bxR, byR, bzR = vecR[...,abscissa], vecR[...,ordinate], vecR[...,applicate], BfieldsR[...,abscissa], BfieldsR[...,ordinate], BfieldsR[...,applicate]
+
+    amean = lambda L,R: .5 * (L-R)
+    lon = lambda L,R: fv.divide(L-R, np.log(L)-np.log(R))  # Stable numerical procedure for computing logarithmic mean [Ismail & Roe, 2009]
+
+
     # To construct the entropy-stable flux, 2 components are needed:
-    # the entropy-conserving flux component, and the dissipation term to make the flux entropy-stable
+    # the entropy-conserving component, and the dissipation term to make the flux entropy-stable
 
     # Entropy-conserving flux section [Winters & Gassner, 2015]
     ec_flux = np.zeros_like(prim_plus)
+
+    z1L, z1R = np.sqrt(fv.divide(rhoL, pL)), np.sqrt(fv.divide(rhoR, pR))
+    z5L, z5R = np.sqrt(rhoL*pL), np.sqrt(rhoR*pR)
+
+    # Compute the averages
+    rho_hat = amean(z1L,z1R) * lon(z5L,z5R)
+    p1_hat = fv.divide(amean(z5L,z5R),amean(z1L,z1R))
+    p2_hat = .5 * ((gamma+1)/gamma * fv.divide(lon(z5L,z5R), lon(z1L,z1R)) + (gamma-1)/gamma * fv.divide(amean(z5L,z5R), amean(z1L,z1R)))
+    u1_hat = fv.divide(amean(z1L*uL,z1R*uR), amean(z1L,z1R))
+    v1_hat = fv.divide(amean(z1L*vL,z1R*vR), amean(z1L,z1R))
+    w1_hat = fv.divide(amean(z1L*wL,z1R*wR), amean(z1L,z1R))
+    u2_hat = fv.divide(amean(uL*z1L**2,uR*z1R**2), amean(z1L**2,z1R**2))
+    v2_hat = fv.divide(amean(vL*z1L**2,vR*z1R**2), amean(z1L**2,z1R**2))
+    w2_hat = fv.divide(amean(wL*z1L**2,wR*z1R**2), amean(z1L**2,z1R**2))
+    b1_hat = amean(bxL,bxR)
+    b2_hat = amean(byL,byR)
+    b3_hat = amean(bzL,bzR)
+    b1_dot = amean(bxL**2,bxR**2)
+    b2_dot = amean(byL**2,byR**2)
+    b3_dot = amean(bzL**2,bzR**2)
+    b1b2 = amean(bxL*byL, bxR*byR)
+    b1b3 = amean(bxL*bzL, bxR*bzR)
+
+    # Update the entropy-conserving flux vector; suitable for smooth solutions
+    ec_flux[...,rho] = rho_hat * u1_hat
+    ec_flux[...,1+abscissa] = p1_hat + rho_hat*u1_hat**2 + .5*(b1_dot+b2_dot+b3_dot) - b1_dot
+    ec_flux[...,1+ordinate] = rho_hat*u1_hat*v1_hat - b1b2
+    ec_flux[...,1+applicate] = rho_hat*u1_hat*w1_hat - b1b3
+    ec_flux[...,pressure] = (gamma*u1_hat*p2_hat)/(gamma-1) + .5*rho_hat*u1_hat*(u1_hat**2 + v1_hat**2 + w1_hat**2) + u2_hat*(b2_hat**2 + b3_hat**2) - b1_hat*(v2_hat*b2_hat + w2_hat*b3_hat)
+    ec_flux[...,5+ordinate] = u2_hat*b2_hat - v2_hat*b1_hat
+    ec_flux[...,5+applicate] = u2_hat*b3_hat - w2_hat*b1_hat
+
+
+    # Entropy-stable flux with dissipation term section [Derigs et al., 2016]
+    # Make the right eigenvectors for each cell in each grid using the averaged primitive variables
+
+    # Compute wavespeeds
+    a, b1, cf, cs = constructor.make_wavespeeds(grids, sim_variables, axis)
+
+
+
 
     # Compute arithmetic mean
     def arith_mean(term):
@@ -258,9 +315,6 @@ def calculate_ES_flux(axis, sim_variables, **kwargs):
     def lon(term):
         return fv.divide(term[0] - term[1], fv.log(term[0]) - fv.log(term[1]))
 
-    # Define frequently used terms; here we use L & R states for simplicity, i.e. L state = w-, R state = w+
-    rhoL, vecL, PL, B_fieldL = prim_minus[...,rho], prim_minus[...,vels], prim_minus[...,pressure], prim_minus[...,Bfields]
-    rhoR, vecR, PR, B_fieldR = prim_plus[...,rho], prim_plus[...,vels], prim_plus[...,pressure], prim_plus[...,Bfields]
 
     z1 = np.array([np.sqrt(fv.divide(rhoL, PL)), np.sqrt(fv.divide(rhoR, PR))])
     z5 = np.array([np.sqrt(rhoL*PL), np.sqrt(rhoR*PR)])
