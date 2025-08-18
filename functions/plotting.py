@@ -255,7 +255,10 @@ def make_data(options, grid, sim_variables):
                 quantity = grid[...,5+axis]
         elif 'div' in option or 'db' in option:
             if option[-1] == 'b':
-                quantity = fv.slice_(np.diff(grid[...,5], axis=0), axis=1, start=1) + fv.slice_(np.diff(grid[...,6], axis=1), axis=0, start=1)
+                if sim_variables.dimension == 2:
+                    quantity = fv.slice_(np.diff(grid[...,5], axis=0), axis=1, start=1) + fv.slice_(np.diff(grid[...,6], axis=1), axis=0, start=1)
+                else:
+                    quantity = np.diff(grid[...,5], axis=0)
             else:
                 axis = {"x":0, "y":1, "z":2}[option[-1]]
                 quantity = np.diff(grid[...,5+axis], axis=axis)
