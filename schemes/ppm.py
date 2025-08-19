@@ -175,7 +175,7 @@ def get_flattening_coeff(grid, sim_variables, axis, slope_determinants=[.33, .75
         & (fv.divide(np.abs(plus_one[...,pressure]-minus_one[...,pressure]), np.minimum(plus_one[...,pressure], minus_one[...,pressure])) <= delta))
     chi_bar[otherwise_condition] = 0
 
-    # Create flattening coefficient for axis
+    # Create flattening coefficient
     chi = np.copy(chi_bar)
     chi_bar_padded = fv.add_boundary(chi_bar, sim_variables.boundary, axis=axis)
     signage = np.sign(plus_one[...,pressure]-minus_one[...,pressure])

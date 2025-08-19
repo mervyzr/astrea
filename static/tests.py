@@ -332,9 +332,7 @@ def generate_test_conditions(config, cells):
         initial_right = np.array([.125,0,0,0,.1,0,0,0])
         misc = None
 
-    ds, grid_axes = {}, [x_axis, y_axis]
-    for axis in range(len(cells)):
-        ds.update({axis: np.abs(np.diff(grid_axes[axis]))/cells[axis]})
+    grid_axes = [x_axis, y_axis]
 
     return {
         'x_axis':x_axis,
@@ -345,5 +343,5 @@ def generate_test_conditions(config, cells):
         'misc':misc,
         'initial_left':initial_left,
         'initial_right':initial_right,
-        'ds':ds,
+        'ds':{ax: np.abs(np.diff(grid_axes[ax]))/cells[ax] for ax in range(len(cells))},
     }
