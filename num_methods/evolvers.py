@@ -3,6 +3,7 @@ from itertools import repeat
 
 import numpy as np
 
+from functions import fv
 from num_methods import ct
 from schemes import pcm, plm, ppm, weno
 
@@ -14,17 +15,20 @@ from schemes import pcm, plm, ppm, weno
 def evolve_space(grid, sim_variables, first_stage=False):
     dimension, subgrid, axes, magnetic = sim_variables.dimension, sim_variables.subgrid, sim_variables.axes, sim_variables.magnetic
     pressure, dissipate = sim_variables.pressure, sim_variables.ppm_dissipate
+    Bx, By = sim_variables.Bx, sim_variables.By
 
     # Convert to primitive variables
-    primitive = sim_variables.convert("conservative", grid, sim_variables, staggered=magnetic)
+    centred_grid = fv.inverse_reconstruct(grid, sim_variables) if magnetic else grid
+    primitive = sim_variables.convert("conservative", centred_grid, sim_variables)
+    primitive[...,(Bx,By)] = grid[...,(Bx,By)]
 
 
     # Compute additional dissipation for PPM, if active
     if dissipate and subgrid in ["ppm", "parabolic", "p"]:
         eta = np.ones_like(grid[...,pressure])
         with cfutures.ThreadPoolExecutor() as executor:
-            for flattening_coeff in executor.map(ppm.get_flattening_coeff, repeat(primitive), repeat(sim_variables), axes):
-                eta = np.minimum(eta, flattening_coeff)
+            jobs = executor.map(ppm.get_flattening_coeff, repeat(primitive), repeat(sim_variables), axes)
+            eta = np.minimum(eta, np.min(jobs, axis=0))
 
 
     # Hydrodynamics computation (with fluxes and eigmax)
@@ -48,9 +52,9 @@ def evolve_space(grid, sim_variables, first_stage=False):
 
 
     # Extract specific values needed from data dict
-    extract = lambda variable, _dict: [axis_dict[variable] for axis_dict in list(_dict.values())]
-    eigmaxes = extract('eigmax', data)
-    fluxes = extract('fluxes', data)
+    extract = lambda variable: [subdict[variable] for subdict in list(data.values())]
+    eigmaxes = extract('eigmax')
+    fluxes = extract('fluxes')
 
     # Compute the maximum eigenvalues for determining the full time step
     eigmax = np.min(eigmaxes)
@@ -67,12 +71,12 @@ def evolve_space(grid, sim_variables, first_stage=False):
             fluxes = [flux for flux in jobs]
 
     # Calculate the total fluxes through all upwind surfaces [F(i+1/2,j) - F(i-1/2,j)]/dx, [G(i,j+1/2) - G(i,j-1/2)]/dy
-    fluxes = -np.sum(fluxes, axis=0)
+    total_flux = -np.sum(fluxes, axis=0)
 
     if first_stage:
-        return fluxes, eigmax
+        return total_flux, eigmax
     else:
-        return fluxes
+        return total_flux
 
 
 # Evolve the system in time by a standardised workflow

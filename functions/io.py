@@ -259,7 +259,7 @@ class SimulationVariables(object):
             self.dimension = 2
             if len(self.cells) != 2:
                 self.cells *= 2
-        self.axes = tuple(range(self.dimension))
+        self.axes = np.array(range(self.dimension))
 
         # Exclusion cases
         if self.solver in db.get(params.type == 'solver' and params.category == 'hll')['accepted']:
