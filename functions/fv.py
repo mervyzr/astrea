@@ -1,3 +1,6 @@
+from itertools import repeat
+import concurrent.futures as cfutures
+
 import numpy as np
 
 ##############################################################################
@@ -86,82 +89,81 @@ def convert_variable(variable, grid, sim_variables):
 
 
 # Pointwise (exact) conversion of conservative variables q <-> primitive variables w (up to 2nd-order accurate)
-def point_convert(variable_form, grid, sim_variables, staggered=False):
+def point_convert(variable_form, grid, sim_variables):
     rho, pressure, energy, vels, momentums = sim_variables.rho, sim_variables.pressure, sim_variables.energy, sim_variables.vels, sim_variables.momentums
     arr = np.copy(grid)
 
-    if staggered:
-        _grid = inverse_reconstruct(grid, sim_variables)
-    else:
-        _grid = grid
-
     if variable_form.lower().startswith("p"):
-        arr[...,energy] = convert_variable('pressure', _grid, sim_variables)
-        arr[...,momentums] = _grid[...,vels] * _grid[...,rho][...,None]
+        arr[...,energy] = convert_variable('pressure', grid, sim_variables)
+        arr[...,momentums] = grid[...,vels] * grid[...,rho][...,None]
     elif variable_form.lower().startswith("c"):
-        arr[...,pressure] = convert_variable('energy', _grid, sim_variables)
-        arr[...,vels] = divide(_grid[...,momentums], _grid[...,rho][...,None])
+        arr[...,pressure] = convert_variable('energy', grid, sim_variables)
+        arr[...,vels] = divide(grid[...,momentums], grid[...,rho][...,None])
     return arr
 
 
 # Converting cell-averaged conservative variables <q> <-> cell-averaged primitive variables <w> through a Laplacian (2nd-deriv, 2nd-order) approx. (up to 4th-order accurate)
-def high_order_convert(variable_form, grid, sim_variables, staggered=False):
-    Bx, By = sim_variables.Bx, sim_variables.By
-    base, expansion = np.copy(grid), np.zeros_like(grid)
+def high_order_convert(variable_form, grid, sim_variables):
+    axes = sim_variables.axes
 
-    if staggered:
-        _grid = inverse_reconstruct(grid, sim_variables)
-    else:
-        _grid = grid
+    def per_axis(_variable_form, _grid, _sim_variables, axis):
+        _base = add_boundary(_grid, _sim_variables.boundary, axis=axis)
+        base = -1/24 * derivative(_base, axis=axis)
 
-    for axis in sim_variables.axes:
-        _base = add_boundary(_grid, sim_variables.boundary, axis=axis)
-        base -= 1/24 * derivative(_base, axis=axis)
+        _expansion = point_convert(_variable_form, _base, _sim_variables)
+        expansion = 1/24 * derivative(_expansion, axis=axis)
+        return base, expansion
 
-        _expansion = point_convert(variable_form, _base, sim_variables)
-        expansion += 1/24 * derivative(_expansion, axis=axis)
+    with cfutures.ThreadPoolExecutor() as executor:
+        jobs = executor.map(per_axis, repeat(variable_form), repeat(grid), repeat(sim_variables), axes)
+        bases = [job[0] for job in jobs]
+        expansions = [job[1] for job in jobs]
 
-    new_grid = point_convert(variable_form, base, sim_variables) + expansion
-
-    if staggered:
-        new_grid[...,(Bx,By)] = grid[...,(Bx,By)]
-    return new_grid
+    return point_convert(variable_form, np.copy(grid)+np.sum(bases, axis=0), sim_variables) + np.sum(expansions, axis=0)
 
 
 # 'Inverse reconstruct' the mag. fields' cell-averaged values from the (staggered grid) face-averaged values [Felker & Stone, 2018]
 def inverse_reconstruct(grid, sim_variables):
+    axes = sim_variables.axes
     new_grid = np.copy(grid)
 
-    for axis in sim_variables.axes:
-        if sim_variables.higher_order:
-            ortho_axis = 1 - axis
-            face_cntrd = np.copy(grid)
+    def per_axis(_grid, _sim_variables, axis):
+        ortho_axis = 1 - axis
 
-            if sim_variables.dimension == 2:
+        if _sim_variables.higher_order:
+            face_cntrd = np.copy(_grid)
+
+            if _sim_variables.dimension == 2:
                 # Approximate the face-averaged values to face-centred values (eq. 38)
-                padded_grid = add_boundary(grid, sim_variables.boundary, axis=ortho_axis)
+                padded_grid = add_boundary(_grid, _sim_variables.boundary, axis=ortho_axis)
                 face_cntrd -= 1/24 * derivative(padded_grid, axis=ortho_axis)
 
             # Interpolate the face-centred values to cell-centred values (eq. 39)
-            face_cntrd_padded_2 = add_boundary(face_cntrd, sim_variables.boundary, stencil=2, axis=axis)
+            face_cntrd_padded_2 = add_boundary(face_cntrd, _sim_variables.boundary, stencil=2, axis=axis)
             face_cntrd_padded = slice_(face_cntrd_padded_2, axis, *[1,-1])
-            cell_cntrd = -1/16 * (slice_(face_cntrd_padded, axis, end=-2) + slice_(face_cntrd_padded_2, axis, start=4)) + 9/16 * (face_cntrd + slice_(face_cntrd_padded, axis, start=2))
+            cell_cntrd = -1/16 * (slice_(face_cntrd_padded, axis, end=-2) + slice_(face_cntrd_padded_2, axis, start=4)) \
+                        + 9/16 * (face_cntrd + slice_(face_cntrd_padded, axis, start=2))
 
             # Apply Laplacian operator to convert cell-centred values to cell-averaged values (eq. 40)
-            cell_avgd = np.copy(cell_cntrd) + 1/24 * derivative(add_boundary(cell_cntrd, sim_variables.boundary, axis=axis), axis=axis)
+            cell_avgd = np.copy(cell_cntrd) + 1/24 * derivative(add_boundary(cell_cntrd, _sim_variables.boundary, axis=axis), axis=axis)
 
-            if sim_variables.dimension == 2:
-                cell_avgd += 1/24 * derivative(add_boundary(cell_cntrd, sim_variables.boundary, axis=ortho_axis), axis=ortho_axis)
+            if _sim_variables.dimension == 2:
+                cell_avgd += 1/24 * derivative(add_boundary(cell_cntrd, _sim_variables.boundary, axis=ortho_axis), axis=ortho_axis)
 
-        elif sim_variables.subgrid in ['plm', 'l', 'linear']:
-            padded_grid = add_boundary(grid, sim_variables.boundary, axis=axis)
+        elif _sim_variables.subgrid in ['plm', 'l', 'linear']:
+            padded_grid = add_boundary(_grid, _sim_variables.boundary, axis=axis)
             cell_avgd = slice_(.5 * (slice_(padded_grid, axis, start=1) + slice_(padded_grid, axis, end=-1)), axis, start=1)
 
         else:
-            cell_avgd = grid
+            cell_avgd = _grid
 
-        # Update the grid values with the updated B-field values
-        new_grid[...,5+axis] = cell_avgd[...,5+axis]
+        return cell_avgd
+
+    # Update the grid values with the updated B-field values
+    with cfutures.ThreadPoolExecutor() as executor:
+        for axis, Bfield in enumerate(executor.map(per_axis, repeat(grid), repeat(sim_variables), axes)):
+            new_grid[...,5+axes[axis]] = Bfield[...,5+axes[axis]]
+
     return new_grid
 
 

@@ -36,8 +36,9 @@ BEAUTIFY_1D_PLOTS = False
 # Finite volume shock function
 def core_run(hdf5, sim_variables):
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables <q>
-    grid = constructor.initialise(sim_variables)
-    grid = fv.point_convert("primitive", grid, sim_variables, sim_variables.magnetic)
+    primitive_grid = constructor.initialise(sim_variables)
+    centred_grid = fv.inverse_reconstruct(primitive_grid, sim_variables) if sim_variables.magnetic else primitive_grid
+    grid = fv.point_convert("primitive", centred_grid, sim_variables)
 
     # Initiate live or snapshot plotting, if enabled
     plot_snapshot = True if sim_variables.save_snaps else False
@@ -52,10 +53,7 @@ def core_run(hdf5, sim_variables):
     t, idx = 0., 1
     while t <= sim_variables.t_end:
         # Transform grid for visualisation; always use centred grid for visualisation, not staggered grid
-        if sim_variables.magnetic:
-            centred_grid = fv.inverse_reconstruct(grid, sim_variables)
-        else:
-            centred_grid = grid
+        centred_grid = fv.inverse_reconstruct(grid, sim_variables) if sim_variables.magnetic else grid
         grid_snapshot = sim_variables.convert("conservative", centred_grid, sim_variables)
 
         # Save each instance of the system (primitive variables) at time t, if full_set_required

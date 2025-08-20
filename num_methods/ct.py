@@ -169,7 +169,7 @@ def compute_corner(data, sim_variables):
     return fv.divide(ap_x*ap_y*SW + am_x*ap_y*SE + ap_x*am_y*NW + am_x*am_y*NE, (ap_x+am_x)*(ap_y+am_y)) - fv.divide(ap_y*am_y, ap_y+am_y)*(north[...,Bx]-south[...,Bx]) + fv.divide(ap_x*am_x, ap_x+am_x)*(east[...,By]-west[...,By])
 
 
-# Compute constrained transport flux using corners
+# Compute constrained transport flux using corners; the hydro fluxes are unaltered, and the CT fluxes are automatically allocated to their respective axes
 def compute_ct_flux(corners, flux, sim_variables, axis):
     ortho_axis = 1 - axis
     padded_e3U = fv.add_boundary(corners, sim_variables.boundary, axis=ortho_axis)

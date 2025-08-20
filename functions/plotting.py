@@ -127,7 +127,7 @@ def make_figure(options, sim_variables, variable="normal"):
                     tv = rf"TV($B_{option[-1]}$)"
 
             elif 'div' in option or 'db' in option:
-                name = "divergence B"
+                name = "divergence"
                 twod_colour = cmap_colours['divergence']
                 if option[-1] == 'b':
                     label = r"$\nabla \cdot B$"
