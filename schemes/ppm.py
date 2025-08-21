@@ -1,3 +1,6 @@
+import concurrent.futures as cfutures
+from itertools import repeat
+
 import numpy as np
 
 from functions import constructor, fv
@@ -20,11 +23,19 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     ortho_axes = axes[axes != axis] if (magnetic or multidimensional) else 0
     ortho_axis = 1 - axis if (magnetic or multidimensional) else 0
 
-    # Approximate the face-averaged values to face-centred values (for higher-order flux calculations)
-    def approx_face_avg(_axis, _boundary, *_interfaces):
+    def per_ortho_axis(arr, _sim_variables, _ortho_axis):
+        padded_arr = fv.add_boundary(arr, _sim_variables.boundary, axis=_ortho_axis)
+        return 1/24 * fv.derivative(padded_arr, axis=_ortho_axis)
+
+    # Approximate the face-averaged values to face-centred values for higher-order flux calculations
+    def approx_face_avg(_ortho_axes, _sim_variables, *_interfaces):
         plus_intf, minus_intf = _interfaces
-        padded_plus_intf, padded_minus_intf = fv.add_boundary(plus_intf, _boundary, axis=_axis), fv.add_boundary(minus_intf, _boundary, axis=_axis)
-        return np.copy(plus_intf) - 1/24 * fv.derivative(padded_plus_intf, axis=_axis), np.copy(minus_intf) - 1/24 * fv.derivative(padded_minus_intf, axis=_axis)
+
+        with cfutures.ThreadPoolExecutor() as inner_executor:
+            plus_jobs = inner_executor.map(per_ortho_axis, repeat(plus_intf), repeat(_sim_variables), _ortho_axes)
+            minus_jobs = inner_executor.map(per_ortho_axis, repeat(minus_intf), repeat(_sim_variables), _ortho_axes)
+
+        return np.copy(plus_intf) - np.sum([plus_job for plus_job in plus_jobs], axis=0), np.copy(minus_intf) - np.sum([minus_job for minus_job in minus_jobs], axis=0)
 
 
     # Pad array with boundary; PPM requires additional ghost cells
@@ -130,15 +141,16 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     if multidimensional:
         # Calculate the interface-centred fluxes
         intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
-            'prim_interfaces': approx_face_avg(ortho_axis, sim_variables.boundary, *[prim_plus, prim_minus]),
-            'cons_interfaces': approx_face_avg(ortho_axis, sim_variables.boundary, *[cons_plus, cons_minus]),
-            'flux_interfaces': approx_face_avg(ortho_axis, sim_variables.boundary, *[flux_plus, flux_minus]),
+            'prim_interfaces': approx_face_avg(ortho_axes, sim_variables, *[prim_plus, prim_minus]),
+            'cons_interfaces': approx_face_avg(ortho_axes, sim_variables, *[cons_plus, cons_minus]),
+            'flux_interfaces': approx_face_avg(ortho_axes, sim_variables, *[flux_plus, flux_minus]),
             'characteristics': characteristics,
         })
 
-        # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation
-        padded_avg_flux = fv.add_boundary(intf_fluxes_avgd, sim_variables.boundary, axis=ortho_axis)
-        intf_fluxes_cntrd -= 1/24 * fv.derivative(padded_avg_flux, axis=ortho_axis)
+        # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation for each orthogonal axis
+        with cfutures.ThreadPoolExecutor() as inner_executor:
+            jobs = inner_executor.map(per_ortho_axis, repeat(intf_fluxes_avgd), repeat(sim_variables), ortho_axes)
+        intf_fluxes_cntrd -= np.sum([job for job in jobs], axis=0)
     else:
         # Orthogonal Laplacian in 1D is zero
         intf_fluxes_cntrd = intf_fluxes_avgd
