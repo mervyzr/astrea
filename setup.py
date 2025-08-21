@@ -20,10 +20,10 @@ class CustomInstallCommand(install):
 
 setup(
     name="astrea",
-    version="2.5.10",
+    version="2.6.0",
     author="Mervin Yap",
     author_email="myap@ph1.uni-koeln.de",
-    description="2D magnetohydrodynamics code for modelling shockwaves in the interstellar medium",
+    description="Astrophysical Shockwave and Turbulence REsearch for interstellar Applications: 2D magnetohydrodynamics code for modelling shockwaves & turbulence in the interstellar medium",
     url="<https://github.com/mervyzr/astrea>",
     packages=find_packages(
         exclude=['saved_data','.vidplots'],
