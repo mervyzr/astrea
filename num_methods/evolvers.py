@@ -13,7 +13,7 @@ from schemes import pcm, plm, ppm, weno
 
 # Evolve the system in space by a standardised workflow
 def evolve_space(grid, sim_variables, first_stage=False):
-    dimension, subgrid, axes, magnetic = sim_variables.dimension, sim_variables.subgrid, sim_variables.axes, sim_variables.magnetic
+    multidimensional, subgrid, axes, magnetic = sim_variables.multidimensional, sim_variables.subgrid, sim_variables.axes, sim_variables.magnetic
     pressure, dissipate = sim_variables.pressure, sim_variables.ppm_dissipate
     Bx, By = sim_variables.Bx, sim_variables.By
 
@@ -61,7 +61,7 @@ def evolve_space(grid, sim_variables, first_stage=False):
 
 
     # Magnetohydrodynamics computation
-    if magnetic and dimension == 2:
+    if magnetic and multidimensional:
         # Must use data dict for corner computation; the assignment of the corners is very important so the dict key (axes) are used for this assignment
         e3U = ct.compute_corner(data, sim_variables)
 

@@ -203,7 +203,7 @@ class SimulationVariables(object):
         'config', 'cells', 'cfl', 'gamma', 'permeability', 'dimension', 'precision', 'subgrid', 'time_evo', 'solver',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'save_path', 'timesteps',
         'permeability', 'magnetic', 'roots', 'weights', 'axes', 'ppm_dissipate',
-        'config_category', 'solver_category', 'convert', 'higher_order',
+        'config_category', 'solver_category', 'convert', 'higher_order', 'multidimensional',
         'x_axis', 'y_axis', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'ds',
         'run_type', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_options', 'plot_style', 'beautify',
         'checkpoints', 'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'test',
@@ -259,6 +259,7 @@ class SimulationVariables(object):
             self.dimension = 2
             if len(self.cells) != 2:
                 self.cells *= 2
+        self.multidimensional = self.dimension >= 2
         self.axes = np.array(range(self.dimension))
 
         # Exclusion cases
@@ -268,6 +269,10 @@ class SimulationVariables(object):
                 self.solver = db.get(params.type == 'default')['solver']
 
         # Media options
+        if (self.live_plot or self.save_snaps or self.save_plots or self.save_video) and self.multidimensional:
+            print(f"{BColours.WARNING}Media options not ready for 3D simulations yet..{BColours.ENDC}")
+            self.live_plot = self.save_snaps = self.save_plots = self.save_video = False
+
         if self.run_type.startswith('m'):
             if self.save_video:
                 print(f"{BColours.WARNING}Videos can only be saved for single simulation runs..{BColours.ENDC}")
@@ -279,7 +284,7 @@ class SimulationVariables(object):
                 print(f"{BColours.WARNING}Saving snapshots can only be switched on for single simulation runs..{BColours.ENDC}")
                 self.save_snaps = False
         else:
-            if (self.save_snaps or self.save_plots or self.save_video) and (self.live_plot):
+            if (self.save_snaps or self.save_plots or self.save_video) and self.live_plot:
                 print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live plot interferes with matplotlib.savefig..{BColours.ENDC}")
                 self.live_plot = False
             if self.save_snaps or self.save_plots or self.save_video or self.save_file:

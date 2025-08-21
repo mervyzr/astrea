@@ -8,13 +8,13 @@ from num_methods import ct, solvers
 ##############################################################################
 
 def run(grid, sim_variables, axis):
-    boundary, subgrid, dimension, axes, magnetic, ds = sim_variables.boundary, sim_variables.subgrid, sim_variables.dimension, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
+    boundary, subgrid, multidimensional, axes, magnetic, ds = sim_variables.boundary, sim_variables.subgrid, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
     Bx, By = sim_variables.Bx, sim_variables.By
     data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
-    ortho_axes = axes[axes != axis] if (magnetic or dimension == 2) else 0
-    ortho_axis = 1 - axis if (magnetic or dimension == 2) else 0
+    ortho_axes = axes[axes != axis] if (magnetic or multidimensional) else 0
+    ortho_axis = 1 - axis if (magnetic or multidimensional) else 0
 
     """WENO reconstruction [Shu, 2009; San & Kara, 2015]
     |                        w(i-1/2)                    w(i+1/2)                       |
@@ -155,7 +155,7 @@ def run(grid, sim_variables, axis):
     if magnetic:
         wR[...,(Bx,By)] = grid[...,(Bx,By)]
 
-        if dimension == 2:
+        if multidimensional:
             # Magnetic transverse interfaces reconstructed orthogonal to the axis
             ortho_plus, ortho_minus = ct.reconstruct_transverse(wR, sim_variables, axis=ortho_axis)
             data['ortho_interfaces'] = fv.slice_(ortho_plus, axis=ortho_axis, start=1), fv.slice_(ortho_minus, axis=ortho_axis, start=1)
@@ -198,7 +198,7 @@ def run(grid, sim_variables, axis):
     })
 
     # Compute the orthogonal L/R Riemann states and fluxes at higher-order accuracy
-    if dimension == 2:
+    if multidimensional:
         # Calculate the interface-centred fluxes
         intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
             'prim_interfaces': approx_face_avg(ortho_axis, sim_variables.boundary, *[prim_plus, prim_minus]),

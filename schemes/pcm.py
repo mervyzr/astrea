@@ -8,7 +8,7 @@ from num_methods import ct, solvers
 ##############################################################################
 
 def run(grid, sim_variables, axis):
-    boundary, dimension, axes, magnetic, ds = sim_variables.boundary, sim_variables.dimension, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
+    boundary, multidimensional, axes, magnetic, ds = sim_variables.boundary, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
     data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
@@ -26,7 +26,7 @@ def run(grid, sim_variables, axis):
     characteristics = np.linalg.eigvals(jacobian)
     data['eigmax'] = ds[axis]/fv.compute_eigmax(characteristics, axis=axis)
 
-    if magnetic and dimension == 2:
+    if magnetic and multidimensional:
         ortho_axis = 1 - axis
 
         # Magnetic transverse interfaces (interface = centre for PCM) reconstructed orthogonal to the axis

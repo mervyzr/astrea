@@ -210,13 +210,13 @@ def make_figure(options, sim_variables, variable="normal"):
             elif "tv" in variable:
                 ax[_i,_j].set_ylabel(tvs[idx])
             else:
-                if sim_variables.dimension == 2:
+                if sim_variables.multidimensional:
                     if not sim_variables.live_plot:
                         ax[_i,_j].set_title(labels[idx])
                 else:
                     ax[_i,_j].set_ylabel(labels[idx])
 
-            if sim_variables.dimension < 2:
+            if not sim_variables.multidimensional:
                 ax[_i,_j].set_xlim(sim_variables.x_axis)
                 ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
@@ -255,7 +255,7 @@ def make_data(options, grid, sim_variables):
                 quantity = grid[...,5+axis]
         elif 'div' in option or 'db' in option:
             if option[-1] == 'b':
-                if sim_variables.dimension == 2:
+                if sim_variables.multidimensional:
                     quantity = fv.slice_(np.diff(grid[...,5], axis=0), axis=1, start=1) + fv.slice_(np.diff(grid[...,6], axis=1), axis=0, start=1)
                 else:
                     quantity = np.diff(grid[...,5], axis=0)
@@ -274,7 +274,7 @@ def make_data(options, grid, sim_variables):
 
 # Initiate the live plot feature
 def initiate_live_plot(sim_variables, title=False):
-    cells, dimension, x_axis = sim_variables.cells, sim_variables.dimension, sim_variables.x_axis
+    cells, multidimensional, x_axis = sim_variables.cells, sim_variables.multidimensional, sim_variables.x_axis
     options = sim_variables.plot_options
     plt.ion()
 
@@ -283,7 +283,7 @@ def initiate_live_plot(sim_variables, title=False):
     graphs = []
     for idx, (_i,_j) in enumerate(plot_['indexes']):
         ax[_i,_j].set_title(plot_['names'][idx], fontsize=20)
-        if dimension == 2:
+        if multidimensional:
             # pyplot.imshow transposes the 2D plots (might be a column-major relic)
             graph = ax[_i,_j].imshow(np.zeros(cells[::-1]), interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
             divider = make_axes_locatable(ax[_i,_j])
@@ -296,7 +296,7 @@ def initiate_live_plot(sim_variables, title=False):
         graphs.append(graph)
 
     if title:
-        if dimension == 2:
+        if multidimensional:
             grid_axes = "$(x,y)$"
         else:
             grid_axes = "$x$"
@@ -312,7 +312,7 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
     options = sim_variables.plot_options
     plot_data = make_data(options, grid_snapshot, sim_variables)
 
-    if sim_variables.dimension == 2:
+    if sim_variables.multidimensional:
         for index, graph in enumerate(graphs):
             graph.set_data(plot_data[index])
             graph.set_clim([np.min(plot_data[index]), np.max(plot_data[index])])
@@ -330,7 +330,7 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
     except AttributeError:
         pass
     else:
-        if sim_variables.dimension == 2:
+        if sim_variables.multidimensional:
             grid_axes = "$(x,y)$"
         else:
             grid_axes = "$x$"
@@ -343,7 +343,7 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
 
 # Function for plotting a snapshot of the grid
 def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
-    config, cells, dimension, subgrid, time_evo, solver = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
+    config, cells, dimension, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     x_axis, options, beautify = sim_variables.x_axis, sim_variables.plot_options, sim_variables.beautify
 
     fig, ax, plot_ = make_figure(options, sim_variables)
@@ -352,7 +352,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
     for idx, (_i,_j) in enumerate(plot_['indexes']):
         y = y_data[idx]
 
-        if dimension == 2:
+        if multidimensional:
             graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes('right', size='5%', pad=0.05)
@@ -365,7 +365,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
 
     if title:
-        if dimension == 2:
+        if multidimensional:
             grid_axes = "$(x,y)$"
         else:
             grid_axes = "$x$"
@@ -375,7 +375,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
 
     fig.text(0.5, 0.04, r"$x$", ha='center')
     fig.subplots_adjust(bottom=0.1)
-    if dimension == 2:
+    if multidimensional:
         fig.text(0.04, 0.5, r"$y$", ha='center', rotation='vertical')
         fig.subplots_adjust(left=0.1)
 
@@ -389,10 +389,9 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
 
 # Generic plot of simulation variables
 def plot_quantities(hdf5, sim_variables, title=False):
-    config, dimension, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
+    config, dimension, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimension, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     precision, t_end, checkpoints = sim_variables.precision, sim_variables.t_end, sim_variables.checkpoints
-    x_axis, y_axis = sim_variables.x_axis, sim_variables.y_axis
-    options, beautify = sim_variables.plot_options, sim_variables.beautify
+    options, beautify, x_axis = sim_variables.plot_options, sim_variables.beautify, sim_variables.x_axis
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -431,11 +430,11 @@ def plot_quantities(hdf5, sim_variables, title=False):
                 y = y_data[idx]
 
                 if len(hdf5) != 1:
-                    if dimension < 2:
+                    if not multidimensional:
                         ax[_i,_j].plot(x, y, label=rf"$N = {str(cells).strip('[]').replace(' ','').replace(',','x')}$")
                         legends_on = True
                 else:
-                    if dimension == 2:
+                    if multidimensional:
                         graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
                         divider = make_axes_locatable(ax[_i,_j])
                         cax = divider.append_axes('right', size='5%', pad=0.05)
@@ -449,7 +448,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
 
             if title:
                 grid_axes, grid_cells = "$x$", f" ($N = {str(cells).strip('[]').replace(' ','').replace(',','x')}$)"
-                if dimension == 2:
+                if multidimensional:
                     grid_axes = "$(x,y)$"
                 else:
                     if len(hdf5) != 1:
@@ -460,12 +459,12 @@ def plot_quantities(hdf5, sim_variables, title=False):
 
             fig.text(0.5, 0.04, r"$x$", ha='center')
             fig.subplots_adjust(bottom=0.1)
-            if dimension == 2:
+            if multidimensional:
                 fig.text(0.04, 0.5, r"$y$", ha='center', rotation='vertical')
                 fig.subplots_adjust(left=0.1)
 
         # Add analytical solutions only for 1D
-        if dimension < 2:
+        if not multidimensional:
             # Add analytical solution for smooth functions, using the highest resolution and timing
             if sim_variables.config_category == "smooth":
                 analytical = constructor.initialise(sim_variables)
@@ -512,7 +511,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
 # Plot solution errors to determine order of convergence of numerical scheme
 def plot_solution_errors(hdf5, sim_variables, error_norm, title=False):
     options = ["density"]
-    config, dimension, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
+    config, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -591,7 +590,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm, title=False):
     x_diff = x[1:]
     y_diff = np.log2(y_data[...,:-1]/y_data[...,1:])
 
-    if dimension == 2:
+    if multidimensional:
         y_diff /= np.log2(4)
 
     for idx in range(len(plot_['indexes'])):
@@ -738,7 +737,7 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
 
 # Make a video of entire simulation; video of all plot options or specific variable
 def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
-    config, dimension, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimension, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
+    config, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     x_axis, beautify = sim_variables.x_axis, sim_variables.beautify
 
     # hdf5 keys are datetime strings
@@ -769,7 +768,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                     for idx, (_i,_j) in enumerate(plot_['indexes']):
                         y = y_data[idx]
 
-                        if dimension == 2:
+                        if multidimensional:
                             graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
                             divider = make_axes_locatable(ax[_i,_j])
                             cax = divider.append_axes('right', size='5%', pad=0.05)
@@ -783,7 +782,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
                     if title:
                         grid_axes, grid_cells = "$x$", f" ($N = {str(cells).strip('[]').replace(' ','').replace(',','x')}$)"
-                        if dimension == 2:
+                        if multidimensional:
                             grid_axes = "$(x,y)$"
                         plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(float(t),4)}${grid_cells}")
 
@@ -791,7 +790,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
                     fig.text(0.5, 0.04, r"$x$", ha='center')
                     fig.subplots_adjust(bottom=0.1)
-                    if dimension == 2:
+                    if multidimensional:
                         fig.text(0.04, 0.5, r"$y$", ha='center', rotation='vertical')
                         fig.subplots_adjust(left=0.1)
 
@@ -800,7 +799,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                 else:
                     idx = 0
 
-                    if dimension == 2:
+                    if multidimensional:
                         plt.axis('off')
                         graph = ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
                         #graph.set_clim(0, 1)
@@ -841,7 +840,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
                     idx = 0
 
-                    if dimension == 2:
+                    if multidimensional:
                         plt.axis('off')
                         graph = ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][0], origin="lower")
                         #graph.set_clim(0, 1)
@@ -896,7 +895,7 @@ def plot_this(grid, sim_variables, **kwargs):
     for idx, (_i,_j) in enumerate(plot_['indexes']):
         y = y_data[idx]
 
-        if sim_variables.dimension == 2:
+        if sim_variables.multidimensional:
             graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes('right', size='5%', pad=0.05)
@@ -908,7 +907,7 @@ def plot_this(grid, sim_variables, **kwargs):
             else:
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
 
-    if sim_variables.dimension == 2:
+    if sim_variables.multidimensional:
         grid_axes = "$(x,y)$"
     else:
         grid_axes = "$x$"
@@ -918,7 +917,7 @@ def plot_this(grid, sim_variables, **kwargs):
 
     fig.text(0.5, 0.04, r"$x$", ha='center')
     fig.subplots_adjust(bottom=0.1)
-    if sim_variables.dimension == 2:
+    if sim_variables.multidimensional:
         fig.text(0.04, 0.5, r"$y$", ha='center', rotation='vertical')
         fig.subplots_adjust(left=0.1)
 

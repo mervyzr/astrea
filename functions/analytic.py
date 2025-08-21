@@ -68,9 +68,9 @@ def calculate_TV(simulation, sim_variables):
 
 # Function for checking the conservation equations; works with primitive variables but needs to be converted
 def calculate_conservation(simulation, sim_variables):
-    dimension, axes, conservation = sim_variables.dimension, sim_variables.axes, {}
+    multidimensional, axes, conservation = sim_variables.multidimensional, sim_variables.axes, {}
 
-    if dimension == 2:
+    if multidimensional:
         area = np.diff(sim_variables.x_axis) * np.diff(sim_variables.y_axis)
     else:
         area = np.diff(sim_variables.x_axis)
@@ -87,9 +87,9 @@ def calculate_conservation(simulation, sim_variables):
 # The reason is because at the boundaries, some values are lost to the ghost cells and not counted into the conservation plots
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
 def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
-    dimension, axes, conservation = sim_variables.dimension, sim_variables.axes, {}
+    multidimensional, axes, conservation = sim_variables.multidimensional, sim_variables.axes, {}
 
-    if dimension == 2:
+    if multidimensional:
         area = np.diff(sim_variables.x_axis) * np.diff(sim_variables.y_axis)
     else:
         area = np.diff(sim_variables.x_axis)

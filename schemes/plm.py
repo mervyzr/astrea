@@ -8,7 +8,7 @@ from num_methods import ct, limiters, solvers
 ##############################################################################
 
 def run(grid, sim_variables, axis):
-    boundary, dimension, axes, magnetic, ds = sim_variables.boundary, sim_variables.dimension, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
+    boundary, multidimensional, axes, magnetic, ds = sim_variables.boundary, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
     Bx, By = sim_variables.Bx, sim_variables.By
     data = {}
 
@@ -30,7 +30,7 @@ def run(grid, sim_variables, axis):
     if magnetic:
         wR[...,(Bx,By)] = grid[...,(Bx,By)]
 
-        if dimension == 2:
+        if multidimensional:
             ortho_axis = 1 - axis
             # Magnetic transverse interfaces reconstructed orthogonal to the axis
             ortho_plus, ortho_minus = ct.reconstruct_transverse(wR, sim_variables, axis=ortho_axis)

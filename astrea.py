@@ -143,7 +143,7 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
 
     # Auto-generate the resolutions/grid-sizes for run type
     if sim_variables.run_type.startswith('m'):
-        if sim_variables.dimension == 2:
+        if sim_variables.multidimensional:
             _range = 2**np.arange(2,8)
         else:
             _range = 2**np.arange(3,11)

@@ -9,7 +9,7 @@ from num_methods import ct, limiters, solvers
 ##############################################################################
 
 def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
-    boundary, dimension, axes, magnetic, ds, dissipate = sim_variables.boundary, sim_variables.dimension, sim_variables.axes, sim_variables.magnetic, sim_variables.ds, sim_variables.ppm_dissipate
+    boundary, multidimensional, axes, magnetic, ds, dissipate = sim_variables.boundary, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds, sim_variables.ppm_dissipate
     Bx, By = sim_variables.Bx, sim_variables.By
     data = {}
 
@@ -17,8 +17,8 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     sim_variables.ppm_author = author
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
-    ortho_axes = axes[axes != axis] if (magnetic or dimension == 2) else 0
-    ortho_axis = 1 - axis if (magnetic or dimension == 2) else 0
+    ortho_axes = axes[axes != axis] if (magnetic or multidimensional) else 0
+    ortho_axis = 1 - axis if (magnetic or multidimensional) else 0
 
     # Approximate the face-averaged values to face-centred values (for higher-order flux calculations)
     def approx_face_avg(_axis, _boundary, *_interfaces):
@@ -45,7 +45,7 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     if magnetic:
         interface[...,(Bx,By)] = grid[...,(Bx,By)]
 
-        if dimension == 2:
+        if multidimensional:
             # Magnetic transverse interfaces reconstructed orthogonal to the axis
             if dissipate:
                 ortho_plus, ortho_minus = ct.reconstruct_transverse(interface, sim_variables, axis=ortho_axis, extras=[grid, eta])
@@ -127,7 +127,7 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     })
 
     # Compute the orthogonal L/R Riemann states and fluxes at higher-order accuracy
-    if dimension == 2:
+    if multidimensional:
         # Calculate the interface-centred fluxes
         intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
             'prim_interfaces': approx_face_avg(ortho_axis, sim_variables.boundary, *[prim_plus, prim_minus]),
@@ -199,7 +199,7 @@ def get_artificial_viscosity(grid_slices, axis, sim_variables, viscosity_determi
 
     # Calculate face-centred divergence of velocity [eq. 35]
     lambda_d = plus_one - grid
-    if sim_variables.dimension == 2:
+    if sim_variables.multidimensional:
         ortho_padded_grid = fv.add_boundary(grid, sim_variables.boundary, axis=ortho_axis)
         ortho_padded_plus_one = fv.add_boundary(plus_one, sim_variables.boundary, axis=ortho_axis)
 
