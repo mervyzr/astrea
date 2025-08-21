@@ -258,7 +258,7 @@ def make_data(options, grid, sim_variables):
                 if sim_variables.multidimensional:
                     quantity = fv.slice_(np.diff(grid[...,5], axis=0), axis=1, start=1) + fv.slice_(np.diff(grid[...,6], axis=1), axis=0, start=1)
                 else:
-                    quantity = np.diff(grid[...,5], axis=0)
+                    quantity = np.zeros_like(grid[...,5])
             else:
                 axis = {"x":0, "y":1, "z":2}[option[-1]]
                 quantity = np.diff(grid[...,5+axis], axis=axis)
