@@ -9,7 +9,6 @@ from num_methods import ct, solvers
 
 def run(grid, sim_variables, axis):
     boundary, dimension, magnetic, ds = sim_variables.boundary, sim_variables.dimension, sim_variables.magnetic, sim_variables.ds
-    convert = sim_variables.convert
     data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)

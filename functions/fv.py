@@ -41,9 +41,9 @@ def norm(arr):
     return np.linalg.norm(arr, axis=-1)
 
 
-# Slice ndarray along axis
-def slice_(arr, axis, start=0, end=None, step=1, *args):
-    slc = [slice(None)] * arr.ndim
+# Slice grid along axis
+def slice_(grid, axis, start=0, end=None, step=1, *args):
+    slc = [slice(None)] * grid.ndim
 
     if args and (2 <= len(args) <= 3):
         try:
@@ -53,13 +53,13 @@ def slice_(arr, axis, start=0, end=None, step=1, *args):
                 start, end = args
                 step = 1
             except ValueError:
-                start, end, step = 0, arr.shape[axis], 1
+                start, end, step = 0, grid.shape[axis], 1
 
     if not end:
-        end = arr.shape[axis]
+        end = grid.shape[axis]
 
     slc[axis] = slice(start, end, step)
-    return arr[tuple(slc)]
+    return grid[tuple(slc)]
 
 
 # Finite difference derivative (second order) of a padded grid
@@ -70,10 +70,9 @@ def derivative(grid, axis=0):
 
 # Add boundary conditions
 def add_boundary(grid, boundary, stencil=1, axis=0):
-    arr = np.copy(grid)
     padding = [(0,0)] * grid.ndim
     padding[axis] = (stencil,stencil)
-    return np.pad(arr, padding, mode=boundary)
+    return np.pad(grid, padding, mode=boundary)
 
 
 # Convert between pressure P and total energy density e_tot; P is also related to the internal energy density e_int: P = (gamma-1) * e_int
