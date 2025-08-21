@@ -8,12 +8,12 @@ from num_methods import ct, limiters, solvers
 ##############################################################################
 
 def run(grid, sim_variables, axis):
-    boundary, dimension, magnetic, ds = sim_variables.boundary, sim_variables.dimension, sim_variables.magnetic, sim_variables.ds
+    boundary, dimension, axes, magnetic, ds = sim_variables.boundary, sim_variables.dimension, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
     Bx, By = sim_variables.Bx, sim_variables.By
     data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
-    ortho_axis = 1 - axis if (magnetic or dimension == 2) else 0
+    ortho_axes = axes[axes != axis]
 
     # Pad array with boundary & apply (TVD) slope limiters
     padded_grid = fv.add_boundary(grid, boundary, axis=axis)
@@ -30,9 +30,11 @@ def run(grid, sim_variables, axis):
     if magnetic:
         wR[...,(Bx,By)] = grid[...,(Bx,By)]
 
-        # Magnetic transverse interfaces reconstructed orthogonal to the axis
-        ortho_plus, ortho_minus = ct.reconstruct_transverse(wR, sim_variables, axis=ortho_axis)
-        data['ortho_interfaces'] = fv.slice_(ortho_plus, axis=ortho_axis, start=1), fv.slice_(ortho_minus, axis=ortho_axis, start=1)
+        if dimension == 2:
+            ortho_axis = 1 - axis
+            # Magnetic transverse interfaces reconstructed orthogonal to the axis
+            ortho_plus, ortho_minus = ct.reconstruct_transverse(wR, sim_variables, axis=ortho_axis)
+            data['ortho_interfaces'] = fv.slice_(ortho_plus, axis=ortho_axis, start=1), fv.slice_(ortho_minus, axis=ortho_axis, start=1)
 
     # Re-align the interfaces so that cell wall is in between interfaces
     prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)

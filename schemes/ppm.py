@@ -9,7 +9,7 @@ from num_methods import ct, limiters, solvers
 ##############################################################################
 
 def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
-    boundary, dimension, magnetic, ds, dissipate = sim_variables.boundary, sim_variables.dimension, sim_variables.magnetic, sim_variables.ds, sim_variables.ppm_dissipate
+    boundary, dimension, axes, magnetic, ds, dissipate = sim_variables.boundary, sim_variables.dimension, sim_variables.axes, sim_variables.magnetic, sim_variables.ds, sim_variables.ppm_dissipate
     Bx, By = sim_variables.Bx, sim_variables.By
     data = {}
 
@@ -17,6 +17,7 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     sim_variables.ppm_author = author
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
+    ortho_axes = axes[axes != axis] if (magnetic or dimension == 2) else 0
     ortho_axis = 1 - axis if (magnetic or dimension == 2) else 0
 
     # Approximate the face-averaged values to face-centred values (for higher-order flux calculations)
@@ -44,12 +45,13 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     if magnetic:
         interface[...,(Bx,By)] = grid[...,(Bx,By)]
 
-        # Magnetic transverse interfaces reconstructed orthogonal to the axis
-        if dissipate:
-            ortho_plus, ortho_minus = ct.reconstruct_transverse(interface, sim_variables, axis=ortho_axis, extras=[grid, eta])
-        else:
-            ortho_plus, ortho_minus = ct.reconstruct_transverse(interface, sim_variables, axis=ortho_axis)
-        data['ortho_interfaces'] = fv.slice_(ortho_plus, axis=ortho_axis, start=1), fv.slice_(ortho_minus, axis=ortho_axis, start=1)
+        if dimension == 2:
+            # Magnetic transverse interfaces reconstructed orthogonal to the axis
+            if dissipate:
+                ortho_plus, ortho_minus = ct.reconstruct_transverse(interface, sim_variables, axis=ortho_axis, extras=[grid, eta])
+            else:
+                ortho_plus, ortho_minus = ct.reconstruct_transverse(interface, sim_variables, axis=ortho_axis)
+            data['ortho_interfaces'] = fv.slice_(ortho_plus, axis=ortho_axis, start=1), fv.slice_(ortho_minus, axis=ortho_axis, start=1)
 
     if author.startswith(("peterson", "p", "ph", "x")):
         """Interpolate the cell averages to face averages (both sides)
@@ -189,9 +191,10 @@ def get_flattening_coeff(grid, sim_variables, axis, slope_determinants=[.33, .75
 # Implement artificial viscosity [McCorquodale & Colella, 2011]
 def get_artificial_viscosity(grid_slices, axis, sim_variables, viscosity_determinants=[.3, .3]):
     alpha, beta = viscosity_determinants
-    rho, pressure, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.Bfields
+    rho, pressure, Bfields, axes = sim_variables.rho, sim_variables.pressure, sim_variables.Bfields, sim_variables.axes
 
     grid, plus_one = grid_slices
+    ortho_axes = axes[axes != axis]
     ortho_axis = 1 - axis
 
     # Calculate face-centred divergence of velocity [eq. 35]

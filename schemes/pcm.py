@@ -8,11 +8,11 @@ from num_methods import ct, solvers
 ##############################################################################
 
 def run(grid, sim_variables, axis):
-    boundary, dimension, magnetic, ds = sim_variables.boundary, sim_variables.dimension, sim_variables.magnetic, sim_variables.ds
+    boundary, dimension, axes, magnetic, ds = sim_variables.boundary, sim_variables.dimension, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
     data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
-    ortho_axis = 1 - axis if (magnetic or dimension == 2) else 0
+    ortho_axes = axes[axes != axis]
 
     # Pad array with boundaries
     padded_primitive = fv.add_boundary(grid, boundary, axis=axis)
@@ -26,7 +26,9 @@ def run(grid, sim_variables, axis):
     characteristics = np.linalg.eigvals(jacobian)
     data['eigmax'] = ds[axis]/fv.compute_eigmax(characteristics, axis=axis)
 
-    if magnetic:
+    if magnetic and dimension == 2:
+        ortho_axis = 1 - axis
+
         # Magnetic transverse interfaces (interface = centre for PCM) reconstructed orthogonal to the axis
         ortho_plus, ortho_minus = ct.reconstruct_transverse(grid, sim_variables, axis=ortho_axis)
         data['ortho_interfaces'] = fv.slice_(ortho_plus, axis=ortho_axis, start=1), fv.slice_(ortho_minus, axis=ortho_axis, start=1)
