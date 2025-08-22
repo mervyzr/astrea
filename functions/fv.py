@@ -1,5 +1,5 @@
+import concurrent.futures
 from itertools import repeat
-import concurrent.futures as cfutures
 
 import numpy as np
 
@@ -122,7 +122,7 @@ def high_order_convert(variable_form, grid, sim_variables):
     axes = sim_variables.axes
     base, expansion = np.copy(grid), np.zeros_like(grid)
 
-    with cfutures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor() as executor:
         jobs = executor.map(approximate_per_axis, repeat(variable_form), repeat(grid), repeat(sim_variables), axes)
         base -= np.sum([job[0] for job in jobs], axis=0)
         expansion += np.sum([job[1] for job in jobs], axis=0)
@@ -132,13 +132,13 @@ def high_order_convert(variable_form, grid, sim_variables):
 
 # Converting face-averaged conservative variables <q>_{i+1/2,j} <-> face-averaged primitive variables <w>_{i+1/2,j}
 def convert_interface(variable_form, interfaces, axis, sim_variables):
-    axes, Bx, By = sim_variables.axes, sim_variables.Bx, sim_variables.By
+    axes = sim_variables.axes
     base, expansion = np.copy(interfaces), np.zeros_like(interfaces)
 
     if sim_variables.higher_order and sim_variables.multidimensional:
         ortho_axes = axes[axes != axis]
 
-        with cfutures.ThreadPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
             jobs = executor.map(approximate_per_axis, repeat(variable_form), repeat(interfaces), repeat(sim_variables), ortho_axes)
             base -= np.sum([job[0] for job in jobs], axis=0)
             expansion -= np.sum([job[1] for job in jobs], axis=0)
@@ -146,7 +146,7 @@ def convert_interface(variable_form, interfaces, axis, sim_variables):
     new_interfaces = point_convert(variable_form, base, sim_variables) + expansion
 
     if sim_variables.magnetic:
-        new_interfaces[...,(Bx,By)] = interfaces[...,(Bx,By)]
+        new_interfaces[...,5+axes] = interfaces[...,5+axes]
     return new_interfaces
 
 
@@ -163,7 +163,7 @@ def inverse_reconstruct(grid, sim_variables):
 
             if _sim_variables.multidimensional:
                 # Approximate the face-averaged values to face-centred values (eq. 38)
-                with cfutures.ThreadPoolExecutor() as inner_executor:
+                with concurrent.futures.ThreadPoolExecutor() as inner_executor:
                     jobs = inner_executor.map(taylor_expand, repeat(_grid), repeat(_sim_variables), ortho_axes)
                     face_cntrd -= np.sum([job for job in jobs], axis=0)
 
@@ -177,7 +177,7 @@ def inverse_reconstruct(grid, sim_variables):
             cell_avgd = np.copy(cell_cntrd) + taylor_expand(cell_cntrd, sim_variables, axis=axis)
 
             if _sim_variables.multidimensional:
-                with cfutures.ThreadPoolExecutor() as inner_executor:
+                with concurrent.futures.ThreadPoolExecutor() as inner_executor:
                     jobs = inner_executor.map(taylor_expand, repeat(cell_cntrd), repeat(_sim_variables), ortho_axes)
                     cell_avgd += np.sum([job for job in jobs], axis=0)
 
@@ -191,7 +191,7 @@ def inverse_reconstruct(grid, sim_variables):
         return cell_avgd
 
     # Update the grid values with the updated B-field values
-    with cfutures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor() as executor:
         for axis, Bfield in enumerate(executor.map(per_axis, repeat(grid), repeat(sim_variables), axes)):
             new_grid[...,5+axes[axis]] = Bfield[...,5+axes[axis]]
 

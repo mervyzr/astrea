@@ -4,6 +4,7 @@ import numpy as np
 # Initial conditions for test configs
 ##############################################################################
 
+# Primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
 def generate_test_conditions(config, cells):
     # [Sod, 1978]
     if "sod" in config:
@@ -11,8 +12,8 @@ def generate_test_conditions(config, cells):
         shock_pos = .5
         t_end = .2
         boundary = "edge"  # outflow
-        initial_left = np.array([1,0,0,0,1,0,0,0])  # primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
-        initial_right = np.array([.125,0,0,0,.1,0,0,0])  # primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
+        initial_left = np.array([1,0,0,0,1,0,0,0])
+        initial_right = np.array([.125,0,0,0,.1,0,0,0])
         misc = None
 
     # [Sedov, 1959]

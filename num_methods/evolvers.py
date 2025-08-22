@@ -1,4 +1,4 @@
-import concurrent.futures as cfutures
+import concurrent.futures
 from itertools import repeat
 
 import numpy as np
@@ -15,24 +15,23 @@ from schemes import pcm, plm, ppm, weno
 def evolve_space(grid, sim_variables, first_stage=False):
     multidimensional, subgrid, axes, magnetic = sim_variables.multidimensional, sim_variables.subgrid, sim_variables.axes, sim_variables.magnetic
     pressure, dissipate = sim_variables.pressure, sim_variables.ppm_dissipate
-    Bx, By = sim_variables.Bx, sim_variables.By
 
     # Convert to primitive variables
     centred_grid = fv.inverse_reconstruct(grid, sim_variables) if magnetic else grid
     primitive = sim_variables.convert("conservative", centred_grid, sim_variables)
-    primitive[...,(Bx,By)] = grid[...,(Bx,By)]
+    primitive[...,5+axes] = grid[...,5+axes]
 
 
     # Compute additional dissipation for PPM, if active
     if dissipate and subgrid in ["ppm", "parabolic", "p"]:
         eta = np.ones_like(grid[...,pressure])
-        with cfutures.ThreadPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
             jobs = executor.map(ppm.get_flattening_coeff, repeat(primitive), repeat(sim_variables), axes)
             eta = np.minimum(eta, np.min(jobs, axis=0))
 
 
     # Hydrodynamics computation (with fluxes and eigmax)
-    with cfutures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor() as executor:
         if subgrid.startswith("w"):
             jobs = executor.map(weno.run, repeat(primitive), repeat(sim_variables), axes)
 
@@ -63,10 +62,10 @@ def evolve_space(grid, sim_variables, first_stage=False):
     # Magnetohydrodynamics computation
     if magnetic and multidimensional:
         # Must use data dict for corner computation; the assignment of the corners is very important so the dict key (axes) are used for this assignment
-        e3U = ct.compute_corner(data, sim_variables)
+        e3U = ct.compute_emf(data, sim_variables)
 
         # Update fluxes with CT implementation
-        with cfutures.ThreadPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
             jobs = executor.map(ct.compute_ct_flux, repeat(e3U), fluxes, repeat(sim_variables), axes)
             fluxes = [flux for flux in jobs]
 

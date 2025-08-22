@@ -180,7 +180,7 @@ def calculate_Sedov_analytical(grid, t, sim_variables, w=0):
     # Initialise initial conditions and variables
     cells, gamma, j, axis_coord = sim_variables.cells, sim_variables.gamma, sim_variables.dimension, sim_variables.axis_coord
     rho0, vx0, vy0, vz0, P0, Bx0, By0, Bz0 = sim_variables.initial_right
-    rho, vx, vy, vz, pressure, Bx, By, Bz = range(8)
+    rho, vx, pressure = sim_variables.rho, sim_variables.vx, sim_variables.pressure
     eps = 1e-4
     E_blast = sim_variables.initial_left[4]/(rho0 *(gamma-1))
 
