@@ -11,55 +11,56 @@ from functions import fv
 def initialise(sim_variables):
 
     # Create a physical grid for a single axis
-    def make_physical_grid(_axis, _cells):
-        dh = np.abs(np.diff(_axis)[0])/_cells
+    def make_physical_grid(_coord, _cells):
+        start_pos, end_pos = _coord
+        dh = np.abs(np.diff(_coord)[0])/_cells
         half_cell = dh/2
-        return np.linspace(_axis[0]-half_cell, _axis[1]+half_cell, _cells+2)[1:-1]
+        return np.linspace(start_pos-half_cell, end_pos+half_cell, _cells+2)[1:-1]
 
     config, cells, gamma, multidimensional, precision = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.multidimensional, sim_variables.precision
     rho, vx, vy, pressure, Bx, By = sim_variables.rho, sim_variables.vx, sim_variables.vy, sim_variables.pressure, sim_variables.Bx, sim_variables.By
-    x_axis, y_axis, params = sim_variables.x_axis, sim_variables.y_axis, sim_variables.misc
+    axis_coord, shock_pos, params = sim_variables.axis_coord, sim_variables.shock_pos, sim_variables.misc
     initial_left, initial_right = sim_variables.initial_left, sim_variables.initial_right
-    x_shock_pos, y_shock_pos = sim_variables.shock_pos
+    
 
     computational_grid = np.zeros(list(cells)+[len(initial_right),], dtype=precision)
     computational_grid[:] = initial_right
 
-    physical_grid_x = make_physical_grid(x_axis, cells[0])
+    physical_grid_x = make_physical_grid(axis_coord, cells[0])
 
     if multidimensional:
-        physical_grid_y = make_physical_grid(y_axis, cells[1])
+        physical_grid_y = make_physical_grid(axis_coord, cells[1])
         x, y = np.meshgrid(physical_grid_x, physical_grid_y, indexing='ij')
-        x_centre, y_centre = np.average(x_axis), np.average(y_axis)
+        centre = np.average(axis_coord)
 
         if config == "sedov" or "blast" in config:
-            mask = np.where(((x-x_centre)**2 + (y-y_centre)**2) <= (x_shock_pos-x_centre)**2)
+            mask = np.where(((x-centre)**2 + (y-centre)**2) <= (shock_pos-centre)**2)
             computational_grid[mask] = initial_left
 
         elif config.startswith("gauss"):
-            r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
+            r = np.sqrt((x-centre)**2 + (y-centre)**2)
             mask = params['y_offset'] + params['ampl']*np.exp(-(r**2)/params['fwhm'])
             computational_grid[...,rho] = mask
 
         elif config in ["khi", "kelvin-helmholtz"] or ("kelvin" in config or "helmholtz" in config):
-            computational_grid[np.where(y <= y_shock_pos)] = initial_left
-            computational_grid[...,vy] = params['perturb_ampl'] * np.sin(params['freq']*np.pi*x/np.diff(x_axis))
+            computational_grid[np.where(y <= shock_pos)] = initial_left
+            computational_grid[...,vy] = params['perturb_ampl'] * np.sin(params['freq']*np.pi*x/np.diff(axis_coord))
 
         elif config in ["ivc", "isentropic"]:
-            r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
+            r = np.sqrt((x-centre)**2 + (y-centre)**2)
             b, freq = params['vortex_str'], params['freq']
 
             T = (1 - (((gamma-1)*b**2)/(freq*gamma*(2*np.pi)**2) * np.exp(1 - r**2)))**(1/(gamma-1))
 
             computational_grid[...,rho] = T
-            computational_grid[...,vx] = 1 - (b/(freq*np.pi) * np.exp((1-r**2)/freq) * (y-y_centre))
-            computational_grid[...,vy] = b/(freq*np.pi) * np.exp((1-r**2)/freq) * (x-x_centre)
+            computational_grid[...,vx] = 1 - (b/(freq*np.pi) * np.exp((1-r**2)/freq) * (y-centre))
+            computational_grid[...,vy] = b/(freq*np.pi) * np.exp((1-r**2)/freq) * (x-centre)
             computational_grid[...,pressure] = T**(gamma)
 
         elif "gresho" in config:
-            r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
+            r = np.sqrt((x-centre)**2 + (y-centre)**2)
             core, ring = np.where((0 <= r) & (r < .2)), np.where((.2 <= r) & (r < .4))
-            rx, ry = -np.sin(np.arctan2(y-y_centre,x-x_centre)), np.cos(np.arctan2(y-y_centre,x-x_centre))
+            rx, ry = -np.sin(np.arctan2(y-centre,x-centre)), np.cos(np.arctan2(y-centre,x-centre))
             p0 = initial_left[...,rho]/(gamma*params['mach']**2)
 
             computational_grid[...,pressure] = p0 - 2 + 4*np.log(2)
@@ -75,9 +76,9 @@ def initialise(sim_variables):
             computational_grid[...,pressure][ring] = (p0 + (25/2)*r**2 + 4*(1 - 5*r + np.log(5*r)))[ring]
 
         elif "ll" in config or "lax-liu" in config:
-            computational_grid[np.where(x < x_shock_pos)] = initial_left
-            computational_grid[np.where((x < x_shock_pos) & (y < y_shock_pos))] = params['bottom_left']
-            computational_grid[np.where((x >= x_shock_pos) & (y < y_shock_pos))] = params['bottom_right']
+            computational_grid[np.where(x < shock_pos)] = initial_left
+            computational_grid[np.where((x < shock_pos) & (y < shock_pos))] = params['bottom_left']
+            computational_grid[np.where((x >= shock_pos) & (y < shock_pos))] = params['bottom_right']
 
         elif config in ["orszag-tang", "orszag", "tang", "ot"]:
             computational_grid[...,vx] = -np.sin(2*np.pi*y)
@@ -86,36 +87,36 @@ def initialise(sim_variables):
             computational_grid[...,By] = params['ampl'] * np.sin(4*np.pi*x)
 
         elif "rotor" in config:
-            mask = np.where(((x-x_centre)**2 + (y-y_centre)**2) <= (x_shock_pos-x_centre)**2)
+            mask = np.where(((x-centre)**2 + (y-centre)**2) <= (shock_pos-centre)**2)
             computational_grid[mask] = initial_left
-            computational_grid[...,vx][mask] = (-params['omega']*(y-y_centre)/y_shock_pos)[mask]
-            computational_grid[...,vy][mask] = (params['omega']*(x-x_centre)/x_shock_pos)[mask]
+            computational_grid[...,vx][mask] = (-params['omega']*(y-centre)/shock_pos)[mask]
+            computational_grid[...,vy][mask] = (params['omega']*(x-centre)/shock_pos)[mask]
 
         elif "sheet" in config or "current" in config:
             computational_grid[...,vx] = params['ampl'] * np.sin(2*np.pi*y)
-            mask = np.where((-x_shock_pos < x) & (x < x_shock_pos))
+            mask = np.where((-shock_pos < x) & (x < shock_pos))
             computational_grid[...,By][mask] = -computational_grid[...,By][mask]
 
         elif "noh" in config:
-            mask = np.where(((x-x_axis[0])**2 + (y-y_axis[0])**2) > (x_shock_pos-x_axis[0])**2)
-            computational_grid[...,vx][mask] = -np.sin(x-x_shock_pos)[mask]
-            computational_grid[...,vy][mask] = -np.cos(x-x_shock_pos)[mask]
+            mask = np.where(((x-axis_coord[0])**2 + (y-axis_coord[0])**2) > (shock_pos-axis_coord[0])**2)
+            computational_grid[...,vx][mask] = -np.sin(x-shock_pos)[mask]
+            computational_grid[...,vy][mask] = -np.cos(x-shock_pos)[mask]
 
         else:
-            computational_grid[np.where(x < x_shock_pos)] = initial_left
+            computational_grid[np.where(x < shock_pos)] = initial_left
 
     else:
         x = physical_grid_x
 
         if config == "sedov" or config.startswith('sq'):
-            mask = np.where(np.abs(x) <= x_shock_pos)
+            mask = np.where(np.abs(x) <= shock_pos)
         else:
-            mask = np.where(x <= x_shock_pos)
+            mask = np.where(x <= shock_pos)
 
         computational_grid[mask] = initial_left
 
         if "shu" in config or "osher" in config:
-            computational_grid[np.where(x > x_shock_pos), rho] = fv.sine_func(x[x > x_shock_pos], params)
+            computational_grid[np.where(x > shock_pos), rho] = fv.sine_func(x[x > shock_pos], params)
         elif config.startswith("sin"):
             computational_grid[...,rho] = fv.sine_func(x, params)
         elif config.startswith('gauss'):

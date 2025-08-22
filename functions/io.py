@@ -111,7 +111,7 @@ def parse_cli_variables(_config_variables, _cli_variables, _db_path):
         elif k in ['checkpoints', 'dimension']:
             if not isinstance(v, int):
                 v = 1
-            if k == 'dimension' and not (0 < v < 3):
+            if k == 'dimension' and not (1 <= v <= 3):
                 v = 1
         elif k == "cells":
             if isinstance(v, (int, float)):
@@ -119,7 +119,7 @@ def parse_cli_variables(_config_variables, _cli_variables, _db_path):
             elif isinstance(v, str):
                 try:
                     v = [int(n)-int(n)%2 for n in v.strip('()').replace(' ','').replace('x',',').split(',')]
-                    if len(v) < 2:
+                    if len(v) <= 1:
                         v *= temp_dct['dimension']
                 except Exception:
                     v = [128,] * temp_dct['dimension']
@@ -204,7 +204,7 @@ class SimulationVariables(object):
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'save_path', 'timesteps',
         'permeability', 'magnetic', 'roots', 'weights', 'axes', 'ppm_dissipate',
         'config_category', 'solver_category', 'convert', 'higher_order', 'multidimensional',
-        'x_axis', 'y_axis', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'ds',
+        'axis_coord', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'ds',
         'run_type', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_options', 'plot_style', 'beautify',
         'checkpoints', 'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'test',
     ]

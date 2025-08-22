@@ -69,17 +69,18 @@ def calculate_TV(simulation, sim_variables):
 # Function for checking the conservation equations; works with primitive variables but needs to be converted
 def calculate_conservation(simulation, sim_variables):
     multidimensional, axes, conservation = sim_variables.multidimensional, sim_variables.axes, {}
+    dimension, axis_coord = sim_variables.dimension, sim_variables.axis_coord
 
     if multidimensional:
-        area = np.diff(sim_variables.x_axis) * np.diff(sim_variables.y_axis)
+        dV = np.diff(axis_coord)**dimension
     else:
-        area = np.diff(sim_variables.x_axis)
+        dV = np.diff(axis_coord)
 
     for t in list(simulation.keys()):
         _grid = simulation[t][:]  # Needs the '[:]' to access the array
         grid = sim_variables.convert("primitive", _grid, sim_variables)
         grid = np.sum(grid, axis=axes)
-        conservation[float(t)] = grid * area
+        conservation[float(t)] = grid * dV
     return conservation
 
 
@@ -88,11 +89,12 @@ def calculate_conservation(simulation, sim_variables):
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
 def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
     multidimensional, axes, conservation = sim_variables.multidimensional, sim_variables.axes, {}
+    dimension, axis_coord = sim_variables.dimension, sim_variables.axis_coord
 
     if multidimensional:
-        area = np.diff(sim_variables.x_axis) * np.diff(sim_variables.y_axis)
+        dV = np.diff(axis_coord)**dimension
     else:
-        area = np.diff(sim_variables.x_axis)
+        dV = np.diff(axis_coord)
 
     simulation_timings = list(simulation.keys())
     simulation_timings.sort()
@@ -102,13 +104,14 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
         _grid = simulation[t][:]  # Needs the '[:]' to access the array
         grid = sim_variables.convert("primitive", _grid, sim_variables)
         grid = np.sum(grid, axis=axes)
-        conservation[t] = grid * area
+        conservation[t] = grid * dV
     return conservation
 
 
 # Determine the analytical solution for a Sod shock test (only in 1D)
 def calculate_Sod_analytical(grid, t, sim_variables):
-    gamma, x_axis, x_shock_pos = sim_variables.gamma, sim_variables.x_axis, sim_variables.shock_pos[0]
+    gamma, axis_coord, shock_pos = sim_variables.gamma, sim_variables.axis_coord, sim_variables.shock_pos
+    start_pos, end_pos = axis_coord
 
     # Define array to be updated and returned
     arr = np.zeros_like(grid)
@@ -134,18 +137,18 @@ def calculate_Sod_analytical(grid, t, sim_variables):
     v_s = vx2/(1-(rho1/rho2))
 
     # Define boundary regions and number of cells within each region
-    boundary_54 = round_off(((x_shock_pos-(cs5*t)-x_axis[0])/np.diff(x_axis)) * len(grid))
-    boundary_43 = round_off(((x_shock_pos-(v_t*t)-x_axis[0])/np.diff(x_axis)) * len(grid))
-    boundary_32 = round_off(((x_shock_pos+(vx2*t)-x_axis[0])/np.diff(x_axis)) * len(grid))
-    boundary_21 = round_off(((x_shock_pos+(v_s*t)-x_axis[0])/np.diff(x_axis)) * len(grid))
+    boundary_54 = round_off(((shock_pos-(cs5*t)-start_pos)/np.diff(axis_coord)) * len(grid))
+    boundary_43 = round_off(((shock_pos-(v_t*t)-start_pos)/np.diff(axis_coord)) * len(grid))
+    boundary_32 = round_off(((shock_pos+(vx2*t)-start_pos)/np.diff(axis_coord)) * len(grid))
+    boundary_21 = round_off(((shock_pos+(v_s*t)-start_pos)/np.diff(axis_coord)) * len(grid))
 
     # Define number of cells in the rarefaction wave
-    rarefaction_cells = round_off(((cs5*t-v_t*t)/np.diff(x_axis)) * len(grid))
+    rarefaction_cells = round_off(((cs5*t-v_t*t)/np.diff(axis_coord)) * len(grid))
     if rarefaction_cells - (boundary_43-boundary_54) < 0:
         rarefaction_cells += 1
     elif rarefaction_cells - (boundary_43-boundary_54) > 0:
         rarefaction_cells -= 1
-    rarefaction = np.linspace(x_shock_pos-(cs5*t), x_shock_pos-(v_t*t), rarefaction_cells) - x_shock_pos
+    rarefaction = np.linspace(shock_pos-(cs5*t), shock_pos-(v_t*t), rarefaction_cells) - shock_pos
 
     # Update array for regions 1 and 5 (initial conditions)
     arr[:boundary_54] = grid[0]
@@ -175,7 +178,7 @@ def calculate_Sedov_analytical(grid, t, sim_variables, w=0):
         return np.linspace(_axis[0]-half_cell, _axis[1]+half_cell, _cells+2)[1:-1]
 
     # Initialise initial conditions and variables
-    cells, gamma, j, x_axis = sim_variables.cells, sim_variables.gamma, sim_variables.dimension, sim_variables.x_axis
+    cells, gamma, j, axis_coord = sim_variables.cells, sim_variables.gamma, sim_variables.dimension, sim_variables.axis_coord
     rho0, vx0, vy0, vz0, P0, Bx0, By0, Bz0 = sim_variables.initial_right
     rho, vx, vy, vz, pressure, Bx, By, Bz = range(8)
     eps = 1e-4
@@ -300,8 +303,8 @@ def calculate_Sedov_analytical(grid, t, sim_variables, w=0):
     arr = np.zeros_like(grid)
 
     # Generate the array of radii
-    x_centre = np.average(x_axis)
-    physical_grid_x = make_physical_grid(x_axis, cells[0])
+    x_centre = np.average(axis_coord)
+    physical_grid_x = make_physical_grid(axis_coord, cells[0])
     radii = physical_grid_x[(x_centre <= physical_grid_x) & (physical_grid_x <= r2)]
 
     density = np.zeros_like(radii)

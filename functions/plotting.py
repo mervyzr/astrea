@@ -217,7 +217,7 @@ def make_figure(options, sim_variables, variable="normal"):
                     ax[_i,_j].set_ylabel(labels[idx])
 
             if not sim_variables.multidimensional:
-                ax[_i,_j].set_xlim(sim_variables.x_axis)
+                ax[_i,_j].set_xlim(sim_variables.axis_coord)
                 ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
         return fig, ax, {'indexes':indexes, 'names':names, 'labels':labels, 'errors':errors, 'tvs':tvs, 'colours': {'theo':theo_colour, '1d':colours, '2d':twod_colours}}
@@ -274,8 +274,9 @@ def make_data(options, grid, sim_variables):
 
 # Initiate the live plot feature
 def initiate_live_plot(sim_variables, title=False):
-    cells, multidimensional, x_axis = sim_variables.cells, sim_variables.multidimensional, sim_variables.x_axis
+    cells, multidimensional, axis_coord = sim_variables.cells, sim_variables.multidimensional, sim_variables.axis_coord
     options = sim_variables.plot_options
+    start_pos, end_pos = axis_coord
     plt.ion()
 
     fig, ax, plot_ = make_figure(options, sim_variables)
@@ -290,9 +291,9 @@ def initiate_live_plot(sim_variables, title=False):
             cax = divider.append_axes('right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
-            ax[_i,_j].set_xlim(x_axis)
+            ax[_i,_j].set_xlim(axis_coord)
             ax[_i,_j].grid(linestyle='--', linewidth=0.5)
-            graph, = ax[_i,_j].plot(np.linspace(x_axis[0], x_axis[1], cells[0]), np.linspace(x_axis[0], x_axis[1], cells[0]), color=plot_['colours']['1d'][idx])
+            graph, = ax[_i,_j].plot(np.linspace(start_pos, end_pos, cells[0]), np.linspace(start_pos, end_pos, cells[0]), color=plot_['colours']['1d'][idx])
         graphs.append(graph)
 
     if title:
@@ -344,7 +345,8 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
 # Function for plotting a snapshot of the grid
 def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
     config, cells, dimension, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
-    x_axis, options, beautify = sim_variables.x_axis, sim_variables.plot_options, sim_variables.beautify
+    axis_coord, options, beautify = sim_variables.axis_coord, sim_variables.plot_options, sim_variables.beautify
+    start_pos, end_pos = axis_coord
 
     fig, ax, plot_ = make_figure(options, sim_variables)
     y_data = make_data(options, grid_snapshot, sim_variables)
@@ -358,7 +360,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
             cax = divider.append_axes('right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
-            x = np.linspace(x_axis[0], x_axis[1], cells[0])
+            x = np.linspace(start_pos, end_pos, cells[0])
             if beautify:
                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
             else:
@@ -391,7 +393,8 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
 def plot_quantities(hdf5, sim_variables, title=False):
     config, dimension, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimension, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     precision, t_end, checkpoints = sim_variables.precision, sim_variables.t_end, sim_variables.checkpoints
-    options, beautify, x_axis = sim_variables.plot_options, sim_variables.beautify, sim_variables.x_axis
+    options, beautify, axis_coord = sim_variables.plot_options, sim_variables.beautify, sim_variables.axis_coord
+    start_pos, end_pos = axis_coord
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -423,7 +426,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
             cells = simulation.attrs['cells']
             timing = str(plot_timings_for_each_grp[datetime][chkpt])
 
-            x = np.linspace(x_axis[0], x_axis[1], cells[0])
+            x = np.linspace(start_pos, end_pos, cells[0])
             y_data = make_data(options, simulation[timing], sim_variables)
 
             for idx, (_i,_j) in enumerate(plot_['indexes']):
@@ -738,7 +741,8 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
 # Make a video of entire simulation; video of all plot options or specific variable
 def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
     config, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
-    x_axis, beautify = sim_variables.x_axis, sim_variables.beautify
+    axis_coord, beautify = sim_variables.axis_coord, sim_variables.beautify
+    start_pos, end_pos = axis_coord
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -747,7 +751,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
     for datetime in datetimes:
         simulation = hdf5[datetime]
         cells = simulation.attrs['cells']
-        x = np.linspace(x_axis[0], x_axis[1], cells[0])
+        x = np.linspace(start_pos, end_pos, cells[0])
 
         if isinstance(variable, str):
             variable = variable.lower()
@@ -877,7 +881,8 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 # Function for plotting instance of the grid; insert into any part of the code
 def plot_this(grid, sim_variables, **kwargs):
     options = ['density', 'pressure', 'total energy', 'vx', 'vy', 'vz', 'Bx', 'By', 'Bz']
-    x_axis, beautify = sim_variables.x_axis, sim_variables.beautify
+    axis_coord, beautify = sim_variables.axis_coord, sim_variables.beautify
+    start_pos, end_pos = axis_coord
 
     try:
         t = kwargs['t']
@@ -901,7 +906,7 @@ def plot_this(grid, sim_variables, **kwargs):
             cax = divider.append_axes('right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
-            x = np.linspace(x_axis[0], x_axis[1], len(y))
+            x = np.linspace(start_pos, end_pos, len(y))
             if beautify:
                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
             else:

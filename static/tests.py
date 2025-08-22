@@ -7,9 +7,8 @@ import numpy as np
 def generate_test_conditions(config, cells):
     # [Sod, 1978]
     if "sod" in config:
-        x_axis = [0,1]
-        y_axis = [0,1]
-        shock_pos = [.5,.5]
+        axis_coord = [0,1]
+        shock_pos = .5
         t_end = .2
         boundary = "edge"  # outflow
         initial_left = np.array([1,0,0,0,1,0,0,0])  # primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
@@ -18,9 +17,8 @@ def generate_test_conditions(config, cells):
 
     # [Sedov, 1959]
     elif "sedov" in config or config == "blast":
-        x_axis = [-10,10]
-        y_axis = [-10,10]
-        shock_pos = [.5,.5]
+        axis_coord = [-10,10]
+        shock_pos = .5
         t_end = 1
         boundary = "wrap"  # periodic
         initial_left = np.array([1,0,0,0,100,0,0,0])
@@ -29,9 +27,8 @@ def generate_test_conditions(config, cells):
 
     # [Shu & Osher, 1989]
     elif "shu" in config or "osher" in config or config == "so":
-        x_axis = [-1,1]
-        y_axis = [-1,1]
-        shock_pos = [-.8,-.8]
+        axis_coord = [-1,1]
+        shock_pos = -.8
         t_end = .47
         boundary = "edge"
         initial_left = np.array([3.857143,2.629369,0,0,10.3333,0,0,0])
@@ -39,9 +36,8 @@ def generate_test_conditions(config, cells):
         misc = {'freq':5, 'ampl':.2, 'y_offset':1}
 
     elif config.startswith("sin"):
-        x_axis = [0,1]
-        y_axis = [0,1]
-        shock_pos = [1,1]
+        axis_coord = [0,1]
+        shock_pos = 1
         t_end = 1
         boundary = "wrap"
         initial_left = np.array([0,1,1,1,1,0,0,0])
@@ -49,9 +45,8 @@ def generate_test_conditions(config, cells):
         misc = {'freq':2, 'ampl':.1, 'y_offset':2}
 
     elif config.startswith('gauss'):
-        x_axis = [-1,1]
-        y_axis = [-1,1]
-        shock_pos = [1,1]
+        axis_coord = [-1,1]
+        shock_pos = 1
         t_end = 2
         boundary = "wrap"
         initial_left = np.array([0,1,1,1,1e-6,0,0,0])
@@ -59,9 +54,8 @@ def generate_test_conditions(config, cells):
         misc = {'peak_pos':0, 'ampl':.75, 'fwhm':.08, 'y_offset':1}
 
     elif "noh" in config:
-        x_axis = [0,1]
-        y_axis = [0,1]
-        shock_pos = [.1,.1]
+        axis_coord = [0,1]
+        shock_pos = .1
         t_end = 1
         boundary = "edge"
         initial_left = np.array([1,0,0,0,1e-6,0,0,0])
@@ -69,9 +63,8 @@ def generate_test_conditions(config, cells):
         misc = None
 
     elif "slow" in config:
-        x_axis = [0,1]
-        y_axis = [0,1]
-        shock_pos = [.5,.5]
+        axis_coord = [0,1]
+        shock_pos = .5
         t_end = .08
         boundary = "edge"
         initial_left = np.array([5.6698,-1.5336,0,0,100,0,0,0])
@@ -79,9 +72,8 @@ def generate_test_conditions(config, cells):
         misc = None
 
     elif config.startswith('sq'):
-        x_axis = [-1,1]
-        y_axis = [-1,1]
-        shock_pos = [1/3,1/3]
+        axis_coord = [-1,1]
+        shock_pos = 1/3
         t_end = .05
         boundary = "wrap"
         initial_left = np.array([1,1,0,0,1,0,0,0])
@@ -90,9 +82,8 @@ def generate_test_conditions(config, cells):
 
     # [Ryu & Jones, 1995]
     elif "ryu" in config or "jones" in config or config == "rj":
-        x_axis = [-.5,.5]
-        y_axis = [-.5,.5]
-        shock_pos = [0,0]
+        axis_coord = [-.5,.5]
+        shock_pos = 0
         t_end = .15
         boundary = "edge"
         initial_left = np.array([1.08,1.2,.01,.5,.95,1/np.sqrt(np.pi),1.8/np.sqrt(np.pi),1/np.sqrt(np.pi)])
@@ -101,9 +92,8 @@ def generate_test_conditions(config, cells):
 
     # [Brio & Wu, 1988]
     elif "brio" in config or "wu" in config or config == "bw":
-        x_axis = [-.5,-.5]
-        y_axis = [.5,.5]
-        shock_pos = [0,0]
+        axis_coord = [-.5,-.5]
+        shock_pos = 0
         t_end = .1
         boundary = "edge"
         initial_left = np.array([1,0,0,0,1,.75,1,0])
@@ -111,9 +101,8 @@ def generate_test_conditions(config, cells):
         misc = None
 
     elif "kelvin" in config or "helmholtz" in config or config == "khi":
-        x_axis = [-1,1]
-        y_axis = [-1,1]
-        shock_pos = [0,0]
+        axis_coord = [-1,1]
+        shock_pos = 0
         t_end = 4
         boundary = "wrap"
         initial_left = np.array([2,-.5,0,0,1,0,0,0])
@@ -122,9 +111,8 @@ def generate_test_conditions(config, cells):
 
     # [Yee et. al., 1999]
     elif config in ["ivc", "isentropic"]:
-        x_axis = [0,10]
-        y_axis = [0,10]
-        shock_pos = [5,5]
+        axis_coord = [0,10]
+        shock_pos = 5
         t_end = 10
         boundary = "wrap"
         initial_left = np.array([1,0,0,0,1,0,0,0])
@@ -133,9 +121,8 @@ def generate_test_conditions(config, cells):
 
     # [Gresho & Chan, 1990]
     elif "gresho" in config:
-        x_axis = [0,1]
-        y_axis = [0,1]
-        shock_pos = [.5,.5]
+        axis_coord = [0,1]
+        shock_pos = .5
         t_end = 1
         boundary = "wrap"
         initial_left = np.array([1,0,0,0,0,0,0,0])
@@ -144,9 +131,8 @@ def generate_test_conditions(config, cells):
 
     # [Orszag & Tang, 1998; Stone et al., 2008]
     elif "orszag" in config or "tang" in config or config == "ot":
-        x_axis = [0,1]
-        y_axis = [0,1]
-        shock_pos = [1,1]
+        axis_coord = [0,1]
+        shock_pos = 1
         t_end = 1
         boundary = "wrap"
         initial_left = np.array([25/(36*np.pi),0,0,0,5/(12*np.pi),0,0,0])
@@ -155,9 +141,8 @@ def generate_test_conditions(config, cells):
 
     # [Balsara & Spicer, 1999]
     elif "rotor" in config:
-        x_axis = [-.5,.5]
-        y_axis = [-.5,.5]
-        shock_pos = [.1,.1]
+        axis_coord = [-.5,.5]
+        shock_pos = .1
         t_end = .15
         boundary = "wrap"
         initial_left = np.array([10,0,0,0,1,5/np.sqrt(4*np.pi),0,0])
@@ -166,9 +151,8 @@ def generate_test_conditions(config, cells):
 
     # [Felker & Stone, 2018]
     elif "blast" in config and config.startswith("mhd"):
-        x_axis = [-.5,.5]
-        y_axis = [-.5,.5]
-        shock_pos = [.1,.1]
+        axis_coord = [-.5,.5]
+        shock_pos = .1
         t_end = .2
         boundary = "wrap"
         initial_left = np.array([1,0,0,0,10,1/np.sqrt(2),1/np.sqrt(2),0])
@@ -177,9 +161,8 @@ def generate_test_conditions(config, cells):
 
     # [Gardiner & Stone, 2005]
     elif "sheet" in config or "current" in config:
-        x_axis = [-.5,.5]
-        y_axis = [-.5,.5]
-        shock_pos = [.25,.25]
+        axis_coord = [-.5,.5]
+        shock_pos = .25
         t_end = 10
         boundary = "wrap"
         initial_left = np.array([1,0,0,0,.05/(4*np.pi),0,1/np.sqrt(4*np.pi),0])
@@ -188,47 +171,45 @@ def generate_test_conditions(config, cells):
 
     # [Toro, 1999, p.225]
     elif "toro" in config:
-        x_axis = [0,1]
-        y_axis = [0,1]
+        axis_coord = [0,1]
         boundary = "edge"
         misc = None
 
         # Double rarefaction wave
         if "2" in config:
-            shock_pos = [.5,.5]
+            shock_pos = .5
             t_end = .14
             initial_left = np.array([1,-2,0,0,.4,0,0,0])
             initial_right = np.array([1,2,0,0,.4,0,0,0])
 
         elif "3" in config:
-            shock_pos = [.5,.5]
+            shock_pos = .5
             t_end = .012
             initial_left = np.array([1,0,0,0,1000,0,0,0])
             initial_right = np.array([1,0,0,0,.01,0,0,0])
 
         elif "4" in config:
-            shock_pos = [.3,.3]
+            shock_pos = .3
             t_end = .05
             initial_left = np.array([5.99924,19.5975,0,0,460.894,0,0,0])
             initial_right = np.array([5.99242,-6.19633,0,0,46.095,0,0,0])
 
         elif "5" in config:
-            shock_pos = [.8,.8]
+            shock_pos = .8
             t_end = .012
             initial_left = np.array([1,-19.59745,0,0,1000,0,0,0])
             initial_right = np.array([1,-19.59745,0,0,.01,0,0,0])
 
         else:
-            shock_pos = [.3,.3]
+            shock_pos = .3
             t_end = .2
             initial_left = np.array([1,.75,0,0,1,0,0,0])
             initial_right = np.array([.125,0,0,0,.1,0,0,0])
 
     # [Lax & Liu, 1998]
     elif ("lax" in config or "liu" in config) or "ll" in config:
-        x_axis = [0,1]
-        y_axis = [0,1]
-        shock_pos = [.5,.5]
+        axis_coord = [0,1]
+        shock_pos = .5
         t_end = 2
         boundary = "wrap"
 
@@ -323,25 +304,21 @@ def generate_test_conditions(config, cells):
             misc = {'bottom_left':np.array([1.0625,0,.2145,0,.4,0,0,0]), 'bottom_right':np.array([.5197,0,v4,0,.4,0,0,0])}
 
     else:
-        x_axis = [0,1]
-        y_axis = [0,1]
-        shock_pos = [.5,.5]
+        axis_coord = [0,1]
+        shock_pos = .5
         t_end = .2
         boundary = "edge"
         initial_left = np.array([1,0,0,0,1,0,0,0])
         initial_right = np.array([.125,0,0,0,.1,0,0,0])
         misc = None
 
-    grid_axes = [x_axis, y_axis]
-
     return {
-        'x_axis':x_axis,
-        'y_axis':y_axis,
+        'axis_coord':axis_coord,
         'shock_pos':shock_pos,
         't_end':t_end,
         'boundary':boundary.lower(),
         'misc':misc,
         'initial_left':initial_left,
         'initial_right':initial_right,
-        'ds':{ax: np.abs(np.diff(grid_axes[ax]))/cells[ax] for ax in range(len(cells))},
+        'ds':{ax: np.abs(np.diff(axis_coord))/cells[ax] for ax in range(len(cells))},
     }
