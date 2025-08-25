@@ -6,7 +6,7 @@
 
 # astrea
 
-**_astrea_** (**A**strophysical **S**hockwave and **T**urbulence **RE**search for interstellar **A**pplications) is a one-/two-dimensional ideal magnetohydrodynamics simulation toy model code for the purpose of modelling shockwaves in the interstellar medium, with possible implementation of a chemical network and radiative cooling.
+**_astrea_** (**A**strophysical **S**hockwave and **T**urbulence **RE**search for interstellar **A**pplications) is a multi-dimensional ideal magnetohydrodynamics simulation toy model code for the purpose of modelling shockwaves in the interstellar medium, with possible implementation of a chemical network and radiative cooling.
 
 **_This code is created as part of the Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner._**
 
@@ -67,30 +67,41 @@ For a _j_-order reconstruction scheme, _j_ > 4, the Dormand-Prince 8(7) (Dormand
 
 ### Simulation benchmarks
 
-Several hydrodynamics and magnetohydrodynamics tests are in place:
+Several (magneto)hydrodynamics tests are in place:
 
 - Hydrodynamics
-  - Sod shock-tube test (Sod, 1978)
-  - Sedov blast test (Sedov, 1946)
-  - Shu-Osher shockwave test (Shu & Osher, 1988)
-  - "Toro tests" (Toro, 1999, p.225)
-  - "Lax-Liu tests" (Lax & Liu, 1998)
-  - Slow-moving shockwave (Zingale, 2023, p.148)
-  - Kelvin-Helmholtz instability
-  - Noh problem (Noh, 1987)
-  - Gresho vortex (Gresho & Chan, 1990)
-  - Simple advection wave tests
-    - Gaussian
-    - sine
-    - square
-    - isentropic vortex (Yee et al., 1999)
+  - One-dimensional:
+    - Sod shock tube (Sod, 1978)
+    - Sedov blast wave (Sedov, 1946)
+    - Slow-moving shockwave (Zingale, 2023, p.148)
+    - Shu-Osher shockwave (Shu & Osher, 1988)
+    - "Toro tests" (Toro, 1999, p.225)
+    - Smooth-wave tests
+      - Gaussian wave
+      - sine-wave
+  - Two-dimensional:
+    - Sedov blast wave
+    - Kelvin-Helmholtz instability
+    - Noh problem (Noh, 1987)
+    - Gresho vortex (Gresho & Chan, 1990)
+    - "Lax-Liu tests" (Lax & Liu, 1998)
+    - Smooth-wave tests
+      - Gaussian wave
+      - Isentropic vortex (Yee et al., 1999)
+  - Three-dimensional:
+    - Sedov blast wave
+
 - Magnetohydrodynamics
-  - Ryu-Jones 2a shockwave test (Ryu & Jones, 1995)
-  - Brio-Wu shockwave test (Brio & Wu, 1988)
-  - Orszag-Tang test (Orszag & Tang, 1998)
-  - MHD current sheet (Gardiner & Stone, 2005)
-  - MHD rotor (Balsara & Spicer, 1999)
-  - MHD blast wave (Felker & Stone, 2018)
+  - One-dimensional:
+    - Ryu-Jones 2a shockwave (Ryu & Jones, 1995)
+    - Brio-Wu shockwave (Brio & Wu, 1988)
+  - Two-dimensional:
+    - Orszag-Tang vortex (Orszag & Tang, 1998)
+    - MHD rotor (Balsara & Spicer, 1999)
+    - MHD blast wave (Londrillo & Del Zanna, 2000)
+    - MHD current sheet (Gardiner & Stone, 2005)
+  - Three-dimensional:
+    - MHD blast wave
 
 Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussian wave test and the sine wave test are overplotted in the saved plots. The solution error norms are also calculated when the smooth advection wave tests are run (Gaussian & sine waves).
 

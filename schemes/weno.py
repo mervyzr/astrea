@@ -1,4 +1,4 @@
-import concurrent.futures as cfutures
+import concurrent.futures
 from itertools import repeat
 
 import numpy as np
@@ -12,18 +12,16 @@ from num_methods import ct, solvers
 
 def run(grid, sim_variables, axis):
     boundary, subgrid, multidimensional, axes, magnetic, ds = sim_variables.boundary, sim_variables.subgrid, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
-    Bx, By = sim_variables.Bx, sim_variables.By
     data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
     ortho_axes = axes[axes != axis] if (magnetic or multidimensional) else 0
-    ortho_axis = 1 - axis if (magnetic or multidimensional) else 0
 
     # Approximate the face-averaged values to face-centred values for higher-order flux calculations
     def approx_face_avg(_ortho_axes, _sim_variables, *_interfaces):
         plus_intf, minus_intf = _interfaces
 
-        with cfutures.ThreadPoolExecutor() as inner_executor:
+        with concurrent.futures.ThreadPoolExecutor() as inner_executor:
             plus_jobs = inner_executor.map(fv.taylor_expand, repeat(plus_intf), repeat(_sim_variables), _ortho_axes)
             minus_jobs = inner_executor.map(fv.taylor_expand, repeat(minus_intf), repeat(_sim_variables), _ortho_axes)
 
@@ -160,18 +158,17 @@ def run(grid, sim_variables, axis):
     else:
         wL, wR = reconstruct(grid, boundary, axis)
     if magnetic:
-        wR[...,(Bx,By)] = grid[...,(Bx,By)]
+        wR[...,5+axes] = grid[...,5+axes]
 
+        # Magnetic transverse interfaces reconstructed longitudinal to the axis (returns [ prim_plus, prim_minus ]); will be used for orthogonal axes later
         if multidimensional:
-            # Magnetic transverse interfaces reconstructed orthogonal to the axis
-            ortho_plus, ortho_minus = ct.reconstruct_transverse(wR, sim_variables, axis=ortho_axis)
-            data['ortho_interfaces'] = fv.slice_(ortho_plus, axis=ortho_axis, start=1), fv.slice_(ortho_minus, axis=ortho_axis, start=1)
+            data['ortho_interfaces'] = ct.reconstruct_transverse(grid, sim_variables, axis=axis)
 
     # Re-align the interfaces so that cell wall is in between interfaces
     prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)
     if magnetic:
         padded_grid = fv.add_boundary(grid, boundary, axis=axis)
-        prim_plus[...,(Bx,By)] = prim_minus[...,(Bx,By)] = fv.slice_(padded_grid, axis, end=-1)[...,(Bx,By)]
+        prim_plus[...,5+axes] = prim_minus[...,5+axes] = fv.slice_(padded_grid, axis, end=-1)[...,5+axes]
 
     # Get the average solution between the interfaces at the boundaries
     intf_avg = fv.slice_(fv.compute_Roe_average([prim_plus,prim_minus], sim_variables), axis, start=1)
@@ -215,7 +212,7 @@ def run(grid, sim_variables, axis):
         })
 
         # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation for each orthogonal axis
-        with cfutures.ThreadPoolExecutor() as inner_executor:
+        with concurrent.futures.ThreadPoolExecutor() as inner_executor:
             jobs = inner_executor.map(fv.taylor_expand, repeat(intf_fluxes_avgd), repeat(sim_variables), ortho_axes)
         intf_fluxes_cntrd -= np.sum([job for job in jobs], axis=0)
     else:

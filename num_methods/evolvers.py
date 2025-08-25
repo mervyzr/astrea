@@ -13,7 +13,7 @@ from schemes import pcm, plm, ppm, weno
 
 # Evolve the system in space by a standardised workflow
 def evolve_space(grid, sim_variables, first_stage=False):
-    multidimensional, subgrid, axes, magnetic = sim_variables.multidimensional, sim_variables.subgrid, sim_variables.axes, sim_variables.magnetic
+    dimension, multidimensional, subgrid, axes, magnetic = sim_variables.dimension, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.axes, sim_variables.magnetic
     pressure, dissipate = sim_variables.pressure, sim_variables.ppm_dissipate
 
     # Convert to primitive variables
@@ -61,12 +61,18 @@ def evolve_space(grid, sim_variables, first_stage=False):
 
     # Magnetohydrodynamics computation
     if magnetic and multidimensional:
-        # Must use data dict for corner computation; the assignment of the corners is very important so the dict key (axes) are used for this assignment
-        e3U = ct.compute_emf(data, sim_variables)
-
-        # Update fluxes with CT implementation
+        # The proper assignment of the corners is important for directional updates,
+        # so the dict keys are used for this assignment
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            jobs = executor.map(ct.compute_ct_flux, repeat(e3U), fluxes, repeat(sim_variables), axes)
+            if dimension > 2:
+                jobs = executor.map(ct.compute_emf, repeat(data), axes)
+            else:
+                jobs = executor.map(ct.compute_emf, repeat(data), [2,2])
+            emfs = np.array([emf for emf in jobs])
+
+        # Update fluxes with CT implementation; lists ordered according to axes
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            jobs = executor.map(ct.compute_ct_flux, repeat(emfs), fluxes, repeat(sim_variables), axes)
             fluxes = [flux for flux in jobs]
 
     # Calculate the total fluxes through all upwind surfaces [F(i+1/2,j) - F(i-1/2,j)]/dx, [G(i,j+1/2) - G(i,j-1/2)]/dy

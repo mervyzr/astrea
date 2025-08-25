@@ -1,4 +1,4 @@
-import concurrent.futures as cfutures
+import concurrent.futures
 from itertools import repeat
 
 import numpy as np
@@ -13,7 +13,6 @@ from num_methods import ct, limiters, solvers
 
 def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     boundary, multidimensional, axes, magnetic, ds, dissipate = sim_variables.boundary, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds, sim_variables.ppm_dissipate
-    Bx, By = sim_variables.Bx, sim_variables.By
     data = {}
 
     author = author.lower()
@@ -21,13 +20,12 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
     ortho_axes = axes[axes != axis] if (magnetic or multidimensional) else 0
-    ortho_axis = 1 - axis if (magnetic or multidimensional) else 0
 
     # Approximate the face-averaged values to face-centred values for higher-order flux calculations
     def approx_face_avg(_ortho_axes, _sim_variables, *_interfaces):
         plus_intf, minus_intf = _interfaces
 
-        with cfutures.ThreadPoolExecutor() as inner_executor:
+        with concurrent.futures.ThreadPoolExecutor() as inner_executor:
             plus_jobs = inner_executor.map(fv.taylor_expand, repeat(plus_intf), repeat(_sim_variables), _ortho_axes)
             minus_jobs = inner_executor.map(fv.taylor_expand, repeat(minus_intf), repeat(_sim_variables), _ortho_axes)
 
@@ -50,15 +48,14 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     interface = 7/12 * (grid + plus_one) - 1/12 * (minus_one + plus_two)  # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
     #interface = 1/60 * (2*minus_two - 13*minus_one + 47*grid + 27*plus_one - 3*plus_two)  # Face i+1/2 (5th-order, less robust) [Suresh & Huynh, 1997, eq. 2.1]
     if magnetic:
-        interface[...,(Bx,By)] = grid[...,(Bx,By)]
+        interface[...,5+axes] = grid[...,5+axes]
 
+        # Magnetic transverse interfaces reconstructed longitudinal to the axis (returns [ prim_plus, prim_minus ]); will be used for orthogonal axes later
         if multidimensional:
-            # Magnetic transverse interfaces reconstructed orthogonal to the axis
             if dissipate:
-                ortho_plus, ortho_minus = ct.reconstruct_transverse(interface, sim_variables, axis=ortho_axis, extras=[grid, eta])
+                data['ortho_interfaces'] = ct.reconstruct_transverse(grid, sim_variables, axis=axis, extras=[grid, eta])
             else:
-                ortho_plus, ortho_minus = ct.reconstruct_transverse(interface, sim_variables, axis=ortho_axis)
-            data['ortho_interfaces'] = fv.slice_(ortho_plus, axis=ortho_axis, start=1), fv.slice_(ortho_minus, axis=ortho_axis, start=1)
+                data['ortho_interfaces'] = ct.reconstruct_transverse(grid, sim_variables, axis=axis)
 
     if author.startswith(("peterson", "p", "ph", "x")):
         """Interpolate the cell averages to face averages (both sides)
@@ -100,7 +97,7 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     # Re-align the interfaces so that cell wall is in between interfaces
     prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)
     if magnetic:
-        prim_plus[...,(Bx,By)] = prim_minus[...,(Bx,By)] = fv.slice_(padded_grid, axis, end=-1)[...,(Bx,By)]
+        prim_plus[...,5+axes] = prim_minus[...,5+axes] = fv.slice_(padded_grid, axis, end=-1)[...,5+axes]
 
     # Get the average solution between the interfaces at the boundaries
     intf_avg = fv.slice_(fv.compute_Roe_average([prim_plus,prim_minus], sim_variables), axis, start=1)
@@ -144,7 +141,7 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
         })
 
         # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation for each orthogonal axis
-        with cfutures.ThreadPoolExecutor() as inner_executor:
+        with concurrent.futures.ThreadPoolExecutor() as inner_executor:
             jobs = inner_executor.map(fv.taylor_expand, repeat(intf_fluxes_avgd), repeat(sim_variables), ortho_axes)
         intf_fluxes_cntrd -= np.sum([job for job in jobs], axis=0)
     else:
@@ -216,7 +213,7 @@ def get_artificial_viscosity(grid_slices, axis, sim_variables, viscosity_determi
     # Calculate face-centred divergence of velocity [eq. 35]
     lambda_d = plus_one - zeroth
     if sim_variables.multidimensional:
-        with cfutures.ThreadPoolExecutor() as inner_executor:
+        with concurrent.futures.ThreadPoolExecutor() as inner_executor:
             jobs = inner_executor.map(per_ortho_axis, repeat(grid_slices), repeat(sim_variables), ortho_axes)
         lambda_d += np.sum([job for job in jobs], axis=0)
 
