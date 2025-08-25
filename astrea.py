@@ -37,11 +37,8 @@ BEAUTIFY_1D_PLOTS = False
 def core_run(hdf5, sim_variables):
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables <q>
     primitive_grid = constructor.initialise(sim_variables)
-    print('initialised')
     centred_grid = fv.inverse_reconstruct(primitive_grid, sim_variables) if sim_variables.magnetic else primitive_grid
-    print('inverse reconstructed')
     grid = fv.point_convert("primitive", centred_grid, sim_variables)
-    print('converted')
 
     # Initiate live or snapshot plotting, if enabled
     plot_snapshot = True if sim_variables.save_snaps else False
