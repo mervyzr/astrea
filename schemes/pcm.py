@@ -8,12 +8,10 @@ from num_methods import ct, solvers
 ##############################################################################
 
 def run(grid, sim_variables, axis):
-    boundary, dimension, magnetic, ds = sim_variables.boundary, sim_variables.dimension, sim_variables.magnetic, sim_variables.ds
-    convert = sim_variables.convert
+    boundary, multidimensional, axes, magnetic, ds = sim_variables.boundary, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
     data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
-    ortho_axis = 1 - axis if (magnetic or dimension == 2) else 0
 
     # Pad array with boundaries
     padded_primitive = fv.add_boundary(grid, boundary, axis=axis)
@@ -27,10 +25,9 @@ def run(grid, sim_variables, axis):
     characteristics = np.linalg.eigvals(jacobian)
     data['eigmax'] = ds[axis]/fv.compute_eigmax(characteristics, axis=axis)
 
-    if magnetic:
-        # Magnetic transverse interfaces (interface = centre for PCM) reconstructed orthogonal to the axis
-        ortho_plus, ortho_minus = ct.reconstruct_transverse(grid, sim_variables, axis=ortho_axis)
-        data['ortho_interfaces'] = fv.slice_(ortho_plus, axis=ortho_axis, start=1), fv.slice_(ortho_minus, axis=ortho_axis, start=1)
+    # Magnetic transverse interfaces (interface = centre for PCM) reconstructed longitudinal to the axis (returns [ prim_plus, prim_minus ]); will be used for orthogonal axes later
+    if magnetic and multidimensional:
+        data['ortho_interfaces'] = ct.reconstruct_transverse(grid, sim_variables, axis=axis)
 
         # alphas refers to the maximum(+)/minimum(-) eigenvalues respectively
         local_max, local_min = np.max(characteristics, axis=-1), np.min(characteristics, axis=-1)

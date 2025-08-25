@@ -1,3 +1,6 @@
+import concurrent.futures
+from itertools import repeat
+
 import numpy as np
 
 from functions import fv
@@ -8,7 +11,6 @@ from num_methods import limiters
 ##############################################################################
 
 # Reconstruct the transverse values for each face average (computation done entirely for orthogonal axis)
-# Returns array aligned with input axis, e.g., ax=1 means returned array is aligned with y-axis-transposed grid
 def reconstruct_transverse(interface, sim_variables, axis, method=None, extras=None):
     if not method:
         method = sim_variables.subgrid
@@ -149,18 +151,26 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None, extras=N
     # Re-align the interfaces so that cell wall is in between interfaces
     prim_plus, prim_minus = fv.slice_(fv.add_boundary(wD, boundary, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wU, boundary, axis=axis), axis, end=-1)
 
+    # Remove the 'leftmost' interface since only the upwind corners/lines are needed
+    prim_plus, prim_minus = fv.slice_(prim_plus, axis=axis, start=1), fv.slice_(prim_minus, axis=axis, start=1)
+
     return prim_plus, prim_minus
 
 
-# Compute the corner electric fields wrt to corner; gives 4-fold values for each corner [Mignone & del Zanna, 2021]
-def compute_corner(data, sim_variables):
-    vx, vy, Bx, By = sim_variables.vx, sim_variables.vy, sim_variables.Bx, sim_variables.By
+# Compute the corner/line electric fields wrt to corner/line; gives 4-fold values for each corner/line in each axis [Mignone & Del Zanna, 2020]
+# data = {axis: results_dict for axis, results in enumerate(thread_jobs)}
+def compute_emf(data, axis):
+    abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
+    vx, vy = 1+ordinate, 1+applicate
+    Bx, By = 5+ordinate, 5+applicate
 
-    # [ (m1, m2), (m1, m2) ] refers to the [ x(w+, w-), y(w+, w-) ] axis, which corresponds to [ x(N,S), y(E,W) ]; take note of the order in the axes
-    [north, south], [east, west] = data[0]['ortho_interfaces'], data[1]['ortho_interfaces']
-    [ap_x, am_x], [ap_y, am_y] = data[0]['alphas'], data[1]['alphas']
+    # For -v x B in x-axis (axis=0, thumb), y (axis=1, middle finger) becomes (N,S) & z (axis=2, index finger) becomes (E,W)
+    # For -v x B in y-axis (axis=1, thumb), z (axis=2, middle finger) becomes (N,S) & x (axis=0, index finger) becomes (E,W)
+    # For -v x B in z-axis (axis=2, thumb), x (axis=0, middle finger) becomes (N,S) & y (axis=1, index finger) becomes (E,W)
+    [north, south], [east, west] = data[applicate]['ortho_interfaces'], data[ordinate]['ortho_interfaces']
+    [ap_x, am_x], [ap_y, am_y] = data[ordinate]['alphas'], data[applicate]['alphas']
 
-    # Compute the corner B-fields wrt to corner
+    # Compute the corner mag. fields wrt to corner/line
     SW = .5*(west[...,vy]+south[...,vy])*south[...,Bx] - .5*(west[...,vx]+south[...,vx])*west[...,By]
     SE = .5*(east[...,vy]+south[...,vy])*south[...,Bx] - .5*(east[...,vx]+south[...,vx])*east[...,By]
     NW = .5*(west[...,vy]+north[...,vy])*north[...,Bx] - .5*(west[...,vx]+north[...,vx])*west[...,By]
@@ -169,12 +179,28 @@ def compute_corner(data, sim_variables):
     return fv.divide(ap_x*ap_y*SW + am_x*ap_y*SE + ap_x*am_y*NW + am_x*am_y*NE, (ap_x+am_x)*(ap_y+am_y)) - fv.divide(ap_y*am_y, ap_y+am_y)*(north[...,Bx]-south[...,Bx]) + fv.divide(ap_x*am_x, ap_x+am_x)*(east[...,By]-west[...,By])
 
 
-# Compute constrained transport flux using corners; the hydro fluxes are unaltered, and the CT fluxes are automatically allocated to their respective axes
-def compute_ct_flux(corners, flux, sim_variables, axis):
-    ortho_axis = 1 - axis
-    padded_e3U = fv.add_boundary(corners, sim_variables.boundary, axis=ortho_axis)
+# Compute constrained transport flux using corner/line emfs [Mignone & Del Zanna, 2020];
+# the hydro fluxes are unaltered, and the CT fluxes are automatically allocated to their respective axes
+def compute_ct_flux(emfs, flux, sim_variables, axis):
+    # Get the orthogonal axes & emfs from the axis being computed
+    ortho_axes = sim_variables.axes[sim_variables.axes != axis]
+    ortho_emfs = emfs[sim_variables.axes != axis]
 
-    flux[...,5+axis] = (-1)**axis * np.diff(fv.slice_(padded_e3U, axis=ortho_axis, end=-1), axis=ortho_axis)/sim_variables.ds[ortho_axis]
-    flux[...,5+ortho_axis] = 0
+    # Use normal axis to orthogonal axes for derivatives
+    normal_axes = np.roll(ortho_axes, shift=-1)
+
+    def per_normal_axis(emf, _sim_variables, normal_axis):
+        padded_emf = fv.add_boundary(emf, _sim_variables.boundary, axis=normal_axis)
+        return np.diff(fv.slice_(padded_emf, axis=normal_axis, end=-1), axis=normal_axis)/_sim_variables.ds[normal_axis]
+
+    # Update CT flux in axis; set the other axes fluxes to zero (for summation later)
+    with concurrent.futures.ThreadPoolExecutor() as inner_executor:
+        jobs = inner_executor.map(per_normal_axis, ortho_emfs, repeat(sim_variables), normal_axes)
+        emf_fluxes = [emf_flux for emf_flux in jobs]
+        if sim_variables.dimension > 2:
+            flux[...,5+axis] = -np.diff(emf_fluxes, axis=0)
+        else:
+            flux[...,5+axis] = (-1)**axis * emf_fluxes[0]
+        flux[...,5+ortho_axes] = 0
 
     return flux

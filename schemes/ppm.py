@@ -1,3 +1,6 @@
+import concurrent.futures
+from itertools import repeat
+
 import numpy as np
 
 from functions import constructor, fv
@@ -9,21 +12,24 @@ from num_methods import ct, limiters, solvers
 ##############################################################################
 
 def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
-    boundary, dimension, magnetic, ds, dissipate = sim_variables.boundary, sim_variables.dimension, sim_variables.magnetic, sim_variables.ds, sim_variables.ppm_dissipate
-    Bx, By = sim_variables.Bx, sim_variables.By
+    boundary, multidimensional, axes, magnetic, ds, dissipate = sim_variables.boundary, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds, sim_variables.ppm_dissipate
     data = {}
 
     author = author.lower()
     sim_variables.ppm_author = author
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
-    ortho_axis = 1 - axis if (magnetic or dimension == 2) else 0
+    ortho_axes = axes[axes != axis] if (magnetic or multidimensional) else 0
 
-    # Approximate the face-averaged values to face-centred values (for higher-order flux calculations)
-    def approx_face_avg(_axis, _boundary, *_interfaces):
+    # Approximate the face-averaged values to face-centred values for higher-order flux calculations
+    def approx_face_avg(_ortho_axes, _sim_variables, *_interfaces):
         plus_intf, minus_intf = _interfaces
-        padded_plus_intf, padded_minus_intf = fv.add_boundary(plus_intf, _boundary, axis=_axis), fv.add_boundary(minus_intf, _boundary, axis=_axis)
-        return np.copy(plus_intf) - 1/24 * fv.derivative(padded_plus_intf, axis=_axis), np.copy(minus_intf) - 1/24 * fv.derivative(padded_minus_intf, axis=_axis)
+
+        with concurrent.futures.ThreadPoolExecutor() as inner_executor:
+            plus_jobs = inner_executor.map(fv.taylor_expand, repeat(plus_intf), repeat(_sim_variables), _ortho_axes)
+            minus_jobs = inner_executor.map(fv.taylor_expand, repeat(minus_intf), repeat(_sim_variables), _ortho_axes)
+
+        return np.copy(plus_intf) - np.sum([plus_job for plus_job in plus_jobs], axis=0), np.copy(minus_intf) - np.sum([minus_job for minus_job in minus_jobs], axis=0)
 
 
     # Pad array with boundary; PPM requires additional ghost cells
@@ -42,14 +48,14 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     interface = 7/12 * (grid + plus_one) - 1/12 * (minus_one + plus_two)  # Face i+1/2 (4th-order) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
     #interface = 1/60 * (2*minus_two - 13*minus_one + 47*grid + 27*plus_one - 3*plus_two)  # Face i+1/2 (5th-order, less robust) [Suresh & Huynh, 1997, eq. 2.1]
     if magnetic:
-        interface[...,(Bx,By)] = grid[...,(Bx,By)]
+        interface[...,5+axes] = grid[...,5+axes]
 
-        # Magnetic transverse interfaces reconstructed orthogonal to the axis
-        if dissipate:
-            ortho_plus, ortho_minus = ct.reconstruct_transverse(interface, sim_variables, axis=ortho_axis, extras=[grid, eta])
-        else:
-            ortho_plus, ortho_minus = ct.reconstruct_transverse(interface, sim_variables, axis=ortho_axis)
-        data['ortho_interfaces'] = fv.slice_(ortho_plus, axis=ortho_axis, start=1), fv.slice_(ortho_minus, axis=ortho_axis, start=1)
+        # Magnetic transverse interfaces reconstructed longitudinal to the axis (returns [ prim_plus, prim_minus ]); will be used for orthogonal axes later
+        if multidimensional:
+            if dissipate:
+                data['ortho_interfaces'] = ct.reconstruct_transverse(grid, sim_variables, axis=axis, extras=[grid, eta])
+            else:
+                data['ortho_interfaces'] = ct.reconstruct_transverse(grid, sim_variables, axis=axis)
 
     if author.startswith(("peterson", "p", "ph", "x")):
         """Interpolate the cell averages to face averages (both sides)
@@ -91,7 +97,7 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     # Re-align the interfaces so that cell wall is in between interfaces
     prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)
     if magnetic:
-        prim_plus[...,(Bx,By)] = prim_minus[...,(Bx,By)] = fv.slice_(padded_grid, axis, end=-1)[...,(Bx,By)]
+        prim_plus[...,5+axes] = prim_minus[...,5+axes] = fv.slice_(padded_grid, axis, end=-1)[...,5+axes]
 
     # Get the average solution between the interfaces at the boundaries
     intf_avg = fv.slice_(fv.compute_Roe_average([prim_plus,prim_minus], sim_variables), axis, start=1)
@@ -125,18 +131,19 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     })
 
     # Compute the orthogonal L/R Riemann states and fluxes at higher-order accuracy
-    if dimension == 2:
+    if multidimensional:
         # Calculate the interface-centred fluxes
         intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
-            'prim_interfaces': approx_face_avg(ortho_axis, sim_variables.boundary, *[prim_plus, prim_minus]),
-            'cons_interfaces': approx_face_avg(ortho_axis, sim_variables.boundary, *[cons_plus, cons_minus]),
-            'flux_interfaces': approx_face_avg(ortho_axis, sim_variables.boundary, *[flux_plus, flux_minus]),
+            'prim_interfaces': approx_face_avg(ortho_axes, sim_variables, *[prim_plus, prim_minus]),
+            'cons_interfaces': approx_face_avg(ortho_axes, sim_variables, *[cons_plus, cons_minus]),
+            'flux_interfaces': approx_face_avg(ortho_axes, sim_variables, *[flux_plus, flux_minus]),
             'characteristics': characteristics,
         })
 
-        # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation
-        padded_avg_flux = fv.add_boundary(intf_fluxes_avgd, sim_variables.boundary, axis=ortho_axis)
-        intf_fluxes_cntrd -= 1/24 * fv.derivative(padded_avg_flux, axis=ortho_axis)
+        # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation for each orthogonal axis
+        with concurrent.futures.ThreadPoolExecutor() as inner_executor:
+            jobs = inner_executor.map(fv.taylor_expand, repeat(intf_fluxes_avgd), repeat(sim_variables), ortho_axes)
+        intf_fluxes_cntrd -= np.sum([job for job in jobs], axis=0)
     else:
         # Orthogonal Laplacian in 1D is zero
         intf_fluxes_cntrd = intf_fluxes_avgd
@@ -189,24 +196,29 @@ def get_flattening_coeff(grid, sim_variables, axis, slope_determinants=[.33, .75
 # Implement artificial viscosity [McCorquodale & Colella, 2011]
 def get_artificial_viscosity(grid_slices, axis, sim_variables, viscosity_determinants=[.3, .3]):
     alpha, beta = viscosity_determinants
-    rho, pressure, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.Bfields
+    rho, pressure, Bfields, axes = sim_variables.rho, sim_variables.pressure, sim_variables.Bfields, sim_variables.axes
 
-    grid, plus_one = grid_slices
-    ortho_axis = 1 - axis
+    zeroth, plus_one = grid_slices
+    ortho_axes = axes[axes != axis]
+
+    def per_ortho_axis(_grid_slices, _sim_variables, _axis):
+        _zeroth, _plus_one = _grid_slices
+        padded_zeroth = fv.add_boundary(_zeroth, _sim_variables.boundary, axis=_axis)
+        padded_plus_one = fv.add_boundary(_plus_one, _sim_variables.boundary, axis=_axis)
+        return .25 * (
+            fv.slice_(padded_plus_one, _axis, start=2) - fv.slice_(padded_plus_one, _axis, end=-2) 
+            + fv.slice_(padded_zeroth, _axis, start=2) - fv.slice_(padded_zeroth, _axis, end=-2)
+        )
 
     # Calculate face-centred divergence of velocity [eq. 35]
-    lambda_d = plus_one - grid
-    if sim_variables.dimension == 2:
-        ortho_padded_grid = fv.add_boundary(grid, sim_variables.boundary, axis=ortho_axis)
-        ortho_padded_plus_one = fv.add_boundary(plus_one, sim_variables.boundary, axis=ortho_axis)
-
-        lambda_d += .25 * (
-            fv.slice_(ortho_padded_plus_one, ortho_axis, start=2) - fv.slice_(ortho_padded_plus_one, ortho_axis, end=-2) 
-            + fv.slice_(ortho_padded_grid, ortho_axis, start=2) - fv.slice_(ortho_padded_grid, ortho_axis, end=-2)
-            )
+    lambda_d = plus_one - zeroth
+    if sim_variables.multidimensional:
+        with concurrent.futures.ThreadPoolExecutor() as inner_executor:
+            jobs = inner_executor.map(per_ortho_axis, repeat(grid_slices), repeat(sim_variables), ortho_axes)
+        lambda_d += np.sum([job for job in jobs], axis=0)
 
     # Calculate minimum sound speed
-    cs_grid = fv.divide(sim_variables.gamma * grid[...,pressure], grid[...,rho])
+    cs_grid = fv.divide(sim_variables.gamma * zeroth[...,pressure], zeroth[...,rho])
     cs_plus_one = fv.divide(sim_variables.gamma * plus_one[...,pressure], plus_one[...,rho])
     c_min = np.minimum(cs_grid, cs_plus_one)
 
@@ -215,7 +227,7 @@ def get_artificial_viscosity(grid_slices, axis, sim_variables, viscosity_determi
     nu[lambda_d[...,1+axis] >= 0] = 0
 
     # Calculate the artificial viscosity [eq. 38]
-    mu = alpha * (plus_one - grid) * nu[...,None]
+    mu = alpha * (plus_one - zeroth) * nu[...,None]
     if sim_variables.magnetic:
         mu[...,Bfields] = 0
     mu = fv.add_boundary(mu, sim_variables.boundary, axis=axis)

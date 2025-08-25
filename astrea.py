@@ -37,8 +37,11 @@ BEAUTIFY_1D_PLOTS = False
 def core_run(hdf5, sim_variables):
     # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables <q>
     primitive_grid = constructor.initialise(sim_variables)
+    print('initialised')
     centred_grid = fv.inverse_reconstruct(primitive_grid, sim_variables) if sim_variables.magnetic else primitive_grid
+    print('inverse reconstructed')
     grid = fv.point_convert("primitive", centred_grid, sim_variables)
+    print('converted')
 
     # Initiate live or snapshot plotting, if enabled
     plot_snapshot = True if sim_variables.save_snaps else False
@@ -101,8 +104,8 @@ def core_run(hdf5, sim_variables):
             t += dt
             sim_variables.timesteps += 1
 
-            # Change the order of the axis sweep
-            sim_variables.axes = sim_variables.axes[::-1]
+            # Roll the order of the axis sweep
+            sim_variables.axes = np.roll(sim_variables.axes, shift=-1)
 
 ##############################################################################
 
@@ -143,14 +146,13 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
 
     # Auto-generate the resolutions/grid-sizes for run type
     if sim_variables.run_type.startswith('m'):
-        if sim_variables.dimension == 2:
+        if sim_variables.multidimensional:
             _range = 2**np.arange(2,8)
         else:
             _range = 2**np.arange(3,11)
         grid_sizes = np.array([_range,] * sim_variables.dimension).T
     else:
         grid_sizes = [sim_variables.cells]
-    grid_axes = [sim_variables.x_axis, sim_variables.y_axis]
 
     ###################################### SCRIPT INITIATE ######################################
     script_start = datetime.now().strftime('%Y%m%d%H%M')
@@ -187,7 +189,7 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
             sim_variables.now = now
             sim_variables.cells = grid_size
             for ax in sim_variables.ds.keys():
-                sim_variables.ds[ax] = np.abs(np.diff(grid_axes[ax]))/grid_size[ax]
+                sim_variables.ds[ax] = np.abs(np.diff(sim_variables.axis_coord))/grid_size[ax]
 
             # Save simulation variables into HDF5 file
             if sim_variables.full_set_required:

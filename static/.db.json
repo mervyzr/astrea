@@ -208,7 +208,8 @@
       "type": "dimension",
       "accepted": [
         1,
-        2
+        2,
+        3
       ]
     },
     "10": {
