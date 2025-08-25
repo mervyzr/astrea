@@ -55,6 +55,7 @@ docs/_build/
 # custom files
 parameters.yml
 saved_data
+*.astrea*
 *.hdf5
 *.sh
 .vidplots
