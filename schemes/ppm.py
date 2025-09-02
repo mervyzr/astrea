@@ -145,7 +145,7 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
             jobs = inner_executor.map(fv.taylor_expand, repeat(intf_fluxes_avgd), repeat(sim_variables), ortho_axes)
         intf_fluxes_cntrd -= np.sum([job for job in jobs], axis=0)
     else:
-        # Orthogonal Laplacian in 1D is zero
+        # Orthogonal Laplacian in 1d is zero
         intf_fluxes_cntrd = intf_fluxes_avgd
 
     # Add additional dissipation for strong shocks, if switched on (should not apply for mag. fields) [McCorquodale & Colella, 2011]

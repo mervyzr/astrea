@@ -108,7 +108,7 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
     return conservation
 
 
-# Determine the analytical solution for a Sod shock test (only in 1D)
+# Determine the analytical solution for a Sod shock test (only in 1d)
 def calculate_Sod_analytical(grid, t, sim_variables):
     gamma, axis_coord, shock_pos = sim_variables.gamma, sim_variables.axis_coord, sim_variables.shock_pos
     start_pos, end_pos = axis_coord
@@ -168,7 +168,7 @@ def calculate_Sod_analytical(grid, t, sim_variables):
     return arr
 
 
-# Determine the analytical solution for a Sedov blast wave (only in 1D, doesn't work currently) [Kamm & Timmes, 2000]
+# Determine the analytical solution for a Sedov blast wave (only in 1d, doesn't work currently) [Kamm & Timmes, 2000]
 def calculate_Sedov_analytical(grid, t, sim_variables, w=0):
 
     # Create a physical grid for a single axis

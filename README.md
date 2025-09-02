@@ -75,7 +75,7 @@ Several (magneto)hydrodynamics tests are in place:
     - Sedov blast wave (Sedov, 1946)
     - Slow-moving shockwave (Zingale, 2023, p.148)
     - Shu-Osher shockwave (Shu & Osher, 1988)
-    - "Toro tests" (Toro, 1999, p.225)
+    - Toro tests (Toro, 1999, p.225)
     - Smooth-wave tests
       - Gaussian wave
       - sine-wave

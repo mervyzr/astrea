@@ -17,13 +17,57 @@
     },
     "2": {
       "type": "config",
-      "category": "special",
+      "category": "smooth",
       "accepted": [
+        "sin",
+        "sine",
+        "sine wave",
+        "sine-wave",
+        "gaussian",
+        "gauss"
+      ]
+    },
+    "3": {
+      "type": "config",
+      "category": "stationary",
+      "accepted": [
+        "square",
+        "sq",
+        "square-wave",
+        "square wave",
+        "gresho",
+        "gresho vortex",
+        "gresho-vortex",
+        "isentropic-vortex",
+        "isentropic vortex",
+        "ivc"
+      ]
+    },
+    "4": {
+      "type": "config",
+      "category": "interacting",
+      "accepted": [
+        "slow",
+        "slow-moving",
+        "slow-moving shock",
+        "slow shock",
+        "slow-shock",
         "shu-osher",
         "shu osher",
         "shu",
         "osher",
         "so",
+        "kelvin-helmholtz",
+        "kelvin-helmholtz instability",
+        "khi"
+      ]
+    },
+    "5": {
+      "type": "config",
+      "category": "special",
+      "accepted": [
+        "noh",
+        "noh problem",
         "toro1",
         "toro2",
         "toro3",
@@ -38,94 +82,7 @@
         "toro 2",
         "toro 3",
         "toro 4",
-        "toro 5"
-      ]
-    },
-    "3": {
-      "type": "config",
-      "category": "interacting",
-      "accepted": [
-        "slow",
-        "slow-moving",
-        "slow-moving shock",
-        "slow shock",
-        "slow-shock"
-      ]
-    },
-    "4": {
-      "type": "config",
-      "category": "smooth",
-      "accepted": [
-        "sin",
-        "sine",
-        "sine wave",
-        "sine-wave",
-        "gaussian",
-        "gauss"
-      ]
-    },
-    "5": {
-      "type": "config",
-      "category": "stationary",
-      "accepted": [
-        "square",
-        "sq",
-        "square-wave",
-        "square wave"
-      ]
-    },
-    "6": {
-      "type": "config",
-      "category": "magnetic",
-      "accepted": [
-        "ryu-jones",
-        "rj",
-        "ryu",
-        "jones",
-        "brio-wu",
-        "bw",
-        "brio",
-        "wu"
-      ]
-    },
-    "7": {
-      "type": "config",
-      "category": "magnetic-2D",
-      "accepted": [
-        "orszag-tang",
-        "orszag",
-        "tang",
-        "ot",
-        "mhd rotor",
-        "mhd-rotor",
-        "rotor",
-        "mhd blast",
-        "mhd-blast",
-        "mhd blast wave",
-        "mhd-blast-wave",
-        "sheet",
-        "mhd sheet",
-        "mhd-sheet",
-        "current",
-        "mhd current",
-        "mhd-current"
-      ]
-    },
-    "8": {
-      "type": "config",
-      "category": "2D",
-      "accepted": [
-        "kelvin-helmholtz",
-        "kelvin-helmholtz instability",
-        "khi",
-        "gresho",
-        "gresho vortex",
-        "gresho-vortex",
-        "noh",
-        "noh problem",
-        "isentropic-vortex",
-        "isentropic vortex",
-        "ivc",
+        "toro 5",
         "ll1",
         "ll2",
         "ll3",
@@ -204,7 +161,38 @@
         "lax-liu19"
       ]
     },
-    "9": {
+    "6": {
+      "type": "config",
+      "category": "magnetic",
+      "accepted": [
+        "ryu-jones",
+        "rj",
+        "ryu",
+        "jones",
+        "brio-wu",
+        "bw",
+        "brio",
+        "wu",
+        "orszag-tang",
+        "orszag",
+        "tang",
+        "ot",
+        "mhd rotor",
+        "mhd-rotor",
+        "rotor",
+        "mhd blast",
+        "mhd-blast",
+        "mhd blast wave",
+        "mhd-blast-wave",
+        "sheet",
+        "mhd sheet",
+        "mhd-sheet",
+        "current",
+        "mhd current",
+        "mhd-current"
+      ]
+    },
+    "7": {
       "type": "dimension",
       "accepted": [
         1,
@@ -212,7 +200,7 @@
         3
       ]
     },
-    "10": {
+    "8": {
       "type": "precision",
       "accepted": [
         "float",
@@ -221,7 +209,7 @@
         "float64"
       ]
     },
-    "11": {
+    "9": {
       "type": "subgrid",
       "category": "pcm",
       "accepted": [
@@ -230,7 +218,7 @@
         "c"
       ]
     },
-    "12": {
+    "10": {
       "type": "subgrid",
       "category": "plm",
       "accepted": [
@@ -239,7 +227,7 @@
         "l"
       ]
     },
-    "13": {
+    "11": {
       "type": "subgrid",
       "category": "ppm",
       "accepted": [
@@ -249,7 +237,7 @@
         "p"
       ]
     },
-    "14": {
+    "12": {
       "type": "subgrid",
       "category": "weno",
       "accepted": [
@@ -265,29 +253,26 @@
         "weno 7"
       ]
     },
-    "15": {
+    "13": {
       "type": "time_evo",
       "category": "euler",
       "accepted": [
         "euler",
-        "forward",
         "forward-euler",
         "forward euler"
       ]
     },
-    "16": {
+    "14": {
       "type": "time_evo",
       "category": "rk",
       "accepted": [
         "rk4",
-        "runge-kutta",
-        "runge kutta",
         "runge kutta 4",
         "runge-kutta 4",
         "runge-kutta4"
       ]
     },
-    "17": {
+    "15": {
       "type": "time_evo",
       "category": "ssprk",
       "accepted": [
@@ -311,7 +296,7 @@
         "ssprk10,4"
       ]
     },
-    "18": {
+    "16": {
       "type": "solver",
       "category": "lax",
       "accepted": [
@@ -325,7 +310,7 @@
         "wendroff"
       ]
     },
-    "19": {
+    "17": {
       "type": "solver",
       "category": "hll",
       "accepted": [
@@ -335,7 +320,7 @@
         "d"
       ]
     },
-    "20": {
+    "18": {
       "type": "solver",
       "category": "complete",
       "accepted": [
@@ -349,7 +334,7 @@
         "entropy-stable"
       ]
     },
-    "21": {
+    "19": {
       "type": "run_type",
       "accepted": [
         "s",
@@ -360,7 +345,7 @@
         "many"
       ]
     },
-    "22": {
+    "20": {
       "type": "default",
       "config": "sod",
       "dimension": 1,
@@ -377,7 +362,7 @@
         "total energy"
       ]
     },
-    "23": {
+    "21": {
       "type": "plot_options",
       "category": "plotting",
       "accepted": [
@@ -454,7 +439,7 @@
         "mach-number"
       ]
     },
-    "24": {
+    "22": {
       "type": "quotes",
       "name": [
         "It's not a bug; it's an undocumented feature.",

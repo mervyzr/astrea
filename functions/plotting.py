@@ -267,7 +267,7 @@ def make_data(options, grid, sim_variables):
         else:
             quantity = grid[...,rho]
 
-        # pyplot.imshow transposes the 2D plots (might be a column-major relic)
+        # pyplot.imshow transposes the 2d plots (might be a column-major relic)
         quantities.append(quantity.T)
     return quantities
 
@@ -285,7 +285,7 @@ def initiate_live_plot(sim_variables, title=False):
     for idx, (_i,_j) in enumerate(plot_['indexes']):
         ax[_i,_j].set_title(plot_['names'][idx], fontsize=20)
         if multidimensional:
-            # pyplot.imshow transposes the 2D plots (might be a column-major relic)
+            # pyplot.imshow transposes the 2d plots (might be a column-major relic)
             graph = ax[_i,_j].imshow(np.zeros(cells[::-1]), interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes('right', size='5%', pad=0.05)
@@ -466,7 +466,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
                 fig.text(0.04, 0.5, r"$y$", ha='center', rotation='vertical')
                 fig.subplots_adjust(left=0.1)
 
-        # Add analytical solutions only for 1D
+        # Add analytical solutions only for 1d
         if not multidimensional:
             # Add analytical solution for smooth functions, using the highest resolution and timing
             if sim_variables.config_category == "smooth":

@@ -38,7 +38,7 @@ def handle_CLI(db_path):
     accepted_values = lambda _type: [value for category in db.search(params.type == _type) for value in category['accepted']]
     quotes = db.get(params.type == 'quotes')['name']
 
-    parser = argparse.ArgumentParser(description='Run the astrea simulation.\n\nastrea is a 2D magnetohydrodynamics simulation written in Python 3. Refer to the README for more information.', 
+    parser = argparse.ArgumentParser(description='Run the astrea simulation.\n\nastrea is a multi-dimensional magnetohydrodynamics simulation written in Python 3. Refer to the README for more information.', 
                                      epilog=f"--- {BColours.ITALIC}{quotes[random.randint(0,len(quotes)-1)]}{BColours.ENDC} ---", 
                                      formatter_class=argparse.RawTextHelpFormatter)
 
@@ -255,22 +255,18 @@ class SimulationVariables(object):
             self.higher_order = True
 
         # Permutations for axes
-        if '2D' in self.config_category and self.dimension != 2:
-            self.dimension = 2
-            if len(self.cells) != 2:
-                self.cells *= 2
         self.multidimensional = self.dimension >= 2
         self.axes = np.array(range(self.dimension))
 
         # Exclusion cases
         if self.solver in db.get(params.type == 'solver' and params.category == 'hll')['accepted']:
-            if (self.solver_category == "hll" and self.solver.endswith('c')) and self.config in db.get(params.type == 'config' and params.category == 'magnetic')['accepted']:
+            if (self.solver_category == "hll" and self.solver.endswith('c')) and self.magnetic:
                 print(f"{BColours.WARNING}HLLC solver does not work with magnetic fields present..{BColours.ENDC}")
                 self.solver = db.get(params.type == 'default')['solver']
 
         # Media options
         if (self.live_plot or self.save_snaps or self.save_plots or self.save_video) and self.dimension > 2:
-            print(f"{BColours.WARNING}Media options not ready for 3D simulations yet..{BColours.ENDC}")
+            print(f"{BColours.WARNING}Media options not ready for 3d simulations yet..{BColours.ENDC}")
             self.live_plot = self.save_snaps = self.save_plots = self.save_video = False
 
         if self.run_type.startswith('m'):
