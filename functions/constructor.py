@@ -40,6 +40,11 @@ def initialise(sim_variables):
                 mask = np.where(((x-centre)**2 + (y-centre)**2 + (z-centre)**2) <= (shock_pos-centre)**2)
                 computational_grid[mask] = initial_left
 
+            elif config.startswith("gauss"):
+                r = np.sqrt((x-centre)**2 + (y-centre)**2 + (z-centre)**2)
+                mask = params['y_offset'] + params['ampl']*np.exp(-(r**2)/params['fwhm'])
+                computational_grid[...,rho] = mask
+
         else:
             x, y = np.meshgrid(physical_grid_x, physical_grid_y, indexing='ij')
 
