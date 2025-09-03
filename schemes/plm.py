@@ -8,13 +8,13 @@ from num_methods import ct, limiters, solvers
 ##############################################################################
 
 def run(grid, sim_variables, axis):
-    boundary, multidimensional, axes, magnetic, ds = sim_variables.boundary, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
+    multidimensional, axes, magnetic, ds = sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
     data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
 
     # Pad array with boundary & apply (TVD) slope limiters
-    padded_grid = fv.add_boundary(grid, boundary, axis=axis)
+    padded_grid = fv.add_boundary(grid, sim_variables, axis=axis)
     limited_values = limiters.minmod_limiter(padded_grid, axis=axis)
 
     """Linear reconstruction [Derigs et al., 2017]
@@ -33,13 +33,13 @@ def run(grid, sim_variables, axis):
             data['ortho_interfaces'] = ct.reconstruct_transverse(grid, sim_variables, axis=axis)
 
     # Re-align the interfaces so that cell wall is in between interfaces
-    prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)
+    prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, sim_variables, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, sim_variables, axis=axis), axis, end=-1)
     if magnetic:
         prim_plus[...,5+axes] = prim_minus[...,5+axes] = fv.slice_(padded_grid, axis, end=-1)[...,5+axes]
 
     # Get the average solution between the interfaces at the boundaries
     intf_avg = fv.slice_(.5* (prim_plus + prim_minus), axis, start=1)
-    padded_intf_avg = fv.add_boundary(intf_avg, boundary, axis=axis)
+    padded_intf_avg = fv.add_boundary(intf_avg, sim_variables, axis=axis)
 
     # Convert the primitive interface variables
     cons_plus, cons_minus = fv.convert_interface("primitive", prim_plus, axis, sim_variables), fv.convert_interface("primitive", prim_minus, axis, sim_variables)

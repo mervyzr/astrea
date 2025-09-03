@@ -11,7 +11,7 @@ from num_methods import ct, solvers
 ##############################################################################
 
 def run(grid, sim_variables, axis):
-    boundary, subgrid, multidimensional, axes, magnetic, ds = sim_variables.boundary, sim_variables.subgrid, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
+    subgrid, multidimensional, axes, magnetic, ds = sim_variables.subgrid, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
     data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
@@ -33,11 +33,11 @@ def run(grid, sim_variables, axis):
     |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
     |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |   w+(i+1/2)   w-(i+3/2)   |
     """
-    def reconstruct(_grid, _boundary, _axis, _order=5):
+    def reconstruct(_grid, _sim_variables, _axis, _order=5):
         eps = 1e-6
 
         # Define frequently used terms    
-        padded_grid_3 = fv.add_boundary(_grid, _boundary, stencil=3, axis=_axis)
+        padded_grid_3 = fv.add_boundary(_grid, _sim_variables, stencil=3, axis=_axis)
         padded_grid_2 = fv.slice_(padded_grid_3, _axis, *[1,-1])
         padded_grid = fv.slice_(padded_grid_2, _axis, *[1,-1])
 
@@ -152,11 +152,11 @@ def run(grid, sim_variables, axis):
     # Reconstruct the interface states
     if len(subgrid.split("weno")) == 2:
         try:
-            wL, wR = reconstruct(grid, boundary, axis, int(subgrid.replace('-','').split("weno")[-1]))
+            wL, wR = reconstruct(grid, sim_variables, axis, int(subgrid.replace('-','').split("weno")[-1]))
         except Exception as e:
-            wL, wR = reconstruct(grid, boundary, axis)
+            wL, wR = reconstruct(grid, sim_variables, axis)
     else:
-        wL, wR = reconstruct(grid, boundary, axis)
+        wL, wR = reconstruct(grid, sim_variables, axis)
     if magnetic:
         wR[...,5+axes] = grid[...,5+axes]
 
@@ -165,14 +165,14 @@ def run(grid, sim_variables, axis):
             data['ortho_interfaces'] = ct.reconstruct_transverse(grid, sim_variables, axis=axis)
 
     # Re-align the interfaces so that cell wall is in between interfaces
-    prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)
+    prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, sim_variables, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, sim_variables, axis=axis), axis, end=-1)
     if magnetic:
-        padded_grid = fv.add_boundary(grid, boundary, axis=axis)
+        padded_grid = fv.add_boundary(grid, sim_variables, axis=axis)
         prim_plus[...,5+axes] = prim_minus[...,5+axes] = fv.slice_(padded_grid, axis, end=-1)[...,5+axes]
 
     # Get the average solution between the interfaces at the boundaries
     intf_avg = fv.slice_(fv.compute_Roe_average([prim_plus,prim_minus], sim_variables), axis, start=1)
-    padded_intf_avg = fv.add_boundary(intf_avg, boundary, axis=axis)
+    padded_intf_avg = fv.add_boundary(intf_avg, sim_variables, axis=axis)
 
     # Convert the primitive variables
     cons_plus, cons_minus = fv.convert_interface("primitive", prim_plus, axis, sim_variables), fv.convert_interface("primitive", prim_minus, axis, sim_variables)

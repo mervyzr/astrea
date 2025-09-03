@@ -70,15 +70,15 @@ def derivative(grid, axis=0):
 
 # Taylor expansion of higher-order terms
 def taylor_expand(grid, sim_variables, axis):
-    return 1/24 * derivative(add_boundary(grid, sim_variables.boundary, axis=axis), axis=axis)
+    return 1/24 * derivative(add_boundary(grid, sim_variables, axis=axis), axis=axis)
 
 
 # Add boundary conditions
-def add_boundary(grid, boundary, stencil=1, axis=0):
+def add_boundary(grid, sim_variables, stencil=1, axis=0):
     arr = np.copy(grid)
     padding = [(0,0)] * grid.ndim
     padding[axis] = (stencil,stencil)
-    return np.pad(arr, padding, mode=boundary)
+    return np.pad(arr, padding, mode=sim_variables.boundary)
 
 
 # Convert between pressure P and total energy density e_tot; P is also related to the internal energy density e_int: P = (gamma-1) * e_int
@@ -109,7 +109,7 @@ def point_convert(variable_form, grid, sim_variables):
 
 # Higher-order approximation for higher-order conversion between primitive & conservative variables (high_order_convert), and for centred & averaged variables (convert_interface)
 def approximate_per_axis(variable_form, grid, sim_variables, axis):
-    _base = add_boundary(grid, sim_variables.boundary, axis=axis)
+    _base = add_boundary(grid, sim_variables, axis=axis)
     base = 1/24 * derivative(_base, axis=axis)
 
     _expansion = point_convert(variable_form, _base, sim_variables)
@@ -168,7 +168,7 @@ def inverse_reconstruct(grid, sim_variables):
                     face_cntrd -= np.sum([job for job in jobs], axis=0)
 
             # Interpolate the face-centred values to cell-centred values (eq. 39)
-            face_cntrd_padded_2 = add_boundary(face_cntrd, _sim_variables.boundary, stencil=2, axis=axis)
+            face_cntrd_padded_2 = add_boundary(face_cntrd, _sim_variables, stencil=2, axis=axis)
             face_cntrd_padded = slice_(face_cntrd_padded_2, axis, *[1,-1])
             cell_cntrd = -1/16 * (slice_(face_cntrd_padded, axis, end=-2) + slice_(face_cntrd_padded_2, axis, start=4)) \
                         + 9/16 * (face_cntrd + slice_(face_cntrd_padded, axis, start=2))
@@ -182,7 +182,7 @@ def inverse_reconstruct(grid, sim_variables):
                     cell_avgd += np.sum([job for job in jobs], axis=0)
 
         elif _sim_variables.subgrid in ['plm', 'l', 'linear']:
-            padded_grid = add_boundary(_grid, _sim_variables.boundary, axis=axis)
+            padded_grid = add_boundary(_grid, _sim_variables, axis=axis)
             cell_avgd = slice_(.5 * (slice_(padded_grid, axis, start=1) + slice_(padded_grid, axis, end=-1)), axis, start=1)
 
         else:

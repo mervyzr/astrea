@@ -14,7 +14,7 @@ def run(grid, sim_variables, axis):
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
 
     # Pad array with boundaries
-    padded_primitive = fv.add_boundary(grid, boundary, axis=axis)
+    padded_primitive = fv.add_boundary(grid, sim_variables, axis=axis)
     padded_conservative = fv.convert_interface("primitive", padded_primitive, axis, sim_variables)
 
     # Compute the fluxes and the Jacobian

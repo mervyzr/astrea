@@ -12,7 +12,7 @@ from num_methods import ct, limiters, solvers
 ##############################################################################
 
 def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
-    boundary, multidimensional, axes, magnetic, ds, dissipate = sim_variables.boundary, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds, sim_variables.ppm_dissipate
+    multidimensional, axes, magnetic, ds, dissipate = sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds, sim_variables.ppm_dissipate
     data = {}
 
     author = author.lower()
@@ -33,7 +33,7 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
 
 
     # Pad array with boundary; PPM requires additional ghost cells
-    padded_grid_2 = fv.add_boundary(grid, boundary, stencil=2, axis=axis)
+    padded_grid_2 = fv.add_boundary(grid, sim_variables, stencil=2, axis=axis)
     padded_grid = fv.slice_(padded_grid_2, axis, *[1,-1])
 
     minus_one, minus_two = fv.slice_(padded_grid, axis, end=-2), fv.slice_(padded_grid_2, axis, end=-4)
@@ -69,7 +69,7 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
 
         # Limit interface values [Peterson & Hammett, 2008, eq. 3.33-3.34]
         limited_wFs = limiters.interface_limiter(left_of_centre, *[minus_two, minus_one, grid, plus_one]), limiters.interface_limiter(right_of_centre, *grid_slices)
-        padded_interface_2 = np.zeros_like(fv.add_boundary(right_of_centre, boundary, stencil=2, axis=axis))
+        padded_interface_2 = np.zeros_like(fv.add_boundary(right_of_centre, sim_variables, stencil=2, axis=axis))
 
     else:
         # Limit interface values [Colella et al., 2011, p. 25-26]
@@ -77,7 +77,7 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
             interface = limiters.interface_limiter(interface, *grid_slices)
 
         # Define the left and right parabolic extrapolants
-        padded_interface_2 = fv.add_boundary(interface, boundary, stencil=2, axis=axis)
+        padded_interface_2 = fv.add_boundary(interface, sim_variables, stencil=2, axis=axis)
         limited_wFs = fv.slice_(padded_interface_2, axis, *[1,-3]), fv.slice_(padded_interface_2, axis, *[2,-2])
 
     """Reconstruct the limited parabolic extrapolants from the interface values [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
@@ -95,13 +95,13 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
         wR = wR * eta[...,None] + grid * (1-eta)[...,None]
 
     # Re-align the interfaces so that cell wall is in between interfaces
-    prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, boundary, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, boundary, axis=axis), axis, end=-1)
+    prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, sim_variables, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, sim_variables, axis=axis), axis, end=-1)
     if magnetic:
         prim_plus[...,5+axes] = prim_minus[...,5+axes] = fv.slice_(padded_grid, axis, end=-1)[...,5+axes]
 
     # Get the average solution between the interfaces at the boundaries
     intf_avg = fv.slice_(fv.compute_Roe_average([prim_plus,prim_minus], sim_variables), axis, start=1)
-    padded_intf_avg = fv.add_boundary(intf_avg, boundary, axis=axis)
+    padded_intf_avg = fv.add_boundary(intf_avg, sim_variables, axis=axis)
 
     # Convert the primitive variables
     cons_plus, cons_minus = fv.convert_interface("primitive", prim_plus, axis, sim_variables), fv.convert_interface("primitive", prim_minus, axis, sim_variables)
@@ -164,7 +164,7 @@ def get_flattening_coeff(grid, sim_variables, axis, slope_determinants=[.33, .75
     delta, z0, z1 = slope_determinants
     pressure = sim_variables.pressure
 
-    padded_primitive_2 = fv.add_boundary(grid, sim_variables.boundary, stencil=2, axis=axis)
+    padded_primitive_2 = fv.add_boundary(grid, sim_variables, stencil=2, axis=axis)
     padded_primitive = fv.slice_(padded_primitive_2, axis, *[1,-1])
 
     minus_one, minus_two = fv.slice_(padded_primitive, axis, end=-2), fv.slice_(padded_primitive_2, axis, end=-4)
@@ -184,7 +184,7 @@ def get_flattening_coeff(grid, sim_variables, axis, slope_determinants=[.33, .75
 
     # Create flattening coefficient
     chi = np.copy(chi_bar)
-    chi_bar_padded = fv.add_boundary(chi_bar, sim_variables.boundary, axis=axis)
+    chi_bar_padded = fv.add_boundary(chi_bar, sim_variables, axis=axis)
     signage = np.sign(plus_one[...,pressure]-minus_one[...,pressure])
     chi[signage < 0] = np.minimum(chi_bar, fv.slice_(chi_bar_padded, axis, start=2))[signage < 0]
     chi[signage > 0] = np.minimum(chi_bar, fv.slice_(chi_bar_padded, axis, end=-2))[signage > 0]
@@ -203,8 +203,8 @@ def get_artificial_viscosity(grid_slices, axis, sim_variables, viscosity_determi
 
     def per_ortho_axis(_grid_slices, _sim_variables, _axis):
         _zeroth, _plus_one = _grid_slices
-        padded_zeroth = fv.add_boundary(_zeroth, _sim_variables.boundary, axis=_axis)
-        padded_plus_one = fv.add_boundary(_plus_one, _sim_variables.boundary, axis=_axis)
+        padded_zeroth = fv.add_boundary(_zeroth, _sim_variables, axis=_axis)
+        padded_plus_one = fv.add_boundary(_plus_one, _sim_variables, axis=_axis)
         return .25 * (
             fv.slice_(padded_plus_one, _axis, start=2) - fv.slice_(padded_plus_one, _axis, end=-2) 
             + fv.slice_(padded_zeroth, _axis, start=2) - fv.slice_(padded_zeroth, _axis, end=-2)
@@ -230,6 +230,6 @@ def get_artificial_viscosity(grid_slices, axis, sim_variables, viscosity_determi
     mu = alpha * (plus_one - zeroth) * nu[...,None]
     if sim_variables.magnetic:
         mu[...,Bfields] = 0
-    mu = fv.add_boundary(mu, sim_variables.boundary, axis=axis)
+    mu = fv.add_boundary(mu, sim_variables, axis=axis)
 
     return fv.slice_(mu, axis=axis, start=1)

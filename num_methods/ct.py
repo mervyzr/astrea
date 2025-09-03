@@ -14,9 +14,8 @@ from num_methods import limiters
 def reconstruct_transverse(interface, sim_variables, axis, method=None, extras=None):
     if not method:
         method = sim_variables.subgrid
-    boundary = sim_variables.boundary
 
-    padded_grid_2 = fv.add_boundary(interface, boundary, stencil=2, axis=axis)
+    padded_grid_2 = fv.add_boundary(interface, sim_variables, stencil=2, axis=axis)
     padded_grid = fv.slice_(padded_grid_2, axis, *[1,-1])
 
     zeroth = np.copy(interface)
@@ -105,14 +104,14 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None, extras=N
 
             # Limit interface values [Peterson & Hammett, 2008, eq. 3.33-3.34]
             limited_wUs = limiters.interface_limiter(wD, *[minus_two, minus_one, zeroth, plus_one]), limiters.interface_limiter(wU, *grid_slices)
-            padded_wU_2 = np.zeros_like(fv.add_boundary(wU, boundary, stencil=2, axis=axis))
+            padded_wU_2 = np.zeros_like(fv.add_boundary(wU, sim_variables, stencil=2, axis=axis))
         else:
             if sim_variables.ppm_author.startswith(("colella", "c")):
                 # Limit interface values [Colella et al., 2011, p. 25-26]
                 wU = limiters.interface_limiter(wU, *grid_slices)
 
             # Define the top and bottom parabolic extrapolants
-            padded_wU_2 = fv.add_boundary(wU, boundary, stencil=2, axis=axis)
+            padded_wU_2 = fv.add_boundary(wU, sim_variables, stencil=2, axis=axis)
             limited_wUs = fv.slice_(padded_wU_2, axis, *[1,-3]), fv.slice_(padded_wU_2, axis, *[2,-2])
 
         """Reconstruct the limited extrapolants from the interface values. Returns the face averages in the form of w+(y) & w-(y) when considering x-axis, and w+(x) & w-(x) when considering y-axis
@@ -149,7 +148,7 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None, extras=N
         wD, wU = zeroth, zeroth
 
     # Re-align the interfaces so that cell wall is in between interfaces
-    prim_plus, prim_minus = fv.slice_(fv.add_boundary(wD, boundary, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wU, boundary, axis=axis), axis, end=-1)
+    prim_plus, prim_minus = fv.slice_(fv.add_boundary(wD, sim_variables, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wU, sim_variables, axis=axis), axis, end=-1)
 
     # Remove the 'leftmost' interface since only the upwind corners/lines are needed
     prim_plus, prim_minus = fv.slice_(prim_plus, axis=axis, start=1), fv.slice_(prim_minus, axis=axis, start=1)
@@ -190,7 +189,7 @@ def compute_ct_flux(emfs, flux, sim_variables, axis):
     normal_axes = np.roll(ortho_axes, shift=-1)
 
     def per_normal_axis(emf, _sim_variables, normal_axis):
-        padded_emf = fv.add_boundary(emf, _sim_variables.boundary, axis=normal_axis)
+        padded_emf = fv.add_boundary(emf, _sim_variables, axis=normal_axis)
         return np.diff(fv.slice_(padded_emf, axis=normal_axis, end=-1), axis=normal_axis)/_sim_variables.ds[normal_axis]
 
     # Update CT flux in axis; set the other axes fluxes to zero (for summation later)

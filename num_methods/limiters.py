@@ -96,14 +96,14 @@ def extrapolant_limiter(grid, sim_variables, axis, *args, **kwargs):
         d2w_C = fv.slice_(padded_grid, axis, end=-2) - 2*grid + fv.slice_(padded_grid, axis, start=2)
 
         # Approximation to the third derivative [McCorquodale & Colella, 2011, eq. 23]
-        d3w = fv.slice_(np.diff(fv.add_boundary(d2w_C, sim_variables.boundary, axis=axis), axis=axis), axis, start=1)
+        d3w = fv.slice_(np.diff(fv.add_boundary(d2w_C, sim_variables, axis=axis), axis=axis), axis, start=1)
 
         # Check for cell extrema in cells [McCorquodale & Colella, 2011, eq. 24-25]
         cell_extrema = (dw_minus*dw_plus <= 0) | ((grid-fv.slice_(padded_grid_2, axis, end=-4)) * (fv.slice_(padded_grid_2, axis, start=4)-grid) <= 0)
 
         # If there are extrema in the cells
         if cell_extrema.any():
-            d2w_Cw = fv.add_boundary(d2w_C, sim_variables.boundary, axis=axis)
+            d2w_Cw = fv.add_boundary(d2w_C, sim_variables, axis=axis)
             d2w_lim = np.zeros_like(grid)
 
             # Get the curvatures that have the same signs
@@ -140,7 +140,7 @@ def extrapolant_limiter(grid, sim_variables, axis, *args, **kwargs):
             rho_limiter[rho_sensitive] = phi[rho_sensitive]
 
             # Apply additional limiters
-            d3w_w2 = fv.add_boundary(d3w, sim_variables.boundary, stencil=2, axis=axis)
+            d3w_w2 = fv.add_boundary(d3w, sim_variables, stencil=2, axis=axis)
             d3w_w = fv.slice_(d3w_w2, axis, *[1,-1])
             d3w_min = np.minimum(
                 np.minimum(fv.slice_(d3w_w, axis, end=-2), d3w), \
