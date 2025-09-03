@@ -21,6 +21,7 @@ def initialise(sim_variables):
     rho, vx, vy, pressure, Bx, By = sim_variables.rho, sim_variables.vx, sim_variables.vy, sim_variables.pressure, sim_variables.Bx, sim_variables.By
     axis_coord, shock_pos, params = sim_variables.axis_coord, sim_variables.shock_pos, sim_variables.misc
     initial_left, initial_right = sim_variables.initial_left, sim_variables.initial_right
+    axes = sim_variables.axes
 
 
     computational_grid = np.zeros(list(cells)+[len(initial_right),], dtype=precision)
@@ -39,6 +40,8 @@ def initialise(sim_variables):
             if config == "sedov" or "blast" in config:
                 mask = np.where(((x-centre)**2 + (y-centre)**2 + (z-centre)**2) <= (shock_pos-centre)**2)
                 computational_grid[mask] = initial_left
+                if config.startswith("mhd"):
+                    computational_grid[...,5+axes] = 1/np.sqrt(2)
 
             elif config.startswith("gauss"):
                 r = np.sqrt((x-centre)**2 + (y-centre)**2 + (z-centre)**2)
@@ -51,6 +54,8 @@ def initialise(sim_variables):
             if config == "sedov" or "blast" in config:
                 mask = np.where(((x-centre)**2 + (y-centre)**2) <= (shock_pos-centre)**2)
                 computational_grid[mask] = initial_left
+                if config.startswith("mhd"):
+                    computational_grid[...,5+axes] = 1/np.sqrt(2)
 
             elif config.startswith("gauss"):
                 r = np.sqrt((x-centre)**2 + (y-centre)**2)

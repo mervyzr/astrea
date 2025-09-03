@@ -144,7 +144,7 @@ def generate_test_conditions(config, cells):
     elif "rotor" in config:
         axis_coord = [-.5,.5]
         shock_pos = .1
-        t_end = .15
+        t_end = .05
         boundary = "wrap"
         initial_left = np.array([10,0,0,0,1,5/np.sqrt(4*np.pi),0,0])
         initial_right = np.array([1,0,0,0,1,5/np.sqrt(4*np.pi),0,0])
@@ -156,8 +156,8 @@ def generate_test_conditions(config, cells):
         shock_pos = .1
         t_end = .2
         boundary = "wrap"
-        initial_left = np.array([1,0,0,0,10,1/np.sqrt(2),1/np.sqrt(2),0])
-        initial_right = np.array([1,0,0,0,.1,1/np.sqrt(2),1/np.sqrt(2),0])
+        initial_left = np.array([1,0,0,0,10,0,0,0])
+        initial_right = np.array([1,0,0,0,.1,0,0,0])
         misc = None
 
     # [Gardiner & Stone, 2005]
