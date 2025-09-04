@@ -181,7 +181,7 @@ def inverse_reconstruct(grid, sim_variables):
                     jobs = inner_executor.map(taylor_expand, repeat(cell_cntrd), repeat(_sim_variables), ortho_axes)
                     cell_avgd += np.sum([job for job in jobs], axis=0)
 
-        elif _sim_variables.subgrid in ['plm', 'l', 'linear']:
+        elif _sim_variables.subgrid_category == 'plm':
             padded_grid = add_boundary(_grid, _sim_variables, axis=axis)
             cell_avgd = slice_(.5 * (slice_(padded_grid, axis, start=1) + slice_(padded_grid, axis, end=-1)), axis, start=1)
 

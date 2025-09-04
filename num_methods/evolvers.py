@@ -13,7 +13,7 @@ from schemes import pcm, plm, ppm, weno
 
 # Evolve the system in space by a standardised workflow
 def evolve_space(grid, sim_variables, first_stage=False):
-    dimension, multidimensional, subgrid, axes, magnetic = sim_variables.dimension, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.axes, sim_variables.magnetic
+    dimension, multidimensional, subgrid_category, axes, magnetic = sim_variables.dimension, sim_variables.multidimensional, sim_variables.subgrid_category, sim_variables.axes, sim_variables.magnetic
     pressure, dissipate = sim_variables.pressure, sim_variables.ppm_dissipate
 
     # Convert to primitive variables
@@ -23,7 +23,7 @@ def evolve_space(grid, sim_variables, first_stage=False):
 
 
     # Compute additional dissipation for PPM, if active
-    if dissipate and subgrid in ["ppm", "parabolic", "p"]:
+    if dissipate and subgrid_category == "ppm":
         eta = np.ones_like(grid[...,pressure])
         with concurrent.futures.ThreadPoolExecutor() as executor:
             jobs = executor.map(ppm.get_flattening_coeff, repeat(primitive), repeat(sim_variables), axes)
@@ -32,16 +32,16 @@ def evolve_space(grid, sim_variables, first_stage=False):
 
     # Hydrodynamics computation (with fluxes and eigmax)
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        if subgrid.startswith("w"):
+        if subgrid_category == "weno":
             jobs = executor.map(weno.run, repeat(primitive), repeat(sim_variables), axes)
 
-        elif subgrid in ["ppm", "parabolic", "p"]:            
+        elif subgrid_category == "ppm":
             if dissipate:
                 jobs = executor.map(ppm.run, repeat(primitive), repeat(sim_variables), axes, repeat(eta))
             else:
                 jobs = executor.map(ppm.run, repeat(primitive), repeat(sim_variables), axes)
 
-        elif subgrid in ["plm", "linear", "l"]:
+        elif subgrid_category == "plm":
             jobs = executor.map(plm.run, repeat(primitive), repeat(sim_variables), axes)
 
         else:

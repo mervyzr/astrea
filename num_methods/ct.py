@@ -13,7 +13,7 @@ from num_methods import limiters
 # Reconstruct the transverse values for each face average (computation done entirely for orthogonal axis)
 def reconstruct_transverse(interface, sim_variables, axis, method=None, extras=None):
     if not method:
-        method = sim_variables.subgrid
+        method = sim_variables.subgrid_category
 
     padded_grid_2 = fv.add_boundary(interface, sim_variables, stencil=2, axis=axis)
     padded_grid = fv.slice_(padded_grid_2, axis, *[1,-1])
@@ -23,7 +23,7 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None, extras=N
     plus_one, plus_two = fv.slice_(padded_grid, axis, start=2), fv.slice_(padded_grid_2, axis, start=4)
 
     # 5th-order WENO reconstruction
-    if "weno" in method:
+    if method == "weno":
         eps = 1e-6
 
         """Interpolate the face averages to both corners (upwards & downwards)
