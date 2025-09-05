@@ -24,12 +24,12 @@ The simulation employs a higher-order finite volume subgrid model (Eulerian) wit
 
 The code is written entirely in Python 3, and uses the `numpy` and `h5py` modules extensively for calculations and data handling respectively. The last _stable^_ Python version supported is _**Python 3.13**_.
 
-### Is this simulation slow? _Yes_.
-Due to the nature of Python and the global-interpreter-lock (GIL).
+### Is this simulation slow? _Yes (relatively)_.
+By nature interpreted languages are slower than compiled languages. The global-interpreter-lock (GIL) in Python makes it more difficult to achieve parallelisation.
 
-Some experimentation was done to parallelise the code with `Open MPI` and `MPICH`. However, this is generally not recommended because of the GIL in Python. Attempts have been made with multi-processing (`multiprocessing`) and multi-threading (`concurrent.futures`), with limited success. Some of the main slow-downs come from the sequential nature of the (explicit) time evolution method and the I/O of the `hdf5` data file. Most of the functions have also been vectorised to make use of `numpy`'s multi-threading _wherever possible_. But ultimately the benefits of having a 'parallelised' Python with `numpy` code might not outweigh the benefits of having a 'fully-parallelised' code with Fortran or C (Ross, 2016).
+Some experimentation was done to parallelise the code with `Open MPI` and `MPICH`. However, this is generally not recommended because of the aforementioned GIL. Attempts have been made with multi-processing (`multiprocessing`) and multi-threading (`concurrent.futures`), with limited success. Some of the main slow-downs come from the sequential nature of the (explicit) time evolution method and the I/O of the `hdf5` data file. Most of the functions have also been vectorised to make use of `numpy`'s multi-threading _wherever possible_. But ultimately the benefits of having a 'semi-parallelised' Python code with `numpy` might not outweigh having a fully compiled code such as Fortran or C (Ross, 2016).
 
-^_`h5py` is not fully optimised for the experimental free-threading build or the experimental just-in-time compiler introduced in Python 3.13t, but there are some roadmaps to make the package compatible (see <a href='https://github.com/h5py/h5py/issues/2475' target='_blank'>here</a>). So the code should only run for the Python 3.13 build, not Python 3.13t._
+^_`h5py` is not fully optimised for the experimental free-threading build or the just-in-time compiler introduced in Python 3.13t, but there are some works in progress to make the package compatible (see <a href='https://github.com/h5py/h5py/issues/2475' target='_blank'>here</a>). So the code should only run for the Python 3.13 build, not Python 3.13t. Alternatively the user can simply switch off the use of `h5py` in the simulation if they would like to experiment with the 3.13t build._
 
 ### Spatial discretisation
 
@@ -76,7 +76,7 @@ Several (magneto)hydrodynamics tests are in place:
     - Slow-moving shockwave (Zingale, 2023, p.148)
     - Shu-Osher shockwave (Shu & Osher, 1988)
     - Toro tests (Toro, 1999, p.225)
-    - Smooth-wave tests
+    - Smooth advection wave tests
       - Gaussian wave
       - sine-wave
   - Two-dimensional:
@@ -85,9 +85,8 @@ Several (magneto)hydrodynamics tests are in place:
     - Noh problem (Noh, 1987)
     - Gresho vortex (Gresho & Chan, 1990)
     - "Lax-Liu tests" (Lax & Liu, 1998)
-    - Smooth-wave tests
-      - Gaussian wave
-      - Isentropic vortex (Yee et al., 1999)
+    - Isentropic vortex (Yee et al., 1999)
+    - Gaussian wave
   - Three-dimensional:
     - Sedov blast wave
 
@@ -107,9 +106,7 @@ Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussi
 
 # Installation
 
-_It is recommended to run Python projects in separate virtual environments._
-
-Clone this repository onto your local machine, and navigate to the cloned repository. In the command line, run _`/path/to/venv/bin/python3 -m pip install .`_; this will install the minimum packages to run the simulation and create a `parameters.yml` file for simulation configurations.
+Clone this repository onto your local machine, and navigate to the cloned repository. In the command line, run _`/path/to/python3 -m pip install .`_; this will install the minimum packages to run the simulation and create a `parameters.yml` file for simulation configurations.
 
 # Usage
 
@@ -128,7 +125,7 @@ OR
 Alternatively, the code can be run with CLI options:
 
 ```bash
-python3 astrea.py --config=sedov --cells=256
+python3 astrea.py --config=sedov --cells=256 --file=/path/to/checkpoint_file
 ```
 
 See _`--help`_ for a list of available options.
@@ -137,7 +134,7 @@ _Running the code in a Python interactive shell is also possible, although this 
 
 ```python
 import astrea
-astrea.run()
+astrea.run(*globals)
 ```
 
 # Organisation
@@ -146,20 +143,20 @@ astrea.run()
 ├── LICENSE
 ├── README.md
 ├── __init__.py
-├── astrea.py            : Runs the simulation, and contains the update loop
+├── astrea.py            : Core function for simulation and scripts handling
 ├── functions
 │   ├── __init__.py
-│   ├── analytic.py      : Analytical solutions to (magneto)hydrodynamics tests
-│   ├── constructors.py  : Constructors for math objects, such as eigenvectors and Jacobian matrices
+│   ├── analytic.py      : Analytical solutions to smooth advection wave tests
+│   ├── constructors.py  : Constructors for objects, such as eigenvectors and Jacobian matrices
 │   ├── fv.py            : Frequently used functions specific to FVM
 │   ├── generic.py       : Generic functions not specific to FVM
 │   ├── io.py            : Functions for I/O, e.g., simulation variables
-│   └── plotting.py      : Functions for media, e.g., (live-)plotting, videos
+│   └── plotting.py      : Functions for media, e.g., (live-)plotting, saving videos
 ├── num_methods
 │   ├── __init__.py
-│   ├── evolvers.py      : Computation of fluxes and eigenvalues for space and time evolution
-│   ├── limiters.py      : Implements slope limiters for the reconstructed states
 │   ├── ct.py            : Functions for the constrained transport implementation
+│   ├── evolvers.py      : Computation of space and time evolution
+│   ├── limiters.py      : Implements slope limiters for the reconstructed states
 │   ├── solvers.py       : Contains the various Riemann solvers
 ├── parameters.yml       : Parameters for the simulation
 ├── schemes
@@ -173,7 +170,7 @@ astrea.run()
 │   ├── __init__.py
 │   ├── .db.json         : Database for parameters
 │   ├── .default.yml     : Default parameters file
-│   ├── .env             : Environment file
+|   ├── *.gif            : .gif files for graphics in README.md
 │   ├── requirements.txt : Full Python package requirements
 │   ├── tests.py         : Initial conditions for (magneto)hydrodynamics tests
 ```
