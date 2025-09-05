@@ -38,12 +38,13 @@ def handle_CLI(db_path):
     accepted_values = lambda _type: [value for category in db.search(params.type == _type) for value in category['accepted']]
     quotes = db.get(params.type == 'quotes')['name']
 
-    parser = argparse.ArgumentParser(description='Run the astrea simulation.\n\nastrea is a multi-dimensional magnetohydrodynamics simulation written in Python 3. Refer to the README for more information.', 
+    parser = argparse.ArgumentParser(description='Astrea is a multi-dimensional magnetohydrodynamics simulation written in Python 3. Refer to the README for more information.', 
                                      epilog=f"--- {BColours.ITALIC}{quotes[random.randint(0,len(quotes)-1)]}{BColours.ENDC} ---", 
-                                     formatter_class=argparse.RawTextHelpFormatter)
+                                     formatter_class=argparse.RawTextHelpFormatter, 
+                                     usage=argparse.SUPPRESS)
 
-    parser.add_argument('-v', '-d', '--debug', dest='debug', help='toggle for more detailed description of errors/bugs', action='store_true')
-    parser.add_argument('-q', '--quiet', dest='quiet', help='toggle printing to screen', action='store_true')
+    parser.add_argument('-v', '--verbose', dest='verbose', default=argparse.SUPPRESS, help='verbose description of simulation', action='store_true')
+    parser.add_argument('-q', '--quiet', dest='quiet', default=argparse.SUPPRESS, help='switch off printing to screen', action='store_true')
     parser.add_argument('-w', '--write_chkpt', dest='write_chkpt', default=argparse.SUPPRESS, help='toggle saving checkpoint files', action='store_true')
 
     parser.add_argument('--config', metavar='', type=str.lower, default=argparse.SUPPRESS, help='configuration to run in the simulation', choices=accepted_values('config'))
@@ -67,44 +68,36 @@ def handle_CLI(db_path):
     parser.add_argument('--save_file', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving the entire simulation data file (.hdf5)', choices=bool_choices)
     parser.add_argument('--plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot')
 
-    parser.add_argument('--file', '--chkpt_file', '--checkpoint_file', dest='chkpt_file', metavar='', type=str.lower, default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    parser.add_argument('--file', '--chkpt_file', dest='chkpt_file', metavar='', type=str.lower, default=argparse.SUPPRESS, help='load astrea checkpoint file')
+    parser.add_argument('--chemistry', default=argparse.SUPPRESS, help='switch on chemistry for simulation', action='store_true')
+
     parser.add_argument('-t', '--test', dest='test', default=argparse.SUPPRESS, help=argparse.SUPPRESS, action='store_true')
 
     args = parser.parse_args()
 
-    return vars(args), args.debug
+    return vars(args)
 
 
-def parse_cli_variables(_config_variables, _cli_variables, _db_path):
-    db = TinyDB(_db_path)
-    params = Query()
-    temp_dct = {}
-
-    # Remove nested configuration dictionary
-    for parameters in _config_variables.values():
-        for k,v in parameters.items():
-            temp_dct[k] = v
+def parse_cli_variables(config_variables, cli_variables, _db_path):
+    db, params = TinyDB(_db_path), Query()
 
     # Replace the relevant configuration variables with the CLI variables
-    for k,v in _cli_variables.items():
-        if k in temp_dct:
+    for k,v in cli_variables.items():
+        if k in config_variables:
             if k == 'plot_options':
                 v = v.replace('-',' ').replace('/',',').replace('|',',')
-            temp_dct[k] = v
+            config_variables[k] = v
 
-    try:
-        temp_dct['quiet'] = _cli_variables["quiet"]
-    except KeyError:
-        temp_dct['quiet'] = False
-
-    try:
-        temp_dct['write_chkpt'] = _cli_variables["write_chkpt"]
-    except KeyError:
-        temp_dct['write_chkpt'] = False
+    # Optional CLI cases; set to False if not given
+    optional_cli = ['verbose', 'quiet', 'write_chkpt', 'chkpt_file', 'chemistry']
+    for _var in optional_cli:
+        try:
+            config_variables[_var] = cli_variables[_var]
+        except KeyError:
+            config_variables[_var] = False
 
     # Check validity of variables; revert to default values if not valid
-    config_variables = {}
-    for k,v in temp_dct.items():
+    for k,v in config_variables.items():
         if k in ['live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file']:
             if not isinstance(v, bool):
                 v = False
@@ -115,26 +108,26 @@ def parse_cli_variables(_config_variables, _cli_variables, _db_path):
                 v = 1
         elif k == "cells":
             if isinstance(v, (int, float)):
-                v = [int(v)-int(v)%2,] * temp_dct['dimension']
+                v = [int(v)-int(v)%2,] * config_variables['dimension']
             elif isinstance(v, str):
                 try:
                     v = [int(n)-int(n)%2 for n in v.strip('()').replace(' ','').replace('x',',').split(',')]
                     if len(v) <= 1:
-                        v *= temp_dct['dimension']
+                        v *= config_variables['dimension']
                 except Exception:
-                    v = [128,] * temp_dct['dimension']
+                    v = [128,] * config_variables['dimension']
                 else:
-                    if len(v) > temp_dct['dimension']:
-                        v = v[:temp_dct['dimension']]
+                    if len(v) > config_variables['dimension']:
+                        v = v[:config_variables['dimension']]
             elif isinstance(v, list):
                 try:
                     v = [int(_)-int(_)%2 for _ in v]
                 except Exception:
-                    v = [128,] * temp_dct['dimension']
+                    v = [128,] * config_variables['dimension']
                 else:
-                    v = v[:temp_dct['dimension']]
+                    v = v[:config_variables['dimension']]
             else:
-                v = [128,] * temp_dct['dimension']
+                v = [128,] * config_variables['dimension']
         elif k in ['gamma', 'cfl', 'permeability']:
             if not isinstance(v, (int, float)):
                 if "/" in v:
@@ -175,7 +168,7 @@ def parse_cli_variables(_config_variables, _cli_variables, _db_path):
             finally:
                 if invalid != []:
                     print(f"{BColours.WARNING}Invalid plot options: {invalid}{BColours.ENDC}")
-        elif k in ['quiet', 'write_chkpt']:
+        elif k in optional_cli:
             pass
         else:
             if isinstance(v, str):
@@ -206,7 +199,7 @@ class SimulationVariables(object):
         'config_category', 'subgrid_category', 'solver_category', 'convert', 'higher_order', 'multidimensional',
         'axis_coord', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'ds',
         'run_type', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_options', 'plot_style', 'beautify',
-        'checkpoints', 'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'test',
+        'checkpoints', 'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test', 'chemistry',
     ]
 
     def __init__(self, seed, config_variables, test_variables, db_path):
@@ -237,7 +230,6 @@ class SimulationVariables(object):
         self.timesteps = 0
 
         self.plot_style = None
-        self.permeability = 1.
         self.roots = roots + .5
         self.weights = weights
 
@@ -291,7 +283,7 @@ class SimulationVariables(object):
 
 
 # Write grid to HDF5 checkpoint files
-def write_chkpt_file(grid, t, sim_variables):
+def write_chkpt_file(grid, t, idx, sim_variables):
     if sim_variables.run_type.startswith('m'):
         file_name = f"astrea_hdf5_{sim_variables.cells}_chk_{sim_variables.timesteps:05}"
     else:
@@ -301,18 +293,51 @@ def write_chkpt_file(grid, t, sim_variables):
         f.attrs['datetime'] = sim_variables.access_key
         f.attrs['seed'] = sim_variables.seed
         f.attrs['code'] = 'astrea'
-
         f.attrs['time'] = float(t)
-        f.attrs['t_end'] = sim_variables.t_end
+        f.attrs['idx'] = int(idx)
+
         f.attrs['config'] = sim_variables.config
         f.attrs['cells'] = sim_variables.cells
         f.attrs['cfl'] = sim_variables.cfl
         f.attrs['gamma'] = sim_variables.gamma
-        f.attrs['precision'] = sim_variables.precision
         f.attrs['permeability'] = sim_variables.permeability
         f.attrs['dimension'] = sim_variables.dimension
+        f.attrs['precision'] = sim_variables.precision
         f.attrs['subgrid'] = sim_variables.subgrid
         f.attrs['time_evo'] = sim_variables.time_evo
         f.attrs['solver'] = sim_variables.solver
 
         f.create_dataset('grid', data=grid, compression="gzip", compression_opts=9)
+
+
+# Load HDF5 checkpoint files
+def load_chkpt_file(config_variables, file):
+    with h5py.File(file, "r") as f:
+        try:
+            code = f.attrs['code']
+        except Exception as e:
+            print(f"{BColours.WARNING}Checkpoint file not created by astrea..{BColours.ENDC}")
+            return None
+        else:
+            if code != 'astrea':
+                print(f"{BColours.WARNING}Checkpoint file not created by astrea..{BColours.ENDC}")
+                return None
+            else:
+                seed = int(f.attrs['seed'])
+                time = float(f.attrs['time'])
+                idx = int(f.attrs['idx'])
+                grid = f['grid'][:]
+
+                config_variables['config'] = f.attrs['config']
+                config_variables['cells'] = f.attrs['cells']
+                config_variables['cfl'] = float(f.attrs['cfl'])
+                config_variables['gamma'] = float(f.attrs['gamma'])
+                config_variables['permeability'] = float(f.attrs['permeability'])
+                config_variables['dimension'] = int(f.attrs['dimension'])
+                config_variables['precision'] = f.attrs['precision']
+                config_variables['subgrid'] = f.attrs['subgrid']
+                config_variables['time_evo'] = f.attrs['time_evo']
+                config_variables['solver'] = f.attrs['solver']
+                config_variables['run_type'] = f.attrs['single']
+
+                return seed, config_variables, {'time':time, 'idx':idx, 'grid':grid}

@@ -20,7 +20,7 @@ class CustomInstallCommand(install):
 
 setup(
     name="astrea",
-    version="3.0.2",
+    version="3.1.0",
     author="Mervin Yap",
     author_email="myap@ph1.uni-koeln.de",
     description="Astrophysical Shockwave and Turbulence REsearch for interstellar Applications: Multi-dimensional magnetohydrodynamics code for modelling shockwaves & turbulence in the interstellar medium",
@@ -29,7 +29,6 @@ setup(
         exclude=['saved_data','.vidplots'],
     ),
     install_requires=[
-        "wheel",
         "numpy>=2.0.0",
         "h5py>=3.7",
         "scipy",
@@ -37,12 +36,12 @@ setup(
         "pyyaml",
         "tinydb",
         "python-dotenv",
+        "wheel",
     ],
     keywords=[
         'astrophysics',
         'computational astrophysics',
         'interstellar medium',
-        'fluid dynamics',
         'computational fluid dynamics',
         'finite volume method',
         'Riemann solver',
@@ -52,7 +51,7 @@ setup(
         "Development Status :: 5 - Stable",
         "Programming Language :: Python :: 3",
         "License :: GPLv3",
-        "Operating System :: Linux :: macOS",
+        "Operating System :: Linux :: macOS (ARM/Intel)",
     ],
     python_requires='>=3.10',
     cmdclass={

@@ -53,11 +53,12 @@ docs/_build/
 .DS_Store
 
 # custom files
-parameters.yml
+.venv
+.vidplots
 saved_data
+krome
+parameters.yml
 *.astrea*
 *.hdf5
 *.sh
-.vidplots
-.venv
 **/.env

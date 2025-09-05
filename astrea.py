@@ -33,14 +33,22 @@ PLOT_STYLE = "default"
 BEAUTIFY_1D_PLOTS = False
 
 
-# Finite volume shock function
-def core_run(hdf5, sim_variables):
-    # Initialise the discrete solution array with primitive variables <w> and convert them to conservative variables <q>
+# Finite volume simulation
+def core_run(sim_variables, **kwargs):
+    # Initialise or load the discrete solution array with primitive variables <w>
+    if sim_variables.chkpt_file:
+        primitive_grid, t, idx = kwargs['grid'], kwargs['time'], kwargs['idx']
+    else:
+        primitive_grid, t, idx = constructor.initialise(sim_variables), 0., 1
+
     # For magnetic simulations, inverse reconstruction needed for the conversion, as well as returning converted centred grid to staggered values
-    primitive_grid = constructor.initialise(sim_variables)
     centred_grid = fv.inverse_reconstruct(primitive_grid, sim_variables) if sim_variables.magnetic else primitive_grid
+
+    # Convert primitive grid to conservative variables <q>
     grid = fv.point_convert("primitive", centred_grid, sim_variables)
     grid[...,5+sim_variables.axes] = primitive_grid[...,5+sim_variables.axes]
+
+    ########################
 
     # Initiate live or snapshot plotting, if enabled
     plot_snapshot = True if sim_variables.save_snaps else False
@@ -51,16 +59,18 @@ def core_run(hdf5, sim_variables):
     chkpt = sim_variables.t_end/sim_variables.checkpoints if sim_variables.checkpoints > 0 else sim_variables.t_end
     create_chkpt_file = True if sim_variables.write_chkpt else False
 
-    # Start simulation run
-    t, idx = 0., 1
+    ########################
+
     while t <= sim_variables.t_end:
         # Transform grid for visualisation; always use centred grid for visualisation, not staggered grid
         centred_grid = fv.inverse_reconstruct(grid, sim_variables) if sim_variables.magnetic else grid
         grid_snapshot = sim_variables.convert("conservative", centred_grid, sim_variables)
 
+        ########################
+
         # Save each instance of the system (primitive variables) at time t, if full_set_required
         if sim_variables.full_set_required:
-            with h5py.File(hdf5, "a") as f:
+            with h5py.File(kwargs['hdf5'], "a") as f:
                 dataset = f[sim_variables.access_key].create_dataset(str(float(t)), data=grid_snapshot, compression="gzip", compression_opts=9)
                 dataset.attrs['t'] = float(t)
 
@@ -73,10 +83,11 @@ def core_run(hdf5, sim_variables):
             plotting.plot_snapshot(grid_snapshot, t, sim_variables)
             plot_snapshot = False
         if create_chkpt_file:
-            io.write_chkpt_file(grid_snapshot, t, sim_variables)
+            io.write_chkpt_file(grid_snapshot, t, idx, sim_variables)
             create_chkpt_file = False
 
-        # Actual computation starts here
+        ########################
+
         if t == sim_variables.t_end:
             # Hard exact stop for the simulation; prevents adding an additional computation step
             break
@@ -87,7 +98,7 @@ def core_run(hdf5, sim_variables):
             # Compute the maximum eigenvalues for determining the full time step
             dt = sim_variables.cfl * eigmax
 
-            # Handle dt
+            # Limit dt to get next checkpoint timing; plot the snapshot or write the checkpoint file at next timestep
             if t+dt >= chkpt*idx:
                 dt = chkpt*idx - t
                 if sim_variables.save_snaps:
@@ -106,14 +117,18 @@ def core_run(hdf5, sim_variables):
             # Roll the order of the axis sweep
             sim_variables.axes = np.roll(sim_variables.axes, shift=-1)
 
+    ########################
+
 ##############################################################################
 
-# Main script; includes handlers and core execution of simulation code
+# __main__ script; includes handlers and core execution of simulation
 def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
     np.random.seed(seed)
+    additional_arguments = {}
 
     # Save the HDF5 file (with seed) to store the temporary data, if full_set_required
     file_name = f"{current_dir}/.astrea_hdf5_temp_{seed}"
+    additional_arguments['hdf5'] = file_name
 
     # Signal handler for Ctrl+C
     def graceful_exit(sig, frame):
@@ -121,21 +136,33 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
         print(f"{BColours.WARNING}Simulation end by SIGINT; exiting gracefully..{BColours.ENDC}")
         sys.exit(0)
 
-    # Generate the simulation variables from settings (dict)
+    # Generate the simulation variables from settings (dict); priority: checkpoint file > CLI > parameters.yml
+    config_variables = {}
     with open(f"{current_dir}/parameters.yml", "r") as settings_file:
-        config_variables = yaml.safe_load(settings_file)
+        _config_variables = yaml.safe_load(settings_file)
+
+        # Remove nested dictionary from config_variables
+        for parameters in _config_variables.values():
+            for k,v in parameters.items():
+                config_variables[k] = v
 
     # Check CLI arguments
-    if len(sys.argv) > 1:
-        cli_variables, debug = io.handle_CLI(f"{current_dir}/{db_path}")
+    cli_variables = io.handle_CLI(f"{current_dir}/{db_path}") if len(sys.argv) > 1 else {}
+
+    # Check for checkpoint file loading
+    try:
+        checkpoint_file = cli_variables['chkpt_file']
+    except KeyError:
+        config_variables = io.parse_cli_variables(config_variables, cli_variables, f"{current_dir}/{db_path}")
     else:
-        cli_variables, debug = {}, False
-
-    if not debug:
-        np.seterr(all='ignore')
-
-    # Tidy up configuration variables
-    config_variables = io.parse_cli_variables(config_variables, cli_variables, f"{current_dir}/{db_path}")
+        try:
+            seed, config_variables, dct = io.load_chkpt_file(config_variables, checkpoint_file)
+            additional_arguments.update(dct)
+        except Exception as e:
+            print(f"{BColours.FAIL}Unable to load checkpoint file: {e}..{BColours.ENDC}")
+            sys.exit(0)
+        else:
+            config_variables = io.parse_cli_variables(config_variables, cli_variables, f"{current_dir}/{db_path}")
 
     # Generate test configuration based on configuration
     test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'])
@@ -198,16 +225,16 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
                     grp.attrs['cells'] = sim_variables.cells
                     grp.attrs['cfl'] = sim_variables.cfl
                     grp.attrs['gamma'] = sim_variables.gamma
-                    grp.attrs['precision'] = sim_variables.precision
                     grp.attrs['permeability'] = sim_variables.permeability
                     grp.attrs['dimension'] = sim_variables.dimension
+                    grp.attrs['precision'] = sim_variables.precision
                     grp.attrs['subgrid'] = sim_variables.subgrid
                     grp.attrs['time_evo'] = sim_variables.time_evo
                     grp.attrs['solver'] = sim_variables.solver
 
             ################### CORE ###################
             lap = perf_counter()
-            core_run(file_name, sim_variables)
+            core_run(sim_variables, **additional_arguments)
             elapsed = perf_counter() - lap
             ################### CORE ###################
 
@@ -242,11 +269,8 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
     # Exception handling; deletes the temporary HDF5 database to prevent clutter
     except Exception as e:
         print(end='\x1b[2K')
-        if debug:
-            print(f"\n{BColours.FAIL}-------    Error    -------{BColours.ENDC}")
-            print(traceback.format_exc())
-        else:
-            print(f"{BColours.FAIL}-- Error: {e}{BColours.ENDC} (use --debug option for more details)")
+        print(f"\n{BColours.FAIL}-------    Error    -------{BColours.ENDC}")
+        print(traceback.format_exc())
 
     finally:
         # Save the temporary HDF5 database (!! Possibly large file sizes > 100 GB !!)
