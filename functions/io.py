@@ -258,9 +258,9 @@ class SimulationVariables(object):
                 self.solver = db.get(params.type == 'default')['solver']
 
         # Media options
-        if (self.live_plot or self.save_snaps or self.save_plots or self.save_video) and self.dimension > 2:
-            print(f"{BColours.WARNING}Media options not ready for 3d simulations yet..{BColours.ENDC}")
-            self.live_plot = self.save_snaps = self.save_plots = self.save_video = False
+        if (self.live_plot or self.save_plots or self.save_video) and self.dimension > 2:
+            print(f"{BColours.WARNING}Unable to display 3d simulation results with astrea..{BColours.ENDC}")
+            self.live_plot = self.save_plots = self.save_video = False
 
         if self.run_type.startswith('m'):
             if self.save_video:
