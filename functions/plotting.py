@@ -194,10 +194,16 @@ def make_figure(options, sim_variables, variable="normal"):
         for _i in range(len(options)):
             row, col = divmod(_i, cols)
             if row < len(options)//cols:
-                ax[row,col] = fig.add_subplot(spec[row, 2*col:2*(col+1)])
+                if sim_variables.dimension > 2:
+                    ax[row,col] = fig.add_subplot(spec[row, 2*col:2*(col+1)], projection="3d")
+                else:
+                    ax[row,col] = fig.add_subplot(spec[row, 2*col:2*(col+1)])
             else:
                 extra = cols - len(options) % cols
-                ax[row,col] = fig.add_subplot(spec[row, 2*col+extra:2*(col+1)+extra])
+                if sim_variables.dimension > 2:
+                    ax[row,col] = fig.add_subplot(spec[row, 2*col+extra:2*(col+1)+extra], projection="3d")
+                else:
+                    ax[row,col] = fig.add_subplot(spec[row, 2*col+extra:2*(col+1)+extra])
 
         fig.subplots_adjust(wspace=0.75, hspace=0.25)
 
@@ -274,7 +280,7 @@ def make_data(options, grid, sim_variables):
 
 # Initiate the live plot feature
 def initiate_live_plot(sim_variables, title=False):
-    cells, multidimensional, axis_coord = sim_variables.cells, sim_variables.multidimensional, sim_variables.axis_coord
+    cells, dimension, multidimensional, axis_coord = sim_variables.cells, sim_variables.dimension, sim_variables.multidimensional, sim_variables.axis_coord
     options = sim_variables.plot_options
     start_pos, end_pos = axis_coord
     plt.ion()
@@ -288,7 +294,7 @@ def initiate_live_plot(sim_variables, title=False):
             # pyplot.imshow transposes the 2d plots (might be a column-major relic)
             graph = ax[_i,_j].imshow(np.zeros(cells[::-1]), interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
             divider = make_axes_locatable(ax[_i,_j])
-            cax = divider.append_axes('right', size='5%', pad=0.05)
+            cax = divider.append_axes(position='right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
             ax[_i,_j].set_xlim(axis_coord)
@@ -297,7 +303,9 @@ def initiate_live_plot(sim_variables, title=False):
         graphs.append(graph)
 
     if title:
-        if multidimensional:
+        if dimension > 2:
+            grid_axes = "$(x,y,z)$"
+        elif dimension > 1:
             grid_axes = "$(x,y)$"
         else:
             grid_axes = "$x$"
@@ -331,7 +339,9 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
     except AttributeError:
         pass
     else:
-        if sim_variables.multidimensional:
+        if sim_variables.dimension > 2:
+            grid_axes = "$(x,y,z)$"
+        elif sim_variables.dimension > 1:
             grid_axes = "$(x,y)$"
         else:
             grid_axes = "$x$"
@@ -355,10 +365,29 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
         y = y_data[idx]
 
         if multidimensional:
-            graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
-            divider = make_axes_locatable(ax[_i,_j])
-            cax = divider.append_axes('right', size='5%', pad=0.05)
-            fig.colorbar(graph, cax=cax, orientation='vertical')
+            if dimension > 2:
+                X, Y, Z = np.meshgrid(
+                    np.linspace(start_pos, end_pos, y.shape[0]), 
+                    np.linspace(start_pos, end_pos, y.shape[1]), 
+                    np.linspace(start_pos, end_pos, y.shape[2])
+                    )
+
+                plot_3d = np.full_like(y, np.nan)
+                values, counts = np.unique(y.ravel(), return_counts=True)
+                background = values[counts.argmax()]
+                plot_3d[y > background] = y[y > background]
+
+                ax[_i,_j].scatter3D(X, Y, Z, c=plot_3d, alpha=.05, marker='.', linewidth=0, cmap=plot_['colours']['2d'][idx])
+
+                ax[_i,_j].set_xlabel('$x$')
+                ax[_i,_j].set_ylabel('$y$')
+                ax[_i,_j].set_zlabel('$z$')
+                ax[_i,_j].set_box_aspect(aspect=None, zoom=0.8)
+            else:
+                graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
+                divider = make_axes_locatable(ax[_i,_j])
+                cax = divider.append_axes(position='right', size='5%', pad=0.05)
+                fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
             x = np.linspace(start_pos, end_pos, cells[0])
             if beautify:
@@ -367,7 +396,9 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
 
     if title:
-        if multidimensional:
+        if dimension > 2:
+            grid_axes = "$(x,y,z)$"
+        elif dimension > 1:
             grid_axes = "$(x,y)$"
         else:
             grid_axes = "$x$"
@@ -375,11 +406,12 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
 
     plt.tight_layout()
 
-    fig.text(0.5, 0.04, r"$x$", ha='center')
-    fig.subplots_adjust(bottom=0.1)
-    if multidimensional:
-        fig.text(0.04, 0.5, r"$y$", ha='center', rotation='vertical')
-        fig.subplots_adjust(left=0.1)
+    if dimension < 3:
+        fig.text(0.5, 0.04, r"$x$", ha='center')
+        fig.subplots_adjust(bottom=0.1)
+        if multidimensional:
+            fig.text(0.04, 0.5, r"$y$", ha='center', rotation='vertical')
+            fig.subplots_adjust(left=0.1)
 
     plt.savefig(f"{sim_variables.save_path}/snapshots/varPlot_{dimension}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(t,3)}.png", bbox_inches='tight')
 
@@ -440,7 +472,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
                     if multidimensional:
                         graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
                         divider = make_axes_locatable(ax[_i,_j])
-                        cax = divider.append_axes('right', size='5%', pad=0.05)
+                        cax = divider.append_axes(position='right', size='5%', pad=0.05)
                         fig.colorbar(graph, cax=cax, orientation='vertical')
                     else:
                         if beautify:
@@ -451,7 +483,9 @@ def plot_quantities(hdf5, sim_variables, title=False):
 
             if title:
                 grid_axes, grid_cells = "$x$", f" ($N = {str(cells).strip('[]').replace(' ','').replace(',','x')}$)"
-                if multidimensional:
+                if dimension > 2:
+                    grid_axes = "$(x,y,z)$"
+                elif dimension > 1:
                     grid_axes = "$(x,y)$"
                 else:
                     if len(hdf5) != 1:
@@ -740,7 +774,7 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
 
 # Make a video of entire simulation; video of all plot options or specific variable
 def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
-    config, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
+    config, dimension, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimension, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     axis_coord, beautify = sim_variables.axis_coord, sim_variables.beautify
     start_pos, end_pos = axis_coord
 
@@ -775,7 +809,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                         if multidimensional:
                             graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
                             divider = make_axes_locatable(ax[_i,_j])
-                            cax = divider.append_axes('right', size='5%', pad=0.05)
+                            cax = divider.append_axes(position='right', size='5%', pad=0.05)
                             fig.colorbar(graph, cax=cax, orientation='vertical')
                             #graph.set_clim(0, 1)
                         else:
@@ -786,7 +820,9 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
                     if title:
                         grid_axes, grid_cells = "$x$", f" ($N = {str(cells).strip('[]').replace(' ','').replace(',','x')}$)"
-                        if multidimensional:
+                        if dimension > 2:
+                            grid_axes = "$(x,y,z)$"
+                        elif dimension > 1:
                             grid_axes = "$(x,y)$"
                         plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(float(t),4)}${grid_cells}")
 
@@ -903,7 +939,7 @@ def plot_this(grid, sim_variables, **kwargs):
         if sim_variables.multidimensional:
             graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
             divider = make_axes_locatable(ax[_i,_j])
-            cax = divider.append_axes('right', size='5%', pad=0.05)
+            cax = divider.append_axes(position='right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
             x = np.linspace(start_pos, end_pos, len(y))
@@ -912,7 +948,9 @@ def plot_this(grid, sim_variables, **kwargs):
             else:
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
 
-    if sim_variables.multidimensional:
+    if sim_variables.dimension > 2:
+        grid_axes = "$(x,y,z)$"
+    elif sim_variables.dimension > 1:
         grid_axes = "$(x,y)$"
     else:
         grid_axes = "$x$"
