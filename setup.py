@@ -36,6 +36,8 @@ setup(
         "pyyaml",
         "tinydb",
         "python-dotenv",
+        "pygit2",
+        "psutil",
         "wheel",
     ],
     keywords=[
