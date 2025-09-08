@@ -6,7 +6,7 @@ import h5py
 import numpy as np
 from tinydb import TinyDB, Query
 
-from functions import fv
+from functions import fv, generic
 from functions.generic import BColours
 from static import tests
 
@@ -194,7 +194,7 @@ class SimulationVariables(object):
         '__dict__',
         'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'energy', 'vels', 'Bfields', 'momentums',
         'config', 'cells', 'cfl', 'gamma', 'permeability', 'dimension', 'precision', 'subgrid', 'time_evo', 'solver',
-        'seed', 'now', 'elapsed', 'access_key', 'datetime', 'save_path', 'timesteps',
+        'seed', 'now', 'elapsed', 'access_key', 'datetime', 'save_path', 'timesteps', 'sub_timings', 'print_status',
         'permeability', 'magnetic', 'roots', 'weights', 'axes', 'ppm_dissipate',
         'config_category', 'subgrid_category', 'solver_category', 'convert', 'higher_order', 'multidimensional',
         'axis_coord', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'ds',
@@ -250,6 +250,11 @@ class SimulationVariables(object):
         # Permutations for axes
         self.multidimensional = self.dimension >= 2
         self.axes = np.array(range(self.dimension))
+
+        if self.verbose:
+            self.print_status = generic.print_verbose
+        else:
+            self.print_status = generic.print_simple
 
         # Exclusion cases
         if self.solver in db.get(params.type == 'solver' and params.category == 'hll')['accepted']:

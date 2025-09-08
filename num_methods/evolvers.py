@@ -6,12 +6,14 @@ import numpy as np
 from functions import fv
 from num_methods import ct
 from schemes import pcm, plm, ppm, weno
+from functions.generic import verbose_timer
 
 ##############################################################################
 # Collates and controls space and time evolution
 ##############################################################################
 
 # Evolve the system in space by a standardised workflow
+@verbose_timer
 def evolve_space(grid, sim_variables, first_stage=False):
     dimension, multidimensional, subgrid_category, axes, magnetic = sim_variables.dimension, sim_variables.multidimensional, sim_variables.subgrid_category, sim_variables.axes, sim_variables.magnetic
     pressure, dissipate = sim_variables.pressure, sim_variables.ppm_dissipate
@@ -85,6 +87,7 @@ def evolve_space(grid, sim_variables, first_stage=False):
 
 
 # Evolve the system in time by a standardised workflow
+@verbose_timer
 def evolve_time(grid, fluxes, dt, sim_variables):
 
     # Methods for linear and non-linear systems [Shu & Osher, 1988]
