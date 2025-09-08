@@ -1,9 +1,13 @@
 import os
 import sys
 import platform
+from time import perf_counter
 from datetime import timedelta
 
 import psutil
+import GPUtil
+import numpy as np
+from tabulate import tabulate
 from pygit2 import Repository
 
 ##############################################################################
@@ -24,8 +28,33 @@ class BColours:
     UNDERLINE = '\033[4m'
 
 
+def get_size(_bytes):
+    factor = 1024
+    for unit in ["", "K", "M", "G", "T", "P"]:
+        if _bytes < factor:
+            return f"{_bytes:.2f}{unit}B"
+        _bytes /= factor
+
+
+def verbose_timer(func):
+    def wrapper(*args, **kwargs):
+        for arg in args:
+            try:
+                verbose = arg.verbose
+            except Exception:
+                verbose = False
+            else:
+                break
+        start = perf_counter()
+        result = func(*args, **kwargs)
+        if verbose:
+            print(f' {func.__name__!r}           {perf_counter() - start:.5f} s')
+        return result
+    return wrapper
+
+
 # Print progress status to Terminal
-def print_status(sim_variables, t=None, final=False):
+def print_simple(sim_variables, t=None, status=''):
     _seed = f"{BColours.OKBLUE}{sim_variables.seed}{BColours.ENDC}"
     _config = f"{BColours.OKCYAN}{sim_variables.config.upper()}{BColours.ENDC}"
     _cells = f"{BColours.OKCYAN}{str(sim_variables.cells).strip('[]').replace(' ','').replace(',','x')}{BColours.ENDC}"
@@ -36,11 +65,7 @@ def print_status(sim_variables, t=None, final=False):
     _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({sim_variables.dimension}D){BColours.ENDC}"
     #_performance = f"{BColours.OKGREEN}{round(sim_variables.elapsed*1e6/(np.prod(sim_variables.cells)*sim_variables.timesteps), 3)} \u03BCs/(dt*cells){BColours.ENDC}"
 
-    if not final:
-        _instance = f"{BColours.WARNING}{'%.6f'%t} / {'%.2f'%sim_variables.t_end}{BColours.ENDC}"
-        print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SOLVER={_solver}, TIME_EVO={_time_evo} || {_instance}", end='\r')
-        pass
-    else:
+    if status.lower() == 'final':
         if sim_variables.elapsed >= 60*60:
             _elapsed = f"{BColours.FAIL}{str(timedelta(seconds=sim_variables.elapsed))}s{BColours.ENDC}"
         elif 60*60 > sim_variables.elapsed >= 30*60:
@@ -50,138 +75,116 @@ def print_status(sim_variables, t=None, final=False):
 
         print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SOLVER={_solver}, TIME_EVO={_time_evo} || Elapsed: {_elapsed} ({sim_variables.timesteps})", flush=True)
         pass
+    elif status.lower() == 'init':
+        pass
+    else:
+        _instance = f"{BColours.WARNING}{'%.6f'%t} / {'%.2f'%sim_variables.t_end}{BColours.ENDC}"
+        print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SOLVER={_solver}, TIME_EVO={_time_evo} || {_instance}", end='\r')
+        pass
 
 
-#https://thepythoncode.com/article/get-hardware-system-information-python#System_Information
+# Print verbose status to Terminal
+def print_verbose(sim_variables, t=None, status=''):
+    if status.lower() == "init":
+        print('', '='*80)
 
-uname = platform.uname()
+        print(f' astrea code, branch:remotes/origin/{Repository(".").head.shorthand}')
+        print(f' Python version {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}-{sys.version_info.releaselevel}')
+        print(f' PYTHON_PATH={os.environ["_"]}')
+
+        print('', '='*30, 'System Information', '='*30)
+        uname = platform.uname()
+        print(f' System : {"macOS" if uname.system == "Darwin" else uname.system}')
+        print(f' Node : {uname.node}')
+        print(f' Release : {uname.release}')
+        print(f' Version : {uname.version}')
+        print(f' Architecture : {uname.machine}')
+        print(f' Processor : {uname.processor}')
+
+        print('', '='*30, 'CPU Information', '='*30)
+        print(f' Physical cores : {psutil.cpu_count(logical=False)}')
+        print(f' Total cores : {psutil.cpu_count(logical=True)}')
+        print(f' Threads per core : {psutil.cpu_count()/psutil.cpu_count(logical=False)}')
+
+        print('', '='*30, 'Memory Information', '='*30)
+        svmem = psutil.virtual_memory()
+        print(f' Total : {get_size(svmem.total)}')
+        print(f' Available : {get_size(svmem.available)}')
+        print(f' Used : {get_size(svmem.used)}')
+
+        print('', '='*15, 'SWAP', '='*15)
+        swap = psutil.swap_memory()
+        print(f' Total : {get_size(swap.total)}')
+        print(f' Free : {get_size(swap.free)}')
+        print(f' Used : {get_size(swap.used)}')
+
+        print('', '='*30, 'GPU Information', '='*30)
+        list_gpus = [(gpu.id, gpu.name, f'{gpu.load*100}%', f'{gpu.memoryFree}MB', f'{gpu.memoryUsed}MB', f'{gpu.memoryTotal}MB', f'{gpu.temperature} C', gpu.uuid) for gpu in GPUtil.getGPUs()]
+        print(tabulate(list_gpus, headers=('id', 'name', 'load', 'free memory', 'used memory', 'total memory', 'temperature', 'uuid')))
+
+        print(f'', '='*30, 'Disk Information', '='*30)
+        for partition in psutil.disk_partitions():
+            print(f' === Device: {partition.device} ===')
+            print(f'    Mountpoint: {partition.mountpoint}')
+            print(f'    File system type: {partition.fstype}')
+            try:
+                partition_usage = psutil.disk_usage(partition.mountpoint)
+            except PermissionError:
+                continue
+            else:
+                print(f'    Total size: {get_size(partition_usage.total)}')
+                print(f'    Used: {get_size(partition_usage.used)}')
+                print(f'    Free: {get_size(partition_usage.free)}')
+                print(f'    Percentage: {partition_usage.percent}%')
+        disk_io = psutil.disk_io_counters()
+        print(f' Total read : {get_size(disk_io.read_bytes)}')
+        print(f' Total write : {get_size(disk_io.write_bytes)}')
+    
+        print(f'', '='*30, 'Sim. Information', '='*30)
+        print(f' Boot time : {sim_variables.now.strftime("%Y-%m-%d %H:%M:%S")}')
+        print(f' Output directory : {sim_variables.save_path}')
+        print(f'')
+        print(f' OPTS={sys.argv[1:]}')
+        print(f'')
+        print(f' Seed : {sim_variables.seed}')
+        print(f' Config : {sim_variables.config.title()}')
+        print(f' Subgrid : {sim_variables.subgrid.upper()}')
+        print(f' Time evolution : {sim_variables.time_evo.upper()}')
+        print(f' Solver : {sim_variables.solver.upper()}')
+        print('')
+        print(f' Dimension : {sim_variables.dimension}D')
+        print(f' Cells : {str(sim_variables.cells).strip("[]").replace(" ","").replace(","," x ")}')
+        print(f' Boundary condition : {sim_variables.boundary.title()}')
+        print(f' CFL number : {sim_variables.cfl}')
+        print(f' Adiabatic index : {sim_variables.gamma}')
+        print(f' Permeability : {sim_variables.permeability}')
+        print('')
+        print(f' Sim. end (code unit) : {sim_variables.t_end}')
+        print(f' Checkpoints : {sim_variables.checkpoints}')
+
+        print('')
+        print('', '-'*30, 'Executing simulation', '-'*30)
+        #print(f' step       time            CPU usage       RAM usage       Swap usage      Avg. GPU usage')
+        #print(f' -----      -----           ---------       ---------       ---------       --------------')
 
 
-info = f"""
-===============================================================================
-astrea code, branch:remotes/origin/{Repository('.').head.shorthand}
-Python version {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}
-python_path={os.environ['_']}
-=============================== machine info ==================================
-                  OS =  {'macOS' if uname.system == "Darwin" else uname.system} {uname.release} ({uname.machine})
-         total_cores =  {psutil.cpu_count(logical=True)}
-
-    threads_per_core =  {psutil.cpu_count()/psutil.cpu_count(logical=False)}
-
-"""
+    elif status.lower() == 'final':
+        print('')
+        print('Total elapsed time (HH:MM:SS):', str(timedelta(seconds=sim_variables.elapsed)), f'({sim_variables.timesteps} steps)')
 
 
-# number of cores
-print("Physical cores:", psutil.cpu_count(logical=False))
-print("Total cores:", psutil.cpu_count(logical=True))
-# CPU frequencies
-cpufreq = psutil.cpu_freq()
-print(f"Max Frequency: {cpufreq.max:.2f}Mhz")
-print(f"Min Frequency: {cpufreq.min:.2f}Mhz")
-print(f"Current Frequency: {cpufreq.current:.2f}Mhz")
-# CPU usage
-print("CPU Usage Per Core:")
-for i, percentage in enumerate(psutil.cpu_percent(percpu=True, interval=1)):
-    print(f"Core {i}: {percentage}%")
-print(f"Total CPU Usage: {psutil.cpu_percent()}%")
-
-
-
-""" ===============================================================================
- DISPATCH code framework, branch:remotes/origin/25-08-19-ppm, hash:4fb425a4f
- SOLVER=AN/weno OPTS=debug, CPU=
- GCC version 15.1.0
- ================================ mpi_t%info ====================================       0.002
-          n_ranks =   1
-        n_sockets =   1
-          n_cores =   1
-        n_threads =  14
- threads_per_core =   1
-         n_places =   0
- This version was compiled with default real KIND = 4
- ================================= io_t%init ====================================       0.003
- parameters from: weno128.nml
- output directory: data/weno128/
-          16          16          16
-          16          16          16          16
-          16          16          16          16          16
-          16          16          16          16          16          16
-          32          32          32
-          32          32          32          32
-          32          32          32          32          32
-          32          32          32          32          32          32
- ============================== scaling_t%init ==================================       0.004
-  CODE UNITS:              (CGS)             (ASTRO)
-                length:   1.234E+19            4.00 pc
-                  time:   6.858E+14           21.73 Myr
-                  mass:   5.994E+36         3013.80 M_Sun
-              velocity:   1.800E+04
-               density:   3.187E-21
-              pressure:   1.033E-12
-  energy per unit mass:   3.240E+08
- entropy per unit mass:   8.254E+07
- magnetic flux density:   3.602E-06
-               gravity:   1.000E+02
-           temperature:   3.925E+00
- ====================== microphysics/eos/ideal/eos_mod ==========================       0.004
- =============================== refine_t%init ==================================       0.004
- number of AMR criteria:   2
- =============== cartesian_t%init: Cartesian patch arrangement ==================       0.005
- hash_table%reset: new sizes,MB,B/entry,ms=    524288   131072     60.50  121
- patch_t%pre_init: etype=thermal, kind=AN_weno
- extras%pre_init: SNe allocated
- ============================ sink initialization ===============================       0.034
- ------------------------- evolution initialization -----------------------------       0.034
- ../../data/stellar_evolution/Ekstrom.dat
- ------------------------------------ SNe ---------------------------------------       0.051
- SN life-times: Schallerlife.tbl
-         mass                    time
-    Myr         code        M_sun      code
-    7.00       2.323E-03    47.5        2.19    
-    9.00       2.986E-03    29.0        1.33    
-    12.0       3.982E-03    17.6       0.809    
-    15.0       4.977E-03    12.6       0.580    
-    20.0       6.636E-03    8.86       0.408    
-    25.0       8.295E-03    7.02       0.323    
-    40.0       1.327E-02    4.77       0.219    
-    60.0       1.991E-02    3.86       0.177    
-    85.0       2.820E-02    3.21       0.148    
-    120.       3.982E-02    2.98       0.137    
- SNe_t%test: mass(Msun),life(Myr)=   6.0   1.50E+04
- SNe_t%test: mass(Msun),life(Myr)=   8.5    33.    
- SNe_t%test: mass(Msun),life(Myr)=  12.0    18.    
- SNe_t%test: mass(Msun),life(Myr)=  17.0    10.    
- SNe_t%test: mass(Msun),life(Myr)=  24.0    7.2    
- SNe_t%test: mass(Msun),life(Myr)=  33.9    5.1    
- SNe_t%test: mass(Msun),life(Myr)=  48.0    4.1    
- SNe_t%test: mass(Msun),life(Myr)=  67.9    3.6    
- SNe_t%test: mass(Msun),life(Myr)=  96.0    3.1    
-         512         512 tasks generated
- AMR levels:  min,root,max =    8   8   8
- ------------------- cartesian_t%init: preparing execution ----------------------       0.054
-         512 tasks to generate nbor lists for
- init_nbors: debug,n,hash_min=           0         512           1 T
-         512 nbor lists done
- list_t%check_nbor_consistency: n=    512      0      0  init_all_nbors
- list_t%check_nbor_consistency: n=    512      0      0
- spline_test: errors,cost=  0.000000  0.086762  0.111633   0.0 ns/pt
- spline_test: errors,cost=  0.000000  0.000000  0.000000  25.0 ns/pt
- SOLVER=AN_weno          10
- memory shape:  40  40  40   6   5   1
- variable indices:   d:1   p1:2   p2:3   p3:4   e:5 
-      2184 bytes per cell
-   133.307 MB per task
-                               procedure       calls          time       time(%)      s/call  locks(%)
-                           solver_t%init       56.0           114.          96.6    2.036055       0.0  
-                force_t%turbulence_start       112.           3.56           3.0    0.031793       0.0  
-            TOTAL updates, thread time           1.00         118.         100.      0.00E+00 advance/s     0.00 core-mus/cell-upd       10 wall sec
- MPI recv:      0.0 MB/s     0.000 MB/mesg  mean latency: 0.000  max: 0.000  nq_send_max:   0  f_unpk: 0.00  f_mem: 0.00  f_que: 0.00  f_cheap: 0.00
- lock waiting time, lists:   0.0    links:   0.0    state:   0.0    mem:   0.0    heap:   0.0    total:   0.0   core-s =   0.0 %
- lock     log time =  0.00 core-s
-                               procedure       calls          time       time(%)      s/call  locks(%)
-                           solver_t%init       70.0           140.          96.8    2.000178       0.0  
-                force_t%turbulence_start       140.           4.47           3.1    0.031910       0.0  
-            TOTAL updates, thread time           1.00         145.         100.      0.00E+00 advance/s     0.00 core-mus/cell-upd       20 wall sec
- MPI recv:      0.0 MB/s     0.000 MB/mesg  mean latency: 0.000  max: 0.000  nq_send_max:   0  f_unpk: 0.00  f_mem: 0.00  f_que: 0.00  f_cheap: 0.00
- lock waiting time, lists:   0.0    links:   0.0    state:   0.0    mem:   0.0    heap:   0.0    total:   0.0   core-s =   0.0 %
- lock     log time =  0.00 core-s"""
+    else:
+        try:
+            gpus_load = [[gpu.load*100] for gpu in GPUtil.getGPUs()]
+        except Exception as e:
+            gpu_load = '--'
+        else:
+            if gpus_load:
+                gpu_load = np.average(gpus_load)
+            else:
+                gpu_load = '--'
+        #print(f' {sim_variables.timesteps}          {t:.6f}        {psutil.cpu_percent()}%           {psutil.virtual_memory().percent}%           {psutil.swap_memory().percent}%           {gpu_load}%')
+        print('')
+        print('\n', '', tabulate([(sim_variables.timesteps, '%.6f'%t, f'{psutil.cpu_percent()}%', f'{psutil.virtual_memory().percent}%', f'{psutil.swap_memory().percent}%', f'{gpu_load}%')], headers=('step', 'time', 'CPU usage', 'RAM usage', 'Swap usage', 'Avg. GPU usage')))
+        print('')
+    pass

@@ -1,7 +1,7 @@
 import numpy as np
 
 from functions import constructor, fv
-import time
+
 ##############################################################################
 # Approximate linearised and non-linearised Riemann solvers
 ##############################################################################

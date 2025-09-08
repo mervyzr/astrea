@@ -76,7 +76,7 @@ def core_run(sim_variables, **kwargs):
 
         # Miscellaneous media/print options
         if not sim_variables.quiet:
-            generic.print_status(sim_variables, t=t)
+            sim_variables.print_status(sim_variables, t=t)
         if sim_variables.live_plot:
             plotting.update_plot(grid_snapshot, t, sim_variables, *plotting_params)
         if plot_snapshot:
@@ -183,12 +183,12 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
     ###################################### SCRIPT INITIATE ######################################
     script_start = datetime.now().strftime('%Y%m%d%H%M')
     save_path = f"{current_dir}/{save_dir}/sim{script_start}_{seed}"
+    sim_variables.save_path = save_path
     sim_variables.plot_style = plot_style
     sim_variables.beautify = beautify
 
     # Make directories if they do not exist
     if sim_variables.save_snaps or sim_variables.save_plots or sim_variables.save_video or sim_variables.save_file or sim_variables.write_chkpt:
-        sim_variables.save_path = save_path
         if not os.path.exists(save_path):
             os.makedirs(save_path)
     if sim_variables.save_snaps and not os.path.exists(f"{save_path}/snapshots"):
@@ -232,6 +232,8 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
                     grp.attrs['time_evo'] = sim_variables.time_evo
                     grp.attrs['solver'] = sim_variables.solver
 
+            sim_variables.print_status(sim_variables, status='init')
+
             ################### CORE ###################
             lap = perf_counter()
             core_run(sim_variables, **additional_arguments)
@@ -244,7 +246,7 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
                 with h5py.File(file_name, "a") as f:
                     f[sim_variables.access_key].attrs['elapsed'] = elapsed
             if not sim_variables.quiet:
-                generic.print_status(sim_variables, final=True)
+                sim_variables.print_status(sim_variables, status='final')
             ############################# END INDIVIDUAL SIMULATION #############################
 
         # Save plots; primitive quantities, total variation, conservation equation quantities, solution errors (errors only for run_type=multiple)

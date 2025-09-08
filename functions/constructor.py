@@ -1,6 +1,7 @@
 import numpy as np
 
 from functions import fv
+from functions.generic import verbose_timer
 
 ##############################################################################
 # Functions for constructing objects such as the grid, eigenvectors, Jacobian and flux terms
@@ -8,6 +9,7 @@ from functions import fv
 
 # Initialise the discrete POINTWISE solution array with initial conditions and primitive variables w, and transform into discrete AVERAGES <w>
 # For magnetohydrodynamics, this returns a staggered grid
+@verbose_timer
 def initialise(sim_variables):
 
     # Create a physical grid for a single axis
