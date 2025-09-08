@@ -161,7 +161,7 @@ def parse_cli_variables(config_variables, cli_variables, _db_path):
                         invalid.append(option)
                         v.remove(option)
                 v = [i.lower() for i in v]
-                _ = v[0]
+                _ = v[0]  # Check for empty list
             except (IndexError, TypeError):
                 v = db.get(params.type == 'default')[k]
                 print(f"{BColours.WARNING}No valid plot options; reverting to default values..{BColours.ENDC}")
@@ -311,6 +311,7 @@ def write_chkpt_file(grid, t, idx, sim_variables):
         f.attrs['subgrid'] = sim_variables.subgrid
         f.attrs['time_evo'] = sim_variables.time_evo
         f.attrs['solver'] = sim_variables.solver
+        f.attrs['axis_coord'] = sim_variables.axis_coord
 
         f.create_dataset('grid', data=grid, compression="gzip", compression_opts=9)
 
