@@ -1,3 +1,4 @@
+import os
 import random
 import argparse
 
@@ -31,8 +32,7 @@ def handle_CLI(db_path):
     def bool_handler(value):
         return (value.lower() == 'true' or value.lower() == '1')
 
-    db = TinyDB(db_path)
-    params = Query()
+    db, params = TinyDB(db_path), Query()
 
     bool_choices = ['true','false','True','False',1,0]
     accepted_values = lambda _type: [value for category in db.search(params.type == _type) for value in category['accepted']]
@@ -66,6 +66,7 @@ def handle_CLI(db_path):
     parser.add_argument('--save_plots', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving other plots of the simulation, including quantities, conservation, total variation, etc.', choices=bool_choices)
     parser.add_argument('--save_video', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving a video of the simulation', choices=bool_choices)
     parser.add_argument('--save_file', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving the entire simulation data file (.hdf5)', choices=bool_choices)
+    parser.add_argument('--plot_style', metavar='', type=str.lower, default=argparse.SUPPRESS, help='plot styles (based on matplotlib style sheets)')
     parser.add_argument('--plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot')
 
     parser.add_argument('--file', '--chkpt_file', dest='chkpt_file', metavar='', type=str.lower, default=argparse.SUPPRESS, help='load astrea checkpoint file')
@@ -78,8 +79,10 @@ def handle_CLI(db_path):
     return vars(args)
 
 
-def parse_cli_variables(config_variables, cli_variables, _db_path):
-    db, params = TinyDB(_db_path), Query()
+def parse_cli_variables(config_variables, cli_variables):
+    db, params = TinyDB(config_variables['db_path']), Query()
+
+    skip_cases = ['home', 'db_path', 'plot_style']
 
     # Replace the relevant configuration variables with the CLI variables
     for k,v in cli_variables.items():
@@ -168,7 +171,7 @@ def parse_cli_variables(config_variables, cli_variables, _db_path):
             finally:
                 if invalid != []:
                     print(f"{BColours.WARNING}Invalid plot options: {invalid}{BColours.ENDC}")
-        elif k in optional_cli:
+        elif k in optional_cli or k in skip_cases:
             pass
         else:
             if isinstance(v, str):
@@ -194,17 +197,15 @@ class SimulationVariables(object):
         '__dict__',
         'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'energy', 'vels', 'Bfields', 'momentums',
         'config', 'cells', 'cfl', 'gamma', 'permeability', 'dimension', 'precision', 'subgrid', 'time_evo', 'solver',
-        'seed', 'now', 'elapsed', 'access_key', 'datetime', 'save_path', 'timesteps', 'sub_timings', 'print_status',
-        'permeability', 'magnetic', 'roots', 'weights', 'axes', 'ppm_dissipate',
-        'config_category', 'subgrid_category', 'solver_category', 'convert', 'higher_order', 'multidimensional',
         'axis_coord', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'ds',
-        'run_type', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_options', 'plot_style', 'beautify',
-        'checkpoints', 'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test', 'chemistry',
+        'run_type', 'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
+        'axes', 'magnetic', 'convert', 'roots', 'weights', 'ppm_dissipate', 'higher_order', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
+        'seed', 'now', 'elapsed', 'access_key', 'datetime', 'home', 'save_path', 'db_path', 'timesteps', 'print_status',
+        'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'chemistry', 'test',
     ]
 
-    def __init__(self, seed, config_variables, test_variables, db_path):
-        db = TinyDB(db_path)
-        params = Query()
+    def __init__(self, seed, config_variables, test_variables):
+        db, params = TinyDB(config_variables['db_path']), Query()
 
         # Declare physical variables and their index in the array: [density, vx/px, vy/py, vz/pz, pressure/energy, Bx, By, Bz]
         self.rho, self.vx, self.vy, self.vz, self.pressure, self.Bx, self.By, self.Bz = range(8)
@@ -220,24 +221,22 @@ class SimulationVariables(object):
             setattr(self, key, test_variables[key])
 
         # Parse additional variables into the class
-        # 5th-order Gauss-Legendre quadrature with interval [0,1] for OS solver
-        roots, weights = np.array(list(np.polynomial.legendre.leggauss(5)))/2
-
         self.seed = int(seed)
         self.now = None
         self.elapsed = None
         self.access_key = None
         self.timesteps = 0
 
-        self.plot_style = None
+        # 5th-order Gauss-Legendre quadrature with interval [0,1] for OS solver
+        roots, weights = np.array(list(np.polynomial.legendre.leggauss(5)))/2
         self.roots = roots + .5
         self.weights = weights
 
         self.config_category = db.get(params.accepted.any([self.config]))['category']
         self.subgrid_category = db.get(params.accepted.any([self.subgrid]))['category']
         self.solver_category = db.get(params.accepted.any([self.solver]))['category']
-        self.magnetic = self.initial_left[self.Bfields].any() or self.initial_right[self.Bfields].any()
 
+        self.magnetic = self.initial_left[self.Bfields].any() or self.initial_right[self.Bfields].any()
         self.convert = fv.point_convert
         self.higher_order = False
         self.ppm_dissipate = False
@@ -261,6 +260,12 @@ class SimulationVariables(object):
             if (self.solver_category == "hll" and self.solver.endswith('c')) and self.magnetic:
                 print(f"{BColours.WARNING}HLLC solver does not work with magnetic fields present..{BColours.ENDC}")
                 self.solver = db.get(params.type == 'default')['solver']
+
+        if self.chemistry:
+            krome_exists = [dirname for root, dirs, _ in os.walk(self.home) for dirname in dirs if 'krome' in os.path.join(root, dirname)]
+            if not krome_exists:
+                print(f"{BColours.WARNING}Chemistry switched on but krome folder cannot be found. Switching off chemistry..{BColours.ENDC}")
+                self.chemistry = False
 
         # Media options
         if (self.live_plot or self.save_plots or self.save_video) and self.dimension > 2:

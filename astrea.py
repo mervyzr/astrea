@@ -24,13 +24,8 @@ from functions.generic import BColours
 ##############################################################################
 
 # Globals
-CURRENT_DIR = os.getcwd()
 SAVE_DIR = "saved_data"
 SEED = np.random.randint(0, 1e8)
-
-DB_PATH = "static/.db.json"
-PLOT_STYLE = "default"
-BEAUTIFY_1D_PLOTS = False
 
 
 # Finite volume simulation
@@ -122,8 +117,10 @@ def core_run(sim_variables, **kwargs):
 ##############################################################################
 
 # __main__ script; includes handlers and core execution of simulation
-def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
+def run(seed, save_dir) -> None:
     np.random.seed(seed)
+
+    current_dir = os.getcwd()
     additional_arguments = {}
 
     # Save the HDF5 file (with seed) to store the temporary data, if full_set_required
@@ -146,14 +143,18 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
             for k,v in parameters.items():
                 config_variables[k] = v
 
+    config_variables['home'] = current_dir
+    db_path = f"{current_dir}/static/.db.json"
+    config_variables['db_path'] = db_path
+
     # Check CLI arguments
-    cli_variables = io.handle_CLI(f"{current_dir}/{db_path}") if len(sys.argv) > 1 else {}
+    cli_variables = io.handle_CLI(db_path) if len(sys.argv) > 1 else {}
 
     # Check for checkpoint file loading
     try:
         checkpoint_file = cli_variables['chkpt_file']
     except KeyError:
-        config_variables = io.parse_cli_variables(config_variables, cli_variables, f"{current_dir}/{db_path}")
+        config_variables = io.parse_cli_variables(config_variables, cli_variables)
     else:
         try:
             seed, config_variables, dct = io.load_chkpt_file(config_variables, checkpoint_file)
@@ -162,13 +163,13 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
             print(f"{BColours.FAIL}Unable to load checkpoint file: {e}..{BColours.ENDC}")
             sys.exit(0)
         else:
-            config_variables = io.parse_cli_variables(config_variables, cli_variables, f"{current_dir}/{db_path}")
+            config_variables = io.parse_cli_variables(config_variables, cli_variables)
 
     # Generate test configuration based on configuration
     test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'])
 
     # Initialise simulation variables
-    sim_variables = SimulationVariables(seed, config_variables, test_variables, f"{current_dir}/{db_path}")
+    sim_variables = SimulationVariables(seed, config_variables, test_variables)
 
     # Auto-generate the resolutions/grid-sizes for run type
     if sim_variables.run_type.startswith('m'):
@@ -184,8 +185,6 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
     script_start = datetime.now().strftime('%Y%m%d%H%M')
     save_path = f"{current_dir}/{save_dir}/sim{script_start}_{seed}"
     sim_variables.save_path = save_path
-    sim_variables.plot_style = plot_style
-    sim_variables.beautify = beautify
 
     # Make directories if they do not exist
     if sim_variables.save_snaps or sim_variables.save_plots or sim_variables.save_video or sim_variables.save_file or sim_variables.write_chkpt:
@@ -287,11 +286,8 @@ def run(seed, current_dir, save_dir, db_path, plot_style, beautify) -> None:
     ###################################### SCRIPT END ######################################
 
 if __name__ == "__main__":
-    # Load env variables
-    for dirpath, dirnames, filenames in os.walk(CURRENT_DIR):
-        _ = [_filename for _filename in filenames if _filename.endswith('.env')]
-        if len(_) == 1:
-            dotenv.load_dotenv(os.path.join(dirpath, _[0]))
-    _globals = [SEED, CURRENT_DIR, SAVE_DIR, DB_PATH, PLOT_STYLE, BEAUTIFY_1D_PLOTS]
+    env_files = [os.path.join(root, file) for root, _, files in os.walk(os.getcwd()) for file in files if file.endswith('.env')]
+    if env_files:
+        dotenv.load_dotenv(env_files[0])
 
-    run(*_globals)
+    run(*[SEED, SAVE_DIR])

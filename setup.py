@@ -26,7 +26,11 @@ setup(
     description="Astrophysical Shockwave and Turbulence REsearch for interstellar Applications: Multi-dimensional magnetohydrodynamics code for modelling shockwaves & turbulence in the interstellar medium",
     url="<https://github.com/mervyzr/astrea>",
     packages=find_packages(
-        exclude=['saved_data','.vidplots'],
+        exclude=[
+            'saved_data', 
+            '.vidplots',
+            'krome',
+            ],
     ),
     install_requires=[
         "numpy>=2.0.0",

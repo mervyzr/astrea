@@ -17,34 +17,38 @@ from functions.generic import BColours
 # Plotting functions and media handling
 ##############################################################################
 
+BEAUTIFY_1D_PLOTS = False
+
+
 # Make figures and axes for plotting
 def make_figure(options, sim_variables, variable="normal"):
-    if 0 < len(options) < 13:
+    if 0 < len(options) < 15:
         # Set up colours
         try:
             plt.style.use(sim_variables.plot_style)
         except Exception as e:
+            print('Unrecognised plot style')
             plt.style.use('default')
+
+        if sim_variables.plot_style == "dark_background":
+            theo_colour = "white"
         else:
-            if sim_variables.plot_style == "dark_background":
-                theo_colour = "white"
-            else:
-                theo_colour = "black"
-        finally:
-            colours = plt.rcParams['axes.prop_cycle'].by_key()['color'] * 2
-            cmap_colours = {
-                "density": "viridis",
-                "pressure": "plasma",
-                "magnetic pressure": "inferno",
-                "total energy": "cividis",
-                "internal energy": "PuBuGn",
-                "vels": {"x":"berlin", "y":"managua", "z":"vanimo"},
-                "momentums": {"x":"RdYlBu", "y":"PuOr", "z":"PRGn"},
-                "Bfields": {"x":"RdBu", "y":"BrBG", "z":"PiYG"},
-                "Mach": "bone",
-                "divergence": "binary",
-                "mass": "pink",
-            }
+            theo_colour = "black"
+
+        colours = plt.rcParams['axes.prop_cycle'].by_key()['color'] * 2
+        cmap_colours = {
+            "density": "viridis",
+            "pressure": "plasma",
+            "magnetic pressure": "inferno",
+            "total energy": "cividis",
+            "internal energy": "PuBuGn",
+            "vels": {"x":"berlin", "y":"managua", "z":"vanimo"},
+            "momentums": {"x":"RdYlBu", "y":"PuOr", "z":"PRGn"},
+            "Bfields": {"x":"RdBu", "y":"BrBG", "z":"PiYG"},
+            "Mach": "bone",
+            "divergence": "binary",
+            "mass": "pink",
+        }
 
         # Set up labels and axes names
         names, labels, errors, tvs, twod_colours = [], [], [], [], []
@@ -228,7 +232,7 @@ def make_figure(options, sim_variables, variable="normal"):
 
         return fig, ax, {'indexes':indexes, 'names':names, 'labels':labels, 'errors':errors, 'tvs':tvs, 'colours': {'theo':theo_colour, '1d':colours, '2d':twod_colours}}
     else:
-        raise IndexError('Number of variables to plot should be < 13')
+        raise IndexError('Number of variables to plot should be < 15')
 
 
 # Create list of data plots; accepts primitive grid
@@ -355,8 +359,8 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
 # Function for plotting a snapshot of the grid
 def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
     config, cells, dimension, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
-    axis_coord, options, beautify = sim_variables.axis_coord, sim_variables.plot_options, sim_variables.beautify
-    start_pos, end_pos = axis_coord
+    options = sim_variables.plot_options
+    start_pos, end_pos = sim_variables.axis_coord
 
     fig, ax, plot_ = make_figure(options, sim_variables)
     y_data = make_data(options, grid_snapshot, sim_variables)
@@ -390,7 +394,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
                 fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
             x = np.linspace(start_pos, end_pos, cells[0])
-            if beautify:
+            if BEAUTIFY_1D_PLOTS:
                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
             else:
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
@@ -425,8 +429,8 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
 def plot_quantities(hdf5, sim_variables, title=False):
     config, dimension, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimension, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     precision, t_end, checkpoints = sim_variables.precision, sim_variables.t_end, sim_variables.checkpoints
-    options, beautify, axis_coord = sim_variables.plot_options, sim_variables.beautify, sim_variables.axis_coord
-    start_pos, end_pos = axis_coord
+    options = sim_variables.plot_options
+    start_pos, end_pos = sim_variables.axis_coord
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -475,7 +479,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
                         cax = divider.append_axes(position='right', size='5%', pad=0.05)
                         fig.colorbar(graph, cax=cax, orientation='vertical')
                     else:
-                        if beautify:
+                        if BEAUTIFY_1D_PLOTS:
                             gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
                         else:
                             #ax[_i,_j].plot(x, y, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=plot_['colours']['1d'], color=plot_['colours']['1d'])
@@ -775,8 +779,7 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
 # Make a video of entire simulation; video of all plot options or specific variable
 def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
     config, dimension, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimension, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
-    axis_coord, beautify = sim_variables.axis_coord, sim_variables.beautify
-    start_pos, end_pos = axis_coord
+    start_pos, end_pos = sim_variables.axis_coord
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -813,7 +816,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                             fig.colorbar(graph, cax=cax, orientation='vertical')
                             #graph.set_clim(0, 1)
                         else:
-                            if beautify:
+                            if BEAUTIFY_1D_PLOTS:
                                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
                             else:
                                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
@@ -917,8 +920,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 # Function for plotting instance of the grid; insert into any part of the code
 def plot_this(grid, sim_variables, **kwargs):
     options = ['density', 'pressure', 'total energy', 'vx', 'vy', 'vz', 'Bx', 'By', 'Bz']
-    axis_coord, beautify = sim_variables.axis_coord, sim_variables.beautify
-    start_pos, end_pos = axis_coord
+    start_pos, end_pos = sim_variables.axis_coord
 
     try:
         t = kwargs['t']
@@ -943,7 +945,7 @@ def plot_this(grid, sim_variables, **kwargs):
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
             x = np.linspace(start_pos, end_pos, len(y))
-            if beautify:
+            if BEAUTIFY_1D_PLOTS:
                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
             else:
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])

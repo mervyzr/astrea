@@ -34,6 +34,7 @@ media_options:
   # Plot options
   # : density, pressure, velocity Vx/Vy/Vz, total/internal energy, Mach number,
   # : magnetic field Bx/By/Bz, magnetic pressure, magnetic divergence divB
+  plot_style    : default
   plot_options  :
     - density
     - pressure
