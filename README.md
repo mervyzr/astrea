@@ -171,6 +171,7 @@ astrea.run(*globals)
 │   ├── .db.json         : Database for parameters
 │   ├── .default.yml     : Default parameters file
 |   ├── *.gif            : .gif files for graphics in README.md
+│   ├── plot_chkpt.py    : Plotting function for checkpoint files
 │   ├── requirements.txt : Full Python package requirements
 │   ├── tests.py         : Initial conditions for (magneto)hydrodynamics tests
 ```
