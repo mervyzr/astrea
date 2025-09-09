@@ -15,7 +15,7 @@ import numpy as np
 
 from static import tests
 from num_methods import evolvers
-from functions import constructor, fv, generic, io, plotting
+from functions import constructor, fv, io, plotting
 from functions.io import SimulationVariables
 from functions.generic import BColours
 
