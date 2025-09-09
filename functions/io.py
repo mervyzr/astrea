@@ -1,6 +1,7 @@
 import os
 import random
 import argparse
+import subprocess
 
 import yaml
 import h5py
@@ -262,10 +263,15 @@ class SimulationVariables(object):
                 self.solver = db.get(params.type == 'default')['solver']
 
         if self.chemistry:
-            krome_exists = [dirname for root, dirs, _ in os.walk(self.home) for dirname in dirs if 'krome' in os.path.join(root, dirname)]
-            if not krome_exists:
+            krome_path = [os.path.join(root, dirname) for root, dirs, _ in os.walk(self.home) for dirname in dirs if 'krome' in os.path.join(root, dirname)][0]
+            if not krome_path:
                 print(f"{BColours.WARNING}Chemistry switched on but krome folder cannot be found. Switching off chemistry..{BColours.ENDC}")
                 self.chemistry = False
+            else:
+                print(f"Chemistry switched on. Follow the prompts in krome for setup :\n")
+                os.chdir(krome_path)
+                #subprocess.run(["./krome", "-test=hello"])
+                os.chdir(self.home)
 
         # Media options
         if (self.live_plot or self.save_plots or self.save_video) and self.dimension > 2:
