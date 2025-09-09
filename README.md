@@ -16,7 +16,25 @@
   <img src='./static/ot-magpressure.gif' width=30% alt='Orszag-Tang vortex'>
 </p>
 
+
+### Table of Contents  
+- [Description](#description)
+  - [Code](#code)
+  - [Spatial discretisation](#spatial-discretisation)
+  - [Riemann solver](#riemann-solver-and-flux-update)
+  - [Time discretisation](#time-discretisation)
+  - [Simulation benchmarks](#simulation-benchmarks)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Organisation](#organisation)
+- [References](#references)
+
+
+<a name="description"></a>
+
 # Description
+
+<a name="code"></a>
 
 ### Code
 
@@ -31,6 +49,9 @@ Some experimentation was done to parallelise the code with `Open MPI` and `MPICH
 
 ^_`h5py` is not fully optimised for the experimental free-threading build or the just-in-time compiler introduced in Python 3.13t, but there are some works in progress to make the package compatible (see <a href='https://github.com/h5py/h5py/issues/2475' target='_blank'>here</a>). So the code should only run for the Python 3.13 build, not Python 3.13t. Alternatively the user can simply switch off the use of `h5py` in the simulation if they would like to experiment with the 3.13t build._
 
+
+<a name="spatial-discretisation"></a>
+
 ### Spatial discretisation
 
 The space in the simulation is discretised into a uniform Cartesian grid, and thus the computational domain is assumed to be identically mapped to the physical domain.
@@ -40,6 +61,9 @@ The code employs various reconstruction methods with _primitive variables_ as pa
 Godunov's theorem states that for a linear scheme that is monotonicity-preserving (i.e. do not produce spurrious oscillations), the scheme can be at most first-order accurate (Godunov, 1954). This has led to the development of several subgrid models that reduce these spurious oscillations while still maintaining a high-order accuracy. These models are known as Total Variation Diminishing (TVD) schemes (Harten, 1983). In order to fulfil the TVD condition, limiters have to be used after the spatial reconstructions. The PCM does not require any limiters. The PLM employs the "minmod" slope limiter (Derigs et al., 2018). The PPM employs several limiters: when _interpolating_ from the cell centres to the interfaces (Colella et al., 2011) and when _extrapolating_ to the left and right of each cell interface (Colella et al., 2011; McCorquodale & Colella, 2011). The WENO method currently does not employ any limiters. There are other TVD slope limiters available in the code too (e.g., superbee).
 
 The parabolic reconstruction method by McCorquodale & Colella (2011) also allows for a slope flattener (Colella, 1990) and artificial viscosity as additional dissipation mechanisms to suppress oscillations at sharp discontinuities.
+
+
+<a name="riemann-solver-and-flux-update"></a>
 
 ### Riemann solver and flux update
 
@@ -55,6 +79,9 @@ The Harten-Lax-van Leer-Contact (HLLC) Riemann solver (Toro et al., 1994; Fleisc
 
 Riemann solvers that attempt to derive the flux from the full (_but not exact_) eigenstructure are also included in the code, such as the entropy-stable flux (Derigs et al., 2018) and the modified Osher-Solomon flux (Dumbser & Toro, 2011). However, these solvers are not as robust and stable, and run into errors frequently.
 
+
+<a name="time-discretisation"></a>
+
 ### Time discretisation
 
 A method-of-lines approach is used for the temporal evolution of the simulation, thus the temporal component of the advection equation can be discretised and treated separately from the spatial component.
@@ -64,6 +91,9 @@ Higher-order temporal discretisation methods can be employed to match the higher
 In the following, the (explicit) SSPRK methods are denoted as SSPRK (_i_,_j_), where _i_ and _j_ refers to _i_-stage and the _j_-th order iterative method respectively. Several SSPRK variants are included for this simulation, with the SSPRK (2,2) (Gottlieb et al., 2009), SSPRK (3,3) (Shu & Osher, 1988; Gottlieb et al., 2009), SSPRK(4,3), SSPRK (5,3) (Spiteri & Ruuth, 2002; Gottlieb et al., 2009), SSPRK (5,4) (Kraaijevanger, 1991; Ruuth & Spiteri, 2002), and low-storage (Williamson, 1980) SSPRK(10,4) (Ketcheson, 2008) methods. The ''classic'' RK4 or the Forward Euler method can also be used.
 
 For a _j_-order reconstruction scheme, _j_ > 4, the Dormand-Prince 8(7) (Dormand & Prince, 1981) method can be considered. However, this method is not a SSP variant as no methods with order _j_ > 4 with positive SSP coefficients can exist (Kraaijevanger, 1991; Ruuth & Spiteri, 2002), and therefore might not be suitable for solutions with discontinuities.
+
+
+<a name="simulation-benchmarks"></a>
 
 ### Simulation benchmarks
 
@@ -104,9 +134,15 @@ Several (magneto)hydrodynamics tests are in place:
 
 Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussian wave test and the sine wave test are overplotted in the saved plots. The solution error norms are also calculated when the smooth advection wave tests are run (Gaussian & sine waves).
 
+
+<a name="installation"></a>
+
 # Installation
 
 Clone this repository onto your local machine, and navigate to the cloned repository. In the command line, run _`/path/to/python3 -m pip install .`_; this will install the minimum packages to run the simulation and create a `parameters.yml` file for simulation configurations.
+
+
+<a name="usage"></a>
 
 # Usage
 
@@ -136,6 +172,9 @@ _Running the code in a Python interactive shell is also possible, although this 
 import astrea
 astrea.run(*globals)
 ```
+
+
+<a name="organisation"></a>
 
 # Organisation
 
@@ -176,6 +215,8 @@ astrea.run(*globals)
 │   ├── tests.py         : Initial conditions for (magneto)hydrodynamics tests
 ```
 
+
+<a name="references"></a>
 
 ## References
 
