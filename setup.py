@@ -43,6 +43,7 @@ setup(
         "pygit2",
         "psutil",
         "gputil",
+        "tabulate",
         "wheel",
     ],
     keywords=[
