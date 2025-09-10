@@ -18,9 +18,11 @@ def sine_func(x, params):
 
 
 # For handling division-by-zero warnings during array divisions
-# !! MONITOR THE PHYSICS WHEN USING THIS; ZEROS IN DIVISOR MIGHT MEAN YOUR CODE IS INCORRECT INSTEAD !!
+# !! MONITOR THE PHYSICS WHEN USING THIS: 
+# !! 1. ZEROS IN DIVISOR MIGHT MEAN YOUR CODE IS INCORRECT !!
+# !! 2. IMAGINARY PARTS DISCARDED, MONITOR FOR RANDOM OSCILLATIONS !!
 def divide(dividend, divisor):
-    return np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
+    return np.divide(np.real(dividend), np.real(divisor), out=np.zeros_like(dividend), where=divisor!=0)
 
 
 # For handling log zero and log negative values
