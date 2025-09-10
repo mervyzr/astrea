@@ -46,7 +46,7 @@ def handle_CLI(db_path):
 
     parser.add_argument('-v', '--verbose', dest='verbose', default=argparse.SUPPRESS, help='verbose description of simulation', action='store_true')
     parser.add_argument('-q', '--quiet', dest='quiet', default=argparse.SUPPRESS, help='switch off printing to screen', action='store_true')
-    parser.add_argument('-w', '--write_chkpt', dest='write_chkpt', default=argparse.SUPPRESS, help='toggle saving checkpoint files', action='store_true')
+    parser.add_argument('-w', '--write', dest='write_chkpt', default=argparse.SUPPRESS, help='toggle saving checkpoint files', action='store_true')
 
     parser.add_argument('--config', metavar='', type=str.lower, default=argparse.SUPPRESS, help='configuration to run in the simulation', choices=accepted_values('config'))
     parser.add_argument('--grid', '--cells', dest='cells', metavar='', default=argparse.SUPPRESS, help='number of cells in the grid')
@@ -60,7 +60,7 @@ def handle_CLI(db_path):
     parser.add_argument('--solver', metavar='', type=str.lower, default=argparse.SUPPRESS, help='solver method for the Riemann problem', choices=accepted_values('solver'))
 
     parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='run a single run or multiple runs for each simulation', choices=db.get(params.type == 'run_type')['accepted'])
-    parser.add_argument('--checkpoints', '--chkpts', dest='checkpoints', metavar='', type=int, default=argparse.SUPPRESS, help='number of checkpoints in simulation')
+    parser.add_argument('--checkpoints', metavar='', type=int, default=argparse.SUPPRESS, help='number of checkpoints in simulation')
 
     parser.add_argument('--live_plot', '--live', dest='live_plot', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
     parser.add_argument('--save_snaps', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
@@ -70,7 +70,7 @@ def handle_CLI(db_path):
     parser.add_argument('--plot_style', metavar='', type=str.lower, default=argparse.SUPPRESS, help='plot styles (based on matplotlib style sheets)')
     parser.add_argument('--plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot')
 
-    parser.add_argument('--file', '--chkpt_file', dest='chkpt_file', metavar='', type=str.lower, default=argparse.SUPPRESS, help='load astrea checkpoint file')
+    parser.add_argument('--file', dest='chkpt_file', metavar='', type=str.lower, default=argparse.SUPPRESS, help='load astrea checkpoint file')
     parser.add_argument('--chemistry', default=argparse.SUPPRESS, help='switch on chemistry for simulation', action='store_true')
 
     parser.add_argument('-t', '--test', dest='test', default=argparse.SUPPRESS, help=argparse.SUPPRESS, action='store_true')
