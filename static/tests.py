@@ -5,7 +5,7 @@ import numpy as np
 ##############################################################################
 
 # Primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
-def generate_test_conditions(config, cells):
+def generate_test_conditions(config, cells, gamma):
     # [Sod, 1978]
     if "sod" in config:
         axis_coord = [0,1]
@@ -17,7 +17,7 @@ def generate_test_conditions(config, cells):
         misc = None
 
     # [Sedov, 1959]
-    elif "sedov" in config or config == "blast":
+    elif "sedov" in config:
         axis_coord = [-10,10]
         shock_pos = .5
         t_end = 1
@@ -110,15 +110,15 @@ def generate_test_conditions(config, cells):
         initial_right = np.array([1,.5,0,0,1,0,0,0])
         misc = {'perturb_ampl':.5, 'freq':4}
 
-    # [Yee et. al., 1999]
+    # [Pang & Wu, 2025]
     elif config in ["ivc", "isentropic"]:
         axis_coord = [0,10]
         shock_pos = 5
         t_end = 10
         boundary = "wrap"
-        initial_left = np.array([1,0,0,0,1,0,0,0])
-        initial_right = np.array([1,0,0,0,1,0,0,0])
-        misc = {'vortex_str':.5, 'freq':2}
+        initial_left = np.array([1,0,0,0,1,0,0,.1])
+        initial_right = np.array([1,0,0,0,1,0,0,.1])
+        misc = {'vortex_str':1, 'freq':2}
 
     # [Gresho & Chan, 1990]
     elif "gresho" in config:
@@ -133,11 +133,11 @@ def generate_test_conditions(config, cells):
     # [Orszag & Tang, 1998; Stone et al., 2008]
     elif "orszag" in config or "tang" in config or config == "ot":
         axis_coord = [0,1]
-        shock_pos = 1
+        shock_pos = 0
         t_end = 1
         boundary = "wrap"
-        initial_left = np.array([25/(36*np.pi),0,0,0,5/(12*np.pi),0,0,0])
-        initial_right = np.array([25/(36*np.pi),0,0,0,5/(12*np.pi),0,0,0])
+        initial_left = np.array([25/(36*np.pi),0,0,0,5/(12*np.pi),0,.1,0])
+        initial_right = np.array([25/(36*np.pi),0,0,0,5/(12*np.pi),0,.1,0])
         misc = {'ampl':1/np.sqrt(4*np.pi)}
 
     # [Balsara & Spicer, 1999]
@@ -148,7 +148,7 @@ def generate_test_conditions(config, cells):
         boundary = "wrap"
         initial_left = np.array([10,0,0,0,1,5/np.sqrt(4*np.pi),0,0])
         initial_right = np.array([1,0,0,0,1,5/np.sqrt(4*np.pi),0,0])
-        misc = {'omega':20}
+        misc = {'omega':10, 'ampl':5/np.sqrt(4*np.pi)}
 
     # [Felker & Stone, 2018]
     elif "blast" in config and config.startswith("mhd"):
@@ -156,9 +156,9 @@ def generate_test_conditions(config, cells):
         shock_pos = .1
         t_end = .2
         boundary = "wrap"
-        initial_left = np.array([1,0,0,0,10,0,0,0])
-        initial_right = np.array([1,0,0,0,.1,0,0,0])
-        misc = None
+        initial_left = np.array([1,0,0,0,10,0,0,.1])
+        initial_right = np.array([1,0,0,0,.1,0,0,.1])
+        misc = {'ampl':1/np.sqrt(3)}
 
     # [Gardiner & Stone, 2005]
     elif "sheet" in config or "current" in config:
@@ -169,6 +169,26 @@ def generate_test_conditions(config, cells):
         initial_left = np.array([1,0,0,0,.05/(4*np.pi),0,1/np.sqrt(4*np.pi),0])
         initial_right = np.array([1,0,0,0,.05/(4*np.pi),0,1/np.sqrt(4*np.pi),0])
         misc = {'ampl':.1}
+
+    # [Dai & Woodward, 1998]
+    elif "cloud" in config:
+        axis_coord = [0,1]
+        shock_pos = .6
+        t_end = 1
+        boundary = "edge"
+        initial_left = np.array([3.86859,0,0,0,167.345,0,2.1826182,-2.1826182])
+        initial_right = np.array([1,-11.2536,0,0,1,0,.56418958,.56418958])
+        misc = None
+
+    # [Wu & Shu, 2018]
+    elif "jet" in config:
+        axis_coord = [-.5,.5]
+        shock_pos = -.49
+        t_end = .01
+        boundary = "edge"
+        initial_left = np.array([gamma*.1,0,0,0,1,0,np.sqrt(2000),0])
+        initial_right = np.array([gamma*.1,0,0,0,1,0,np.sqrt(2000),0])
+        misc = None
 
     # [Toro, 1999, p.225]
     elif "toro" in config:

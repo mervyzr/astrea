@@ -115,7 +115,7 @@ Several (magneto)hydrodynamics tests are in place:
     - Noh problem (Noh, 1987)
     - Gresho vortex (Gresho & Chan, 1990)
     - "Lax-Liu tests" (Lax & Liu, 1998)
-    - Isentropic vortex (Yee et al., 1999)
+    - Isentropic vortex (Pang & Wu, 2025)
     - Gaussian wave
   - Three-dimensional:
     - Sedov blast wave
@@ -126,10 +126,13 @@ Several (magneto)hydrodynamics tests are in place:
     - Brio-Wu shockwave (Brio & Wu, 1988)
   - Two-dimensional:
     - Orszag-Tang vortex (Orszag & Tang, 1998)
+    - Shock cloud (Dai & Woodward, 1998)
+    - Astrophysical jet (Wu & Shu, 2018)
     - MHD rotor (Balsara & Spicer, 1999)
     - MHD blast wave (Londrillo & Del Zanna, 2000)
     - MHD current sheet (Gardiner & Stone, 2005)
   - Three-dimensional:
+    - Orszag-Tang vortex
     - MHD blast wave
 
 Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussian wave test and the sine wave test are overplotted in the saved plots. The solution error norms are also calculated when the smooth advection wave tests are run (Gaussian & sine waves).

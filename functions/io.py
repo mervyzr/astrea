@@ -22,7 +22,7 @@ def make_sim_variables():
     with open('parameters.yml', "r") as _f:
         config_variables = yaml.safe_load(_f)
     config_variables = parse_cli_variables(config_variables, {})
-    test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'])
+    test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'], config_variables['gamma'])
     sim_variables = SimulationVariables(1, config_variables, test_variables)
     return sim_variables
 

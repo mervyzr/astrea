@@ -166,7 +166,7 @@ def run(seed, save_dir) -> None:
             config_variables = io.parse_cli_variables(config_variables, cli_variables)
 
     # Generate test configuration based on configuration
-    test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'])
+    test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'], config_variables['gamma'])
 
     # Initialise simulation variables
     sim_variables = SimulationVariables(seed, config_variables, test_variables)
