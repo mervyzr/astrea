@@ -93,7 +93,7 @@ def generate_test_conditions(config, cells, gamma):
 
     # [Brio & Wu, 1988]
     elif "brio" in config or "wu" in config or config == "bw":
-        axis_coord = [-.5,-.5]
+        axis_coord = [-.5,.5]
         shock_pos = 0
         t_end = .1
         boundary = "edge"
