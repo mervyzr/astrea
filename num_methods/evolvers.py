@@ -29,7 +29,7 @@ def evolve_space(grid, sim_variables, first_stage=False):
         eta = np.ones_like(grid[...,pressure])
         with concurrent.futures.ThreadPoolExecutor() as executor:
             jobs = executor.map(ppm.get_flattening_coeff, repeat(primitive), repeat(sim_variables), axes)
-            eta = np.minimum(eta, np.min(jobs, axis=0))
+            eta = np.minimum(eta, np.min([job for job in jobs], axis=0))
 
 
     # Hydrodynamics computation (with fluxes and eigmax)

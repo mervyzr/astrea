@@ -202,40 +202,37 @@ def calculate_DOTS_flux(axis, sim_variables, **kwargs):
     arr_plus, arr_minus = np.repeat(cons_plus[None,:], len(roots), axis=0), np.repeat(cons_minus[None,:], len(roots), axis=0)
     psi = arr_minus + (roots*(arr_plus - arr_minus).T).T
 
-    # Define the right eigenvectors
-    _right_eigenvectors = constructor.make_right_eigenvectors(psi, sim_variables, axis)
+    # Define the left & right eigenvectors
+    left_eigenvectors, right_eigenvectors = constructor.make_eigenvectors(psi, sim_variables, axis)
 
     # Generate the diagonal matrix of eigenvalues
-    _lambda = np.zeros_like(_right_eigenvectors)
+    eigenvalues = np.zeros_like(right_eigenvectors)
 
     # Compute wavespeeds
     sound_speed, alfven_speed_x, fast_magnetosonic_wave, slow_magnetosonic_wave = constructor.make_wavespeeds(psi, sim_variables, axis)
     vxs = psi[...,1+axis]
 
     # Compute the diagonal matrix of eigenvalues
-    _lambda[...,0,0] = vxs - fast_magnetosonic_wave
-    _lambda[...,1,1] = vxs - alfven_speed_x
-    _lambda[...,2,2] = vxs - slow_magnetosonic_wave
-    _lambda[...,3,3] = vxs
-    _lambda[...,4,4] = vxs
-    _lambda[...,5,5] = vxs + slow_magnetosonic_wave
-    _lambda[...,6,6] = vxs + alfven_speed_x
-    _lambda[...,7,7] = vxs + fast_magnetosonic_wave
-    _eigenvalues = np.abs(_lambda)
+    eigenvalues[...,0,0] = vxs - fast_magnetosonic_wave
+    eigenvalues[...,1,1] = vxs - alfven_speed_x
+    eigenvalues[...,2,2] = vxs - slow_magnetosonic_wave
+    eigenvalues[...,3,3] = vxs
+    eigenvalues[...,4,4] = vxs
+    eigenvalues[...,5,5] = vxs + slow_magnetosonic_wave
+    eigenvalues[...,6,6] = vxs + alfven_speed_x
+    eigenvalues[...,7,7] = vxs + fast_magnetosonic_wave
 
     # Compute the absolute value of the Jacobian
-    abs_A = _right_eigenvectors @ _eigenvalues @ np.linalg.pinv(_right_eigenvectors)
+    abs_A = right_eigenvectors @ np.abs(eigenvalues) @ left_eigenvectors
 
     # Compute the Dumbser-Toro Jacobian with the Gauss-Legendre quadrature
-    jacobian = np.sum((weights*abs_A.T).T, axis=0)
+    jacobian = np.sum((weights * abs_A.T).T, axis=0)
 
     # Compute the Osher-Solomon dissipation term
-    _q_plus = jacobian @ cons_plus[...,None]
-    _q_minus = jacobian @ cons_minus[...,None]
-    _q_plus = _q_plus.reshape(_q_plus.shape[:-1])
-    _q_minus = _q_minus.reshape(_q_minus.shape[:-1])
+    q_plus = (jacobian @ cons_plus[...,None]).squeeze()
+    q_minus = (jacobian @ cons_minus[...,None]).squeeze()
 
-    return .5*(flux_plus+flux_minus) - .5*(_q_plus-_q_minus)
+    return .5*(flux_plus+flux_minus) - .5*(q_plus-q_minus)
 
 
 # Entropy-stable flux calculation based on left and right interpolated primitive variables [Winters & Gassner, 2015; Derigs et al., 2016]
@@ -303,7 +300,7 @@ def calculate_ES_flux(axis, sim_variables, **kwargs):
 
     # Entropy-stable flux with dissipation term section [Derigs et al., 2016]
     # Make the right eigenvectors for each cell in each grid using the averaged primitive variables
-    es_right_eigenvectors = constructor.make_ES_right_eigenvectors(np.array([rho_hat.T, u1_hat.T, v1_hat.T, w1_hat.T, p1_hat.T, b1_hat.T, b2_hat.T, b3_hat.T]).T, sim_variables, axis)
+    es_right_eigenvectors = constructor.make_right_eigenvectors(np.array([rho_hat.T, u1_hat.T, v1_hat.T, w1_hat.T, p1_hat.T, b1_hat.T, b2_hat.T, b3_hat.T]).T, sim_variables, axis)
 
     # Define the jump in the entropy vector
     entropy = np.log(p1_hat * rho_hat**-gamma)
@@ -328,14 +325,14 @@ def calculate_ES_flux(axis, sim_variables, **kwargs):
     # Compute the diagonal matrix of eigenvalues for Roe
     if version.lower().startswith(('r','h')):
         roe_eigenvalues = np.zeros_like(es_right_eigenvectors)
-        roe_eigenvalues[...,0,0] = u1_hat + fast_magnetosonic_wave
-        roe_eigenvalues[...,1,1] = u1_hat + alfven_speed_x
-        roe_eigenvalues[...,2,2] = u1_hat + slow_magnetosonic_wave
+        roe_eigenvalues[...,0,0] = u1_hat - fast_magnetosonic_wave
+        roe_eigenvalues[...,1,1] = u1_hat - alfven_speed_x
+        roe_eigenvalues[...,2,2] = u1_hat - slow_magnetosonic_wave
         roe_eigenvalues[...,3,3] = u1_hat
         roe_eigenvalues[...,4,4] = u1_hat
-        roe_eigenvalues[...,5,5] = u1_hat - slow_magnetosonic_wave
-        roe_eigenvalues[...,6,6] = u1_hat - alfven_speed_x
-        roe_eigenvalues[...,7,7] = u1_hat - fast_magnetosonic_wave
+        roe_eigenvalues[...,5,5] = u1_hat + slow_magnetosonic_wave
+        roe_eigenvalues[...,6,6] = u1_hat + alfven_speed_x
+        roe_eigenvalues[...,7,7] = u1_hat + fast_magnetosonic_wave
         roe_eigenvalues = np.abs(roe_eigenvalues)
 
     # Compute the diagonal matrix of eigenvalues for Local Lax-Friedrich
@@ -343,13 +340,13 @@ def calculate_ES_flux(axis, sim_variables, **kwargs):
         llf_eigenvalues = np.zeros_like(es_right_eigenvectors)
         i, j = np.diag_indices(llf_eigenvalues.shape[-1])
         max_values = np.maximum.reduce([
-            np.abs(u1_hat+fast_magnetosonic_wave),
-            np.abs(u1_hat+alfven_speed_x),
-            np.abs(u1_hat+slow_magnetosonic_wave),
+            np.abs(u1_hat - fast_magnetosonic_wave),
+            np.abs(u1_hat - alfven_speed_x),
+            np.abs(u1_hat - slow_magnetosonic_wave),
             np.abs(u1_hat),
-            np.abs(u1_hat-slow_magnetosonic_wave),
-            np.abs(u1_hat-alfven_speed_x),
-            np.abs(u1_hat-fast_magnetosonic_wave)])
+            np.abs(u1_hat + slow_magnetosonic_wave),
+            np.abs(u1_hat + alfven_speed_x),
+            np.abs(u1_hat + fast_magnetosonic_wave)])
         llf_eigenvalues[...,i,j] = max_values[..., None]
 
     # Compute the hydrid entropy stabilisation diagonal matrix
