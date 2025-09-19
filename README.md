@@ -212,6 +212,7 @@ astrea.run(*globals)
 │   ├── __init__.py
 │   ├── .db.json         : Database for parameters
 │   ├── .default.yml     : Default parameters file
+│   ├── constants.py     : Conversion between code units & CGS units
 |   ├── *.gif            : .gif files for graphics in README.md
 │   ├── plot_chkpt.py    : Plotting function for checkpoint files
 │   ├── requirements.txt : Full Python package requirements
