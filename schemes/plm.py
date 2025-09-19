@@ -66,7 +66,6 @@ def run(grid, sim_variables, axis):
         'cons_interfaces': [cons_plus, cons_minus],
         'flux_interfaces': [flux_plus, flux_minus],
         'characteristics': characteristics,
-        'interface_avg': intf_avg,
     })
 
     # Compute flux difference for hydrodynamic components

@@ -128,7 +128,6 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
         'cons_interfaces': [cons_plus, cons_minus],
         'flux_interfaces': [flux_plus, flux_minus],
         'characteristics': characteristics,
-        'interface_avg': intf_avg,
     })
 
     # Compute the orthogonal L/R Riemann states and fluxes at higher-order accuracy
@@ -139,7 +138,6 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
             'cons_interfaces': approx_face_avg(ortho_axes, sim_variables, *[cons_plus, cons_minus]),
             'flux_interfaces': approx_face_avg(ortho_axes, sim_variables, *[flux_plus, flux_minus]),
             'characteristics': characteristics,
-            'interface_avg': intf_avg,
         })
 
         # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation for each orthogonal axis

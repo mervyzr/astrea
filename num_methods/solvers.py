@@ -62,7 +62,6 @@ def calculate_HLLC_flux(axis, sim_variables, low_mach=False, **kwargs):
     prim_plus, prim_minus = kwargs["prim_interfaces"]
     cons_plus, cons_minus = kwargs["cons_interfaces"]
     flux_plus, flux_minus = kwargs["flux_interfaces"]
-    intf_avg = kwargs["interface_avg"]
 
     """The convention here uses L & R states, i.e. L state = w-, R state = w+
         |                        w(i-1/2)                    w(i+1/2)                       |
@@ -74,9 +73,10 @@ def calculate_HLLC_flux(axis, sim_variables, low_mach=False, **kwargs):
     rhoR, uR, pR, qR = prim_plus[...,rho], prim_plus[...,1+axis], prim_plus[...,pressure], cons_plus
 
     # Compute the wavespeeds
-    sound_speed, alfven_speed_x, fast_magnetosonic_wave, slow_magnetosonic_wave = constructor.make_wavespeeds(intf_avg, sim_variables, axis)
-    sL = np.minimum(0, np.minimum(uL, uR) - sound_speed)
-    sR = np.maximum(0, np.maximum(uL, uR) + sound_speed)
+    cs_L, cAx_L, caf_L, cas_L = constructor.make_wavespeeds(prim_minus, sim_variables, axis)
+    cs_R, cAx_R, caf_R, cas_R = constructor.make_wavespeeds(prim_plus, sim_variables, axis)
+    sL = np.minimum(0, np.minimum(uL, uR) - np.maximum(cs_L, cs_R))
+    sR = np.maximum(0, np.maximum(uL, uR) + np.maximum(cs_L, cs_R))
     sM = fv.divide(pL - pR + rhoR*uR*(sR-uR) - rhoL*uL*(sL-uL), rhoR*(sR-uR) - rhoL*(sL-uL))
 
     # Calculate the intermediate states
@@ -117,7 +117,6 @@ def calculate_HLLD_flux(axis, sim_variables, **kwargs):
     prim_plus, prim_minus = kwargs["prim_interfaces"]
     cons_plus, cons_minus = kwargs["cons_interfaces"]
     flux_plus, flux_minus = kwargs["flux_interfaces"]
-    intf_avg = kwargs["interface_avg"]
 
     """The convention here uses L & R states, i.e. L state = w-, R state = w+
         |                        w(i-1/2)                    w(i+1/2)                       |
@@ -130,9 +129,10 @@ def calculate_HLLD_flux(axis, sim_variables, **kwargs):
     pTL, pTR = pL + .5*fv.norm(bL)**2, pR + .5*fv.norm(bR)**2
 
     # Compute the wavespeeds
-    sound_speed, alfven_speed_x, fast_magnetosonic_wave, slow_magnetosonic_wave = constructor.make_wavespeeds(intf_avg, sim_variables, axis)
-    sL = np.minimum(0, np.minimum(vecL[...,abscissa], vecR[...,abscissa]) - fast_magnetosonic_wave)
-    sR = np.maximum(0, np.maximum(vecL[...,abscissa], vecR[...,abscissa]) + fast_magnetosonic_wave)
+    cs_L, cAx_L, caf_L, cas_L = constructor.make_wavespeeds(prim_minus, sim_variables, axis)
+    cs_R, cAx_R, caf_R, cas_R = constructor.make_wavespeeds(prim_plus, sim_variables, axis)
+    sL = np.minimum(0, np.minimum(vecL[...,abscissa], vecR[...,abscissa]) - np.maximum(caf_L, caf_R))
+    sR = np.maximum(0, np.maximum(vecL[...,abscissa], vecR[...,abscissa]) + np.maximum(caf_L, caf_R))
     sM = fv.divide(pTL - pTR + rhoR*vecR[...,axis]*(sR-vecR[...,axis]) - rhoL*vecL[...,axis]*(sL-vecL[...,axis]), rhoR*(sR-vecR[...,axis]) - rhoL*(sL-vecL[...,axis]))
 
     # Calculate the star states

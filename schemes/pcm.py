@@ -41,7 +41,6 @@ def run(grid, sim_variables, axis):
         'cons_interfaces': [fv.slice_(padded_conservative, axis, start=1), fv.slice_(padded_conservative, axis, end=-1)],
         'flux_interfaces': [fv.slice_(fluxes, axis, start=1), fv.slice_(fluxes, axis, end=-1)],
         'characteristics': characteristics,
-        'interface_avg': fv.slice_(padded_primitive, axis, start=1),
     })
 
     # Compute flux difference for hydrodynamic components
