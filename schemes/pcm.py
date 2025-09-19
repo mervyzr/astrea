@@ -8,7 +8,7 @@ from num_methods import ct, solvers
 ##############################################################################
 
 def run(grid, sim_variables, axis):
-    boundary, multidimensional, axes, magnetic, ds = sim_variables.boundary, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
+    multidimensional, magnetic, ds = sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds
     data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
@@ -41,6 +41,7 @@ def run(grid, sim_variables, axis):
         'cons_interfaces': [fv.slice_(padded_conservative, axis, start=1), fv.slice_(padded_conservative, axis, end=-1)],
         'flux_interfaces': [fv.slice_(fluxes, axis, start=1), fv.slice_(fluxes, axis, end=-1)],
         'characteristics': characteristics,
+        'interface_avg': fv.slice_(padded_primitive, axis, start=1),
     })
 
     # Compute flux difference for hydrodynamic components

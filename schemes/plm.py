@@ -38,8 +38,8 @@ def run(grid, sim_variables, axis):
         prim_plus[...,5+axes] = prim_minus[...,5+axes] = fv.slice_(padded_grid, axis, end=-1)[...,5+axes]
 
     # Get the average solution between the interfaces at the boundaries
-    intf_avg = fv.slice_(.5* (prim_plus + prim_minus), axis, start=1)
-    padded_intf_avg = fv.add_boundary(intf_avg, sim_variables, axis=axis)
+    intf_avg = .5* (prim_plus + prim_minus)
+    padded_intf_avg = fv.add_boundary(fv.slice_(intf_avg, axis, start=1), sim_variables, axis=axis)
 
     # Convert the primitive interface variables
     cons_plus, cons_minus = fv.convert_interface("primitive", prim_plus, axis, sim_variables), fv.convert_interface("primitive", prim_minus, axis, sim_variables)
@@ -66,6 +66,7 @@ def run(grid, sim_variables, axis):
         'cons_interfaces': [cons_plus, cons_minus],
         'flux_interfaces': [flux_plus, flux_minus],
         'characteristics': characteristics,
+        'interface_avg': intf_avg,
     })
 
     # Compute flux difference for hydrodynamic components
