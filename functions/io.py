@@ -70,8 +70,8 @@ def handle_CLI(db_path):
     parser.add_argument('--plot_style', metavar='', type=str.lower, default=argparse.SUPPRESS, help='plot styles (based on matplotlib style sheets)')
     parser.add_argument('--plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot')
 
-    parser.add_argument('--file', dest='chkpt_file', metavar='', type=str.lower, default=argparse.SUPPRESS, help='load astrea checkpoint file')
-    parser.add_argument('--chemistry', default=argparse.SUPPRESS, help='switch on chemistry for simulation', action='store_true')
+    parser.add_argument('--file', dest='chkpt_file', metavar='', type=str.lower, default=argparse.SUPPRESS, help='(absolute) path to astrea checkpoint file')
+    parser.add_argument('--chemistry', metavar='', type=str.lower, default=argparse.SUPPRESS, help='(absolute) path to chemical network file')
 
     parser.add_argument('-t', '--test', dest='test', default=argparse.SUPPRESS, help=argparse.SUPPRESS, action='store_true')
 
@@ -84,6 +84,7 @@ def parse_cli_variables(config_variables, cli_variables):
     db, params = TinyDB(config_variables['db_path']), Query()
 
     skip_cases = ['home', 'db_path', 'plot_style']
+    optional_cli = ['verbose', 'quiet', 'write_chkpt', 'chkpt_file', 'chemistry']
 
     # Replace the relevant configuration variables with the CLI variables
     for k,v in cli_variables.items():
@@ -93,7 +94,6 @@ def parse_cli_variables(config_variables, cli_variables):
             config_variables[k] = v
 
     # Optional CLI cases; set to False if not given
-    optional_cli = ['verbose', 'quiet', 'write_chkpt', 'chkpt_file', 'chemistry']
     for _var in optional_cli:
         try:
             config_variables[_var] = cli_variables[_var]
@@ -263,14 +263,14 @@ class SimulationVariables(object):
                 self.solver = db.get(params.type == 'default')['solver']
 
         if self.chemistry:
-            krome_path = [os.path.join(root, dirname) for root, dirs, _ in os.walk(self.home) for dirname in dirs if 'krome' in os.path.join(root, dirname)][0]
+            krome_path = [os.path.join(root, dirname) for root, dirs, _ in os.walk(self.home) for dirname in dirs if 'krome' in os.path.join(root, dirname)]
             if not krome_path:
                 print(f"{BColours.WARNING}Chemistry switched on but krome folder cannot be found. Switching off chemistry..{BColours.ENDC}")
                 self.chemistry = False
             else:
-                print(f"Chemistry switched on. Follow the prompts in krome for setup :\n")
-                os.chdir(krome_path)
-                #subprocess.run(["./krome", "-test=hello"])
+                os.chdir(krome_path[0])
+                options = ['-useX']
+                build_krome(self.chemistry, *options)
                 os.chdir(self.home)
 
         # Media options
@@ -358,3 +358,24 @@ def load_chkpt_file(config_variables, file):
                 config_variables['run_type'] = f.attrs['single']
 
                 return seed, config_variables, {'time':time, 'idx':idx, 'grid':grid}
+            
+
+# Build krome with network file and write .f90 file for loading into astrea
+def build_krome(network_path, *args):
+    valid = False
+    try:
+        if os.path.isfile(network_path):
+            with open(network_path, "r") as reader:
+                valid = True
+                pass
+    except Exception as e:
+        print(f"{BColours.WARNING}Error reading network file: {e}{BColours.ENDC}")
+
+    if valid:
+        print(f"Chemistry switched on. Follow the prompts in krome for setup :\n")
+        subprocess.run(["./krome", f"-n={network_path}"] + list(args))
+
+        # Needs a function to write the .f90 file, that will be compiled later on in np.f2py and loaded in as a Python module
+        # https://www.kromepackage.org/bootcamp/talks_2021/chemical_networks.pdf
+
+    pass

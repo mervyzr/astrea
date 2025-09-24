@@ -185,7 +185,7 @@ astrea.run(*globals)
 ├── LICENSE
 ├── README.md
 ├── __init__.py
-├── astrea.py            : Core function for simulation and scripts handling
+├── astrea.py            : Core script for running the simulation
 ├── functions
 │   ├── __init__.py
 │   ├── analytic.py      : Analytical solutions to smooth advection wave tests
@@ -205,7 +205,7 @@ astrea.run(*globals)
 │   ├── __init__.py
 │   ├── pcm.py           : Piecewise constant method [Godunov, 1959]
 │   ├── plm.py           : Piecewise linear method [Derigs et al., 2018]
-│   ├── ppm.py           : Piecewise parabolic method [McCorquodale & Colella, 2011; Felker & Stone, 2015]
+│   ├── ppm.py           : Piecewise parabolic method [McCorquodale & Colella, 2011; Felker & Stone, 2018]
 │   ├── weno.py          : Weighted essentially non-oscillatory method [Shu, 2009]
 ├── setup.py             : Installation script
 ├── static
