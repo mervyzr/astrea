@@ -147,6 +147,9 @@ def print_verbose(sim_variables, t=None, status=''):
         print(f'')
         print(f'{"":>5}OPTS={sys.argv[1:]}')
         print(f'')
+        if sim_variables.chemistry:
+            print(f'{"":>5}SPECIES={sim_variables.species}')
+            print(f'')
         print(f'{"Config.":>15} :    {sim_variables.config.title()}')
         print(f'{"Subgrid":>15} :    {sim_variables.subgrid.upper()}')
         print(f'{"Time evo.":>15} :    {sim_variables.time_evo.upper()}')

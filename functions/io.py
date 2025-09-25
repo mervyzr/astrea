@@ -2,15 +2,17 @@ import os
 import random
 import argparse
 import subprocess
+from textwrap import dedent
 
 import yaml
 import h5py
 import numpy as np
+import fortranformat as ff
 from tinydb import TinyDB, Query
 
 from functions import fv, generic
 from functions.generic import BColours
-from static import tests
+from static import tests, constants
 
 ##############################################################################
 # I/O functions for simulation
@@ -202,7 +204,7 @@ class SimulationVariables(object):
         'run_type', 'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
         'axes', 'magnetic', 'convert', 'roots', 'weights', 'ppm_dissipate', 'higher_order', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'home', 'save_path', 'db_path', 'timesteps', 'print_status',
-        'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'chemistry', 'test',
+        'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'chemistry', 'network', 'species', 'test',
     ]
 
     def __init__(self, seed, config_variables, test_variables):
@@ -269,9 +271,12 @@ class SimulationVariables(object):
                 self.chemistry = False
             else:
                 os.chdir(krome_path[0])
-                options = ['-useX']
-                build_krome(self.chemistry, *options)
+                self.network = f'{krome_path[0]}/build/astrea_network.txt'
+                self.species = build_krome(self.chemistry)
                 os.chdir(self.home)
+
+                # To load network abundances, use np.genfromtxt(self.network). This will give the abundances for each of the species involved.
+                # Issue here is that after every timestep, the test.f90 file has to be updated with the (rho, Tgas, dt) and compiled again. Then 'make gfortran' to run the krome script and get the new abundances
 
         # Media options
         if (self.live_plot or self.save_plots or self.save_video) and self.dimension > 2:
@@ -361,11 +366,11 @@ def load_chkpt_file(config_variables, file):
             
 
 # Build krome with network file and write .f90 file for loading into astrea
-def build_krome(network_path, *args):
+def build_krome(network_path, options=['-useX', '-noRecCheck', '-iRHS']):
     valid = False
     try:
         if os.path.isfile(network_path):
-            with open(network_path, "r") as reader:
+            with open(network_path, "r") as _:
                 valid = True
                 pass
     except Exception as e:
@@ -373,9 +378,63 @@ def build_krome(network_path, *args):
 
     if valid:
         print(f"Chemistry switched on. Follow the prompts in krome for setup :\n")
-        subprocess.run(["./krome", f"-n={network_path}"] + list(args))
+        subprocess.run(["./krome", f"-n={network_path}"] + options)
 
-        # Needs a function to write the .f90 file, that will be compiled later on in np.f2py and loaded in as a Python module
-        # https://www.kromepackage.org/bootcamp/talks_2021/chemical_networks.pdf
+        os.chdir('build')
 
-    pass
+        species = []
+        with open('species.gps', 'r') as reader:
+            lines = reader.readlines()
+            for line in lines:
+                if line.startswith('krome_idx'):
+                    krome_idx = line.split(' ')[0]
+                    # CR: cosmic ray, g: photons, Tgas: dust, dummy: dummy
+                    if not krome_idx.endswith(('CR', 'g', 'Tgas', 'dummy')):
+                        species.append(krome_idx.split('_')[-1])
+
+        rho = 1.
+        Tgas = 270.
+        dt = 1.
+        to_f90 = lambda val: f"{val:16.8E}".replace("E", "d")
+
+        #rho_f90 = to_f90(rho * constants.m_sun/(constants.au**3))
+        #Tgas_f90 = to_f90(Tgas)
+        #dt_f90 = to_f90(dt * 1e6 * 365 * 24 * 60 * 60)
+
+        rho_f90 = '1e-18'
+        Tgas_f90 = '270.'
+        dt_f90 = '3.1536e+13'
+
+        with open('test.f90', 'w') as writer:
+            text = dedent(f"""\
+            program test
+              use krome_main !use krome (mandatory)
+              use krome_user !use utility (for krome_idx_* constants and others)
+              implicit none
+              integer,parameter::nsp=krome_nmols !number of species (common)
+              real*8::Tgas,dt,x(nsp),rho
+
+              call krome_init() !init krome (mandatory)
+                        
+              x(:) = 1d-20 !default abundances
+              x(krome_idx_H) = 1.d0 !hydrogen initial abundance
+              x(:) = x(:) / sum(x) !normalize
+
+              Tgas = {Tgas_f90} !gas temperature (K)
+              dt = {dt_f90} !time-step (s)
+              rho = {rho_f90} !gas density (g/cm3)
+
+              call krome(x(:), rho, Tgas, dt) !call KROME
+
+              open (unit=10,file='astrea_network.txt',action='write')
+              write (10,*) x
+              close (10)
+            end program test""").strip("\n")
+            writer.write(text)
+
+        subprocess.run(["make", "gfortran"])
+        subprocess.run(["./test"])
+
+        os.chdir('..')
+
+    return species
