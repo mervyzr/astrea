@@ -1,18 +1,16 @@
 import os
 import random
 import argparse
-import subprocess
-from textwrap import dedent
 
 import yaml
 import h5py
 import numpy as np
-import fortranformat as ff
 from tinydb import TinyDB, Query
 
+from external import krome_funcs
 from functions import fv, generic
 from functions.generic import BColours
-from static import tests, constants
+from static import tests
 
 ##############################################################################
 # I/O functions for simulation
@@ -46,9 +44,9 @@ def handle_CLI(db_path):
                                      formatter_class=argparse.RawTextHelpFormatter, 
                                      usage=argparse.SUPPRESS)
 
-    parser.add_argument('-v', '--verbose', dest='verbose', default=argparse.SUPPRESS, help='verbose description of simulation', action='store_true')
-    parser.add_argument('-q', '--quiet', dest='quiet', default=argparse.SUPPRESS, help='switch off printing to screen', action='store_true')
-    parser.add_argument('-w', '--write', dest='write_chkpt', default=argparse.SUPPRESS, help='toggle saving checkpoint files', action='store_true')
+    parser.add_argument('-v', '--verbose', dest='verbose', help='switch on verbose description of simulation', action='store_true')
+    parser.add_argument('-q', '--quiet', dest='quiet', help='switch off printing to screen', action='store_true')
+    parser.add_argument('-w', '--write', dest='write_chkpt', help='switch on checkpoint file saving', action='store_true')
 
     parser.add_argument('--config', metavar='', type=str.lower, default=argparse.SUPPRESS, help='configuration to run in the simulation', choices=accepted_values('config'))
     parser.add_argument('--grid', '--cells', dest='cells', metavar='', default=argparse.SUPPRESS, help='number of cells in the grid')
@@ -66,14 +64,15 @@ def handle_CLI(db_path):
 
     parser.add_argument('--live_plot', '--live', dest='live_plot', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
     parser.add_argument('--save_snaps', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
-    parser.add_argument('--save_plots', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving other plots of the simulation, including quantities, conservation, total variation, etc.', choices=bool_choices)
+    parser.add_argument('--save_plots', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving quantitative plots of the simulation', choices=bool_choices)
     parser.add_argument('--save_video', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving a video of the simulation', choices=bool_choices)
-    parser.add_argument('--save_file', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving the entire simulation data file (.hdf5)', choices=bool_choices)
+    parser.add_argument('--save_file', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving the simulation data file (.hdf5)', choices=bool_choices)
     parser.add_argument('--plot_style', metavar='', type=str.lower, default=argparse.SUPPRESS, help='plot styles (based on matplotlib style sheets)')
     parser.add_argument('--plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot')
 
-    parser.add_argument('--file', dest='chkpt_file', metavar='', type=str.lower, default=argparse.SUPPRESS, help='(absolute) path to astrea checkpoint file')
-    parser.add_argument('--chemistry', metavar='', type=str.lower, default=argparse.SUPPRESS, help='(absolute) path to chemical network file')
+    parser.add_argument('--file', dest='chkpt_file', metavar='', type=str.lower, default='', help='(absolute) path to astrea checkpoint file')
+    parser.add_argument('--chemistry', help='switch on chemical network in simulation', action='store_true')
+    parser.add_argument('--network', metavar='', type=str.lower, default='', help='(absolute) path to chemical network file')
 
     parser.add_argument('-t', '--test', dest='test', default=argparse.SUPPRESS, help=argparse.SUPPRESS, action='store_true')
 
@@ -82,25 +81,13 @@ def handle_CLI(db_path):
     return vars(args)
 
 
-def parse_cli_variables(config_variables, cli_variables):
+def parse_cli_variables(config_variables, arguments):
     db, params = TinyDB(config_variables['db_path']), Query()
 
-    skip_cases = ['home', 'db_path', 'plot_style']
-    optional_cli = ['verbose', 'quiet', 'write_chkpt', 'chkpt_file', 'chemistry']
+    skip_cases = ['hdf5', 'home', 'db_path', 'plot_style', 'verbose', 'quiet', 'write_chkpt', 'chkpt_file', 'chemistry', 'network']
 
-    # Replace the relevant configuration variables with the CLI variables
-    for k,v in cli_variables.items():
-        if k in config_variables:
-            if k == 'plot_options':
-                v = v.replace('-',' ').replace('/',',').replace('|',',')
-            config_variables[k] = v
-
-    # Optional CLI cases; set to False if not given
-    for _var in optional_cli:
-        try:
-            config_variables[_var] = cli_variables[_var]
-        except KeyError:
-            config_variables[_var] = False
+    # Replace the relevant configuration variables with the additional arguments
+    config_variables.update(arguments)
 
     # Check validity of variables; revert to default values if not valid
     for k,v in config_variables.items():
@@ -174,7 +161,7 @@ def parse_cli_variables(config_variables, cli_variables):
             finally:
                 if invalid != []:
                     print(f"{BColours.WARNING}Invalid plot options: {invalid}{BColours.ENDC}")
-        elif k in optional_cli or k in skip_cases:
+        elif k in skip_cases:
             pass
         else:
             if isinstance(v, str):
@@ -204,7 +191,8 @@ class SimulationVariables(object):
         'run_type', 'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
         'axes', 'magnetic', 'convert', 'roots', 'weights', 'ppm_dissipate', 'higher_order', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'home', 'save_path', 'db_path', 'timesteps', 'print_status',
-        'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'chemistry', 'network', 'species', 'test',
+        'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test',
+        'chemistry', 'network', 'pykrome', 'species',
     ]
 
     def __init__(self, seed, config_variables, test_variables):
@@ -253,6 +241,25 @@ class SimulationVariables(object):
         self.multidimensional = self.dimension >= 2
         self.axes = np.array(range(self.dimension))
 
+        # Chemistry network set-up
+        if self.chemistry:
+            try:
+                krome_path = [os.path.join(root, dirname) for root, dirs, _ in os.walk(self.home) for dirname in dirs if 'krome' in os.path.join(root, dirname)][0]
+            except IndexError:
+                print(f"{BColours.WARNING}Chemistry switched on but krome folder cannot be found. Switching off chemistry..{BColours.ENDC}")
+                self.chemistry = False
+            else:
+                if not self.network:
+                    self.network = os.path.join(krome_path, 'networks/react_SM')
+
+                paths = [self.home, krome_path, self.network]
+                self.pykrome, self.species, self.useX = krome_funcs.build_krome(paths, robust=True)
+
+                if self.pykrome == None or self.species == None:
+                    print(f"{BColours.WARNING}krome built but cannot be accessed. Switching off chemistry..{BColours.ENDC}")
+                    self.chemistry = False
+
+        # Printer functions
         if self.verbose:
             self.print_status = generic.print_verbose
         else:
@@ -263,20 +270,6 @@ class SimulationVariables(object):
             if (self.solver_category == "hll" and self.solver.endswith('c')) and self.magnetic:
                 print(f"{BColours.WARNING}HLLC solver does not work with magnetic fields present..{BColours.ENDC}")
                 self.solver = db.get(params.type == 'default')['solver']
-
-        if self.chemistry:
-            krome_path = [os.path.join(root, dirname) for root, dirs, _ in os.walk(self.home) for dirname in dirs if 'krome' in os.path.join(root, dirname)]
-            if not krome_path:
-                print(f"{BColours.WARNING}Chemistry switched on but krome folder cannot be found. Switching off chemistry..{BColours.ENDC}")
-                self.chemistry = False
-            else:
-                os.chdir(krome_path[0])
-                self.network = f'{krome_path[0]}/build/astrea_network.txt'
-                self.species = build_krome(self.chemistry)
-                os.chdir(self.home)
-
-                # To load network abundances, use np.genfromtxt(self.network). This will give the abundances for each of the species involved.
-                # Issue here is that after every timestep, the test.f90 file has to be updated with the (rho, Tgas, dt) and compiled again. Then 'make gfortran' to run the krome script and get the new abundances
 
         # Media options
         if (self.live_plot or self.save_plots or self.save_video) and self.dimension > 2:
@@ -363,78 +356,3 @@ def load_chkpt_file(config_variables, file):
                 config_variables['run_type'] = f.attrs['single']
 
                 return seed, config_variables, {'time':time, 'idx':idx, 'grid':grid}
-            
-
-# Build krome with network file and write .f90 file for loading into astrea
-def build_krome(network_path, options=['-useX', '-noRecCheck', '-iRHS']):
-    valid = False
-    try:
-        if os.path.isfile(network_path):
-            with open(network_path, "r") as _:
-                valid = True
-                pass
-    except Exception as e:
-        print(f"{BColours.WARNING}Error reading network file: {e}{BColours.ENDC}")
-
-    if valid:
-        print(f"Chemistry switched on. Follow the prompts in krome for setup :\n")
-        subprocess.run(["./krome", f"-n={network_path}"] + options)
-
-        os.chdir('build')
-
-        species = []
-        with open('species.gps', 'r') as reader:
-            lines = reader.readlines()
-            for line in lines:
-                if line.startswith('krome_idx'):
-                    krome_idx = line.split(' ')[0]
-                    # CR: cosmic ray, g: photons, Tgas: dust, dummy: dummy
-                    if not krome_idx.endswith(('CR', 'g', 'Tgas', 'dummy')):
-                        species.append(krome_idx.split('_')[-1])
-
-        rho = 1.
-        Tgas = 270.
-        dt = 1.
-        to_f90 = lambda val: f"{val:16.8E}".replace("E", "d")
-
-        #rho_f90 = to_f90(rho * constants.m_sun/(constants.au**3))
-        #Tgas_f90 = to_f90(Tgas)
-        #dt_f90 = to_f90(dt * 1e6 * 365 * 24 * 60 * 60)
-
-        rho_f90 = '1e-18'
-        Tgas_f90 = '270.'
-        dt_f90 = '3.1536e+13'
-
-        with open('test.f90', 'w') as writer:
-            text = dedent(f"""\
-            program test
-              use krome_main !use krome (mandatory)
-              use krome_user !use utility (for krome_idx_* constants and others)
-              implicit none
-              integer,parameter::nsp=krome_nmols !number of species (common)
-              real*8::Tgas,dt,x(nsp),rho
-
-              call krome_init() !init krome (mandatory)
-                        
-              x(:) = 1d-20 !default abundances
-              x(krome_idx_H) = 1.d0 !hydrogen initial abundance
-              x(:) = x(:) / sum(x) !normalize
-
-              Tgas = {Tgas_f90} !gas temperature (K)
-              dt = {dt_f90} !time-step (s)
-              rho = {rho_f90} !gas density (g/cm3)
-
-              call krome(x(:), rho, Tgas, dt) !call KROME
-
-              open (unit=10,file='astrea_network.txt',action='write')
-              write (10,*) x
-              close (10)
-            end program test""").strip("\n")
-            writer.write(text)
-
-        subprocess.run(["make", "gfortran"])
-        subprocess.run(["./test"])
-
-        os.chdir('..')
-
-    return species

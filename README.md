@@ -6,7 +6,7 @@
 
 # astrea
 
-**_astrea_** (**A**strophysical **S**hockwave and **T**urbulence **RE**search for interstellar **A**pplications) is a multi-dimensional ideal magnetohydrodynamics simulation toy model code for the purpose of modelling shockwaves in the interstellar medium, with possible implementation of a chemical network and radiative cooling.
+**_astrea_** (**A**strophysical **S**hockwave and **T**urbulence **RE**search for interstellar **A**pplications) is a multi-dimensional ideal magnetohydrodynamics simulation toy-model code with a chemical network for the purpose of modelling shockwaves in the interstellar medium.
 
 **_This code was originally created as part of my Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner. The thesis has since been completed._**
 
@@ -23,6 +23,7 @@
   - [Spatial discretisation](#spatial-discretisation)
   - [Riemann solver](#riemann-solver-and-flux-update)
   - [Time discretisation](#time-discretisation)
+  - [Chemical network](#chemical-network)
   - [Simulation benchmarks](#simulation-benchmarks)
 - [Installation](#installation)
 - [Usage](#usage)
@@ -91,6 +92,21 @@ Higher-order temporal discretisation methods can be employed to match the higher
 In the following, the (explicit) SSPRK methods are denoted as SSPRK (_i_,_j_), where _i_ and _j_ refers to _i_-stage and the _j_-th order iterative method respectively. Several SSPRK variants are included for this simulation, with the SSPRK (2,2) (Gottlieb et al., 2009), SSPRK (3,3) (Shu & Osher, 1988; Gottlieb et al., 2009), SSPRK(4,3), SSPRK (5,3) (Spiteri & Ruuth, 2002; Gottlieb et al., 2009), SSPRK (5,4) (Kraaijevanger, 1991; Ruuth & Spiteri, 2002), and low-storage (Williamson, 1980) SSPRK(10,4) (Ketcheson, 2008) methods. The ''classic'' RK4 or the Forward Euler method can also be used.
 
 For a _j_-order reconstruction scheme, _j_ > 4, the Dormand-Prince 8(7) (Dormand & Prince, 1981) method can be considered. However, this method is not a SSP variant as no methods with order _j_ > 4 with positive SSP coefficients can exist (Kraaijevanger, 1991; Ruuth & Spiteri, 2002), and therefore might not be suitable for solutions with discontinuities.
+
+
+<a name="chemical-network"></a>
+
+### Chemical network (untested)
+
+The inclusion of the chemical network is _experimental_ and achieved with the <a href='https://www.kromepackage.org' target='_blank'>`krome`</a> package. In order to include a chemical network in the simulation, the `krome` folder has to be placed in the base folder:
+```bash
+git clone https://bitbucket.org/tgrassi/krome.git
+```
+
+Additionally, the `--chemistry` option has to be indicated at runtime. By default, if no network files are indicated in the runtime options, the default network file used can be found in `krome/networks/react_SM`:
+```bash
+python3 astrea.py --chemistry --network=/path/to/network_file
+```
 
 
 <a name="simulation-benchmarks"></a>
@@ -186,6 +202,9 @@ astrea.run(*globals)
 ├── README.md
 ├── __init__.py
 ├── astrea.py            : Core script for running the simulation
+├── external
+│   ├── __init__.py
+│   ├── krome_funcs.py   : Functions for building and parsing krome routines
 ├── functions
 │   ├── __init__.py
 │   ├── analytic.py      : Analytical solutions to smooth advection wave tests

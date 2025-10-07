@@ -8,7 +8,13 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-
+##############################################################################
+# Functions for plotting checkpoint files
+# Usage:
+# ```bash
+# ~$ python3 /path/to/astrea/static/plot_chkpt.py
+# ```
+##############################################################################
 
 
 def plot(save=False, title=False):

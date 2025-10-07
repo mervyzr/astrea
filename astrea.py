@@ -13,11 +13,12 @@ import yaml
 import dotenv
 import numpy as np
 
-from static import tests
-from num_methods import evolvers
+from external import krome_funcs
 from functions import constructor, fv, io, plotting
 from functions.io import SimulationVariables
 from functions.generic import BColours
+from num_methods import evolvers
+from static import tests
 
 ##############################################################################
 # Main script
@@ -42,6 +43,13 @@ def core_run(sim_variables, **kwargs):
     # Convert primitive grid to conservative variables <q>
     grid = fv.point_convert("primitive", centred_grid, sim_variables)
     grid[...,5+sim_variables.axes] = primitive_grid[...,5+sim_variables.axes]
+
+    ########################
+
+    # Initialise the chemical grid if activated;.
+    # Abundances can be overriden; accepts a dictionary of atom/molecule/ion name as key and the number densities [1/cm3] or mass fraction [X] as value
+    if sim_variables.chemistry:
+        chem_grid = krome_funcs.initialise(sim_variables.cells, sim_variables.species)
 
     ########################
 
@@ -105,6 +113,9 @@ def core_run(sim_variables, **kwargs):
             # Update the solution with the numerical fluxes using iterative methods
             grid = evolvers.evolve_time(grid, fluxes, dt, sim_variables)
 
+            if sim_variables.chemistry:
+                krome_funcs.run(chem_grid, grid, dt, sim_variables)
+
             # Update time step
             t += dt
             sim_variables.timesteps += 1
@@ -121,11 +132,11 @@ def run(seed, save_dir) -> None:
     np.random.seed(seed)
 
     current_dir = os.getcwd()
-    additional_arguments = {}
+    arguments = {}
 
     # Save the HDF5 file (with seed) to store the temporary data, if full_set_required
     file_name = f"{current_dir}/.astrea_hdf5_temp_{seed}"
-    additional_arguments['hdf5'] = file_name
+    arguments['hdf5'] = file_name
 
     # Signal handler for Ctrl+C
     def graceful_exit(sig, frame):
@@ -148,22 +159,18 @@ def run(seed, save_dir) -> None:
     config_variables['db_path'] = db_path
 
     # Check CLI arguments
-    cli_variables = io.handle_CLI(db_path) if len(sys.argv) > 1 else {}
+    arguments.update(io.handle_CLI(db_path))
 
     # Check for checkpoint file loading
-    try:
-        checkpoint_file = cli_variables['chkpt_file']
-    except KeyError:
-        config_variables = io.parse_cli_variables(config_variables, cli_variables)
-    else:
+    checkpoint_file = arguments['chkpt_file']
+    if checkpoint_file:
         try:
             seed, config_variables, dct = io.load_chkpt_file(config_variables, checkpoint_file)
-            additional_arguments.update(dct)
+            arguments.update(dct)
         except Exception as e:
             print(f"{BColours.FAIL}Unable to load checkpoint file: {e}..{BColours.ENDC}")
             sys.exit(0)
-        else:
-            config_variables = io.parse_cli_variables(config_variables, cli_variables)
+    config_variables = io.parse_cli_variables(config_variables, arguments)
 
     # Generate test configuration based on configuration
     test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'], config_variables['gamma'])
@@ -235,7 +242,7 @@ def run(seed, save_dir) -> None:
 
             ################### CORE ###################
             lap = perf_counter()
-            core_run(sim_variables, **additional_arguments)
+            core_run(sim_variables, **arguments)
             elapsed = perf_counter() - lap
             ################### CORE ###################
 

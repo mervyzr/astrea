@@ -110,6 +110,15 @@ def generate_test_conditions(config, cells, gamma):
         initial_right = np.array([1,.5,0,0,1,0,0,0])
         misc = {'perturb_ampl':.5, 'freq':4}
 
+    elif "turb" in config:
+        axis_coord = [0,1]
+        shock_pos = .5
+        t_end = 1
+        boundary = "wrap"
+        initial_left = np.array([1,1e-6,1e-6,1e-6,1/gamma,np.sqrt(2),0,1e-6])
+        initial_right = np.array([1,1e-6,1e-6,1e-6,1/gamma,np.sqrt(2),0,1e-6])
+        misc = {'force':'solenoidal', 'mach':5, 'beta':1, 'ampl':.5, 'k1':1, 'k2':2, 'pk':0}
+
     # [Pang & Wu, 2025]
     elif config in ["ivc", "isentropic"]:
         axis_coord = [0,10]
