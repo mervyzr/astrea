@@ -7,8 +7,8 @@ from datetime import timedelta
 import psutil
 import GPUtil
 import numpy as np
+import git
 from tabulate import tabulate
-from pygit2 import Repository
 
 ##############################################################################
 # Generic functions not specific to the finite volume method
@@ -88,7 +88,7 @@ def print_verbose(sim_variables, t=None, status=''):
     if status.lower() == "init":
         print('='*80)
 
-        print(f'  astrea code, branch:remotes/origin/{Repository(".").head.shorthand}')
+        print(f'  astrea code, branch:remotes/origin/{git.Repo(sim_variables.home).active_branch.name}')
         print(f'  Python version {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}-{sys.version_info.releaselevel}')
         print(f'  PYTHON_PATH={os.environ["_"]}')
 
