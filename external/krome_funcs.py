@@ -1,9 +1,9 @@
 import os
+import glob
 import ctypes
 import subprocess
 import concurrent.futures
 from textwrap import dedent
-from itertools import repeat
 
 import numpy as np
 
@@ -91,13 +91,13 @@ def build_krome(paths, robust=True, options=['-noRecCheck', '-iRHS']):
             subprocess.run(["./test"])
 
             # Build and expose the Fortran routines to Python with ctypes wrapper
-            subprocess.run(["gfortran", "-ffree-line-length-none", "-w", "-fallow-argument-mismatch", "-fPIC", "-O3", "-c", "*.f", "*.f90"])
+            subprocess.run(["gfortran", "-ffree-line-length-none", "-w", "-fallow-argument-mismatch", "-fPIC", "-O3", "-c",] + glob.glob("*.f90") + glob.glob("*.f"))
             if robust:
                 filename = 'krome_ctypes.f90'
                 if not os.path.isfile(os.path.join(krome_path, 'build', filename)):
                     write_krome_ctypes(filename, useX)
                 subprocess.run(["gfortran", "-ffree-line-length-none", "-w", "-fallow-argument-mismatch", "-fPIC", "-O3", "-c", filename])
-            subprocess.run(["gfortran", "-shared", "-o", "libkrome.so", "*.o"])
+            subprocess.run(["gfortran", "-shared", "-o", "libkrome.so"] + glob.glob("*.o"))
 
             # Load the shared library
             pykrome = ctypes.CDLL(os.path.join(krome_path, 'build', 'libkrome.so'))
@@ -113,10 +113,13 @@ def build_krome(paths, robust=True, options=['-noRecCheck', '-iRHS']):
             # krome solver: krome(x(:), [rho], Tgas, dt)
             # void krome(double* x, double* Tgas, double* dt)
             pykrome.krome_.restype = None
+            argtypes = [np.ctypeslib.ndpointer(dtype=np.float64, ndim=1, flags="C_CONTIGUOUS")]
+            
             if useX:
-                pykrome.krome_.argtypes = [ctypes.POINTER(ctypes.c_double)] * 4  # x(:), rho [g/cm3], Tgas [K], dt [s]
+                argtypes += [ctypes.POINTER(ctypes.c_double)]*3  # x(:), rho [g/cm3], Tgas [K], dt [s]
             else:
-                pykrome.krome_.argtypes = [ctypes.POINTER(ctypes.c_double)] * 3  # x(:), Tgas [K], dt [s]
+                argtypes += [ctypes.POINTER(ctypes.c_double)]*2  # x(:), Tgas [K], dt [s]
+            pykrome.krome_.argtypes = argtypes
 
             # ---------------------------------------------
             # Initialize krome
@@ -137,7 +140,7 @@ def initialise(cells, species, abundances=ABUNDANCES):
     size = cells + [len(species),]
     network = np.full(shape=size, fill_value=1e-20, dtype=np.float64)
 
-    for mol, abundance in abundances:
+    for mol, abundance in abundances.items():
         try:
             mol_idx = np.where(np.array(species) == mol)[0][0]
         except:
