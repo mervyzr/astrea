@@ -108,7 +108,7 @@ Additionally, the `--chemistry` option has to be indicated at runtime:
 python3 astrea.py --chemistry --network=/path/to/network_file
 ```
 If no network files are indicated in the runtime options, a custom network file will be used with the following species:
-```bash
+```
 H, HII, H2, C+, CO, O, OH, e-
 ```
 
