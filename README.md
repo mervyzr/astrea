@@ -96,7 +96,7 @@ For a _j_-order reconstruction scheme, _j_ > 4, the Dormand-Prince 8(7) (Dormand
 
 <a name="chemical-network"></a>
 
-### Chemical network (untested)
+### Chemical network (_experimental_)
 
 The inclusion of the chemical network is _experimental_ and achieved with the <a href='https://www.kromepackage.org' target='_blank'>`krome`</a> package. In order to include a chemical network in the simulation, the `krome` folder has to be placed in the base folder:
 ```bash
