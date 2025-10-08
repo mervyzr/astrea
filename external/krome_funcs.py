@@ -24,7 +24,7 @@ ABUNDANCES = {
 
 
 # Optional .f90 wrapper for explicit C symbols; increases type safety and robustness between Python/ctypes and Fortran
-def write_krome_ctypes(useX):
+def write_krome_ctypes(filename, useX):
     args = "Tgas, dt"
     if useX:
         args = "rho, " + args
@@ -50,24 +50,29 @@ def write_krome_ctypes(useX):
         end subroutine krome_
 
         end module krome_ctypes_mod""").strip("\n")
-    with open('krome_ctypes.f90', 'w') as writer:
+    with open(filename, 'w') as writer:
         writer.write(text)
     pass
 
 
 # Build krome with network file and write .f90 file for loading into astrea
-def build_krome(paths, robust=False, options=['-useX', '-noRecCheck', '-iRHS']):
+def build_krome(paths, robust=True, options=['-noRecCheck', '-iRHS']):
     astrea_path, krome_path, network_path = paths
     pykrome, species = None, None
     useX = '-useX' in options
 
-    if os.path.isfile(network_path) and os.access(network_path, os.R_OK):
-        print(f"Chemistry switched on. Follow the prompts in krome for setup :\n")
+    if krome_path:
         os.chdir(krome_path)
 
+        # Pre-process krome to create build folder if chemical network provided
+        if network_path:
+            if os.path.isfile(network_path) and os.access(network_path, os.R_OK):
+                print(f"Chemistry switched on. Follow the prompts in krome for setup :\n")
+                subprocess.run(["./krome", f"-n={network_path}"] + options)
+            else:
+                print(f"{BColours.WARNING}Error reading network file..{BColours.ENDC}")
+
         try:
-            # Pre-process krome to create build folder for chemical network
-            subprocess.run(["./krome", f"-n={network_path}"] + options)
             os.chdir(os.path.join(krome_path, 'build'))
 
             # Save the species used for chemical networks
@@ -88,8 +93,10 @@ def build_krome(paths, robust=False, options=['-useX', '-noRecCheck', '-iRHS']):
             # Build and expose the Fortran routines to Python with ctypes wrapper
             subprocess.run(["gfortran", "-ffree-line-length-none", "-w", "-fallow-argument-mismatch", "-fPIC", "-O3", "-c", "*.f", "*.f90"])
             if robust:
-                write_krome_ctypes(useX)
-                subprocess.run(["gfortran", "-ffree-line-length-none", "-w", "-fallow-argument-mismatch", "-fPIC", "-O3", "-c", "krome_ctypes.f90"])
+                filename = 'krome_ctypes.f90'
+                if not os.path.isfile(os.path.join(krome_path, 'build', filename)):
+                    write_krome_ctypes(filename, useX)
+                subprocess.run(["gfortran", "-ffree-line-length-none", "-w", "-fallow-argument-mismatch", "-fPIC", "-O3", "-c", filename])
             subprocess.run(["gfortran", "-shared", "-o", "libkrome.so", "*.o"])
 
             # Load the shared library
@@ -117,13 +124,10 @@ def build_krome(paths, robust=False, options=['-useX', '-noRecCheck', '-iRHS']):
             pykrome.krome_init_()
 
         except Exception as e:
-            print(f"{BColours.WARNING}Failed to build krome: {e}{BColours.ENDC}")
+            print(f"{BColours.WARNING}Failed to build krome:\n{e}{BColours.ENDC}")
 
         finally:
             os.chdir(astrea_path)
-
-    else:
-        print(f"{BColours.WARNING}Error reading network file..{BColours.ENDC}")
 
     return pykrome, species, useX
 
@@ -155,7 +159,7 @@ def run(chem_grid, conserv_grid, dt, sim_variables):
         Tgas = ctypes.c_double(conversion_factor * fv.divide(_cell[...,sim_variables.pressure], _cell[...,sim_variables.rho]))
 
         if sim_variables.useX:
-            sim_variables.pykrome.krome_(abundance, ctypes.byref(Tgas), ctypes.byref(_dt))
+            sim_variables.pykrome.krome_(abundance, _cell[...,sim_variables.rho]*(constants.m_sun/(constants.pc**3)), ctypes.byref(Tgas), ctypes.byref(_dt))
         else:
             sim_variables.pykrome.krome_(abundance, ctypes.byref(Tgas), ctypes.byref(_dt))
 

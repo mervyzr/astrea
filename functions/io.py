@@ -243,21 +243,21 @@ class SimulationVariables(object):
 
         # Chemistry network set-up
         if self.chemistry:
-            try:
-                krome_path = [os.path.join(root, dirname) for root, dirs, _ in os.walk(self.home) for dirname in dirs if 'krome' in os.path.join(root, dirname)][0]
-            except IndexError:
-                print(f"{BColours.WARNING}Chemistry switched on but krome folder cannot be found. Switching off chemistry..{BColours.ENDC}")
-                self.chemistry = False
+            if not self.network:
+                krome_path = os.path.join(self.home, 'external')
             else:
-                if not self.network:
-                    self.network = os.path.join(krome_path, 'networks/react_SM')
+                try:
+                    krome_path = [os.path.join(root, dirname) for root, dirs, _ in os.walk(self.home) for dirname in dirs if 'krome' in os.path.join(root, dirname)][0]
+                except IndexError:
+                    print(f"{BColours.WARNING}Chemistry switched on but krome folder cannot be found. Switching off chemistry..{BColours.ENDC}")
+                    krome_path = None
 
-                paths = [self.home, krome_path, self.network]
-                self.pykrome, self.species, self.useX = krome_funcs.build_krome(paths, robust=True)
+            paths = [self.home, krome_path, self.network]
+            self.pykrome, self.species, self.useX = krome_funcs.build_krome(paths)
 
-                if self.pykrome == None or self.species == None:
-                    print(f"{BColours.WARNING}krome built but cannot be accessed. Switching off chemistry..{BColours.ENDC}")
-                    self.chemistry = False
+            if self.pykrome == None or self.species == None:
+                print(f"{BColours.WARNING}krome built but cannot be accessed. Switching off chemistry..{BColours.ENDC}")
+                self.chemistry = False
 
         # Printer functions
         if self.verbose:

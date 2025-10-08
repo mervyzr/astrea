@@ -103,10 +103,11 @@ The inclusion of the chemical network is _experimental_ and achieved with the <a
 git clone https://bitbucket.org/tgrassi/krome.git
 ```
 
-Additionally, the `--chemistry` option has to be indicated at runtime. By default, if no network files are indicated in the runtime options, the default network file used can be found in `krome/networks/react_SM`:
+Additionally, the `--chemistry` option has to be indicated at runtime:
 ```bash
 python3 astrea.py --chemistry --network=/path/to/network_file
 ```
+If no network files are indicated in the runtime options, a custom network file will be used with the following species: [e-, H, HII, H2, CO, O, C+, OH].
 
 
 <a name="simulation-benchmarks"></a>
