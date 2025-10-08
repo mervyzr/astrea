@@ -62,4 +62,9 @@ parameters.yml
 *.hdf5
 *.sh
 **/.env
+
+# chemistry files
 !external/build
+external/build/*.mod
+external/build/*.o
+external/build/test
