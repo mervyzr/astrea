@@ -1,0 +1,27 @@
+---
+# Abundances for the default chemical network.
+# Set the initial abundances of chemical species of interest.
+# Key in the species and their respective number densities [1/cm3] or mass fractions [X]
+
+num_dens_abundances:
+  H   : 90
+  H+  : .01
+  H2  : 9
+  C+  : .014
+  C   : .001
+  CO  : .0001
+  OH  : .00001
+  O   : .032
+  E   : .015
+
+mass_frac_abundances:
+  H   : .9
+  H+  : .0001
+  H2  : .09
+  C+  : .00014
+  C   : .00001
+  CO  : .000001
+  OH  : .0000001
+  O   : .00032
+  E   : .00015
+...

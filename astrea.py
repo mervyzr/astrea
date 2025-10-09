@@ -49,7 +49,7 @@ def core_run(sim_variables, **kwargs):
     # Initialise the chemical grid if activated;.
     # Abundances can be overriden; accepts a dictionary of atom/molecule/ion name as key and the number densities [1/cm3] or mass fraction [X] as value
     if sim_variables.chemistry:
-        chem_grid = krome_funcs.initialise(sim_variables.cells, sim_variables.species)
+        chem_grid = krome_funcs.initialise(sim_variables)
 
     ########################
 
@@ -114,7 +114,7 @@ def core_run(sim_variables, **kwargs):
             grid = evolvers.evolve_time(grid, fluxes, dt, sim_variables)
 
             if sim_variables.chemistry:
-                krome_funcs.run(chem_grid, grid, dt, sim_variables)
+                chem_grid = krome_funcs.krome_run(chem_grid, grid, dt, sim_variables)
 
             # Update time step
             t += dt

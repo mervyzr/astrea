@@ -2,32 +2,29 @@ import os
 import glob
 import ctypes
 import subprocess
-import concurrent.futures
 from textwrap import dedent
 
+import yaml
 import numpy as np
 
 from functions import fv
 from functions.generic import BColours
+from functions.generic import verbose_timer
 from static import constants
 
 ##############################################################################
 # Functions for krome routines
 ##############################################################################
 
-# Set the initial abundances of chemical species of interest, 
-# accepts a dictionary of atom/molecule/ion name as key and the number densities [1/cm3] or mass fraction [X] as value
-ABUNDANCES = {
-    'H': 1e4,
-    'H2': 1e4,
-}
-
-
 # Optional .f90 wrapper for explicit C symbols; increases type safety and robustness between Python/ctypes and Fortran
 def write_krome_ctypes(filename, useX):
     args = "Tgas, dt"
+    batch_args = "Tgas(i), dt"
+    batch_args2 = "Tgas(cells)"
     if useX:
         args = "rho, " + args
+        batch_args = "rho(i), " + batch_args
+        batch_args2 = "rho(cells), " + batch_args2
 
     text = dedent(f"""\
         module krome_ctypes_mod
@@ -42,12 +39,25 @@ def write_krome_ctypes(filename, useX):
         end subroutine krome_init_
 
         subroutine krome_(x, {args}) bind(C, name="krome_")
-          integer, parameter :: nsp = krome_nmols
+          integer, parameter            :: nsp = krome_nmols
           real(c_double), intent(inout) :: x(nsp)
-          real(c_double), intent(in) :: {args}
+          real(c_double), value         :: {args}
 
           call krome(x, {args})
         end subroutine krome_
+
+        subroutine krome_batch_(xall, {args}, cells) bind(C, name="krome_batch_")
+          integer, parameter            :: nsp = krome_nmols
+          integer, value                :: cells
+          real(c_double), intent(inout) :: xall(nsp,cells)
+          real(c_double), intent(in)    :: {batch_args2}
+          real(c_double), value         :: dt
+          integer :: i
+
+          do i = i, cells
+            call krome(xall(:,i), {batch_args})
+          end do
+        end subroutine krome_batch_
 
         end module krome_ctypes_mod""").strip("\n")
     with open(filename, 'w') as writer:
@@ -56,7 +66,7 @@ def write_krome_ctypes(filename, useX):
 
 
 # Build krome with network file and write .f90 file for loading into astrea
-def build_krome(paths, robust=True, options=['-noRecCheck', '-iRHS']):
+def build_krome(paths, options):
     astrea_path, krome_path, network_path = paths
     pykrome, species = None, None
     useX = '-useX' in options
@@ -92,11 +102,10 @@ def build_krome(paths, robust=True, options=['-noRecCheck', '-iRHS']):
 
             # Build and expose the Fortran routines to Python with ctypes wrapper
             subprocess.run(["gfortran", "-ffree-line-length-none", "-w", "-fallow-argument-mismatch", "-fPIC", "-O3", "-c",] + glob.glob("*.f90") + glob.glob("*.f"))
-            if robust:
-                filename = 'krome_ctypes.f90'
-                if not os.path.isfile(os.path.join(krome_path, 'build', filename)):
-                    write_krome_ctypes(filename, useX)
-                subprocess.run(["gfortran", "-ffree-line-length-none", "-w", "-fallow-argument-mismatch", "-fPIC", "-O3", "-c", filename])
+            filename = 'krome_ctypes.f90'
+            if not os.path.isfile(os.path.join(krome_path, 'build', filename)):
+                write_krome_ctypes(filename, useX)
+            subprocess.run(["gfortran", "-ffree-line-length-none", "-w", "-fallow-argument-mismatch", "-fPIC", "-O3", "-c", filename])
             subprocess.run(["gfortran", "-shared", "-o", "libkrome.so"] + glob.glob("*.o"))
 
             # Load the shared library
@@ -113,13 +122,25 @@ def build_krome(paths, robust=True, options=['-noRecCheck', '-iRHS']):
             # krome solver: krome(x(:), [rho], Tgas, dt)
             # void krome(double* x, double* Tgas, double* dt)
             pykrome.krome_.restype = None
-            argtypes = [np.ctypeslib.ndpointer(dtype=np.float64, ndim=1, flags="C_CONTIGUOUS")]
-            
+
+            argtypes = [np.ctypeslib.ndpointer(dtype=np.float64, ndim=1, flags="C_CONTIGUOUS")]  # x(:)
             if useX:
-                argtypes += [ctypes.POINTER(ctypes.c_double)]*3  # x(:), rho [g/cm3], Tgas [K], dt [s]
+                argtypes += [ctypes.POINTER(ctypes.c_double)]*3  # rho [g/cm3], Tgas [K], dt [s]
             else:
-                argtypes += [ctypes.POINTER(ctypes.c_double)]*2  # x(:), Tgas [K], dt [s]
+                argtypes += [ctypes.POINTER(ctypes.c_double)]*2  # Tgas [K], dt [s]
             pykrome.krome_.argtypes = argtypes
+
+            # krome batch solver: krome(xall(:,i), [rho], Tgas(i), dt)
+            pykrome.krome_batch_.restype = None
+            batch_argtypes = [np.ctypeslib.ndpointer(dtype=np.float64, ndim=2, flags="F_CONTIGUOUS")]  # x(:,i)
+            if useX:
+                batch_argtypes += [np.ctypeslib.ndpointer(dtype=np.float64, ndim=1, flags="C_CONTIGUOUS")]  # rho(i) [g/cm3]
+            batch_argtypes += [
+                np.ctypeslib.ndpointer(dtype=np.float64, ndim=1, flags="C_CONTIGUOUS"),  # Tgas(i) [K]
+                ctypes.POINTER(ctypes.c_double),  # dt [s]
+                ctypes.POINTER(ctypes.c_int)  # cells
+            ]
+            pykrome.krome_batch_.argtypes = batch_argtypes
 
             # ---------------------------------------------
             # Initialize krome
@@ -136,44 +157,65 @@ def build_krome(paths, robust=True, options=['-noRecCheck', '-iRHS']):
 
 
 # Initialise the grid
-def initialise(cells, species, abundances=ABUNDANCES):
-    size = cells + [len(species),]
-    network = np.full(shape=size, fill_value=1e-20, dtype=np.float64)
+def initialise(sim_variables):
+    abundance_file = f"{sim_variables.home}/external/abundances.yml"
+    file_valid = False
+
+    if sim_variables.abundances:
+        try:
+            with open(sim_variables.abundances, "r") as abd:
+                _ = yaml.safe_load(abd)
+        except Exception as e:
+            print(f"{BColours.WARNING}Unable to load initial abundance file:\n{e}\nUsing default abundances..{BColours.ENDC}")
+        else:
+            abundance_file = sim_variables.abundances
+            file_valid = True
+
+    else:
+        print(f"{BColours.WARNING}Using default abundances..{BColours.ENDC}")
+
+    with open(abundance_file, "r") as abd:
+        _abundances = yaml.safe_load(abd)
+
+        if file_valid:
+            abundances = _abundances
+        else:
+            if sim_variables.useX:
+                abundances = _abundances['mass_frac_abundances']
+            else:
+                abundances = _abundances['num_dens_abundances']
+
+    size = [len(sim_variables.species),] + sim_variables.cells  # Fortran is column-major
+    network = np.full(shape=size, fill_value=1e-20, dtype=np.float64, order="F")
 
     for mol, abundance in abundances.items():
         try:
-            mol_idx = np.where(np.array(species) == mol)[0][0]
+            mol_idx = np.where(np.array(sim_variables.species) == mol)[0][0]
         except:
             pass
         else:
-            network[...,mol_idx] = abundance
+            # Uniform population of species abundance across the grid
+            network[mol_idx,...] = abundance
     return network
 
 
 # Solve the chemical ODEs for each grid cell;
 # WARNING: depending on the grid size and the number of chemical species, the computation time can explode
-def run(chem_grid, conserv_grid, dt, sim_variables):
+#@verbose_timer
+def krome_run(chem_grid, conserv_grid, dt, sim_variables):
+    centred_grid = fv.inverse_reconstruct(conserv_grid, sim_variables) if sim_variables.magnetic else conserv_grid
+    primitive_grid = sim_variables.convert('conservative', centred_grid, sim_variables)
+
     conversion_factor = (constants.pc/constants.Myr)**2 * (constants.mu * constants.m_p)/constants.k_B
+    Tgas = conversion_factor * fv.divide(primitive_grid[...,sim_variables.pressure], primitive_grid[...,sim_variables.rho]).reshape(-1, order="F")
 
-    def krome_per_cell(_abundance, _cell):
-        abundance = _abundance.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-        _dt = ctypes.c_double(constants.Myr * dt)
+    xall = chem_grid.reshape(chem_grid.shape[0], -1)
+    ncells = xall.shape[-1]
 
-        Tgas = ctypes.c_double(conversion_factor * fv.divide(_cell[...,sim_variables.pressure], _cell[...,sim_variables.rho]))
+    if sim_variables.useX:
+        density = primitive_grid[...,sim_variables.rho].reshape(-1, order="F")
+        sim_variables.pykrome.krome_batch_(np.asfortranarray(xall), density, Tgas, ctypes.c_double(dt), ctypes.c_int(ncells))
+    else:
+        sim_variables.pykrome.krome_batch_(np.asfortranarray(xall), Tgas, ctypes.c_double(dt), ctypes.c_int(ncells))
 
-        if sim_variables.useX:
-            sim_variables.pykrome.krome_(abundance, _cell[...,sim_variables.rho]*(constants.m_sun/(constants.pc**3)), ctypes.byref(Tgas), ctypes.byref(_dt))
-        else:
-            sim_variables.pykrome.krome_(abundance, ctypes.byref(Tgas), ctypes.byref(_dt))
-
-        return abundance
-
-    primitive_grid = fv.convert_variable('energy', conserv_grid, sim_variables)
-    _chem_grid = chem_grid.reshape(-1, chem_grid.shape[-1])
-    _prim_grid = primitive_grid.reshape(-1, primitive_grid.shape[-1])
-
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        jobs = executor.map(krome_per_cell, list(_chem_grid), list(_prim_grid))
-        new_chem_grid = np.array([job for job in jobs]).reshape(chem_grid.shape)
-
-    return new_chem_grid
+    return xall.reshape(chem_grid.shape)

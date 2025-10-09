@@ -68,3 +68,4 @@ parameters.yml
 external/build/*.mod
 external/build/*.o
 external/build/test
+KROME_ERROR_REPORT

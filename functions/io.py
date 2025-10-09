@@ -73,6 +73,7 @@ def handle_CLI(db_path):
     parser.add_argument('--file', dest='chkpt_file', metavar='', type=str.lower, default='', help='(absolute) path to astrea checkpoint file')
     parser.add_argument('--chemistry', help='switch on chemical network in simulation', action='store_true')
     parser.add_argument('--network', metavar='', type=str.lower, default='', help='(absolute) path to chemical network file')
+    parser.add_argument('--abundances', metavar='', type=str.lower, default='', help='(absolute) path to (.yml) file for initial abundances of chemical species')
 
     parser.add_argument('-t', '--test', dest='test', default=argparse.SUPPRESS, help=argparse.SUPPRESS, action='store_true')
 
@@ -84,7 +85,7 @@ def handle_CLI(db_path):
 def parse_cli_variables(config_variables, arguments):
     db, params = TinyDB(config_variables['db_path']), Query()
 
-    skip_cases = ['hdf5', 'home', 'db_path', 'plot_style', 'verbose', 'quiet', 'write_chkpt', 'chkpt_file', 'chemistry', 'network']
+    skip_cases = ['hdf5', 'home', 'db_path', 'plot_style', 'verbose', 'quiet', 'write_chkpt', 'chkpt_file', 'chemistry', 'network', 'abundances']
 
     # Replace the relevant configuration variables with the additional arguments
     config_variables.update(arguments)
@@ -192,7 +193,7 @@ class SimulationVariables(object):
         'axes', 'magnetic', 'convert', 'roots', 'weights', 'ppm_dissipate', 'higher_order', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'home', 'save_path', 'db_path', 'timesteps', 'print_status',
         'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test',
-        'chemistry', 'network', 'pykrome', 'species',
+        'chemistry', 'network', 'pykrome', 'species', 'abundances',
     ]
 
     def __init__(self, seed, config_variables, test_variables):
@@ -253,7 +254,14 @@ class SimulationVariables(object):
                     krome_path = None
 
             paths = [self.home, krome_path, self.network]
-            self.pykrome, self.species, self.useX = krome_funcs.build_krome(paths)
+            options = [
+                '-iRHS',
+                '-noRecCheck',
+                '-coolFile=data/coolZ.dat',
+                '-cooling=ATOMIC,H2,DUST,Z,CI,OI,CII',
+                '-heating=COMPRESS,PHOTO,CHEM,PHOTODUST'
+            ]
+            self.pykrome, self.species, self.useX = krome_funcs.build_krome(paths, options)
 
             if self.pykrome == None or self.species == None:
                 print(f"{BColours.WARNING}krome built but cannot be accessed. Switching off chemistry..{BColours.ENDC}")
