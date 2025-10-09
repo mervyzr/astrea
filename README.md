@@ -207,7 +207,9 @@ astrea.run(*globals)
 ├── __init__.py
 ├── astrea.py            : Core script for running the simulation
 ├── external
+│   ├── build            : Build for default chemical network
 │   ├── __init__.py
+│   ├── abundances.yml   : Initial abundances for chemical species in default network
 │   ├── krome_funcs.py   : Functions for building and parsing krome routines
 ├── functions
 │   ├── __init__.py
