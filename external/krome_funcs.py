@@ -198,7 +198,7 @@ def initialise(sim_variables):
             network[mol_idx,...] = abundance
 
     # Add a small perturbation to the initial abundances
-    network += .01 * np.random.uniform(size=size)
+    network += .01 * np.random.uniform(-1, 1, size=size)
 
     return network
 
