@@ -207,21 +207,20 @@ def initialise(sim_variables):
 # WARNING: depending on the grid size and the number of chemical species, the computation time can explode
 #@verbose_timer
 def krome_run(chem_grid, conserv_grid, dt, sim_variables):
+    conversion_factor = (constants.mu * constants.m_p * constants.pc**3)/constants.m_sun
+
     centred_grid = fv.inverse_reconstruct(conserv_grid, sim_variables) if sim_variables.magnetic else conserv_grid
     primitive_grid = sim_variables.convert('conservative', centred_grid, sim_variables)
 
-    conversion_factor = (constants.pc/constants.Myr)**2 * (constants.mu * constants.m_p)/constants.k_B
-    Tgas = conversion_factor * fv.divide(primitive_grid[...,sim_variables.pressure], primitive_grid[...,sim_variables.rho]).reshape(-1, order="F")
+    Tgas = fv.divide(primitive_grid[...,sim_variables.pressure], primitive_grid[...,sim_variables.rho]).reshape(-1, order="F")
 
-    delta_t = 365 * 24 * 60 * 60 * constants.Myr * dt
-
-    xall = chem_grid.reshape(chem_grid.shape[0], -1)
+    xall = chem_grid.reshape(chem_grid.shape[0], -1) * conversion_factor
     ncells = xall.shape[-1]
 
     if sim_variables.useX:
         density = primitive_grid[...,sim_variables.rho].reshape(-1, order="F")
-        sim_variables.pykrome.krome_batch_(np.asfortranarray(xall), density, Tgas, ctypes.c_double(delta_t), ctypes.c_int(ncells))
+        sim_variables.pykrome.krome_batch_(np.asfortranarray(xall), density, Tgas, ctypes.c_double(dt), ctypes.c_int(ncells))
     else:
-        sim_variables.pykrome.krome_batch_(np.asfortranarray(xall), Tgas, ctypes.c_double(delta_t), ctypes.c_int(ncells))
+        sim_variables.pykrome.krome_batch_(np.asfortranarray(xall), Tgas, ctypes.c_double(dt), ctypes.c_int(ncells))
 
-    return xall.reshape(chem_grid.shape)
+    return xall.reshape(chem_grid.shape)/conversion_factor
