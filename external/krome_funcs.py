@@ -190,12 +190,16 @@ def initialise(sim_variables):
 
     for mol, abundance in abundances.items():
         try:
-            mol_idx = np.where(np.array(sim_variables.species) == mol)[0][0]
+            mol_idx = np.where(mol == np.array(sim_variables.species))[0][0]
         except:
             pass
         else:
             # Uniform population of species abundance across the grid
             network[mol_idx,...] = abundance
+
+    # Add a small perturbation to the initial abundances
+    network += .01 * np.random.uniform(size=size)
+
     return network
 
 
@@ -209,13 +213,15 @@ def krome_run(chem_grid, conserv_grid, dt, sim_variables):
     conversion_factor = (constants.pc/constants.Myr)**2 * (constants.mu * constants.m_p)/constants.k_B
     Tgas = conversion_factor * fv.divide(primitive_grid[...,sim_variables.pressure], primitive_grid[...,sim_variables.rho]).reshape(-1, order="F")
 
+    delta_t = 365 * 24 * 60 * 60 * constants.Myr * dt
+
     xall = chem_grid.reshape(chem_grid.shape[0], -1)
     ncells = xall.shape[-1]
 
     if sim_variables.useX:
         density = primitive_grid[...,sim_variables.rho].reshape(-1, order="F")
-        sim_variables.pykrome.krome_batch_(np.asfortranarray(xall), density, Tgas, ctypes.c_double(dt), ctypes.c_int(ncells))
+        sim_variables.pykrome.krome_batch_(np.asfortranarray(xall), density, Tgas, ctypes.c_double(delta_t), ctypes.c_int(ncells))
     else:
-        sim_variables.pykrome.krome_batch_(np.asfortranarray(xall), Tgas, ctypes.c_double(dt), ctypes.c_int(ncells))
+        sim_variables.pykrome.krome_batch_(np.asfortranarray(xall), Tgas, ctypes.c_double(delta_t), ctypes.c_int(ncells))
 
     return xall.reshape(chem_grid.shape)
