@@ -157,7 +157,7 @@ def build_krome(paths, options):
 
 
 # Initialise the grid
-def initialise(sim_variables):
+def initialise(sim_variables, perturb=False):
     abundance_file = f"{sim_variables.home}/external/abundances.yml"
     file_valid = False
 
@@ -197,8 +197,9 @@ def initialise(sim_variables):
             # Uniform population of species abundance across the grid
             network[mol_idx,...] = abundance
 
-    # Add a small perturbation to the initial abundances
-    network += .01 * np.random.uniform(-1, 1, size=size)
+            # Add a small perturbation to the initial abundances by 2 orders of magnitude (1%)
+            if perturb:
+                network[mol_idx,...] += .1 * np.random.uniform(-abundance, abundance, size=sim_variables.cells)
 
     return network
 

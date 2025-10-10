@@ -49,7 +49,7 @@ def core_run(sim_variables, **kwargs):
     # Initialise the chemical grid if activated;.
     # Abundances can be overriden; accepts a dictionary of atom/molecule/ion name as key and the number densities [1/cm3] or mass fraction [X] as value
     if sim_variables.chemistry:
-        chem_grid = krome_funcs.initialise(sim_variables)
+        chem_grid = krome_funcs.initialise(sim_variables, perturb=True)
 
     ########################
 
