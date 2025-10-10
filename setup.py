@@ -45,6 +45,7 @@ setup(
         "gputil",
         "tabulate",
         "wheel",
+        "setuptools",
     ],
     keywords=[
         'astrophysics',
