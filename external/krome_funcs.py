@@ -156,7 +156,7 @@ def build_krome(paths, options):
     return pykrome, species, useX
 
 
-# Initialise the grid
+# Initialise the (column-major) grid (because of Fortran)
 def initialise(sim_variables, perturb=False):
     abundance_file = f"{sim_variables.home}/external/abundances.yml"
     file_valid = False
@@ -185,7 +185,7 @@ def initialise(sim_variables, perturb=False):
             else:
                 abundances = _abundances['num_dens_abundances']
 
-    size = [len(sim_variables.species),] + sim_variables.cells  # Fortran is column-major
+    size = [len(sim_variables.species),] + sim_variables.cells
     network = np.full(shape=size, fill_value=1e-20, dtype=np.float64, order="F")
 
     for mol, abundance in abundances.items():
