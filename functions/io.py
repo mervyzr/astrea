@@ -150,8 +150,8 @@ def parse_cli_variables(config_variables, arguments):
                 if isinstance(v, str):
                     v = v.replace(' ','').replace('-',',').replace('/',',').replace('|',',').split(',')
                 for option in v:
-                    option = option.replace(' ','').replace('-','')
-                    if option.lower() not in accepted_plot_options:
+                    _option = option.replace(' ','').replace('-','')
+                    if _option.lower() not in accepted_plot_options:
                         invalid.append(option)
                         v.remove(option)
                 v = [i.lower() for i in v]
