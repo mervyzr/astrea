@@ -211,7 +211,7 @@ def initialise(sim_variables, perturb=False):
 
 # Solve the chemical ODEs for each grid cell;
 # WARNING: depending on the grid size and the number of chemical species, the computation time can explode
-#@verbose_timer
+@verbose_timer
 def krome_run(chem_grid, conserv_grid, dt, sim_variables):
     conversion_factor = (constants.mu * constants.m_p * constants.pc**3)/constants.m_sun
 
