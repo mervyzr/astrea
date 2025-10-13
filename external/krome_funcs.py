@@ -194,12 +194,17 @@ def initialise(sim_variables, perturb=False):
         except:
             pass
         else:
-            # Uniform population of species abundance across the grid
-            network[mol_idx,...] = abundance
+            try:
+                abundance = float(abundance)
+            except:
+                pass
+            else:
+                # Uniform population of species abundance across the grid
+                network[mol_idx,...] = abundance
 
-            # Add a small perturbation to the initial abundances by 2 orders of magnitude (1%)
-            if perturb:
-                network[mol_idx,...] += .1 * np.random.uniform(-abundance, abundance, size=sim_variables.cells)
+                # Add a small perturbation to the initial abundances by 2 orders of magnitude (1%)
+                if perturb:
+                    network[mol_idx,...] += .01 * np.random.uniform(-abundance, abundance, size=sim_variables.cells)
 
     return network
 
