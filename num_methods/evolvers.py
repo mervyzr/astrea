@@ -5,7 +5,7 @@ import numpy as np
 
 from functions import fv
 from num_methods import ct
-from schemes import pcm, plm, ppm, weno
+from schemes import pcm, plm, ppm, weno, cweno
 from functions.generic import verbose_timer
 
 ##############################################################################
@@ -16,7 +16,7 @@ from functions.generic import verbose_timer
 @verbose_timer
 def evolve_space(grid, sim_variables, first_stage=False):
     dimension, multidimensional, subgrid_category, axes, magnetic = sim_variables.dimension, sim_variables.multidimensional, sim_variables.subgrid_category, sim_variables.axes, sim_variables.magnetic
-    pressure, dissipate = sim_variables.pressure, sim_variables.ppm_dissipate
+    pressure = sim_variables.pressure
 
     # Convert to primitive variables
     centred_grid = fv.inverse_reconstruct(grid, sim_variables) if magnetic else grid
@@ -25,16 +25,21 @@ def evolve_space(grid, sim_variables, first_stage=False):
 
 
     # Compute additional dissipation for PPM, if active
-    if dissipate and subgrid_category == "ppm":
-        eta = np.ones_like(grid[...,pressure])
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            jobs = executor.map(ppm.get_flattening_coeff, repeat(primitive), repeat(sim_variables), axes)
-            eta = np.minimum(eta, np.min([job for job in jobs], axis=0))
+    if subgrid_category == "ppm":
+        dissipate = sim_variables.ppm_dissipate
+        if dissipate:
+            eta = np.ones_like(grid[...,pressure])
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                jobs = executor.map(ppm.get_flattening_coeff, repeat(primitive), repeat(sim_variables), axes)
+                eta = np.minimum(eta, np.min([job for job in jobs], axis=0))
 
 
     # Hydrodynamics computation (with fluxes and eigmax)
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        if subgrid_category == "weno":
+        if subgrid_category == "cweno":
+            jobs = executor.map(cweno.run, repeat(primitive), repeat(sim_variables), axes)
+
+        elif subgrid_category == "weno":
             jobs = executor.map(weno.run, repeat(primitive), repeat(sim_variables), axes)
 
         elif subgrid_category == "ppm":
@@ -63,19 +68,14 @@ def evolve_space(grid, sim_variables, first_stage=False):
 
     # Magnetohydrodynamics computation
     if magnetic and multidimensional:
-        # The proper assignment of the corners is important for directional updates,
-        # so the dict keys are used for this assignment
+        # The proper assignment of the corners is important for directional updates, so the dict keys are used for this assignment
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            if dimension > 2:
-                jobs = executor.map(ct.compute_emf, repeat(data), axes)
-            else:
-                jobs = executor.map(ct.compute_emf, repeat(data), [2,2])
-            emfs = np.array([emf for emf in jobs])
+            emf_jobs = executor.map(ct.compute_emf, repeat(data), range(3))
+            emfs = np.asarray([emf for emf in emf_jobs])
 
-        # Update fluxes with CT implementation; lists ordered according to axes
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            jobs = executor.map(ct.compute_ct_flux, repeat(emfs), fluxes, repeat(sim_variables), axes)
-            fluxes = [flux for flux in jobs]
+            # Update fluxes with CT implementation; lists ordered according to axes
+            emf_flux_jobs = executor.map(ct.compute_ct_flux, fluxes, repeat(emfs), repeat(sim_variables), range(3))
+            fluxes = [emf_flux for emf_flux in emf_flux_jobs]
 
     # Calculate the total fluxes through all upwind surfaces [F(i+1/2,j) - F(i-1/2,j)]/dx, [G(i,j+1/2) - G(i,j-1/2)]/dy
     total_flux = -np.sum(fluxes, axis=0)
