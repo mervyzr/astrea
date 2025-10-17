@@ -260,6 +260,15 @@
       ]
     },
     "13": {
+      "type": "subgrid",
+      "category": "cweno",
+      "accepted": [
+        "cweno",
+        "c-weno",
+        "c"
+      ]
+    },
+    "14": {
       "type": "time_evo",
       "category": "euler",
       "accepted": [
@@ -268,7 +277,7 @@
         "forward euler"
       ]
     },
-    "14": {
+    "15": {
       "type": "time_evo",
       "category": "rk",
       "accepted": [
@@ -278,7 +287,7 @@
         "runge-kutta4"
       ]
     },
-    "15": {
+    "16": {
       "type": "time_evo",
       "category": "ssprk",
       "accepted": [
@@ -302,7 +311,7 @@
         "ssprk10,4"
       ]
     },
-    "16": {
+    "17": {
       "type": "solver",
       "category": "lax",
       "accepted": [
@@ -316,7 +325,7 @@
         "wendroff"
       ]
     },
-    "17": {
+    "18": {
       "type": "solver",
       "category": "hll",
       "accepted": [
@@ -326,7 +335,7 @@
         "d"
       ]
     },
-    "18": {
+    "19": {
       "type": "solver",
       "category": "complete",
       "accepted": [
@@ -340,17 +349,6 @@
         "entropy-stable"
       ]
     },
-    "19": {
-      "type": "run_type",
-      "accepted": [
-        "s",
-        "single",
-        "m",
-        "multiple",
-        "multi",
-        "many"
-      ]
-    },
     "20": {
       "type": "default",
       "config": "sod",
@@ -360,7 +358,6 @@
       "subgrid": "pcm",
       "time_evo": "euler",
       "solver": "lf",
-      "run_type": "single",
       "plot_options": [
         "density",
         "pressure",

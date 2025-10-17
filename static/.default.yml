@@ -1,5 +1,5 @@
 ---
-simulation_parameters:
+physics_parameters:
   # List of available configurations to run
   # : Sod, Sedov, Gaussian, sine-wave, Shu-Osher, Ryu-Jones, Brio-Wu, slow-moving shock, Toro 1-5, Lax-Liu 1-19, 
   # : isentropic vortex, Kelvin-Helmholtz instability, shock cloud, astrophysical jet, Gresho vortex, Noh problem, 
@@ -14,7 +14,7 @@ simulation_parameters:
 numerical_parameters:
   # Floating-point precision : float16, float32, float64
   precision     : float64
-  # Subgrid models for hydro and mag. components : PCM, PLM, PPM, WENO-3/5/7
+  # Subgrid models for hydro and mag. components : PCM, PLM, PPM, CWENO, WENO-3/5/7
   subgrid       : PCM
   # Iteration methods : Euler, RK4, SSPRK(2,2), SSPRK(3,3), SSPRK(4,3), SSPRK(5,3), SSPRK(5,4), SSPRK(10,4)
   time_evo      : EULER
@@ -22,20 +22,16 @@ numerical_parameters:
   solver        : LF
 
 runtime_parameters:
-  # Run types : single, multiple
-  run_type      : single
   checkpoints   : 1
-
-media_options:
   live_plot     : false
   save_snaps    : false
   save_plots    : false
   save_video    : false
   save_file     : false
+  plot_style    : default
   # Plot options
   # : density, pressure, velocity Vx/Vy/Vz, total/internal energy, Mach number,
   # : magnetic field Bx/By/Bz, magnetic pressure, magnetic divergence divB
-  plot_style    : default
   plot_options  :
     - density
     - pressure

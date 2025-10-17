@@ -47,6 +47,7 @@ def handle_CLI(db_path):
     parser.add_argument('-v', '--verbose', dest='verbose', help='switch on verbose description of simulation', action='store_true')
     parser.add_argument('-q', '--quiet', dest='quiet', help='switch off printing to screen', action='store_true')
     parser.add_argument('-w', '--write', dest='write_chkpt', help='switch on checkpoint file saving', action='store_true')
+    parser.add_argument('-t', '--test', dest='test', help='run the tests for astrea (convergence, conservation, etc.)', action='store_true')
 
     parser.add_argument('--config', metavar='', type=str.lower, default=argparse.SUPPRESS, help='configuration to run in the simulation', choices=accepted_values('config'))
     parser.add_argument('--grid', '--cells', dest='cells', metavar='', default=argparse.SUPPRESS, help='number of cells in the grid')
@@ -59,7 +60,6 @@ def handle_CLI(db_path):
     parser.add_argument('--time_evo', metavar='', type=str.lower, default=argparse.SUPPRESS, help='time integration method used for temporal evolution', choices=accepted_values('time_evo'))
     parser.add_argument('--solver', metavar='', type=str.lower, default=argparse.SUPPRESS, help='solver method for the Riemann problem', choices=accepted_values('solver'))
 
-    parser.add_argument('--run_type', metavar='', type=str.lower, default=argparse.SUPPRESS, help='run a single run or multiple runs for each simulation', choices=db.get(params.type == 'run_type')['accepted'])
     parser.add_argument('--checkpoints', metavar='', type=int, default=argparse.SUPPRESS, help='number of checkpoints in simulation')
 
     parser.add_argument('--live_plot', '--live', dest='live_plot', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
@@ -75,8 +75,6 @@ def handle_CLI(db_path):
     parser.add_argument('--network', metavar='', type=str.lower, default='', help='(absolute) path to chemical network file')
     parser.add_argument('--abundances', metavar='', type=str.lower, default='', help='(absolute) path to (.yml) file for initial abundances of chemical species')
 
-    parser.add_argument('-t', '--test', dest='test', default=argparse.SUPPRESS, help=argparse.SUPPRESS, action='store_true')
-
     args = parser.parse_args()
 
     return vars(args)
@@ -85,7 +83,7 @@ def handle_CLI(db_path):
 def parse_cli_variables(config_variables, arguments):
     db, params = TinyDB(config_variables['db_path']), Query()
 
-    skip_cases = ['hdf5', 'home', 'db_path', 'plot_style', 'verbose', 'quiet', 'write_chkpt', 'chkpt_file', 'chemistry', 'network', 'abundances']
+    skip_cases = ['hdf5', 'home', 'db_path', 'plot_style', 'verbose', 'quiet', 'write_chkpt', 'test', 'chkpt_file', 'chemistry', 'network', 'abundances']
 
     # Replace the relevant configuration variables with the additional arguments
     config_variables.update(arguments)
@@ -189,7 +187,7 @@ class SimulationVariables(object):
         'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'energy', 'vels', 'Bfields', 'momentums',
         'config', 'cells', 'cfl', 'gamma', 'permeability', 'dimension', 'precision', 'subgrid', 'time_evo', 'solver',
         'axis_coord', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'ds',
-        'run_type', 'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
+        'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
         'axes', 'magnetic', 'convert', 'roots', 'weights', 'ppm_dissipate', 'higher_order', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'home', 'save_path', 'db_path', 'timesteps', 'print_status',
         'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test',
@@ -231,12 +229,12 @@ class SimulationVariables(object):
         self.magnetic = self.initial_left[self.Bfields].any() or self.initial_right[self.Bfields].any()
         self.convert = fv.point_convert
         self.higher_order = False
-        self.ppm_dissipate = False
 
         # Higher-order conversion functions
-        if self.subgrid_category in ["weno", "ppm"]:
+        if self.subgrid_category in ["cweno", "weno", "ppm"]:
             self.convert = fv.high_order_convert
             self.higher_order = True
+            self.ppm_dissipate = False
 
         # Permutations for axes
         self.multidimensional = self.dimension >= 2
@@ -280,33 +278,28 @@ class SimulationVariables(object):
                 self.solver = db.get(params.type == 'default')['solver']
 
         # Media options
+        if self.test:
+            self.save_plots = True
+            if (self.live_plot or self.save_snaps or self.save_video):
+                self.live_plot = self.save_snaps = self.save_video = False
+
         if (self.live_plot or self.save_plots or self.save_video) and self.dimension > 2:
             print(f"{BColours.WARNING}Unable to display 3d simulation results with astrea..{BColours.ENDC}")
             self.live_plot = self.save_plots = self.save_video = False
 
-        if self.run_type.startswith('m'):
-            if self.save_video:
-                print(f"{BColours.WARNING}Videos can only be saved for single simulation runs..{BColours.ENDC}")
-                self.save_video = False
-            if self.live_plot:
-                print(f"{BColours.WARNING}Live plots can only be switched on for single simulation runs..{BColours.ENDC}")
-                self.live_plot = False
-            if self.save_snaps:
-                print(f"{BColours.WARNING}Saving snapshots can only be switched on for single simulation runs..{BColours.ENDC}")
-                self.save_snaps = False
-        else:
-            if (self.save_snaps or self.save_plots or self.save_video) and self.live_plot:
-                print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live plot interferes with matplotlib.savefig..{BColours.ENDC}")
-                self.live_plot = False
-            if self.save_snaps or self.save_plots or self.save_video or self.save_file:
-                self.save_path = ''
+        if (self.save_snaps or self.save_plots or self.save_video) and self.live_plot:
+            print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live plot interferes with matplotlib.savefig..{BColours.ENDC}")
+            self.live_plot = False
+
+        if self.save_snaps or self.save_plots or self.save_video or self.save_file:
+            self.save_path = ''
 
         self.full_set_required = True if (self.save_plots or self.save_video or self.save_file) else False
 
 
 # Write grid to HDF5 checkpoint files
 def write_chkpt_file(grid, t, idx, sim_variables):
-    if sim_variables.run_type.startswith('m'):
+    if sim_variables.test:
         file_name = f"astrea_hdf5_{sim_variables.cells}_chk_{sim_variables.timesteps:05}"
     else:
         file_name = f"astrea_hdf5_chk_{sim_variables.timesteps:05}"
@@ -361,6 +354,5 @@ def load_chkpt_file(config_variables, file):
                 config_variables['subgrid'] = f.attrs['subgrid']
                 config_variables['time_evo'] = f.attrs['time_evo']
                 config_variables['solver'] = f.attrs['solver']
-                config_variables['run_type'] = f.attrs['single']
 
                 return seed, config_variables, {'time':time, 'idx':idx, 'grid':grid}
