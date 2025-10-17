@@ -7,6 +7,9 @@ import numpy as np
 # Generic functions used throughout the finite volume code
 ##############################################################################
 
+EPSILON = np.finfo('float64').eps
+
+
 # Generic Gaussian function
 def gauss_func(x, params):
     return params['y_offset'] + params['ampl']*np.exp(-((x-params['peak_pos'])**2)/params['fwhm'])
@@ -18,24 +21,24 @@ def sine_func(x, params):
 
 
 # For handling division-by-zero warnings during array divisions
-# !! MONITOR THE PHYSICS WHEN USING THIS: 
-# !! 1. ZEROS IN DIVISOR MIGHT MEAN YOUR CODE IS INCORRECT !!
-# !! 2. IMAGINARY PARTS DISCARDED, MONITOR FOR RANDOM OSCILLATIONS !!
-def divide(dividend, divisor):
-    return np.divide(np.real(dividend), np.real(divisor), out=np.zeros_like(dividend), where=divisor!=0)
+# !! MONITOR THE PHYSICS WHEN USING THIS; ZEROS IN DIVISOR MIGHT MEAN YOUR CODE IS INCORRECT !!
+def divide(dividend, divisor, eps=EPSILON):
+    return np.divide(np.real(dividend), np.real(divisor+eps))
+    #return np.divide(np.real(dividend), np.real(divisor), out=np.zeros_like(dividend), where=divisor!=0)
 
 
 # For handling log zero and log negative values
 # !! MONITOR THE PHYSICS WHEN USING THIS; NEGATIVE OR ZERO VALUES MIGHT MEAN YOUR CODE IS INCORRECT INSTEAD !!
-def log(arr):
-    return np.log(arr, out=np.zeros_like(arr), where=arr>0)
+def log(arr, eps=EPSILON):
+    positive = np.log(np.full(arr.shape, eps))
+    return np.log(arr, out=positive, where=arr>0)
 
 
 # There are situations where oscillations may produce negative densities/pressures
 # This function is for handling those scenarios; ideally there should be no negative values
-# !! MONITOR THE PHYSICS WHEN USING THIS; NEGATIVE VALUES MIGHT MEAN YOUR CODE IS INCORRECT INSTEAD !!
+# !! MONITOR THE PHYSICS WHEN USING THIS; IMAGINARY PARTS DISCARDED, MONITOR FOR RANDOM OSCILLATIONS !!
 def sqrt(arr):
-    return np.sqrt(arr, out=np.zeros_like(arr), where=arr>=0)
+    return np.sqrt(np.real(arr), out=np.zeros_like(arr), where=arr>=0)
 
 
 # For handling norms; typically would always be using the last axis
@@ -126,8 +129,11 @@ def high_order_convert(variable_form, grid, sim_variables):
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         jobs = executor.map(approximate_per_axis, repeat(variable_form), repeat(grid), repeat(sim_variables), axes)
-        base -= np.sum([job[0] for job in jobs], axis=0)
-        expansion += np.sum([job[1] for job in jobs], axis=0)
+
+        # information from jobs vanish immediately after accessed from generator
+        for _base, _expansion in jobs:
+            base -= _base
+            expansion += _expansion
 
     return point_convert(variable_form, base, sim_variables) + expansion
 
@@ -142,8 +148,10 @@ def convert_interface(variable_form, interfaces, axis, sim_variables):
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             jobs = executor.map(approximate_per_axis, repeat(variable_form), repeat(interfaces), repeat(sim_variables), ortho_axes)
-            base -= np.sum([job[0] for job in jobs], axis=0)
-            expansion -= np.sum([job[1] for job in jobs], axis=0)
+
+            for _base, _expansion in jobs:
+                base -= _base
+                expansion -= _expansion
 
     new_interfaces = point_convert(variable_form, base, sim_variables) + expansion
 
@@ -194,7 +202,8 @@ def inverse_reconstruct(grid, sim_variables):
 
     # Update the grid values with the updated B-field values
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        for axis, Bfield in enumerate(executor.map(per_axis, repeat(grid), repeat(sim_variables), axes)):
+        jobs = executor.map(per_axis, repeat(grid), repeat(sim_variables), axes)
+        for axis, Bfield in enumerate(jobs):
             new_grid[...,5+axes[axis]] = Bfield[...,5+axes[axis]]
 
     return new_grid
