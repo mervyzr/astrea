@@ -179,7 +179,7 @@ def run(seed, save_dir) -> None:
     sim_variables = SimulationVariables(seed, config_variables, test_variables)
 
     # Auto-generate the resolutions/grid-sizes for run type
-    if sim_variables.run_type.startswith('m'):
+    if sim_variables.test:
         if sim_variables.multidimensional:
             _range = 2**np.arange(2,8)
         else:
@@ -255,18 +255,16 @@ def run(seed, save_dir) -> None:
                 sim_variables.print_status(sim_variables, status='final')
             ############################# END INDIVIDUAL SIMULATION #############################
 
-        # Save plots; primitive quantities, total variation, conservation equation quantities, solution errors (errors only for run_type=multiple)
         if sim_variables.save_plots:
             with h5py.File(file_name, "r") as f:
                 plotting.plot_quantities(f, sim_variables)
-                if sim_variables.run_type.startswith("m"):
+                if sim_variables.test:
                     if sim_variables.config_category == "smooth":
                         plotting.plot_solution_errors(f, sim_variables, error_norm=1)
                 else:
                     plotting.plot_total_variation(f, sim_variables)
                     plotting.plot_conservation_equations(f, sim_variables)
 
-        # Save video (only for run_type=single)
         if sim_variables.save_video:
             with h5py.File(file_name, "r") as f:
                 vidpath = f"{save_path}/.vidplots"
