@@ -19,13 +19,13 @@ def run(grid, sim_variables, axis):
 
     # Approximate the face-averaged values to face-centred values for higher-order flux calculations
     def approx_face_avg(_ortho_axes, _sim_variables, *_interfaces):
-        plus_intf, minus_intf = _interfaces
+        plus_intf, minus_intf = np.copy(_interfaces)
 
         with concurrent.futures.ThreadPoolExecutor() as inner_executor:
             plus_jobs = inner_executor.map(fv.taylor_expand, repeat(plus_intf), repeat(_sim_variables), _ortho_axes)
             minus_jobs = inner_executor.map(fv.taylor_expand, repeat(minus_intf), repeat(_sim_variables), _ortho_axes)
 
-        return np.copy(plus_intf) - np.sum([plus_job for plus_job in plus_jobs], axis=0), np.copy(minus_intf) - np.sum([minus_job for minus_job in minus_jobs], axis=0)
+        return plus_intf - np.sum([plus_job for plus_job in plus_jobs], axis=0), minus_intf - np.sum([minus_job for minus_job in minus_jobs], axis=0)
 
     """WENO reconstruction [Shu, 2009; San & Kara, 2015]
     |                        w(i-1/2)                    w(i+1/2)                       |
@@ -34,7 +34,7 @@ def run(grid, sim_variables, axis):
     |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |   w+(i+1/2)   w-(i+3/2)   |
     """
     def reconstruct(_grid, _sim_variables, _axis, _order=5):
-        eps = 1e-6
+        eps = np.finfo(sim_variables.precision).eps
 
         # Define frequently used terms    
         padded_grid_3 = fv.add_boundary(_grid, _sim_variables, stencil=3, axis=_axis)
@@ -214,7 +214,7 @@ def run(grid, sim_variables, axis):
         # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation for each orthogonal axis
         with concurrent.futures.ThreadPoolExecutor() as inner_executor:
             jobs = inner_executor.map(fv.taylor_expand, repeat(intf_fluxes_avgd), repeat(sim_variables), ortho_axes)
-        intf_fluxes_cntrd -= np.sum([job for job in jobs], axis=0)
+            intf_fluxes_cntrd -= np.sum([job for job in jobs], axis=0)
     else:
         # Orthogonal Laplacian in 1d is zero
         intf_fluxes_cntrd = intf_fluxes_avgd

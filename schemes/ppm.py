@@ -23,13 +23,13 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
 
     # Approximate the face-averaged values to face-centred values for higher-order flux calculations
     def approx_face_avg(_ortho_axes, _sim_variables, *_interfaces):
-        plus_intf, minus_intf = _interfaces
+        plus_intf, minus_intf = np.copy(_interfaces)
 
         with concurrent.futures.ThreadPoolExecutor() as inner_executor:
             plus_jobs = inner_executor.map(fv.taylor_expand, repeat(plus_intf), repeat(_sim_variables), _ortho_axes)
             minus_jobs = inner_executor.map(fv.taylor_expand, repeat(minus_intf), repeat(_sim_variables), _ortho_axes)
 
-        return np.copy(plus_intf) - np.sum([plus_job for plus_job in plus_jobs], axis=0), np.copy(minus_intf) - np.sum([minus_job for minus_job in minus_jobs], axis=0)
+        return plus_intf - np.sum([plus_job for plus_job in plus_jobs], axis=0), minus_intf - np.sum([minus_job for minus_job in minus_jobs], axis=0)
 
 
     # Pad array with boundary; PPM requires additional ghost cells
@@ -143,7 +143,7 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
         # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation for each orthogonal axis
         with concurrent.futures.ThreadPoolExecutor() as inner_executor:
             jobs = inner_executor.map(fv.taylor_expand, repeat(intf_fluxes_avgd), repeat(sim_variables), ortho_axes)
-        intf_fluxes_cntrd -= np.sum([job for job in jobs], axis=0)
+            intf_fluxes_cntrd -= np.sum([job for job in jobs], axis=0)
     else:
         # Orthogonal Laplacian in 1d is zero
         intf_fluxes_cntrd = intf_fluxes_avgd
@@ -215,7 +215,7 @@ def get_artificial_viscosity(grid_slices, axis, sim_variables, viscosity_determi
     if sim_variables.multidimensional:
         with concurrent.futures.ThreadPoolExecutor() as inner_executor:
             jobs = inner_executor.map(per_ortho_axis, repeat(grid_slices), repeat(sim_variables), ortho_axes)
-        lambda_d += np.sum([job for job in jobs], axis=0)
+            lambda_d += np.sum([job for job in jobs], axis=0)
 
     # Calculate minimum sound speed
     cs_grid = fv.divide(sim_variables.gamma * zeroth[...,pressure], zeroth[...,rho])
