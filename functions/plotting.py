@@ -599,7 +599,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm, title=False):
         _idx = np.argmin(np.abs(np.average(eoc)-eoc))
         c = np.log10(y[_idx]) - eoc[_idx]*np.log10(x[_idx])
 
-        for order in [1,2,4,5]:
+        for order in range(1,6):
             alpha = 10**c
             ytheo = alpha*x**(-order)
             ax[_i,_j].loglog(x, ytheo, color=plot_['colours']['theo'], linestyle="--")
