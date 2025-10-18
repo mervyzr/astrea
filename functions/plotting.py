@@ -63,11 +63,11 @@ def make_figure(options, sim_variables, variable="normal"):
                     if "density" in option:
                         name += ' density'
                         label = r"$e_\mathrm{int}$"
-                        error = r"$\epsilon(e_\mathrm{int})$"
+                        error = r"$\epsilon_N(e_\mathrm{int})$"
                         tv = r"TV($e_\mathrm{int}$)"
                     else:
                         label = r"$E_\mathrm{int}$"
-                        error = r"$\epsilon(E_\mathrm{int})$"
+                        error = r"$\epsilon_N(E_\mathrm{int})$"
                         tv = r"TV($E_\mathrm{int}$)"
                 else:
                     name = "Total energy"
@@ -75,46 +75,46 @@ def make_figure(options, sim_variables, variable="normal"):
                     if "density" in option:
                         name += ' density'
                         label = r"$e_\mathrm{tot}$"
-                        error = r"$\epsilon(e_\mathrm{tot})$"
+                        error = r"$\epsilon_N(e_\mathrm{tot})$"
                         tv = r"TV($e_\mathrm{tot}$)"
                     else:
                         label = r"$E_\mathrm{tot}$"
-                        error = r"$\epsilon(E_\mathrm{tot})$"
+                        error = r"$\epsilon_N(E_\mathrm{tot})$"
                         tv = r"TV($E_\mathrm{tot}$)"
 
             elif "mom" in option:
                 name = "Momentum"
                 twod_colour = cmap_colours['momentums'][option[-1]]
                 label = rf"$p_{option[-1]}$"
-                error = rf"$\epsilon(p_{option[-1]})$"
+                error = rf"$\epsilon_N(p_{option[-1]})$"
                 tv = rf"TV($p_{option[-1]}$)"
 
             elif "mass" in option:
                 name = "Mass"
                 twod_colour = cmap_colours['mass']
                 label = r"$m$"
-                error = r"$\epsilon(m)$"
+                error = r"$\epsilon_N(m)$"
                 tv = r"TV($m$)"
 
             elif "mach" in option:
                 name = "Mach number"
                 twod_colour = cmap_colours['Mach']
                 label = r"$\mathcal{M}$"
-                error = r"$\epsilon(\mathcal{M})$"
+                error = r"$\epsilon_N(\mathcal{M})$"
                 tv = r"TV($\mathcal{M}$)"
 
             elif option.startswith("p"):
                 name = "Pressure"
                 twod_colour = cmap_colours['pressure']
                 label = r"$P$"
-                error = r"$\epsilon(P)$"
+                error = r"$\epsilon_N(P)$"
                 tv = r"TV($P$)"
 
             elif option.startswith("v"):
                 name = "Velocity"
                 twod_colour = cmap_colours['vels'][option[-1]]
                 label = rf"$v_{option[-1]}$"
-                error = rf"$\epsilon(v_{option[-1]})$"
+                error = rf"$\epsilon_N(v_{option[-1]})$"
                 tv = rf"TV($v_{option[-1]}$)"
 
             elif option.startswith("b") or option.startswith("mag"):
@@ -122,13 +122,13 @@ def make_figure(options, sim_variables, variable="normal"):
                     name = "Mag. pressure"
                     twod_colour = cmap_colours['magnetic pressure']
                     label = r"$P_B$"
-                    error = r"$\epsilon(P_B)$"
+                    error = r"$\epsilon_N(P_B)$"
                     tv = r"TV($P_B$)"
                 else:
                     name = "Mag. field"
                     twod_colour = cmap_colours['Bfields'][option[-1]]
                     label = rf"$B_{option[-1]}$"
-                    error = rf"$\epsilon(B_{option[-1]})$"
+                    error = rf"$\epsilon_N(B_{option[-1]})$"
                     tv = rf"TV($B_{option[-1]}$)"
 
             elif 'div' in option or 'db' in option:
@@ -136,18 +136,18 @@ def make_figure(options, sim_variables, variable="normal"):
                 twod_colour = cmap_colours['divergence']
                 if option[-1] == 'b':
                     label = r"$\nabla \cdot B$"
-                    error = r"$\epsilon(\nabla \cdot B)$"
+                    error = r"$\epsilon_N(\nabla \cdot B)$"
                     tv = r"TV($\nabla \cdot B$)"
                 else:
                     label = rf"$\nabla \cdot B_{option[-1]}$"
-                    error = rf"$\epsilon(\nabla \cdot B_{option[-1]})$"
+                    error = rf"$\epsilon_N(\nabla \cdot B_{option[-1]})$"
                     tv = rf"TV($\nabla \cdot B_{option[-1]}$)"
 
             else:
                 name = "Density"
                 twod_colour = cmap_colours['density']
                 label = r"$\rho$"
-                error = r"$\epsilon(\rho)$"
+                error = r"$\epsilon_N(\rho)$"
                 tv = r"TV($\rho$)"
 
             names.append(f"{name} {label}")
@@ -614,11 +614,11 @@ def plot_solution_errors(hdf5, sim_variables, error_norm, title=False):
             ax[_i,_j].legend()
 
     if title:
-        plt.suptitle(rf"$L_{error_norm}$ error norm $\epsilon(\mathbf{{W}})$ against resolution $N$ for {config.title()} test")
+        plt.suptitle(rf"$L_{error_norm}$ error norm $\epsilon_N(\mathbf{{W}})$ against resolution $N$ for {config.title()} test")
 
     plt.tight_layout()
 
-    fig.text(0.5, 0.04, r"Resolution $N$", ha='center')
+    fig.text(0.5, 0.04, r"$N$", ha='center')
     fig.subplots_adjust(bottom=0.15)
 
     plt.savefig(f"{sim_variables.save_path}/solErr_{config}_L{error_norm}_{subgrid}_{time_evo}_{solver}.png", bbox_inches='tight')
@@ -647,7 +647,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm, title=False):
 
     plt.tight_layout()
 
-    fig.text(0.5, 0.04, r"Resolution $N$", ha='center')
+    fig.text(0.5, 0.04, r"$N$", ha='center')
     fig.subplots_adjust(bottom=0.2)
     _xticklabels = [item.get_text() for item in ax.get_xticklabels()]
     _xticklabels = [rf"${int(v)}\rightarrow{int(x[i+1])}$" for i,v in enumerate(x[:-1])]
