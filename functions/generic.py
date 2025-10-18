@@ -64,9 +64,10 @@ def print_simple(sim_variables, t=None, status=''):
     _subgrid = f"{BColours.OKCYAN}{sim_variables.subgrid.upper()}{BColours.ENDC}"
     _solver = f"{BColours.OKCYAN}{sim_variables.solver.upper()}{BColours.ENDC}"
     _time_evo = f"{BColours.OKCYAN}{sim_variables.time_evo.upper()}{BColours.ENDC}"
-    _performance = f"{BColours.OKCYAN}{round(sim_variables.elapsed*1e6/(np.prod(sim_variables.cells)*sim_variables.timesteps), 3)} \u03BCs/(N * dt){BColours.ENDC}"
 
     if status.lower() == 'final':
+        _performance = f"{BColours.OKCYAN}{round(sim_variables.elapsed*1e6/(np.prod(sim_variables.cells)*sim_variables.timesteps), 3)} \u03BCs/(N * dt){BColours.ENDC}"
+
         if sim_variables.elapsed >= 60*60:
             _elapsed = f"{BColours.FAIL}{str(timedelta(seconds=sim_variables.elapsed))}s{BColours.ENDC}"
         elif 60*60 > sim_variables.elapsed >= 30*60:
