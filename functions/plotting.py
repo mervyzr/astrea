@@ -63,11 +63,11 @@ def make_figure(options, sim_variables, variable="normal"):
                     if "density" in option:
                         name += ' density'
                         label = r"$e_\mathrm{int}$"
-                        error = r"$\epsilon_N(e_\mathrm{int})$"
+                        error = r"$\epsilon(e_\mathrm{int})$"
                         tv = r"TV($e_\mathrm{int}$)"
                     else:
                         label = r"$E_\mathrm{int}$"
-                        error = r"$\epsilon_N(E_\mathrm{int})$"
+                        error = r"$\epsilon(E_\mathrm{int})$"
                         tv = r"TV($E_\mathrm{int}$)"
                 else:
                     name = "Total energy"
@@ -75,46 +75,46 @@ def make_figure(options, sim_variables, variable="normal"):
                     if "density" in option:
                         name += ' density'
                         label = r"$e_\mathrm{tot}$"
-                        error = r"$\epsilon_N(e_\mathrm{tot})$"
+                        error = r"$\epsilon(e_\mathrm{tot})$"
                         tv = r"TV($e_\mathrm{tot}$)"
                     else:
                         label = r"$E_\mathrm{tot}$"
-                        error = r"$\epsilon_N(E_\mathrm{tot})$"
+                        error = r"$\epsilon(E_\mathrm{tot})$"
                         tv = r"TV($E_\mathrm{tot}$)"
 
             elif "mom" in option:
                 name = "Momentum"
                 twod_colour = cmap_colours['momentums'][option[-1]]
                 label = rf"$p_{option[-1]}$"
-                error = rf"$\epsilon_N(p_{option[-1]})$"
+                error = rf"$\epsilon(p_{option[-1]})$"
                 tv = rf"TV($p_{option[-1]}$)"
 
             elif "mass" in option:
                 name = "Mass"
                 twod_colour = cmap_colours['mass']
                 label = r"$m$"
-                error = r"$\epsilon_N(m)$"
+                error = r"$\epsilon(m)$"
                 tv = r"TV($m$)"
 
             elif "mach" in option:
                 name = "Mach number"
                 twod_colour = cmap_colours['Mach']
                 label = r"$\mathcal{M}$"
-                error = r"$\epsilon_N(\mathcal{M})$"
+                error = r"$\epsilon(\mathcal{M})$"
                 tv = r"TV($\mathcal{M}$)"
 
             elif option.startswith("p"):
                 name = "Pressure"
                 twod_colour = cmap_colours['pressure']
                 label = r"$P$"
-                error = r"$\epsilon_N(P)$"
+                error = r"$\epsilon(P)$"
                 tv = r"TV($P$)"
 
             elif option.startswith("v"):
                 name = "Velocity"
                 twod_colour = cmap_colours['vels'][option[-1]]
                 label = rf"$v_{option[-1]}$"
-                error = rf"$\epsilon_N(v_{option[-1]})$"
+                error = rf"$\epsilon(v_{option[-1]})$"
                 tv = rf"TV($v_{option[-1]}$)"
 
             elif option.startswith("b") or option.startswith("mag"):
@@ -122,13 +122,13 @@ def make_figure(options, sim_variables, variable="normal"):
                     name = "Mag. pressure"
                     twod_colour = cmap_colours['magnetic pressure']
                     label = r"$P_B$"
-                    error = r"$\epsilon_N(P_B)$"
+                    error = r"$\epsilon(P_B)$"
                     tv = r"TV($P_B$)"
                 else:
                     name = "Mag. field"
                     twod_colour = cmap_colours['Bfields'][option[-1]]
                     label = rf"$B_{option[-1]}$"
-                    error = rf"$\epsilon_N(B_{option[-1]})$"
+                    error = rf"$\epsilon(B_{option[-1]})$"
                     tv = rf"TV($B_{option[-1]}$)"
 
             elif 'div' in option or 'db' in option:
@@ -136,18 +136,18 @@ def make_figure(options, sim_variables, variable="normal"):
                 twod_colour = cmap_colours['divergence']
                 if option[-1] == 'b':
                     label = r"$\nabla \cdot B$"
-                    error = r"$\epsilon_N(\nabla \cdot B)$"
+                    error = r"$\epsilon(\nabla \cdot B)$"
                     tv = r"TV($\nabla \cdot B$)"
                 else:
                     label = rf"$\nabla \cdot B_{option[-1]}$"
-                    error = rf"$\epsilon_N(\nabla \cdot B_{option[-1]})$"
+                    error = rf"$\epsilon(\nabla \cdot B_{option[-1]})$"
                     tv = rf"TV($\nabla \cdot B_{option[-1]}$)"
 
             else:
                 name = "Density"
                 twod_colour = cmap_colours['density']
                 label = r"$\rho$"
-                error = r"$\epsilon_N(\rho)$"
+                error = r"$\epsilon(\rho)$"
                 tv = r"TV($\rho$)"
 
             names.append(f"{name} {label}")
@@ -552,6 +552,8 @@ def plot_quantities(hdf5, sim_variables, title=False):
 
 # Plot solution errors to determine order of convergence of numerical scheme
 def plot_solution_errors(hdf5, sim_variables, error_norm, title=False):
+    show_eoc_max = False
+
     options = ["density"]
     config, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
 
@@ -605,12 +607,14 @@ def plot_solution_errors(hdf5, sim_variables, error_norm, title=False):
             ax[_i,_j].loglog(x, ytheo, color=plot_['colours']['theo'], linestyle="--")
             ax[_i,_j].annotate(rf"$O(N^{order})$", xy=(x[-1], ytheo[-1]), xytext=(5,-5), textcoords='offset points')
         ax[_i,_j].loglog(x, y, linestyle="-", marker="o", color=plot_['colours']['1d'][idx])
-        ax[_i,_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|$EOC$_{{max}}|$ = {round(max(np.abs(eoc)), 4)}")
-        ax[_i,_j].legend()
         ax[_i,_j].set_xlim([min(x)/1.5,max(x)*3.5])
 
+        if show_eoc_max:
+            ax[_i,_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|$EOC$_{{max}}|$ = {round(max(np.abs(eoc)), 4)}")
+            ax[_i,_j].legend()
+
     if title:
-        plt.suptitle(rf"$L_{error_norm}$ error norm $\epsilon_N(\mathbf{{W}})$ against resolution $N$ for {config.title()} test")
+        plt.suptitle(rf"$L_{error_norm}$ error norm $\epsilon(\mathbf{{W}})$ against resolution $N$ for {config.title()} test")
 
     plt.tight_layout()
 
