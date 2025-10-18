@@ -57,13 +57,13 @@ def verbose_timer(func):
 # Print progress status to Terminal
 def print_simple(sim_variables, t=None, status=''):
     _seed = f"{BColours.OKBLUE}{sim_variables.seed}{BColours.ENDC}"
+    _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({sim_variables.dimension}D){BColours.ENDC}"
     _config = f"{BColours.OKCYAN}{sim_variables.config.upper()}{BColours.ENDC}"
     _cells = f"{BColours.OKCYAN}{str(sim_variables.cells).strip('[]').replace(' ','').replace(',','x')}{BColours.ENDC}"
-    _subgrid = f"{BColours.OKCYAN}{sim_variables.subgrid.upper()}{BColours.ENDC}"
-    _time_evo = f"{BColours.OKCYAN}{sim_variables.time_evo.upper()}{BColours.ENDC}"
-    _solver = f"{BColours.OKCYAN}{sim_variables.solver.upper()}{BColours.ENDC}"
     _cfl = f"{BColours.OKCYAN}{sim_variables.cfl}{BColours.ENDC}"
-    _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({sim_variables.dimension}D){BColours.ENDC}"
+    _subgrid = f"{BColours.OKCYAN}{sim_variables.subgrid.upper()}{BColours.ENDC}"
+    _solver = f"{BColours.OKCYAN}{sim_variables.solver.upper()}{BColours.ENDC}"
+    _time_evo = f"{BColours.OKCYAN}{sim_variables.time_evo.upper()}{BColours.ENDC}"
     _performance = f"{BColours.OKCYAN}{round(sim_variables.elapsed*1e6/(np.prod(sim_variables.cells)*sim_variables.timesteps), 3)} \u03BCs/(N * dt){BColours.ENDC}"
 
     if status.lower() == 'final':
@@ -79,7 +79,7 @@ def print_simple(sim_variables, t=None, status=''):
     elif status.lower() == 'init':
         pass
     else:
-        _instance = f"{BColours.WARNING}{'%.6f'%t} / {'%.2f'%sim_variables.t_end}{BColours.ENDC}"
+        _instance = f"{BColours.WARNING}{t:.6f} / {sim_variables.t_end:.2f}{BColours.ENDC}"
         print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SOLVER={_solver}, TIME_EVO={_time_evo} || {_instance}", end='\r')
         pass
 
@@ -186,7 +186,36 @@ def print_verbose(sim_variables, t=None, status=''):
 
     elif status.lower() == 'final':
         print('')
-        print('Total elapsed time (HH:MM:SS):', str(timedelta(seconds=sim_variables.elapsed)), f'({sim_variables.timesteps} steps)')
+        print('='*82)
+        print('-'*30, f'{BColours.OKGREEN}SIMULATION COMPLETED{BColours.ENDC}', '-'*30)
+        print('='*82)
+        print('')
+        print(tabulate([(
+            sim_variables.seed, 
+            sim_variables.now.strftime('%Y-%m-%d %H:%M:%S'), 
+            str(timedelta(seconds=sim_variables.elapsed)), 
+            sim_variables.timesteps, 
+            '|', 
+            sim_variables.config, 
+            str(sim_variables.cells).strip('[]').replace(' ','').replace(',',' x '), 
+            sim_variables.cfl, 
+            sim_variables.subgrid, 
+            sim_variables.solver, 
+            sim_variables.time_evo, 
+            )], headers=(
+                'seed', 
+                'start time', 
+                'elapsed', 
+                'steps', 
+                '|', 
+                'config', 
+                'cells', 
+                'cfl', 
+                'subgrid', 
+                'solver', 
+                'time_evo', 
+                )))
+        print('')
 
 
     else:
@@ -196,20 +225,21 @@ def print_verbose(sim_variables, t=None, status=''):
             gpu_load = '--'
         print('\n')
         print(tabulate([(
-            datetime.now().strftime('%Y.%m.%d %H:%M'), 
+            datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 
             sim_variables.timesteps, 
             f'{t:.6f}', 
             f'{psutil.cpu_percent()}%', 
             f'{psutil.virtual_memory().percent}%', 
             f'{psutil.swap_memory().percent}%', 
-            f'{gpu_load}%'
+            f'{gpu_load}%', 
             )], headers=(
-                'datetime'
+                'datetime', 
                 'step', 
                 'sim. time', 
                 'CPU usage', 
                 'RAM usage', 
                 'Swap usage', 
-                'Avg. GPU usage')))
+                'Avg. GPU usage', 
+                )))
         print('')
     pass
