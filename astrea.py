@@ -275,7 +275,7 @@ def run(seed, save_dir) -> None:
     # Exception handling; deletes the temporary HDF5 database to prevent clutter
     except Exception as e:
         print(end='\x1b[2K')
-        print(f"\n{BColours.FAIL}-------    Error    -------{BColours.ENDC}")
+        print(f"\n{BColours.FAIL}{'='*15} Error : {seed} {'='*15}{BColours.ENDC}")
         print(traceback.format_exc())
 
     finally:
