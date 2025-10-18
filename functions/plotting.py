@@ -611,13 +611,13 @@ def plot_solution_errors(hdf5, sim_variables, error_norm, title=False):
 
     if title:
         plt.suptitle(rf"$L_{error_norm}$ error norm $\epsilon_N(\mathbf{{W}})$ against resolution $N$ for {config.title()} test")
-    
+
     plt.tight_layout()
 
     fig.text(0.5, 0.04, r"Resolution $N$", ha='center')
-    fig.subplots_adjust(bottom=0.1)
+    fig.subplots_adjust(bottom=0.15)
 
-    plt.savefig(f"{sim_variables.save_path}/solErr_L{error_norm}_{subgrid}_{time_evo}_{solver}.png", bbox_inches='tight')
+    plt.savefig(f"{sim_variables.save_path}/solErr_{config}_L{error_norm}_{subgrid}_{time_evo}_{solver}.png", bbox_inches='tight')
 
     plt.cla()
     plt.clf()
@@ -644,14 +644,14 @@ def plot_solution_errors(hdf5, sim_variables, error_norm, title=False):
     plt.tight_layout()
 
     fig.text(0.5, 0.04, r"Resolution $N$", ha='center')
-    fig.subplots_adjust(bottom=0.1)
+    fig.subplots_adjust(bottom=0.2)
     _xticklabels = [item.get_text() for item in ax.get_xticklabels()]
     _xticklabels = [rf"${int(v)}\rightarrow{int(x[i+1])}$" for i,v in enumerate(x[:-1])]
     ax.set_xticks(x_diff)
     ax.set_xticklabels(_xticklabels, rotation=45, ha="right")
     ax.legend()
 
-    plt.savefig(f"{sim_variables.save_path}/convergenceOrder_{subgrid}_{time_evo}_{solver}.png", bbox_inches='tight')
+    plt.savefig(f"{sim_variables.save_path}/convergenceOrder_{config}_{subgrid}_{time_evo}_{solver}.png", bbox_inches='tight')
 
     plt.cla()
     plt.clf()
