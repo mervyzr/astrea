@@ -60,7 +60,7 @@ def calculate_TV(simulation, sim_variables):
             grid = np.diff(grid, axis=i)
             E_tot = np.diff(E_tot, axis=i)
             E_int = np.diff(E_int, axis=i)
-        tot_vary[float(t)] = np.sum(np.abs(grid), axis=axes)
+        tot_vary[float(t)] = np.sum(np.abs(grid), axis=tuple(axes))
         tot_vary[float(t)] = np.append(tot_vary[float(t)], np.sum(np.abs(E_tot)))
         tot_vary[float(t)] = np.append(tot_vary[float(t)], np.sum(np.abs(E_int)))
     return tot_vary
@@ -79,7 +79,7 @@ def calculate_conservation(simulation, sim_variables):
     for t in list(simulation.keys()):
         _grid = simulation[t][:]  # Needs the '[:]' to access the array
         grid = sim_variables.convert("primitive", _grid, sim_variables)
-        grid = np.sum(grid, axis=axes)
+        grid = np.sum(grid, axis=tuple(axes))
         conservation[float(t)] = grid * dV
     return conservation
 
@@ -103,7 +103,7 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
     for t in intervals:
         _grid = simulation[t][:]  # Needs the '[:]' to access the array
         grid = sim_variables.convert("primitive", _grid, sim_variables)
-        grid = np.sum(grid, axis=axes)
+        grid = np.sum(grid, axis=tuple(axes))
         conservation[t] = grid * dV
     return conservation
 
