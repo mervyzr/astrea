@@ -24,33 +24,46 @@ def get_Riemann_solver(sim_variables):
     else:
         if sim_variables.solver.endswith("w"):
             return calculate_LaxWendroff_flux
+        elif "g" in sim_variables.solver:
+            return calculate_gForce_flux
         else:
             return calculate_LaxFriedrich_flux
 
 
-# (Local) Lax-Friedrich solver (1st-order; highly diffusive)
+# (Local) Lax-Friedrich solver (1st-order; highly diffusive) [Lax & Friedrichs, ?; Mignone & Del Zanna, 2021]
 def calculate_LaxFriedrich_flux(axis, sim_variables, **kwargs):
     cons_plus, cons_minus = kwargs["cons_interfaces"]
     flux_plus, flux_minus = kwargs["flux_interfaces"]
     characteristics = kwargs["characteristics"]
 
-    local_max_eigvals = np.max(np.abs(characteristics), axis=-1)
-    max_eigvals = np.maximum(fv.slice_(local_max_eigvals, axis, end=-1), fv.slice_(local_max_eigvals, axis, start=1))
+    local_max_eigvals = np.max(np.abs(np.real(characteristics)), axis=-1)  # Get maximum eigenvalues in each (localised) cell
+    max_eigvals = np.maximum(fv.slice_(local_max_eigvals, axis, end=-1), fv.slice_(local_max_eigvals, axis, start=1))  # Get the maximum eigenvalue between each consecutive pair of cells
     return .5*(flux_minus+flux_plus) - .5*((cons_plus-cons_minus) * max_eigvals[...,None])
 
 
-# Lax-Wendroff solver (2nd-order, Jacobian method; contains overshoots)
+# Lax-Wendroff (Richtmyer) solver (2nd-order, Jacobian method; contains overshoots) [Lax & Wendroff, 1960; Mignone & Del Zanna, 2021]
 def calculate_LaxWendroff_flux(axis, sim_variables, **kwargs):
     cons_plus, cons_minus = kwargs["cons_interfaces"]
     flux_plus, flux_minus = kwargs["flux_interfaces"]
     characteristics = kwargs["characteristics"]
 
-    # Sound speed for each cell (2-Riemann invariant; entropy wave or contact discontinuity); indexing 1 only works for hydrodynamics
-    sound_speed = np.unique(characteristics, axis=-1)[...,1+axis]
-    normalised_eigvals = fv.divide(sound_speed**2, np.max(np.abs(characteristics), axis=-1))
-    max_normalised_eigvals = np.maximum(fv.slice_(normalised_eigvals, axis, end=-1), fv.slice_(normalised_eigvals, axis, start=1))
+    local_max_eigvals = np.max(np.abs(np.real(characteristics)), axis=-1)  # Get maximum eigenvalues in each (localised) cell
+    max_eigvals = np.maximum(fv.slice_(local_max_eigvals, axis, end=-1), fv.slice_(local_max_eigvals, axis, start=1))  # Get the maximum eigenvalue between each consecutive pair of cells
 
-    return .5*(flux_minus+flux_plus) - .5*((cons_plus-cons_minus) * max_normalised_eigvals[...,None])
+    intermediate_cons = .5*(cons_minus+cons_plus) - .5*fv.divide(flux_plus-flux_minus, max_eigvals[...,None])
+
+    # Convert to primitive grid again for flux computation
+    centred_grid = fv.inverse_reconstruct(intermediate_cons, sim_variables) if sim_variables.magnetic else intermediate_cons
+    intermediate_prim = sim_variables.convert("conservative", centred_grid, sim_variables)
+    intermediate_prim[...,5+sim_variables.axes] = cons_plus[...,5+sim_variables.axes]
+
+    return constructor.make_flux(intermediate_prim, sim_variables, axis)
+
+
+# GFORCE solver [Toro & Titarev, 2006; Mignone & Del Zanna, 2021]
+def calculate_gForce_flux(axis, sim_variables, **kwargs):
+    wg = 1/(1+sim_variables.cfl)
+    return wg*calculate_LaxWendroff_flux(axis, sim_variables, **kwargs) + (1-wg)*calculate_LaxFriedrich_flux(axis, sim_variables, **kwargs)
 
 
 # HLLC Riemann solver [Fleischmann et al., 2020]

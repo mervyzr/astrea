@@ -322,7 +322,11 @@
         "local lax-friedrich",
         "lw",
         "lax-wendroff",
-        "wendroff"
+        "wendroff",
+        "g",
+        "gforce",
+        "g force",
+        "g-force"
       ]
     },
     "18": {
