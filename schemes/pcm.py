@@ -9,13 +9,13 @@ from num_methods import ct, solvers
 
 def run(grid, sim_variables, axis):
     multidimensional, magnetic, ds = sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds
-    data = {}
+    convert, data = sim_variables.convert, {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
 
     # Pad array with boundaries
     padded_primitive = fv.add_boundary(grid, sim_variables, axis=axis)
-    padded_conservative = fv.convert_interface("primitive", padded_primitive, axis, sim_variables)
+    padded_conservative = convert("primitive", padded_primitive, sim_variables)
 
     # Compute the fluxes and the Jacobian
     fluxes = constructor.make_flux(padded_primitive, sim_variables, axis=axis)

@@ -69,13 +69,9 @@ def slice_(grid, axis, start=0, end=None, step=1, *args):
 
 # Finite difference derivative (second order) of a padded grid
 # [ W(i+1) - W(i) ] - [ W(i) - W(i-1) ] = W(i+1) - 2W(i) + W(i-1)
-def derivative(grid, axis=0):
-    return np.diff(slice_(grid, axis, start=1), axis=axis) - np.diff(slice_(grid, axis, end=-1), axis=axis)
-
-
-# Taylor expansion of higher-order terms
-def taylor_expand(grid, sim_variables, axis):
-    return 1/24 * derivative(add_boundary(grid, sim_variables, axis=axis), axis=axis)
+def laplacian(grid, sim_variables, axis):
+    padded_grid = add_boundary(grid, sim_variables, axis=axis)
+    return 1/(sim_variables.ds[axis]**2) * (np.diff(slice_(padded_grid, axis, start=1), axis=axis) - np.diff(slice_(padded_grid, axis, end=-1), axis=axis))
 
 
 # Add boundary conditions
@@ -99,7 +95,7 @@ def convert_variable(variable, grid, sim_variables):
 
 
 # Pointwise (exact) conversion of conservative variables q <-> primitive variables w (up to 2nd-order accurate)
-def point_convert(variable_form, grid, sim_variables):
+def point_convert(variable_form, grid, sim_variables, **kwargs):
     rho, pressure, energy, vels, momentums = sim_variables.rho, sim_variables.pressure, sim_variables.energy, sim_variables.vels, sim_variables.momentums
     arr = np.copy(grid)
 
@@ -112,52 +108,67 @@ def point_convert(variable_form, grid, sim_variables):
     return arr
 
 
-# Higher-order approximation for higher-order conversion between primitive & conservative variables (high_order_convert), and for centred & averaged variables (convert_interface)
-def approximate_per_axis(variable_form, grid, sim_variables, axis):
-    _base = add_boundary(grid, sim_variables, axis=axis)
-    base = 1/24 * derivative(_base, axis=axis)
-
-    _expansion = point_convert(variable_form, _base, sim_variables)
-    expansion = 1/24 * derivative(_expansion, axis=axis)
-    return base, expansion
-
-
-# Converting cell-averaged conservative variables <q> <-> cell-averaged primitive variables <w> through a Laplacian (2nd-deriv, 2nd-order) approx. (up to 4th-order accurate)
-def high_order_convert(variable_form, grid, sim_variables):
-    axes = sim_variables.axes
+# Converting cell-averaged conservative variables <q>_{i,j}     <-> cell-averaged primitive variables <w>_{i,j} through a Laplacian (2nd-deriv, 2nd-order) approx. (up to 4th-order accurate), OR
+# converting face-averaged conservative variables <q>_{i+1/2,j} <-> face-averaged primitive variables <w>_{i+1/2,j}
+def high_order_convert(variable_form, grid, sim_variables, **kwargs):
     base, expansion = np.copy(grid), np.zeros_like(grid)
+    axes = np.array([])
+
+    def inversion_per_axis(_variable_form, _grid, _sim_variables, _axis):
+        original_expansion = (_sim_variables.ds[_axis]**2)/24 * laplacian(_grid, _sim_variables, _axis)
+        converted_avg = point_convert(_variable_form, _grid, _sim_variables)
+        converted_expansion = (_sim_variables.ds[_axis]**2)/24 * laplacian(converted_avg, _sim_variables, _axis)
+        return original_expansion, converted_expansion
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        jobs = executor.map(approximate_per_axis, repeat(variable_form), repeat(grid), repeat(sim_variables), axes)
+        # for computation at interfaces
+        if kwargs:
+            if sim_variables.higher_order and sim_variables.multidimensional:
+                axes = sim_variables.axes[sim_variables.axes != kwargs['axis']]
+        # for computation at centres
+        else:
+            axes = sim_variables.axes
 
-        # information from jobs vanish immediately after accessed from generator
-        for _base, _expansion in jobs:
-            base -= _base
-            expansion += _expansion
+        jobs = executor.map(inversion_per_axis, repeat(variable_form), repeat(grid), repeat(sim_variables), axes)
 
-    return point_convert(variable_form, base, sim_variables) + expansion
+        if axes.size != 0:
+            for _original_expansion, _converted_expansion in jobs:
+                base -= _original_expansion
+                expansion += _converted_expansion
+
+    new_grid = point_convert(variable_form, base, sim_variables) + expansion
+
+    if kwargs and sim_variables.magnetic:
+        new_grid[...,5+sim_variables.axes] = grid[...,5+sim_variables.axes]
+
+    return new_grid
 
 
-# Converting face-averaged conservative variables <q>_{i+1/2,j} <-> face-averaged primitive variables <w>_{i+1/2,j}
-def convert_interface(variable_form, interfaces, axis, sim_variables):
-    axes = sim_variables.axes
-    base, expansion = np.copy(interfaces), np.zeros_like(interfaces)
+# Converting cell-centred variables q_{i,j}     <-> cell-averaged variables <q>_{i,j} through a Laplacian (2nd-deriv, 2nd-order) approx. (up to 4th-order accurate), OR
+# converting face-centred variables q_{i+1/2,j} <-> face-averaged variables <q>_{i+1/2,j}
+def avg_cntr_convert(grid_form, grid, sim_variables, **kwargs):
+    base = np.copy(grid)
+    axes = np.array([])
 
-    if sim_variables.higher_order and sim_variables.multidimensional:
-        ortho_axes = axes[axes != axis]
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # for computation at interfaces
+        if kwargs:
+            if sim_variables.higher_order and sim_variables.multidimensional:
+                axes = sim_variables.axes[sim_variables.axes != kwargs['axis']]
+        # for computation at centres
+        else:
+            axes = sim_variables.axes
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            jobs = executor.map(approximate_per_axis, repeat(variable_form), repeat(interfaces), repeat(sim_variables), ortho_axes)
+        if axes.size != 0:
+            jobs = executor.map(laplacian, repeat(grid), repeat(sim_variables), axes)
 
-            for _base, _expansion in jobs:
-                base -= _base
-                expansion -= _expansion
+            for job_idx, expansion in enumerate(jobs):
+                if grid_form.lower().startswith('a'):
+                    base -= (sim_variables.ds[axes[job_idx]]**2)/24 * expansion
+                elif grid_form.lower().startswith('c'):
+                    base += (sim_variables.ds[axes[job_idx]]**2)/24 * expansion
 
-    new_interfaces = point_convert(variable_form, base, sim_variables) + expansion
-
-    if sim_variables.magnetic:
-        new_interfaces[...,5+axes] = interfaces[...,5+axes]
-    return new_interfaces
+    return base
 
 
 # 'Inverse reconstruct' the mag. fields' cell-averaged values from the (staggered grid) face-averaged values [Felker & Stone, 2018]
@@ -174,8 +185,9 @@ def inverse_reconstruct(grid, sim_variables):
             if _sim_variables.multidimensional:
                 # Approximate the face-averaged values to face-centred values (eq. 38)
                 with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-                    jobs = inner_executor.map(taylor_expand, repeat(_grid), repeat(_sim_variables), ortho_axes)
-                    face_cntrd -= np.sum([job for job in jobs], axis=0)
+                    jobs = inner_executor.map(laplacian, repeat(_grid), repeat(_sim_variables), ortho_axes)
+                    for idx, job in enumerate(jobs):
+                        face_cntrd -= (sim_variables.ds[ortho_axes[idx]]**2)/24 * job
 
             # Interpolate the face-centred values to cell-centred values (eq. 39)
             face_cntrd_padded_2 = add_boundary(face_cntrd, _sim_variables, stencil=2, axis=axis)
@@ -184,12 +196,11 @@ def inverse_reconstruct(grid, sim_variables):
                         + 9/16 * (face_cntrd + slice_(face_cntrd_padded, axis, start=2))
 
             # Apply Laplacian operator to convert cell-centred values to cell-averaged values (eq. 40)
-            cell_avgd = np.copy(cell_cntrd) + taylor_expand(cell_cntrd, sim_variables, axis=axis)
-
-            if _sim_variables.multidimensional:
-                with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-                    jobs = inner_executor.map(taylor_expand, repeat(cell_cntrd), repeat(_sim_variables), ortho_axes)
-                    cell_avgd += np.sum([job for job in jobs], axis=0)
+            cell_avgd = np.copy(cell_cntrd)
+            with concurrent.futures.ThreadPoolExecutor() as inner_executor:
+                jobs = inner_executor.map(laplacian, repeat(cell_cntrd), repeat(_sim_variables), _sim_variables.axes)
+                for idx, job in enumerate(jobs):
+                    cell_avgd += (_sim_variables.ds[_sim_variables.axes[idx]]**2)/24 * job
 
         elif _sim_variables.subgrid_category == 'plm':
             padded_grid = add_boundary(_grid, _sim_variables, axis=axis)

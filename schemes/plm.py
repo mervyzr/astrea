@@ -9,7 +9,7 @@ from num_methods import ct, limiters, solvers
 
 def run(grid, sim_variables, axis):
     multidimensional, axes, magnetic, ds = sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
-    data = {}
+    convert, data = sim_variables.convert, {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
 
@@ -42,7 +42,7 @@ def run(grid, sim_variables, axis):
     padded_intf_avg = fv.add_boundary(fv.slice_(intf_avg, axis, start=1), sim_variables, axis=axis)
 
     # Convert the primitive interface variables
-    cons_plus, cons_minus = fv.convert_interface("primitive", prim_plus, axis, sim_variables), fv.convert_interface("primitive", prim_minus, axis, sim_variables)
+    cons_plus, cons_minus = convert("primitive", prim_plus, sim_variables, axis=axis, pos='intf'), convert("primitive", prim_minus, sim_variables, axis=axis, pos='intf')
 
     # Compute the fluxes and the Jacobian
     flux_plus, flux_minus = constructor.make_flux(prim_plus, sim_variables, axis=axis), constructor.make_flux(prim_minus, sim_variables, axis=axis)

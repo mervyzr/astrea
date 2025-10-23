@@ -12,21 +12,17 @@ from num_methods import ct, solvers
 
 def run(grid, sim_variables, axis):
     subgrid, multidimensional, axes, magnetic, ds = sim_variables.subgrid, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
-    h = ds[axis]
-    data = {}
+    convert, data = sim_variables.convert, {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
     ortho_axes = axes[axes != axis] if (magnetic or multidimensional) else 0
 
-    # Approximate the face-averaged values to face-centred values for higher-order flux calculations
-    def approx_face_avg(_ortho_axes, _sim_variables, *_interfaces):
-        plus_intf, minus_intf = np.copy(_interfaces)
-
+    def approx_face_avg(interfaces, _axis):
+        inner_func = lambda func, grid_form, _grid, _sim_variables, kwargs: func(grid_form, _grid, _sim_variables, **kwargs)
         with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-            plus_jobs = inner_executor.map(fv.taylor_expand, repeat(plus_intf), repeat(_sim_variables), _ortho_axes)
-            minus_jobs = inner_executor.map(fv.taylor_expand, repeat(minus_intf), repeat(_sim_variables), _ortho_axes)
+            jobs = inner_executor.map(inner_func, repeat(fv.avg_cntr_convert), repeat('avg'), interfaces, repeat(sim_variables), repeat({'axis':_axis, 'pos':'intf'}))
+        return [job for job in jobs]
 
-        return plus_intf - np.sum([plus_job for plus_job in plus_jobs], axis=0), minus_intf - np.sum([minus_job for minus_job in minus_jobs], axis=0)
 
     # Compute the reconstructed point-values with their derivatives (note that there are 9 equations) [eq. 3.8]
     def reconstruct(order, stencil, cells):
@@ -34,9 +30,9 @@ def run(grid, sim_variables, axis):
         if 'zeroth' in order or order in [0, '']:
             return stencils[1] - (stencils[0] - 2*stencils[1] + stencils[2])/24
         elif 'first' in order or order in [1, 'prime', 'p']:
-            return (stencils[2] - stencils[0])/(2 * h)
+            return (stencils[2] - stencils[0])/(2 * ds[axis])
         elif 'second' in order or order in [2, 'primeprime', 'pp']:
-            return (stencils[2] - 2*stencils[1] + stencils[0])/h**2
+            return (stencils[2] - 2*stencils[1] + stencils[0])/ds[axis]**2
 
     # Define the frequently used terms
     padded_grid_2 = fv.add_boundary(grid, sim_variables, stencil=2, axis=axis)
@@ -101,7 +97,7 @@ def run(grid, sim_variables, axis):
     padded_intf_avg = fv.add_boundary(fv.slice_(intf_avg, axis, start=1), sim_variables, axis=axis)
 
     # Convert the primitive variables
-    cons_plus, cons_minus = fv.convert_interface("primitive", prim_plus, axis, sim_variables), fv.convert_interface("primitive", prim_minus, axis, sim_variables)
+    cons_plus, cons_minus = convert("primitive", prim_plus, sim_variables, axis=axis, pos='intf'), convert("primitive", prim_minus, sim_variables, axis=axis, pos='intf')
 
     # Compute the fluxes and the Jacobian
     flux_plus, flux_minus = constructor.make_flux(prim_plus, sim_variables, axis=axis), constructor.make_flux(prim_minus, sim_variables, axis=axis)
@@ -131,16 +127,17 @@ def run(grid, sim_variables, axis):
     if multidimensional:
         # Calculate the interface-centred fluxes
         intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
-            'prim_interfaces': approx_face_avg(ortho_axes, sim_variables, *[prim_plus, prim_minus]),
-            'cons_interfaces': approx_face_avg(ortho_axes, sim_variables, *[cons_plus, cons_minus]),
-            'flux_interfaces': approx_face_avg(ortho_axes, sim_variables, *[flux_plus, flux_minus]),
+            'prim_interfaces': approx_face_avg([prim_plus, prim_minus], axis),
+            'cons_interfaces': approx_face_avg([cons_plus, cons_minus], axis),
+            'flux_interfaces': approx_face_avg([flux_plus, flux_minus], axis),
             'characteristics': characteristics,
         })
 
         # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation for each orthogonal axis
         with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-            jobs = inner_executor.map(fv.taylor_expand, repeat(intf_fluxes_avgd), repeat(sim_variables), ortho_axes)
-            intf_fluxes_cntrd -= np.sum([job for job in jobs], axis=0)
+            jobs = inner_executor.map(fv.laplacian, repeat(intf_fluxes_avgd), repeat(sim_variables), ortho_axes)
+            for idx, job in enumerate(jobs):
+                intf_fluxes_cntrd -= (sim_variables.ds[ortho_axes[idx]]**2)/24 * job
     else:
         # Orthogonal Laplacian in 1d is zero
         intf_fluxes_cntrd = intf_fluxes_avgd
@@ -229,15 +226,6 @@ def run(grid, sim_variables, axis):
 
 
 
-    # Approximate the face-averaged values to face-centred values for higher-order flux calculations
-    def approx_face_avg(_ortho_axes, _sim_variables, *_interfaces):
-        plus_intf, minus_intf = _interfaces
-
-        with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-            plus_jobs = inner_executor.map(fv.taylor_expand, repeat(plus_intf), repeat(_sim_variables), _ortho_axes)
-            minus_jobs = inner_executor.map(fv.taylor_expand, repeat(minus_intf), repeat(_sim_variables), _ortho_axes)
-
-        return np.copy(plus_intf) - np.sum([plus_job for plus_job in plus_jobs], axis=0), np.copy(minus_intf) - np.sum([minus_job for minus_job in minus_jobs], axis=0)
 
     """WENO reconstruction [Shu, 2009; San & Kara, 2015]
     |                        w(i-1/2)                    w(i+1/2)                       |
@@ -387,7 +375,7 @@ def run(grid, sim_variables, axis):
     padded_intf_avg = fv.add_boundary(fv.slice_(intf_avg, axis, start=1), sim_variables, axis=axis)
 
     # Convert the primitive variables
-    cons_plus, cons_minus = fv.convert_interface("primitive", prim_plus, axis, sim_variables), fv.convert_interface("primitive", prim_minus, axis, sim_variables)
+    cons_plus, cons_minus = sim_variables.convert("primitive", prim_plus, sim_variables, axis=axis, pos='intf'), sim_variables.convert("primitive", prim_minus, sim_variables, axis=axis, pos='intf')
 
     # Compute the fluxes and the Jacobian
     flux_plus, flux_minus = constructor.make_flux(prim_plus, sim_variables, axis=axis), constructor.make_flux(prim_minus, sim_variables, axis=axis)
@@ -417,16 +405,17 @@ def run(grid, sim_variables, axis):
     if multidimensional:
         # Calculate the interface-centred fluxes
         intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
-            'prim_interfaces': approx_face_avg(ortho_axes, sim_variables, *[prim_plus, prim_minus]),
-            'cons_interfaces': approx_face_avg(ortho_axes, sim_variables, *[cons_plus, cons_minus]),
-            'flux_interfaces': approx_face_avg(ortho_axes, sim_variables, *[flux_plus, flux_minus]),
+            'prim_interfaces': fv.approx_face_avg(ortho_axes, sim_variables, *[prim_plus, prim_minus]),
+            'cons_interfaces': fv.approx_face_avg(ortho_axes, sim_variables, *[cons_plus, cons_minus]),
+            'flux_interfaces': fv.approx_face_avg(ortho_axes, sim_variables, *[flux_plus, flux_minus]),
             'characteristics': characteristics,
         })
 
         # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation for each orthogonal axis
         with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-            jobs = inner_executor.map(fv.taylor_expand, repeat(intf_fluxes_avgd), repeat(sim_variables), ortho_axes)
-        intf_fluxes_cntrd -= np.sum([job for job in jobs], axis=0)
+            jobs = inner_executor.map(fv.laplacian, repeat(intf_fluxes_avgd), repeat(sim_variables), ortho_axes)
+            for job_idx, ortho_axis in enumerate(ortho_axes):
+                intf_fluxes_cntrd -= (sim_variables.ds[ortho_axis]**2)/24 * jobs[job_idx]
     else:
         # Orthogonal Laplacian in 1d is zero
         intf_fluxes_cntrd = intf_fluxes_avgd
