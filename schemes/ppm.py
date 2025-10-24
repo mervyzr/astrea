@@ -21,13 +21,6 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
     ortho_axes = axes[axes != axis] if (magnetic or multidimensional) else 0
 
-    def approx_face_avg(interfaces, _axis):
-        inner_func = lambda func, grid_form, _grid, _sim_variables, kwargs: func(grid_form, _grid, _sim_variables, **kwargs)
-        with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-            jobs = inner_executor.map(inner_func, repeat(fv.avg_cntr_convert), repeat('avg'), interfaces, repeat(sim_variables), repeat({'axis':_axis, 'pos':'intf'}))
-        return [job for job in jobs]
-
-
     # Pad array with boundary; PPM requires additional ghost cells
     padded_grid_2 = fv.add_boundary(grid, sim_variables, stencil=2, axis=axis)
     padded_grid = fv.slice_(padded_grid_2, axis, *[1,-1])
@@ -46,7 +39,7 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     if magnetic:
         interface[...,5+axes] = grid[...,5+axes]
 
-        # Magnetic transverse interfaces reconstructed longitudinal to the axis (returns [ prim_plus, prim_minus ]); will be used for orthogonal axes later
+        # Magnetic transverse interfaces reconstructed along orthogonal axis/axes (interface = centre for PCM)
         if multidimensional:
             if dissipate:
                 data['ortho_interfaces'] = ct.reconstruct_transverse(grid, sim_variables, axis=axis, extras=[grid, eta])
@@ -130,9 +123,9 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     if multidimensional:
         # Calculate the interface-centred fluxes
         intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
-            'prim_interfaces': approx_face_avg([prim_plus, prim_minus], axis),
-            'cons_interfaces': approx_face_avg([cons_plus, cons_minus], axis),
-            'flux_interfaces': approx_face_avg([flux_plus, flux_minus], axis),
+            'prim_interfaces': fv.approx_face_avg([prim_plus, prim_minus], sim_variables, axis),
+            'cons_interfaces': fv.approx_face_avg([cons_plus, cons_minus], sim_variables, axis),
+            'flux_interfaces': fv.approx_face_avg([flux_plus, flux_minus], sim_variables, axis),
             'characteristics': characteristics,
         })
 

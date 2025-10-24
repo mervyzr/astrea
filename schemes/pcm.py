@@ -25,7 +25,7 @@ def run(grid, sim_variables, axis):
     characteristics = np.linalg.eigvals(jacobian)
     data['eigmax'] = ds[axis]/fv.compute_eigmax(characteristics, axis=axis)
 
-    # Magnetic transverse interfaces (interface = centre for PCM) reconstructed longitudinal to the axis (returns [ prim_plus, prim_minus ]); will be used for orthogonal axes later
+    # Magnetic transverse interfaces reconstructed along orthogonal axis/axes (interface = centre for PCM)
     if magnetic and multidimensional:
         data['ortho_interfaces'] = ct.reconstruct_transverse(grid, sim_variables, axis=axis)
 

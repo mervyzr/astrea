@@ -171,6 +171,14 @@ def avg_cntr_convert(grid_form, grid, sim_variables, **kwargs):
     return base
 
 
+# Higher-order approximations at the interfaces for multi-dimensional higher-order schemes
+def approx_face_avg(interfaces, sim_variables, axis):
+    inner_func = lambda func, _grid_form, _grid, _sim_variables, _kwargs: func(_grid_form, _grid, _sim_variables, **_kwargs)
+    with concurrent.futures.ThreadPoolExecutor() as inner_executor:
+        jobs = inner_executor.map(inner_func, repeat(avg_cntr_convert), repeat('avg'), interfaces, repeat(sim_variables), repeat({'axis':axis, 'pos':'intf'}))
+    return [job for job in jobs]
+
+
 # 'Inverse reconstruct' the mag. fields' cell-averaged values from the (staggered grid) face-averaged values [Felker & Stone, 2018]
 def inverse_reconstruct(grid, sim_variables):
     axes = sim_variables.axes

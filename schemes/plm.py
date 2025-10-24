@@ -28,7 +28,7 @@ def run(grid, sim_variables, axis):
     if magnetic:
         wR[...,5+axes] = grid[...,5+axes]
 
-        # Magnetic transverse interfaces reconstructed longitudinal to the axis (returns [ prim_plus, prim_minus ]); will be used for orthogonal axes later
+        # Magnetic transverse interfaces reconstructed along orthogonal axis/axes
         if multidimensional:
             data['ortho_interfaces'] = ct.reconstruct_transverse(grid, sim_variables, axis=axis)
 
