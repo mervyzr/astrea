@@ -15,7 +15,7 @@ from functions.generic import verbose_timer
 # Evolve the system in space by a standardised workflow
 @verbose_timer
 def evolve_space(grid, sim_variables, first_stage=False):
-    dimension, multidimensional, subgrid_category, axes, magnetic = sim_variables.dimension, sim_variables.multidimensional, sim_variables.subgrid_category, sim_variables.axes, sim_variables.magnetic
+    multidimensional, subgrid_category, axes, magnetic = sim_variables.multidimensional, sim_variables.subgrid_category, sim_variables.axes, sim_variables.magnetic
     pressure = sim_variables.pressure
 
     # Convert to primitive variables

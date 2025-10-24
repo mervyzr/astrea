@@ -133,10 +133,10 @@ def parse_cli_variables(config_variables, arguments):
                     else:
                         v = 1.
             if k == "gamma" and v == 1:
-                v += 1e-9
+                v += np.finfo(config_variables['precision']).eps
             if k == "cfl":
                 if v <= 0:
-                    v = 1e-9
+                    v = np.finfo(config_variables['precision']).eps
                 elif v > 1:
                     v = 1
             if k == "permeability":
