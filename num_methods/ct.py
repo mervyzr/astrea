@@ -11,6 +11,7 @@ from num_methods import limiters
 ##############################################################################
 
 # Reconstruct the transverse values for each face average (computation done entirely for orthogonal axis)
+# Note that this reconstruction is done at the INTERFACES, NOT CENTRES
 def reconstruct_transverse(interface, sim_variables, axis, method=None, extras=None):
     if not method:
         method = sim_variables.subgrid_category
@@ -156,9 +157,11 @@ def reconstruct_transverse(interface, sim_variables, axis, method=None, extras=N
     return prim_plus, prim_minus
 
 
-# Compute the corner/line electric fields wrt to corner/line; gives 4-fold values for each corner/line in each axis [Mignone & Del Zanna, 2020]
+# Compute the corner/line electric fields wrt to corner/line for each axis [Mignone & Del Zanna, 2020]
 def compute_emf(data, axis):
     abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
+
+    # Assume computation for the z-axis EMF here (axis=2), and so x-axis (ordinate) & y-axis (applicate) are needed
     vx, vy = 1+ordinate, 1+applicate
     Bx, By = 5+ordinate, 5+applicate
 
@@ -178,6 +181,7 @@ def compute_emf(data, axis):
         NW = .5*(west[...,vy]+north[...,vy])*north[...,Bx] - .5*(west[...,vx]+north[...,vx])*west[...,By]
         NE = .5*(east[...,vy]+north[...,vy])*north[...,Bx] - .5*(east[...,vx]+north[...,vx])*east[...,By]
 
+        # Averaging procedure for the 4-fold values at each corner/line
         emf = (
             fv.divide(ap_x*ap_y*SW + am_x*ap_y*SE + ap_x*am_y*NW + am_x*am_y*NE, (ap_x+am_x)*(ap_y+am_y)) 
             - fv.divide(ap_y*am_y, ap_y+am_y)*(north[...,Bx]-south[...,Bx]) 
@@ -187,8 +191,9 @@ def compute_emf(data, axis):
     return emf
 
 
-# Compute constrained transport flux using corner/line emfs [Mignone & Del Zanna, 2020];
-# the hydro fluxes are unaltered, and the CT fluxes are automatically allocated to their respective axes
+# Compute constrained transport flux using corner/line emfs [Mignone & Del Zanna, 2020]
+# The hydro fluxes are unaltered. The magnetic fluxes are computed for each axis and automatically allocated,
+# while setting the other axes to zero
 def compute_ct_flux(flux, emfs, sim_variables, axis):
     _axes = np.array(range(3))
 

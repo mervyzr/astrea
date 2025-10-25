@@ -7,6 +7,11 @@ from num_methods import ct, solvers
 # Piecewise constant reconstruction method (PCM) [Godunov, 1959]
 ##############################################################################
 
+# Reconstruct from averaged cell <w>_{i,j} to averaged interface <w>_{i+1/2,j} (interface = centre for PCM)
+def reconstruct(grid, sim_variables, axis):
+    return grid
+
+
 def run(grid, sim_variables, axis):
     multidimensional, magnetic, ds = sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds
     convert, data = sim_variables.convert, {}
