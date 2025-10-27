@@ -10,6 +10,59 @@ from num_methods import ct, solvers
 # CWENO reconstruction method [Levy et al., 1999, 2000]
 ##############################################################################
 
+def reconstruct(grid, sim_variables, axis):
+    # Define the frequently used terms
+    padded_grid_2 = fv.add_boundary(grid, sim_variables, stencil=2, axis=axis)
+    padded_grid = fv.slice_(padded_grid_2, axis, *[1,-1])
+
+    zeroth = np.copy(grid)
+    minus_one, minus_two = fv.slice_(padded_grid, axis, end=-2), fv.slice_(padded_grid_2, axis, end=-4)
+    plus_one, plus_two = fv.slice_(padded_grid, axis, start=2), fv.slice_(padded_grid_2, axis, start=4)
+
+    # Define the empirical parameters for Eq. 3.12
+    eps, power = np.finfo(sim_variables.precision).eps, 2
+
+    """CWENO reconstruction from cell averages to face averages (both sides) [Verma et al., 2018]
+    |                        w(i-1/2)                    w(i+1/2)                       |
+    |<--         i-1         -->|<--          i          -->|<--         i+1         -->|
+    |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
+    |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |   w+(i+1/2)   w-(i+3/2)   |
+    """
+    # Define the linear weights C_k (5th-order) [Levy et al., 1999, tbl. 3.1]
+    C_minus, C_zero, C_plus = 3/16, 5/8, 3/16
+
+    # Determine the smoothness indicators (O(dx^4) at critical points but O(1) at discontinuities) [eq. 3.14]
+    IS_minus = lambda stencils: 13/12 * (stencils[0] - 2*stencils[1] + stencils[2])**2 + 1/4 * (stencils[0] - 4*stencils[1] + 3*stencils[2])**2
+    IS_zero = lambda stencils: 13/12 * (stencils[0] - 2*stencils[1] + stencils[2])**2 + 1/4 * (stencils[0] - stencils[2])**2
+    IS_plus = lambda stencils: 13/12 * (stencils[0] - 2*stencils[1] + stencils[2])**2 + 1/4 * (3*stencils[0] - 4*stencils[1] + stencils[2])**2
+
+    # Compute the alpha values [Levy et al., 1999, eq. 3.12]
+    alpha = lambda C_k, IS_k: C_k/(eps + IS_k)**power
+
+    # Compute the non-linear weights [Levy et al., 1999, eq. 3.11]
+    denominator = (
+        alpha(C_minus, IS_minus([minus_two, minus_one, zeroth]))
+        + alpha(C_zero, IS_zero([minus_one, zeroth, plus_one]))
+        + alpha(C_plus, IS_plus([zeroth, plus_one, plus_two]))
+    )
+    wj_minus = fv.divide(alpha(C_minus, IS_minus([minus_two, minus_one, zeroth])), denominator)
+    wj_zero = fv.divide(alpha(C_zero, IS_zero([minus_one, zeroth, plus_one])), denominator)
+    wj_plus = fv.divide(alpha(C_plus, IS_plus([zeroth, plus_one, plus_two])), denominator)
+
+    wL = 1/6 * (
+        wj_minus * (2*zeroth + 5*minus_one - minus_two)
+        + wj_zero * (2*minus_one + 5*zeroth - plus_one)
+        + wj_plus * (2*plus_two - 7*plus_one + 11*zeroth)
+    )
+    wR = 1/6 * (
+        wj_minus * (11*zeroth - 7*minus_one + 2*minus_two)
+        + wj_zero * (2*plus_one + 5*zeroth - minus_one)
+        + wj_plus * (2*zeroth + 5*plus_one - plus_two)
+    )
+
+    return wL, wR
+
+
 def run(grid, sim_variables, axis):
     subgrid, multidimensional, axes, magnetic, ds = sim_variables.subgrid, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
     convert, data = sim_variables.convert, {}

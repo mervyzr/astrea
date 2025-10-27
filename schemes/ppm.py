@@ -11,12 +11,73 @@ from num_methods import ct, limiters, solvers
 # [McCorquodale & Colella, 2011 (MC:2011); Colella et al., 2011 (C+:2011); Peterson & Hammett, 2008 (PH:2008)]
 ##############################################################################
 
-def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
-    multidimensional, axes, magnetic, ds, dissipate = sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds, sim_variables.ppm_dissipate
-    convert, data = sim_variables.convert, {}
+def reconstruct(grid, sim_variables, axis, eta=None):
+    # Pad array with boundary; PPM requires additional ghost cells
+    padded_grid_2 = fv.add_boundary(grid, sim_variables, stencil=2, axis=axis)
+    padded_grid = fv.slice_(padded_grid_2, axis, *[1,-1])
 
-    author = author.lower()
-    sim_variables.ppm_author = author
+    minus_one, minus_two = fv.slice_(padded_grid, axis, end=-2), fv.slice_(padded_grid_2, axis, end=-4)
+    plus_one, plus_two = fv.slice_(padded_grid, axis, start=2), fv.slice_(padded_grid_2, axis, start=4)
+
+    """Interpolate (forward/upwind) the cell averages to face averages <w>_{i+1/2,j} [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
+    |               w(i-1/2)            w(i+1/2)                |
+    |  i-1           -->|   i            -->|  i+1           -->|
+    |        w_R(i-1)   |          w_R(i)   |        w_R(i+1)   |
+    """
+    interface = 7/12 * (grid + plus_one) - 1/12 * (minus_one + plus_two)  # 4th-order [Felker & Stone, 2018, eq. 10]
+    #interface = 1/60 * (2*minus_two - 13*minus_one + 47*grid + 27*plus_one - 3*plus_two)  # 5th-order [Suresh & Huynh, 1997, eq. 2.1]
+
+    if sim_variables.magnetic:
+        interface[...,5+sim_variables.axes] = grid[...,5+sim_variables.axes]
+
+    if sim_variables.ppm_author.startswith(("peterson", "p", "ph", "x")):
+        """Reconstruction from cell averages to face averages (both sides)
+        |                        w(i-1/2)                    w(i+1/2)                       |
+        |<--         i-1         -->|<--          i          -->|<--         i+1         -->|
+        |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
+        """
+        left_of_centre = 7/12 * (minus_one + grid) - 1/12 * (minus_two + plus_one)
+        right_of_centre = interface
+
+        # Limit interface values [Peterson & Hammett, 2008, eq. 3.33-3.34]
+        padded_interface_2 = np.zeros_like(fv.add_boundary(right_of_centre, sim_variables, stencil=2, axis=axis))
+        limited_wFs = (
+            limiters.interface_limiter(left_of_centre, *[minus_two, minus_one, grid, plus_one]), 
+            limiters.interface_limiter(right_of_centre, *[minus_one, grid, plus_one, plus_two])
+        )
+
+    else:
+        # Limit interface values [Colella et al., 2011, p. 25-26]
+        if sim_variables.ppm_author.startswith(("colella", "c", "c+")):
+            interface = limiters.interface_limiter(interface, *[minus_one, grid, plus_one, plus_two])
+
+        # Define the left and right parabolic extrapolants
+        padded_interface_2 = fv.add_boundary(interface, sim_variables, stencil=2, axis=axis)
+        limited_wFs = (
+            fv.slice_(padded_interface_2, axis, *[1,-3]), 
+            fv.slice_(padded_interface_2, axis, *[2,-2])
+        )
+
+    """Reconstruct the limited parabolic extrapolants from the interface values [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
+    |                        w(i-1/2)                    w(i+1/2)                       |
+    |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
+    |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
+    |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
+    """
+    wL, wR = limiters.extrapolant_limiter(grid, sim_variables, axis, *limited_wFs, **{
+        'padded_grid':padded_grid, 'padded_grid_2':padded_grid_2, 'padded_interface_2':padded_interface_2
+        })
+
+    if sim_variables.ppm_dissipate:
+        wL = wL * eta[...,None] + grid * (1-eta)[...,None]
+        wR = wR * eta[...,None] + grid * (1-eta)[...,None]
+
+    return wL, wR
+
+
+def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
+    convert, multidimensional, axes, magnetic, ds, dissipate = sim_variables.convert, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds, sim_variables.ppm_dissipate
+    sim_variables.ppm_author, data = author.lower(), {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
     ortho_axes = axes[axes != axis] if (magnetic or multidimensional) else 0
@@ -44,7 +105,25 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
             if dissipate:
                 data['ortho_interfaces'] = ct.reconstruct_transverse(grid, sim_variables, axis=axis, extras=[grid, eta])
             else:
-                data['ortho_interfaces'] = ct.reconstruct_transverse(grid, sim_variables, axis=axis)
+                data['ortho_interfaces'] = ct.reconstruct_transverse(grid, sim_variables, axis=axis)  #<- why are you using grid here instead of interfaces?
+
+    # Dimension = 1, axes = [0]
+    # axis = 0 => ortho_axes = [None, None]
+    # axis = 1 => ortho_axes = [None, None]
+    # axis = 2 => ortho_axes = [None, None]
+    # So this seems possible; the reconstruct_transverse will not reconstruct anything
+    #
+    # Dimension = 2, axes = [0,1]
+    # axis = 0 => ortho_axes = [1, None]
+    # axis = 1 => ortho_axes = [0, None]
+    # axis = 2 => ortho_axes = [0, 1]
+    # Seems possible too; the emf will try and compute for all axes, which will only succeed for z-axis bc only x- & y-axis info are available
+    #
+    # Dimension = 3, axes = [0,1,2]
+    # axis = 0 => ortho_axes = [1,2]
+    # axis = 1 => ortho_axes = [0,2]
+    # axis = 2 => ortho_axes = [0,1]
+    # Seems possible; the emf will still try and compute for all axes, but now all axes will succeed. I think?
 
     if author.startswith(("peterson", "p", "ph", "x")):
         """Interpolate the cell averages to face averages (both sides)

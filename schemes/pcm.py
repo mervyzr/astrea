@@ -9,7 +9,7 @@ from num_methods import ct, solvers
 
 # Reconstruct from averaged cell <w>_{i,j} to averaged interface <w>_{i+1/2,j} (interface = centre for PCM)
 def reconstruct(grid, sim_variables, axis):
-    return grid
+    return grid, grid
 
 
 def run(grid, sim_variables, axis):
