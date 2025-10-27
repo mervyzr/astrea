@@ -48,7 +48,7 @@ By nature interpreted languages are slower than compiled languages. The global-i
 
 Some experimentation was done to parallelise the code with `Open MPI` and `MPICH`. However, this is generally not recommended because of the aforementioned GIL. Attempts have been made with multi-processing (`multiprocessing`) and multi-threading (`concurrent.futures`), with limited success. Some of the main slow-downs come from the sequential nature of the (explicit) time evolution method and the I/O of the `hdf5` data file. Most of the functions have also been vectorised to make use of `numpy`'s multi-threading _wherever possible_. But ultimately the benefits of having a 'semi-parallelised' Python code with `numpy` might not outweigh having a fully compiled code such as Fortran or C (Ross, 2016).
 
-^_`h5py` is not fully optimised for the experimental free-threading build or the just-in-time compiler introduced in Python 3.13t, but there are some works in progress to make the package compatible (see <a href='https://github.com/h5py/h5py/issues/2475' target='_blank'>here</a>). So the code should only run for the Python 3.13 build, not Python 3.13t. Alternatively the user can simply switch off the use of `h5py` in the simulation if they would like to experiment with the 3.13t build._
+^_`h5py` is not fully optimised for the experimental free-threading build or the just-in-time compiler introduced in Python 3.13t. The authors of `h5py` have indicated that users can run `h5py` with the free-threading build, but at the users' own risk!_
 
 
 <a name="spatial-discretisation"></a>
