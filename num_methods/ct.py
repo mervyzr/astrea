@@ -5,156 +5,117 @@ import numpy as np
 
 from functions import fv
 from num_methods import limiters
+from schemes import pcm, plm, ppm, weno, cweno
 
 ##############################################################################
 # Fourth-order upwind constrained transport algorithm for MHD [Felker & Stone, 2018]
 ##############################################################################
 
+# Compute the maximum(+) & minimum(-) eigenvalues for alpha+ and alpha- respectively for each axis; used in the compute_emf function
+def compute_alphas(characteristics, axis):
+    local_max, local_min = np.max(characteristics, axis=-1), np.min(characteristics, axis=-1)
+    max_eigvals = np.maximum(fv.slice_(local_max, axis, end=-1), fv.slice_(local_max, axis, start=1))
+    min_eigvals = np.minimum(fv.slice_(local_min, axis, end=-1), fv.slice_(local_min, axis, start=1))
+    return fv.slice_(np.maximum(0, max_eigvals), axis, start=1), fv.slice_(-np.minimum(0, min_eigvals), axis, start=1)
+
+
+# Wrapper for reconstruct_transverse; for each orthogonal axis, it will compute for each pair of (+) & (-) interfaces
+def reconstruct_wrapper(interfaces, sim_variables, ortho_axes):
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        jobs = executor.map(reconstruct_transverse, repeat(interfaces), repeat(sim_variables), ortho_axes)
+        return {ortho_axes[idx]:ortho_interfaces for idx, ortho_interfaces in enumerate(jobs)}
+
 # Reconstruct the transverse values for each face average (computation done entirely for orthogonal axis)
-# Note that this reconstruction is done at the INTERFACES, NOT CENTRES
-def reconstruct_transverse(interface, sim_variables, axis, method=None, extras=None):
+# Note that this reconstruction is done at the INTERFACES, NOT CENTRES, and it is for one orthogonal axis
+def reconstruct_transverse(interfaces, sim_variables, ortho_axis, method=None, eta=None):
     if not method:
         method = sim_variables.subgrid_category
 
-    padded_grid_2 = fv.add_boundary(interface, sim_variables, stencil=2, axis=axis)
-    padded_grid = fv.slice_(padded_grid_2, axis, *[1,-1])
+    """Interpolate the face averages to both corners (upwards & downwards)
+    |                w(i-1/2)            w(i+1/2)               |
+    |-------------------|-------------------|-------------------|
+    |           w_U(i-1/2,j+1/2)    w_U(i+1/2,j+1/2)            |
+    |                  ^|                  ^|                  ^|
+    |                  ||                  ||                  ||
+    |                  ||                  ||                  ||
+    |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
+    |                  ||                  ||                  ||
+    |                  ||                  ||                  ||
+    |                  v|                  v|                  v|
+    |           w_D(i-1/2,j-1/2)    w_D(i+1/2,j-1/2)            |
+    |-------------------|-------------------|-------------------|
 
-    zeroth = np.copy(interface)
-    minus_one, minus_two = fv.slice_(padded_grid, axis, end=-2), fv.slice_(padded_grid_2, axis, end=-4)
-    plus_one, plus_two = fv.slice_(padded_grid, axis, start=2), fv.slice_(padded_grid_2, axis, start=4)
+        OR
 
-    # 5th-order WENO reconstruction
+    Reconstruct the limited extrapolants from the interface values. Returns the face averages in the form of w+(y) & w-(y) when considering x-axis, and w+(x) & w-(x) when considering y-axis
+    |                w(i-1/2)            w(i+1/2)               |
+    |  o (i-1,j+1)      |  o (i,j+1)        |  o (i+1,j+1)      |
+    |                   |                   |                   |
+    |                   |                   |                   |
+    |           w_D(i-1/2,j+1/2)    w_D(i+1/2,j+1/2)            |
+    |                 w+(y)               w+(y)               w+(y)
+    |                   ^                   ^                   ^
+    |-------------------|-------------------|-------------------|
+    |                   v                   v                   v
+    |                 w-(y)               w-(y)               w-(y)
+    |           w_U(i-1/2,j+1/2)    w_U(i+1/2,j+1/2)            |
+    |                   |                   |                   |
+    |                   |                   |                   |
+    |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
+    """
     if method == "weno":
-        eps = np.finfo(sim_variables.precision).eps
-
-        """Interpolate the face averages to both corners (upwards & downwards)
-        |                w(i-1/2)            w(i+1/2)               |
-        |-------------------|-------------------|-------------------|
-        |           w_U(i-1/2,j+1/2)    w_U(i+1/2,j+1/2)            |
-        |                  ^|                  ^|                  ^|
-        |                  ||                  ||                  ||
-        |                  ||                  ||                  ||
-        |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
-        |                  ||                  ||                  ||
-        |                  ||                  ||                  ||
-        |                  v|                  v|                  v|
-        |           w_D(i-1/2,j-1/2)    w_D(i+1/2,j-1/2)            |
-        |-------------------|-------------------|-------------------|
-        """
-        g0, g1, g2 = 1/10, 3/5, 3/10
-
-        b0 = (
-            13/12 * (minus_two - 2*minus_one + zeroth)**2
-            + 1/4 * (minus_two - 4*minus_one + 3*zeroth)**2
-        )
-        b1 = (
-            13/12 * (minus_one - 2*zeroth + plus_one)**2
-            + 1/4 * (minus_one - plus_one)**2
-        )
-        b2 = (
-            13/12 * (zeroth - 2*plus_one + plus_two)**2
-            + 1/4 * (3*zeroth - 4*plus_one + plus_two)**2
-        )
-
-        a0 = lambda d0: d0/(b0 + eps)**2
-        a1 = lambda d1: d1/(b1 + eps)**2
-        a2 = lambda d2: d2/(b2 + eps)**2
-
-        wU = (
-            (a0(g0)/(a0(g0)+a1(g1)+a2(g2))) * (1/3*minus_two - 7/6*minus_one + 11/6*zeroth)
-            + (a1(g1)/(a0(g0)+a1(g1)+a2(g2))) * (-1/6*minus_one + 5/6*zeroth + 1/3*plus_one)
-            + (a2(g2)/(a0(g0)+a1(g1)+a2(g2))) * (1/3*zeroth + 5/6*plus_one - 1/6*plus_two)
-        )
-        wD = (
-            (a0(g2)/(a0(g2)+a1(g1)+a2(g0))) * (1/3*zeroth + 5/6*minus_one - 1/6*minus_two)
-            + (a1(g1)/(a0(g2)+a1(g1)+a2(g0))) * (-1/6*plus_one + 5/6*zeroth + 1/3*minus_one)
-            + (a2(g0)/(a0(g2)+a1(g1)+a2(g0))) * (1/3*plus_two - 7/6*plus_one + 11/6*zeroth)
-        )
-
+        reconstruct = weno.reconstruct
+    elif method == "cweno":
+        reconstruct = cweno.reconstruct
     elif method == "ppm":
-
-        grid_slices = [minus_one, zeroth, plus_one, plus_two]
-
-        """Interpolate the face averages to the top corners (upwards) [McCorquodale & Colella, 2011, eq. 17; Colella et al., 2011, eq. 67]
-        |                w(i-1/2)            w(i+1/2)               |
-        |-------------------|-------------------|-------------------|
-        |           w_U(i-1/2,j+1/2)    w_U(i+1/2,j+1/2)            |
-        |                  ^|                  ^|                  ^|
-        |                  ||                  ||                  ||
-        |                  ||                  ||                  ||
-        |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
-        """
-        wU = 7/12 * (zeroth + plus_one) - 1/12 * (minus_one + plus_two)
-
-        if sim_variables.ppm_author.startswith(("peterson", "p", "x")):
-            """Interpolate the face averages to both corners (upwards & downwards)
-            |                w(i-1/2)            w(i+1/2)               |
-            |-------------------|-------------------|-------------------|
-            |           w_U(i-1/2,j+1/2)    w_U(i+1/2,j+1/2)            |
-            |                  ^|                  ^|                  ^|
-            |                  ||                  ||                  ||
-            |                  ||                  ||                  ||
-            |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
-            |                  ||                  ||                  ||
-            |                  ||                  ||                  ||
-            |                  v|                  v|                  v|
-            |           w_D(i-1/2,j-1/2)    w_D(i+1/2,j-1/2)            |
-            |-------------------|-------------------|-------------------|
-            """
-            wD = 7/12 * (minus_one + zeroth) - 1/12 * (minus_two + plus_one)
-
-            # Limit interface values [Peterson & Hammett, 2008, eq. 3.33-3.34]
-            limited_wUs = limiters.interface_limiter(wD, *[minus_two, minus_one, zeroth, plus_one]), limiters.interface_limiter(wU, *grid_slices)
-            padded_wU_2 = np.zeros_like(fv.add_boundary(wU, sim_variables, stencil=2, axis=axis))
-        else:
-            if sim_variables.ppm_author.startswith(("colella", "c")):
-                # Limit interface values [Colella et al., 2011, p. 25-26]
-                wU = limiters.interface_limiter(wU, *grid_slices)
-
-            # Define the top and bottom parabolic extrapolants
-            padded_wU_2 = fv.add_boundary(wU, sim_variables, stencil=2, axis=axis)
-            limited_wUs = fv.slice_(padded_wU_2, axis, *[1,-3]), fv.slice_(padded_wU_2, axis, *[2,-2])
-
-        """Reconstruct the limited extrapolants from the interface values. Returns the face averages in the form of w+(y) & w-(y) when considering x-axis, and w+(x) & w-(x) when considering y-axis
-        |                w(i-1/2)            w(i+1/2)               |
-        |  o (i-1,j+1)      |  o (i,j+1)        |  o (i+1,j+1)      |
-        |                   |                   |                   |
-        |                   |                   |                   |
-        |           w_D(i-1/2,j+1/2)    w_D(i+1/2,j+1/2)            |
-        |                 w+(y)               w+(y)               w+(y)
-        |                   ^                   ^                   ^
-        |-------------------|-------------------|-------------------|
-        |                   v                   v                   v
-        |                 w-(y)               w-(y)               w-(y)
-        |           w_U(i-1/2,j+1/2)    w_U(i+1/2,j+1/2)            |
-        |                   |                   |                   |
-        |                   |                   |                   |
-        |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
-        """
-        wD, wU = limiters.extrapolant_limiter(zeroth, sim_variables, axis, *limited_wUs, **{
-            'padded_grid':padded_grid, 'padded_grid_2':padded_grid_2, 'padded_interface_2':padded_wU_2
-            })
-
         if sim_variables.ppm_dissipate:
-            grid, eta = extras
-            wD = wD * eta[...,None] + grid * (1-eta)[...,None]
-            wU = wU * eta[...,None] + grid * (1-eta)[...,None]
-
+            reconstruct = lambda _grid, _sim_variables, _axis: ppm.reconstruct(_grid, _sim_variables, _axis, eta=eta)
+        else:
+            reconstruct = ppm.reconstruct
     elif method == "plm":
-        limited_values = limiters.minmod_limiter(padded_grid, axis)
-        gradients = .5 * limited_values
-        wD, wU = zeroth - gradients, zeroth + gradients
-
+        reconstruct = plm.reconstruct
     else:
-        wD, wU = zeroth, zeroth
+        reconstruct = pcm.reconstruct
 
-    # Re-align the interfaces so that cell wall is in between interfaces
-    prim_plus, prim_minus = fv.slice_(fv.add_boundary(wD, sim_variables, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wU, sim_variables, axis=axis), axis, end=-1)
+    transverse_interfaces = []  # should have 4 interfaces per ortho_axis; 2 transverse interfaces for each longitudinal reconstruction
+    with concurrent.futures.ThreadPoolExecutor() as inner_executor:
+        jobs = inner_executor.map(reconstruct, interfaces, repeat(sim_variables), repeat(ortho_axis))
 
-    # Remove the 'leftmost' interface since only the upwind corners/lines are needed
-    prim_plus, prim_minus = fv.slice_(prim_plus, axis=axis, start=1), fv.slice_(prim_minus, axis=axis, start=1)
+        for [wD, wU] in jobs:
+            # Re-align the interfaces so that cell wall is in between interfaces
+            prim_plus, prim_minus = fv.slice_(fv.add_boundary(wD, sim_variables, axis=ortho_axis), ortho_axis, start=1), fv.slice_(fv.add_boundary(wU, sim_variables, axis=ortho_axis), ortho_axis, end=-1)
 
-    return prim_plus, prim_minus
+            # Remove the 'leftmost' interface since only the upwind corners/lines are needed
+            prim_plus, prim_minus = fv.slice_(prim_plus, axis=ortho_axis, start=1), fv.slice_(prim_minus, axis=ortho_axis, start=1)
+
+            transverse_interfaces.append([prim_plus, prim_minus])
+
+    return transverse_interfaces
+
+
+
+
+
+# CONDITIONALS ARE HANDLING EVERYTHING! SO DON'T NEEDA WORRY ABOUT DIMENSION = 1
+# Dimension = 1, axes = [0]
+# axis = 0 => ortho_axes = [] => results = {}
+# axis = 1 => won't compute
+# axis = 2 => won't compute
+# So this seems possible; the reconstruct_transverse will not reconstruct anything
+#
+# Dimension = 2, axes = [0,1]
+# axis = 0 => ortho_axes = [1] => results = {1:[[w_y++,w_y+-] , [w_y-+,w_y--]]}
+# axis = 1 => ortho_axes = [0] => results = {0:[[w_x++,w_x+-] , [w_x-+,w_x--]]}
+# axis = 2 => won't compute
+# Seems possible too; the emf will try and compute for all axes, which will only succeed for z-axis bc only x- & y-axis info are available
+#
+# Dimension = 3, axes = [0,1,2]
+# axis = 0 => ortho_axes = [1,2] => results = {1:[[w_y++,w_y+-] , [w_y-+,w_y--]] , 2:[[w_z++,w_z+-] , [w_z-+,w_z--]]}
+# axis = 1 => ortho_axes = [0,2] => results = {0:[[w_x++,w_x+-] , [w_x-+,w_x--]] , 2:[[w_z++,w_z+-] , [w_z-+,w_z--]]}
+# axis = 2 => ortho_axes = [0,1] => results = {0:[[w_x++,w_x+-] , [w_x-+,w_x--]] , 1:[[w_y++,w_y+-] , [w_y-+,w_y--]]}
+# Seems possible; the emf will still try and compute for all axes, but now all axes will succeed. I think?
+
+
 
 
 # Compute the corner/line electric fields wrt to corner/line for each axis [Mignone & Del Zanna, 2020]

@@ -13,10 +13,11 @@ def reconstruct(grid, sim_variables, axis):
 
 
 def run(grid, sim_variables, axis):
-    multidimensional, magnetic, ds = sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds
-    convert, data = sim_variables.convert, {}
+    convert, multidimensional, axes, magnetic, ds = sim_variables.convert, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
+    data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
+    ortho_axes = axes[axes != axis] if (magnetic or multidimensional) else None
 
     # Pad array with boundaries
     padded_primitive = fv.add_boundary(grid, sim_variables, axis=axis)
@@ -30,19 +31,16 @@ def run(grid, sim_variables, axis):
     characteristics = np.linalg.eigvals(jacobian)
     data['eigmax'] = ds[axis]/fv.compute_eigmax(characteristics, axis=axis)
 
+    prim_interfaces = [fv.slice_(padded_primitive, axis, start=1), fv.slice_(padded_primitive, axis, end=-1)]
+
     # Magnetic transverse interfaces reconstructed along orthogonal axis/axes (interface = centre for PCM)
     if magnetic and multidimensional:
-        data['ortho_interfaces'] = ct.reconstruct_transverse(grid, sim_variables, axis=axis)
-
-        # alphas refers to the maximum(+)/minimum(-) eigenvalues respectively
-        local_max, local_min = np.max(characteristics, axis=-1), np.min(characteristics, axis=-1)
-        max_eigvals = np.maximum(fv.slice_(local_max, axis, end=-1), fv.slice_(local_max, axis, start=1))
-        min_eigvals = np.minimum(fv.slice_(local_min, axis, end=-1), fv.slice_(local_min, axis, start=1))
-        data['alphas'] = fv.slice_(np.maximum(0, max_eigvals), axis, start=1), fv.slice_(-np.minimum(0, min_eigvals), axis, start=1)
+        data['ortho_interfaces'] = ct.reconstruct_wrapper(prim_interfaces, sim_variables, ortho_axes)
+        data['alphas'] = ct.compute_alphas(characteristics, axis=axis)
 
     # Calculate the interface-averaged fluxes (pointwise & averaged values are the same for lower-order schemes)
     intf_fluxes_avgd = intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
-        'prim_interfaces': [fv.slice_(padded_primitive, axis, start=1), fv.slice_(padded_primitive, axis, end=-1)],
+        'prim_interfaces': prim_interfaces,
         'cons_interfaces': [fv.slice_(padded_conservative, axis, start=1), fv.slice_(padded_conservative, axis, end=-1)],
         'flux_interfaces': [fv.slice_(fluxes, axis, start=1), fv.slice_(fluxes, axis, end=-1)],
         'characteristics': characteristics,
