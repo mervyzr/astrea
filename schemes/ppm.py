@@ -153,7 +153,6 @@ def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
     return data
 
 
-
 # Calculate the coefficient of the slope flattener for the parabolic interpolants/extrapolants [Colella, 1990]
 def get_flattening_coeff(grid, sim_variables, axis, slope_determinants=[.33, .75, .85]):
     delta, z0, z1 = slope_determinants
@@ -185,7 +184,6 @@ def get_flattening_coeff(grid, sim_variables, axis, slope_determinants=[.33, .75
     chi[signage > 0] = np.minimum(chi_bar, fv.slice_(chi_bar_padded, axis, end=-2))[signage > 0]
 
     return chi
-
 
 
 # Implement artificial viscosity [McCorquodale & Colella, 2011]
