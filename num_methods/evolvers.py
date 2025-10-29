@@ -16,22 +16,11 @@ from functions.generic import verbose_timer
 @verbose_timer
 def evolve_space(grid, sim_variables, first_stage=False):
     multidimensional, subgrid_category, axes, magnetic = sim_variables.multidimensional, sim_variables.subgrid_category, sim_variables.axes, sim_variables.magnetic
-    pressure = sim_variables.pressure
 
     # Convert to primitive variables
     centred_grid = fv.inverse_reconstruct(grid, sim_variables) if magnetic else grid
     primitive = sim_variables.convert("conservative", centred_grid, sim_variables)
     primitive[...,5+axes] = grid[...,5+axes]
-
-
-    # Compute additional dissipation for PPM, if active
-    if subgrid_category == "ppm":
-        dissipate = sim_variables.ppm_dissipate
-        if dissipate:
-            eta = np.ones_like(grid[...,pressure])
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                jobs = executor.map(ppm.get_flattening_coeff, repeat(primitive), repeat(sim_variables), axes)
-                eta = np.minimum(eta, np.min([job for job in jobs], axis=0))
 
 
     # Hydrodynamics computation (with fluxes and eigmax)
@@ -43,7 +32,12 @@ def evolve_space(grid, sim_variables, first_stage=False):
             jobs = executor.map(weno.run, repeat(primitive), repeat(sim_variables), axes)
 
         elif subgrid_category == "ppm":
-            if dissipate:
+            # Compute additional dissipation for PPM, if active
+            if sim_variables.ppm_dissipate:
+                eta = np.ones_like(grid[...,sim_variables.pressure])
+                flattening_coeffs = executor.map(ppm.get_flattening_coeff, repeat(primitive), repeat(sim_variables), axes)
+                eta = np.minimum(eta, np.min([coeff for coeff in flattening_coeffs], axis=0))
+
                 jobs = executor.map(ppm.run, repeat(primitive), repeat(sim_variables), axes, repeat(eta))
             else:
                 jobs = executor.map(ppm.run, repeat(primitive), repeat(sim_variables), axes)

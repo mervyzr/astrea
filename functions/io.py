@@ -234,7 +234,11 @@ class SimulationVariables(object):
         if self.subgrid_category in ["cweno", "weno", "ppm"]:
             self.convert = fv.high_order_convert
             self.higher_order = True
-            self.ppm_dissipate = False
+
+            # PPM-specific options
+            if self.subgrid_category == "ppm":
+                self.ppm_author = "MC:2011"  # [McCorquodale & Colella, 2011 (MC:2011); Colella et al., 2011 (C+:2011); Peterson & Hammett, 2008 (PH:2008)]
+                self.ppm_dissipate = False
 
         # Permutations for axes
         self.multidimensional = self.dimension >= 2

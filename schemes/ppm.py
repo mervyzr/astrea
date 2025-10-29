@@ -7,8 +7,7 @@ from functions import constructor, fv
 from num_methods import ct, limiters, solvers
 
 ##############################################################################
-# Piecewise parabolic reconstruction method (PPM) [Colella & Woodward, 1984]
-# [McCorquodale & Colella, 2011 (MC:2011); Colella et al., 2011 (C+:2011); Peterson & Hammett, 2008 (PH:2008)]
+# Piecewise parabolic reconstruction method (PPM) [Colella & Woodward, 1984; McCorquodale & Colella, 2011; Felker & Stone, 2018]
 ##############################################################################
 
 def reconstruct(grid, sim_variables, axis, eta=None):
@@ -75,9 +74,9 @@ def reconstruct(grid, sim_variables, axis, eta=None):
     return wL, wR
 
 
-def run(grid, sim_variables, axis, eta=None, author="MC:2011"):
+def run(grid, sim_variables, axis, eta=None):
     convert, multidimensional, axes, magnetic, ds, dissipate = sim_variables.convert, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds, sim_variables.ppm_dissipate
-    sim_variables.ppm_author, data = author.lower(), {}
+    data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
     ortho_axes = axes[axes != axis] if (magnetic or multidimensional) else None
