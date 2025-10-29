@@ -16,7 +16,7 @@ numerical_parameters:
   precision     : float64
   # Subgrid models for hydro and mag. components : PCM, PLM, PPM, CWENO, WENO-3/5/7
   subgrid       : PCM
-  # Iteration methods : Euler, RK4, SSPRK(2,2), SSPRK(3,3), SSPRK(4,3), SSPRK(5,3), SSPRK(5,4), SSPRK(10,4)
+  # Iteration methods : EULER, RK4, SSPRK(2,2), SSPRK(3,3), SSPRK(4,3), SSPRK(5,3), SSPRK(5,4), SSPRK(10,4)
   time_evo      : EULER
   # Update schemes : Lax-Friedrich (LF), Lax-Wendroff (LW), GFORCE (G), HLLC (C), HLLD (D), Osher-Solomon (OS)
   solver        : LF
