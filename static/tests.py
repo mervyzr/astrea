@@ -143,11 +143,11 @@ def generate_test_conditions(config, cells, gamma):
     elif "orszag" in config or "tang" in config or config == "ot":
         axis_coord = [0,1]
         shock_pos = 0
-        t_end = 1
+        t_end = .8
         boundary = "wrap"
-        initial_left = np.array([25/(36*np.pi),0,0,0,5/(12*np.pi),0,.1,0])
-        initial_right = np.array([25/(36*np.pi),0,0,0,5/(12*np.pi),0,.1,0])
-        misc = {'ampl':1/np.sqrt(4*np.pi)}
+        initial_left = np.array([1,0,0,0,1/gamma,0,.1,0])
+        initial_right = np.array([1,0,0,0,1/gamma,0,.1,0])
+        misc = {'ampl':1/gamma}
 
     # [Balsara & Spicer, 1999]
     elif "rotor" in config:

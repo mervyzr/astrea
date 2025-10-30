@@ -51,10 +51,9 @@ def initialise(sim_variables):
                 computational_grid[...,rho] = mask
 
             elif config in ["orszag-tang", "orszag", "tang", "ot"]:
-                computational_grid[...,vx] = -(1 + np.sin(2*np.pi*z)) * np.sin(2*np.pi*y)
-                computational_grid[...,vy] = (1 + np.sin(2*np.pi*z)) * np.sin(2*np.pi*x)
-                computational_grid[...,vz] = np.sin(2*np.pi*z)
-                computational_grid[...,Bx] = -params['ampl'] * np.sin(2*np.pi*y)
+                computational_grid[...,vx] = -np.sin(2*np.pi*y)
+                computational_grid[...,vy] = np.sin(2*np.pi*x)
+                computational_grid[...,Bx] = params['ampl'] * -np.sin(2*np.pi*y)
                 computational_grid[...,By] = params['ampl'] * np.sin(4*np.pi*x)
 
         else:
