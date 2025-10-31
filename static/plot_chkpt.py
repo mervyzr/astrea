@@ -12,7 +12,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 # Functions for plotting checkpoint files
 # Usage:
 # ```bash
-# ~$ python3 /path/to/astrea/static/plot_chkpt.py
+# ~$ python3 plot_chkpt.py --file=/path/to/checkpoint_file
 # ```
 ##############################################################################
 
