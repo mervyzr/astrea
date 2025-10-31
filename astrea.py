@@ -231,7 +231,6 @@ def run(seed, save_dir) -> None:
                     grp.attrs['cells'] = sim_variables.cells
                     grp.attrs['cfl'] = sim_variables.cfl
                     grp.attrs['gamma'] = sim_variables.gamma
-                    grp.attrs['permeability'] = sim_variables.permeability
                     grp.attrs['dimension'] = sim_variables.dimension
                     grp.attrs['precision'] = sim_variables.precision
                     grp.attrs['subgrid'] = sim_variables.subgrid

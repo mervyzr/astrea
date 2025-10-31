@@ -23,6 +23,7 @@
   - [Spatial discretisation](#spatial-discretisation)
   - [Riemann solver](#riemann-solver-and-flux-update)
   - [Time discretisation](#time-discretisation)
+  - [Constrained transport](#constrained-transport)
   - [Chemical network](#chemical-network)
   - [Simulation benchmarks](#simulation-benchmarks)
 - [Installation](#installation)
@@ -39,7 +40,7 @@
 
 ### Code
 
-The simulation employs a higher-order finite volume subgrid model (Eulerian) with a fixed and uniform Cartesian grid with periodic or outlet boundary conditions. The solution in the grid is updated in parallel. The simulation also allows for magnetic fields with the magnetic permeability set to one for simplicity.
+The simulation employs a higher-order finite volume subgrid model (Eulerian) with a fixed and uniform Cartesian grid with periodic or outlet boundary conditions. The solution in the grid is updated in parallel.
 
 The code is written entirely in Python 3, and uses the `numpy` and `h5py` modules extensively for calculations and data handling respectively. The last _stable^_ Python version supported is _**Python 3.13**_.
 
@@ -92,6 +93,17 @@ Higher-order temporal discretisation methods can be employed to match the higher
 In the following, the (explicit) SSPRK methods are denoted as SSPRK (_i_,_j_), where _i_ and _j_ refers to _i_-stage and the _j_-th order iterative method respectively. Several SSPRK variants are included for this simulation, with the SSPRK (2,2) (Gottlieb et al., 2009), SSPRK (3,3) (Shu & Osher, 1988; Gottlieb et al., 2009), SSPRK(4,3), SSPRK (5,3) (Spiteri & Ruuth, 2002; Gottlieb et al., 2009), SSPRK (5,4) (Kraaijevanger, 1991; Ruuth & Spiteri, 2002), and low-storage (Williamson, 1980) SSPRK(10,4) (Ketcheson, 2008) methods. The ''classic'' RK4 or the Forward Euler method can also be used.
 
 For a _j_-order reconstruction scheme, _j_ > 4, the Dormand-Prince 8(7) (Dormand & Prince, 1981) method can be considered. However, this method is not a SSP variant as no methods with order _j_ > 4 with positive SSP coefficients can exist (Kraaijevanger, 1991; Ruuth & Spiteri, 2002), and therefore might not be suitable for solutions with discontinuities.
+
+
+<a name="constrained-transport"></a>
+
+### Constrained transport
+
+With the presence of magnetic fields, it is crucial for the divergence-free condition to be maintained; no monopoles should be created in the simulation. A fourth equation, in addition to the other conservation equations for ideal hydrodynamics, is included into the model. This fourth equation is the induction equation, which governs the fluxes of the magnetic fields. For ideal MHD, the electromotive forces are equivalent to the cross product between the velocities and magnetic fields. The magnetic permeability is also set to one for simplicity.
+
+In order to compute the magnetic fluxes and maintain the divergence-free condition, the constrained transport (CT) approach is commonly used (Evans & Hawley, 1988). Other methods include divergence cleaning (e.g., Dedner et al., 2002) and Powell's eight-wave formulation (Powell, 1994). The main benefit of the CT approach is that the numerical errors can be kept to machine precision, however, the complexity of the implementation is much higher; one has to keep in mind the use of staggered grids, especially when adaptive meshes or unstructured grids are used. It might be possible to avoid staggered grids altogether too (Helzel et al., 2011), but this is not included in this code.
+
+In this code, the higher-order CT implementation by Felker & Stone (2018) is implemented. This implementation follows closely to the works of Verma et al. (2018) and Mignone & Del Zanna (2021).
 
 
 <a name="chemical-network"></a>
@@ -259,8 +271,10 @@ astrea.run(*globals)
 1. Butcher, J. C. (1975). A stability property of implicit Runge-Kutta methods. BIT, 15(4), 358–361.
 1. Cargo, P., & Gallice, G. (1997). Roe Matrices for Ideal MHD and Systematic Construction of Roe Matrices for Systems of Conservation Laws. Journal of Computational Physics, 136(2), 446–466.
 1. Colella, P., Dorr, M. R., Hittinger, J. A. F., & Martin, D. F. (2011). High-order, finite-volume methods in mapped coordinates. Journal of Computational Physics, 230(8), 2952–2976.
+1. Dedner, A., Kemm, F., Kröner, F., Munz, C.-D., Schnitzer, T., & Wesenberg, M. (2002). Hyperbolic Divergence Cleaning for the MHD Equations. Journal of Computational Physics, 175(2), 645-673.
 1. Derigs, D., Gassner, G. J., Walch, S., & Winters, A. R. (2017). Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics (arXiv:1708.03537). arXiv.
 1. Dumbser, M., & Toro, E. F. (2011). A Simple Extension of the Osher Riemann Solver to Non-conservative Hyperbolic Systems. Journal of Scientific Computing, 48(1–3), 70–88.
+1. Evans, C. R., & Hawley, J. F. (1988). Simulation of Magnetohydrodynamic Flows: A Constrained Transport Model. The Astrophysical Journal, 332, 659.
 1. Felker, K. G., & Stone, J. (2018). A fourth-order accurate finite volume method for ideal MHD via upwind constrained transport. Journal of Computational Physics, 375, 1365–1400.
 1. Fleischmann, N., Adami, S., & Adams, N. A. (2020). A shock-stable modification of the HLLC Riemann solver with reduced numerical dissipation. Journal of Computational Physics, 423, 109762.
 1. Fromm, J. E. (1968). A method for reducing dispersion in convective difference schemes. Journal of Computational Physics, 3, 176.
@@ -269,6 +283,7 @@ astrea.run(*globals)
 1. Gottlieb, S., Ketcheson, D. I., & Shu, C.-W. (2009). High Order Strong Stability Preserving Time Discretizations. Journal of Scientific Computing, 38(3), 251–289.
 1. Grosheintz-Laval, L., & Käppeli, R. (2019). High-order well-balanced finite volume schemes for the Euler equations with gravitation. Journal of Computational Physics, 378, 324-343.
 1. Harten, A. (1983). High Resolution Schemes for Hyperbolic Conservation Laws. Journal of Computational Physics, 49(3), 357–393.
+1. Helzel, C., Rossmanith, J. A., & Taetz, B. (2011). An unstaggered constrained transport method for the 3D ideal magnetohydrodynamic equations. Journal of Computational Physics, 230(10), 3803-3829.
 1. Ketcheson, D. I. (2008). Highly Efficient Strong Stability-Preserving Runge–Kutta Methods with Low-Storage Implementations. SIAM Journal on Scientific Computing, 30(4), 2113–2136.
 1. Kraaijevanger, J. F. B. M. (1991). Contractivity of Runge-Kutta methods. BIT, 31(3), 482–528.
 1. Lax, P. D., & Wendroff, B. (1960). Systems of conservation laws. Commun. Pure Appl. Math. 13 (2), 217–237.
@@ -277,10 +292,12 @@ astrea.run(*globals)
 1. Levy, D., Puppo, G., & Russo, G. (1999). Central WENO Schemes for Hyperbolic Systems of Conservation Laws. Mathematical Modelling and Numerical Analysis, 33(3), 547-571.
 1. Levy, D., Puppo, G., & Russo, G. (2000). Compact Central WENO Schemes for Multidimensional Conservation Laws. SIAM Journal on Scientific Computing, 22(2), 656-672.
 1. McCorquodale, P., & Colella, P. (2011). A high-order finite-volume method for conservation laws on locally refined grids. Communications in Applied Mathematics and Computational Science, 6(1), 1–25.
+1. Mignone, A. & Del Zanna, L. (2021). Systematic construction of upwind constrained transport schemes for MHD. Journal of Computational Physics, 424, 109748.
 1. Miyoshi, T., & Kusano, K. (2005). A multi-state HLL approximate Riemann solver for ideal magnetohydrodynamics. Journal of Computational Physics, 208(1), 315–344.
 1. Noh, W. F. (1987). Errors for calculations of strong shocks using an artificial viscosity and an artificial heat flux. Journal of Computational Physics, 72(1), 78-120.
 1. Orszag, S. A., & Tang, C.-M. (1979). Small-scale structure of two-dimensional magnetohydrodynamic turbulence. Journal of Fluid Mechanics, 90, 129-143.
 1. Pfrommer, C., Springel, V., Ensslin, T. A., & Jubelgas, M. (2006). Detecting shock waves in cosmological smoothed particle hydrodynamics simulations. Monthly Notices of the Royal Astronomical Society, 367(1), 113–131.
+1. Powell, K. G. (1994). An approximate Riemann solver for magnetohydrodynamics (that works in more than one dimension). NASA Technical Reports, NAS 1.26:194902.
 1. Prince, P. J., & Dormand, J. R. (1981). High order embedded Runge-Kutta formulae. Journal of Computational and Applied Mathematics, 7(1), 67–75.
 1. Roe, P., & Pike, J. (1984). Efficient Conservation and Utilisation of Approximate Riemann Solution. Computing Methods in Applied Science and Engineering, 6, pp. 499-558.
 1. Ryu, D., & Jones, T. W. (1995). Numerical magetohydrodynamics in astrophysics: Algorithm and tests for one-dimensional flow. The Astrophysical Journal, 442, 228.
@@ -293,5 +310,6 @@ astrea.run(*globals)
 1. Spiteri, R. J., & Ruuth, S. J. (2002). A New Class of Optimal High-Order Strong-Stability-Preserving Time Discretization Methods. SIAM Journal on Numerical Analysis, 40(2), 469–491.
 1. Toro, E. F., Spruce, M., & Speares, W. (1994). Restoration of the Contact Surface in the HLL Riemann Solver. Shock Waves, 4, 25-34.
 1. Toro, E. F., & Titarev, V. A. (2006). MUSTA fluxes for systems of conservation laws. Journal of Computational Physics, 216(2), 403–429.
+1. Verma, P. S., Jean-Mathieu, T., & Müller, W.-C. (2018). Fourth-order accurate finite-volume CWENO scheme for astrophysical MHD problems. Monthly Notices of the Royal Astronomical Society, 482(1), 416-437.
 1. Williamson, J. H. (1980). Low-storage Runge-Kutta schemes. Journal of Computational Physics, 35(1), 48–56.
 1. Yee, H-C., Sandham, N., & Djomehri, M., (1999). Low dissipative high order shock-capturing methods using characteristic-based filters. Journal of Computational Physics, 150(1), 199-238.
