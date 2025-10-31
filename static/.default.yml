@@ -8,7 +8,6 @@ physics_parameters:
   cells         : 128
   cfl           : .5
   gamma         : 1.4
-  permeability  : 1.
   dimension     : 1
 
 numerical_parameters:

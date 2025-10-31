@@ -10,7 +10,7 @@ from tinydb import TinyDB, Query
 from external import krome_funcs
 from functions import fv, generic
 from functions.generic import BColours
-from static import tests
+from static import tests, constants
 
 ##############################################################################
 # I/O functions for simulation
@@ -53,7 +53,6 @@ def handle_CLI(db_path):
     parser.add_argument('--grid', '--cells', dest='cells', metavar='', default=argparse.SUPPRESS, help='number of cells in the grid')
     parser.add_argument('--cfl', metavar='', type=float, default=argparse.SUPPRESS, help='Courant number in the Courant-Friedrichs-Lewy stability condition')
     parser.add_argument('--gamma', metavar='', type=float, default=argparse.SUPPRESS, help='adiabatic index')
-    parser.add_argument('--permeability', metavar='', type=float, default=argparse.SUPPRESS, help='magnetic permeability')
     parser.add_argument('--dimension', '--dim', dest='dimension', type=int, metavar='', default=argparse.SUPPRESS, help='dimensionality of the simulation', choices=db.get(params.type == 'dimension')['accepted'])
 
     parser.add_argument('--subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='subgrid model used for reconstruction within grid cells', choices=accepted_values('subgrid'))
@@ -71,6 +70,8 @@ def handle_CLI(db_path):
     parser.add_argument('--plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot')
 
     parser.add_argument('--file', dest='chkpt_file', metavar='', type=str.lower, default='', help='(absolute) path to astrea checkpoint file')
+    parser.add_argument('--gravity', help='switch on self-gravity in the simulation', action='store_true')
+
     parser.add_argument('--chemistry', help='switch on chemical network in simulation', action='store_true')
     parser.add_argument('--network', metavar='', type=str.lower, default='', help='(absolute) path to chemical network file')
     parser.add_argument('--abundances', metavar='', type=str.lower, default='', help='(absolute) path to (.yml) file for initial abundances of chemical species')
@@ -83,7 +84,10 @@ def handle_CLI(db_path):
 def parse_cli_variables(config_variables, arguments):
     db, params = TinyDB(config_variables['db_path']), Query()
 
-    skip_cases = ['hdf5', 'home', 'db_path', 'plot_style', 'verbose', 'quiet', 'write_chkpt', 'test', 'chkpt_file', 'chemistry', 'network', 'abundances']
+    skip_cases = [
+        'hdf5', 'home', 'db_path', 'plot_style', 'verbose', 'quiet', 
+        'write_chkpt', 'test', 'chkpt_file', 'gravity', 'chemistry', 'network', 'abundances'
+    ]
 
     # Replace the relevant configuration variables with the additional arguments
     config_variables.update(arguments)
@@ -139,9 +143,6 @@ def parse_cli_variables(config_variables, arguments):
                     v = np.finfo(config_variables['precision']).eps
                 elif v > 1:
                     v = 1
-            if k == "permeability":
-                if v < 1:
-                    v = 1.
         elif k == "plot_options":
             accepted_plot_options, valid, invalid = db.get(params.type == k)['accepted'], [], []
             try:
@@ -186,9 +187,10 @@ class SimulationVariables(object):
     __slots__ = [
         '__dict__',
         'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'energy', 'vels', 'Bfields', 'momentums',
-        'config', 'cells', 'cfl', 'gamma', 'permeability', 'dimension', 'precision', 'subgrid', 'time_evo', 'solver',
+        'config', 'cells', 'cfl', 'gamma', 'dimension', 'precision', 'subgrid', 'time_evo', 'solver',
         'axis_coord', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'ds',
         'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
+        'permeability', 'grav_constant', 'gravity',
         'axes', 'magnetic', 'convert', 'roots', 'weights', 'ppm_dissipate', 'higher_order', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'home', 'save_path', 'db_path', 'timesteps', 'print_status',
         'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test',
@@ -217,6 +219,10 @@ class SimulationVariables(object):
         self.elapsed = None
         self.access_key = None
         self.timesteps = 0
+
+        # Physics parameters
+        self.permeability = 1.
+        self.grav_constant = 1.
 
         # 5th-order Gauss-Legendre quadrature with interval [0,1] for OS solver
         roots, weights = np.array(list(np.polynomial.legendre.leggauss(5)))/2
