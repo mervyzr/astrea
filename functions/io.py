@@ -222,7 +222,7 @@ class SimulationVariables(object):
 
         # Physics parameters
         self.permeability = 1.
-        self.grav_constant = 1.
+        self.grav_constant = 4 * np.pi * 1.  # G = 1
 
         # 5th-order Gauss-Legendre quadrature with interval [0,1] for OS solver
         roots, weights = np.array(list(np.polynomial.legendre.leggauss(5)))/2
