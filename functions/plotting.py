@@ -551,7 +551,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
 
 
 # Plot solution errors to determine order of convergence of numerical scheme
-def plot_solution_errors(hdf5, sim_variables, error_norm, title=False):
+def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
     show_eoc_max = False
 
     options = ["density"]
@@ -1003,3 +1003,110 @@ def gradient_plot(data, plot_index, ax, **kwargs):
     im.set_clip_path(clip_path)
 
     pass
+
+
+# Plot the power spectrum for turbulence
+def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None):
+    cells, dimension, axis_coord, ds = sim_variables.cells, sim_variables.dimension, sim_variables.axis_coord, sim_variables.ds
+
+    # hdf5 keys are datetime strings
+    datetimes = [datetime for datetime in hdf5.keys()]
+    datetimes.sort()
+
+    mpl.rcParams['text.usetex'] = True
+    fig, ax = plt.subplots()
+    plt.rcParams['text.latex.preamble'] = r"\usepackage{lmodern}"
+    params = {
+        'font.size': 12,
+        'font.family': 'DejaVuSans',
+        'axes.labelsize': 12,
+        'axes.titlesize': 12,
+        'legend.fontsize': 12,
+        'xtick.labelsize': 12,
+        'ytick.labelsize': 12,
+
+        'figure.dpi': 300,
+        'savefig.dpi': 300,
+
+        'lines.linewidth': 1.0,
+        'lines.dashed_pattern': [3, 2]
+    }
+    plt.rcParams.update(params)
+    ax.grid(linestyle="--", linewidth=0.5)
+
+    ax.set_xlabel(r"$k$")
+    ax.set_ylabel(r"$P_\mathrm{kin}(k)$")
+
+    for datetime in datetimes:
+        simulation = hdf5[datetime]
+
+        if not t:
+            t = list(simulation.keys())[-1]
+        grid = simulation[str(t)][:]
+
+        density = grid[...,sim_variables.rho]
+        vels = grid[...,sim_variables.vels]
+
+        # Kinetic energy in real space
+        E_kin = .5 * density * fv.norm(vels)**2
+
+        fft_field = np.fft.fft2(E_kin)  # Fourier transform the energy field
+        fft_field = np.fft.fftshift(fft_field)  # Shift zero frequency to the center
+        power = np.abs(fft_field)**2  # Compute power spectrum (P(k_x, k_y, k_z))
+
+        if normalise:
+            power /= np.prod(cells)
+
+        # Compute the wavenumber components
+        ks, power_law = {}, -5/3
+        for axis in range(dimension):
+            ks[axis] = 2 * np.pi * np.fft.fftfreq(cells[axis], d=ds[axis])
+        if len(ks) == 1:
+            kx = ks[0]
+            k = np.fft.fftshift(kx)
+            C_k = .5
+        elif len(ks) == 2:
+            kx, ky = list(map(ks.get, range(2)))
+            KX, KY = np.meshgrid(np.fft.fftshift(kx), np.fft.fftshift(ky), indexing='ij')
+            k = np.sqrt(KX**2 + KY**2)
+            C_k = .8
+        elif len(ks) == 3:
+            kx, ky, kz = list(map(ks.get, range(3)))
+            KX, KY, KZ = np.meshgrid(np.fft.fftshift(kx), np.fft.fftshift(ky), np.fft.fftshift(kz), indexing='ij')
+            k = np.sqrt(KX**2 + KY**2 + KZ**2)
+            C_k = 1.5
+
+        # Bin the energy spectrum
+        # Define bins
+        k_bins = np.linspace(0, k.max(), np.mean(cells)//bins)
+        k_bin_centers = 0.5 * (k_bins[:-1] + k_bins[1:])
+        power_spectrum = np.zeros_like(k_bin_centers)
+
+        for i in range(len(k_bins) - 1):
+            bin_mask = (k >= k_bins[i]) & (k < k_bins[i + 1])
+            power_spectrum[i] = power[bin_mask].sum()  # Sum power in each bin
+
+        # Normalize the power spectrum by area and wavenumber bin width
+        if normalise:
+            bin_widths = np.diff(k_bins)
+            power_spectrum /= bin_widths * np.diff(axis_coord)**dimension
+
+        # Compute the theoretical values (with fitting based on a sliced window of the power spectrum, not the whole spectrum)
+        m, c = np.polyfit(np.log10(k_bin_centers[3:10]), np.log10(power_spectrum[3:10]), 1)
+        E_theo = (k_bin_centers**power_law) * (10**C_k)
+        log_offset = power_spectrum[0] - E_theo[0]
+
+        # Plot the energy spectrum
+        ax.loglog(k_bin_centers, power_spectrum, label=f'$t={t}, m = {round(m,3)}$')
+
+    # Plot the theoretical line
+    ax.loglog(k_bin_centers[1:22], (E_theo*log_offset)[1:22], color='black', linestyle='--', label=rf'$k^{{{power_law}}}$')
+    ax.legend()
+
+    plt.tight_layout()
+
+    plt.savefig(f'{sim_variables.save_path}/e_spectrum_{t}.png', bbox_inches='tight')
+
+    plt.cla()
+    plt.clf()
+    plt.close()

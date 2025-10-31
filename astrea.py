@@ -264,6 +264,7 @@ def run(seed, save_dir) -> None:
                 else:
                     plotting.plot_total_variation(f, sim_variables)
                     plotting.plot_conservation_equations(f, sim_variables)
+                    plotting.plot_turbulence_spectrum(f, sim_variables, bins=8, normalise=False)
 
         if sim_variables.save_video:
             with h5py.File(file_name, "r") as f:
