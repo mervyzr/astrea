@@ -29,7 +29,6 @@ def run(grid, sim_variables, axis):
     data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
-    ortho_axes = axes[axes != axis] if (magnetic or multidimensional) else None
 
     # Linear reconstruction [Derigs et al., 2017]
     wL, wR = reconstruct(grid, sim_variables, axis=axis)
@@ -40,12 +39,8 @@ def run(grid, sim_variables, axis):
         padded_grid = fv.add_boundary(grid, sim_variables, axis=axis)
         prim_plus[...,5+axes] = prim_minus[...,5+axes] = fv.slice_(padded_grid, axis, end=-1)[...,5+axes]
 
-        # Magnetic transverse interfaces reconstructed along orthogonal axis/axes
-        if multidimensional:
-            data['ortho_interfaces'] = ct.reconstruct_wrapper([prim_plus, prim_minus], sim_variables, ortho_axes)
-
     # Get the average solution between the interfaces at the boundaries
-    intf_avg = .5* (prim_plus + prim_minus)
+    intf_avg = .5 * (prim_plus + prim_minus)
     padded_intf_avg = fv.add_boundary(fv.slice_(intf_avg, axis, start=1), sim_variables, axis=axis)
 
     # Convert the primitive interface variables
@@ -58,8 +53,11 @@ def run(grid, sim_variables, axis):
     # Compute eigmax for time stepping limits
     characteristics = np.linalg.eigvals(jacobian)
     data['eigmax'] = ds[axis]/fv.compute_eigmax(characteristics, axis=axis)
-    if magnetic:
+
+    # Compute alphas and save reconstructed (averaged) interfaces for CT computation
+    if magnetic and multidimensional:
         data['alphas'] = ct.compute_alphas(characteristics, axis=axis)
+        data['avgd_interfaces'] = fv.slice_(intf_avg, axis, start=1)
 
     # Calculate the interface-averaged fluxes (pointwise & averaged values are the same for lower-order schemes)
     intf_fluxes_avgd = intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{

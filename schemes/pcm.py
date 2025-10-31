@@ -17,7 +17,6 @@ def run(grid, sim_variables, axis):
     data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
-    ortho_axes = axes[axes != axis] if (magnetic or multidimensional) else None
 
     # Pad array with boundaries
     padded_primitive = fv.add_boundary(grid, sim_variables, axis=axis)
@@ -31,16 +30,14 @@ def run(grid, sim_variables, axis):
     characteristics = np.linalg.eigvals(jacobian)
     data['eigmax'] = ds[axis]/fv.compute_eigmax(characteristics, axis=axis)
 
-    prim_interfaces = [fv.slice_(padded_primitive, axis, start=1), fv.slice_(padded_primitive, axis, end=-1)]
-
-    # Magnetic transverse interfaces reconstructed along orthogonal axis/axes (interface = centre for PCM)
+    # Compute alphas and save reconstructed (averaged) interfaces for CT computation (interface = centre for PCM)
     if magnetic and multidimensional:
-        data['ortho_interfaces'] = ct.reconstruct_wrapper(prim_interfaces, sim_variables, ortho_axes)
         data['alphas'] = ct.compute_alphas(characteristics, axis=axis)
+        data['avgd_interfaces'] = np.copy(grid)
 
     # Calculate the interface-averaged fluxes (pointwise & averaged values are the same for lower-order schemes)
     intf_fluxes_avgd = intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
-        'prim_interfaces': prim_interfaces,
+        'prim_interfaces': [fv.slice_(padded_primitive, axis, start=1), fv.slice_(padded_primitive, axis, end=-1)],
         'cons_interfaces': [fv.slice_(padded_conservative, axis, start=1), fv.slice_(padded_conservative, axis, end=-1)],
         'flux_interfaces': [fv.slice_(fluxes, axis, start=1), fv.slice_(fluxes, axis, end=-1)],
         'characteristics': characteristics,

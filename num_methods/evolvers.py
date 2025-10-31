@@ -62,16 +62,22 @@ def evolve_space(grid, sim_variables, first_stage=False):
 
     # Magnetohydrodynamics computation
     if magnetic and multidimensional:
-        # The proper assignment of the corners is important for directional updates, so the dict keys are used for this assignment
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            emf_jobs = executor.map(ct.compute_emf, repeat(data), range(3))
+            alphas = {axis:data[axis]['alphas'] for axis in axes}
+
+            # Magnetic transverse interfaces reconstructed along orthogonal axis/axes; use the averaged (+) & (-) values
+            ortho_jobs = executor.map(ct.reconstruct_transverse, repeat(data), repeat(sim_variables), range(3))
+            ortho_interfaces = {axis:ortho_interfaces for axis, ortho_interfaces in enumerate(ortho_jobs)}
+
+            # The proper assignment of the corners is important for directional updates, so the dict keys are used for this assignment
+            emf_jobs = executor.map(ct.compute_emf, repeat(ortho_interfaces), repeat(alphas), range(3))
             emfs = np.asarray([emf for emf in emf_jobs])
 
             # Update fluxes with CT implementation; lists ordered according to axes
             emf_flux_jobs = executor.map(ct.compute_ct_flux, fluxes, repeat(emfs), repeat(sim_variables), range(3))
             fluxes = [emf_flux for emf_flux in emf_flux_jobs]
 
-    # Calculate the total fluxes through all upwind surfaces [F(i+1/2,j) - F(i-1/2,j)]/dx, [G(i,j+1/2) - G(i,j-1/2)]/dy
+    # Calculate the total fluxes through all upwind surfaces [F(i+1/2,j,k) - F(i-1/2,j,k)]/dx, [G(i,j+1/2,k) - G(i,j-1/2,k)]/dy, [H(i,j,k+1/2) - H(i,j,k-1/2)]/dz
     total_flux = -np.sum(fluxes, axis=0)
 
     if first_stage:
