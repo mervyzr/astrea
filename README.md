@@ -145,15 +145,18 @@ Several (magneto)hydrodynamics tests are in place:
     - Ryu-Jones 2a shockwave (Ryu & Jones, 1995)
     - Brio-Wu shockwave (Brio & Wu, 1988)
   - Two-dimensional:
+    - Circular polarised Alfvén wave (Balsara & Spicer, 1999)
     - Orszag-Tang vortex (Orszag & Tang, 1998)
-    - Shock cloud (Dai & Woodward, 1998)
-    - Astrophysical jet (Wu & Shu, 2018)
+    - MHD vortex (Balsara, 2004)
     - MHD rotor (Balsara & Spicer, 1999)
     - MHD blast wave (Londrillo & Del Zanna, 2000)
     - MHD current sheet (Gardiner & Stone, 2005)
+    - Shock cloud (Dai & Woodward, 1998)
+    - Astrophysical jet (Wu & Shu, 2018)
   - Three-dimensional:
-    - Orszag-Tang vortex
-    - MHD blast wave
+    - Orszag-Tang vortex (Orszag & Tang, 1998)
+    - MHD vortex (Mignone et al., 2010)
+    - MHD blast wave (Londrillo & Del Zanna, 2000)
 
 Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussian wave test and the sine wave test are overplotted in the saved plots. The solution error norms are also calculated when the smooth advection wave tests are run (Gaussian & sine waves).
 

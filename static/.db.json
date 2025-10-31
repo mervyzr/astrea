@@ -24,7 +24,13 @@
         "sine wave",
         "sine-wave",
         "gaussian",
-        "gauss"
+        "gauss",
+        "cpaw",
+        "circular",
+        "polarised",
+        "alfven",
+        "circular polarised alfven",
+        "circular-polarised-alfven"
       ]
     },
     "3": {
@@ -183,6 +189,8 @@
         "orszag",
         "tang",
         "ot",
+        "mhd vortex",
+        "mhd-vortex",
         "mhd rotor",
         "mhd-rotor",
         "rotor",

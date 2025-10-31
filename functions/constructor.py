@@ -20,7 +20,7 @@ def initialise(sim_variables):
         return np.linspace(start_pos-half_cell, end_pos+half_cell, _cells+2)[1:-1]
 
     config, cells, gamma, dimension, multidimensional, precision = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimension, sim_variables.multidimensional, sim_variables.precision
-    rho, vx, vy, vz, pressure, Bx, By = sim_variables.rho, sim_variables.vx, sim_variables.vy, sim_variables.vz, sim_variables.pressure, sim_variables.Bx, sim_variables.By
+    rho, vx, vy, vz, pressure, Bx, By, Bz = sim_variables.rho, sim_variables.vx, sim_variables.vy, sim_variables.vz, sim_variables.pressure, sim_variables.Bx, sim_variables.By, sim_variables.Bz
     axis_coord, shock_pos, params = sim_variables.axis_coord, sim_variables.shock_pos, sim_variables.misc
     initial_left, initial_right = sim_variables.initial_left, sim_variables.initial_right
     axes = sim_variables.axes
@@ -55,6 +55,15 @@ def initialise(sim_variables):
                 computational_grid[...,vy] = np.sin(2*np.pi*x)
                 computational_grid[...,Bx] = params['ampl'] * -np.sin(2*np.pi*y)
                 computational_grid[...,By] = params['ampl'] * np.sin(4*np.pi*x)
+
+            elif "vortex" in config and config.startswith("mhd"):
+                r = np.sqrt((x-centre)**2 + (y-centre)**2 + (z-centre)**2)
+                factor = np.exp(params['q'] * (1 - r**2))
+                computational_grid[...,vx] = 1 - (y-centre)*params['kappa']*factor
+                computational_grid[...,vy] = 1 + (x-centre)*params['kappa']*factor
+                computational_grid[...,pressure] = 1 + (1/(4*params['q'])) * ((1 - 2*params['q']*(r**2 - (z-centre)**2)) * params['mu']**2 - params['kappa']**2) * factor**2
+                computational_grid[...,Bx] = -(y-centre)*params['mu']*factor
+                computational_grid[...,By] = (x-centre)*params['mu']*factor
 
         else:
             x, y = np.meshgrid(physical_grid_x, physical_grid_y, indexing='ij')
@@ -118,11 +127,27 @@ def initialise(sim_variables):
                 computational_grid[...,Bx] = -params['ampl'] * np.sin(2*np.pi*y)
                 computational_grid[...,By] = params['ampl'] * np.sin(4*np.pi*x)
 
+            elif "vortex" in config and config.startswith("mhd"):
+                r = np.sqrt((x-centre)**2 + (y-centre)**2)
+                computational_grid[...,vx] = 1 - (((y-centre)*params['kappa'])/(2*np.pi) * np.exp((1-r**2)/2))
+                computational_grid[...,vy] = 1 + (((x-centre)*params['kappa'])/(2*np.pi) * np.exp((1-r**2)/2))
+                computational_grid[...,pressure] = 1 + (((1-r**2)*params['kappa']**2 - params['mu']**2)/(8*np.pi**2) * np.exp(1-r**2))
+                computational_grid[...,Bx] = (-(y-centre)*params['mu'])/(2*np.pi) * np.exp((1-r**2)/2)
+                computational_grid[...,By] = ((x-centre)*params['mu'])/(2*np.pi) * np.exp((1-r**2)/2)
+
             elif "rotor" in config:
-                mask = np.where(((x-centre)**2 + (y-centre)**2) <= (shock_pos-centre)**2)
-                computational_grid[mask] = initial_left
-                computational_grid[...,vx][mask] = (-params['omega']*(y-centre)/shock_pos)[mask]
-                computational_grid[...,vy][mask] = (params['omega']*(x-centre)/shock_pos)[mask]
+                r = np.sqrt((x-centre)**2 + (y-centre)**2)
+                f = (params['ring_pos'] - r)/(params['ring_pos'] - shock_pos)
+
+                ring = np.where(r**2 <= (params['ring_pos']-centre)**2)
+                computational_grid[...,rho][ring] = (1 + 9*f)[ring]
+                computational_grid[...,vx][ring] = ((-f*params['omega']*(y-centre)*shock_pos)/r)[ring]
+                computational_grid[...,vy][ring] = ((f*params['omega']*(x-centre)*shock_pos)/r)[ring]
+
+                core = np.where(r**2 <= (shock_pos-centre)**2)
+                computational_grid[core] = initial_left
+                computational_grid[...,vx][core] = (-params['omega']*(y-centre))[core]
+                computational_grid[...,vy][core] = (params['omega']*(x-centre))[core]
 
             elif "sheet" in config or "current" in config:
                 computational_grid[...,vx] = params['ampl'] * np.sin(2*np.pi*y)
@@ -142,6 +167,14 @@ def initialise(sim_variables):
             elif "jet" in config:
                 mask = np.where((np.abs(x) < .05) & (y <= shock_pos))
                 computational_grid[...,vy][mask] = 800
+
+            elif "circular" in config or "polarised" in config or "alfven" in config or config == "cpaw":
+                computational_grid[...,vx] = -params['A']/np.sqrt(2) * np.sin(2*np.pi*(x+y))
+                computational_grid[...,vy] = params['A']/np.sqrt(2) * np.sin(2*np.pi*(x+y))
+                computational_grid[...,vz] = params['A'] * np.cos(2*np.pi*(x+y))
+                computational_grid[...,Bx] = params['ampl']/np.sqrt(2) + (params['A']/np.sqrt(2) * np.sin(2*np.pi*(x+y)))
+                computational_grid[...,By] = params['ampl']/np.sqrt(2) - (params['A']/np.sqrt(2) * np.sin(2*np.pi*(x+y)))
+                computational_grid[...,Bz] = -params['A'] * np.cos(2*np.pi*(x+y))
 
             else:
                 computational_grid[np.where(x < shock_pos)] = initial_left
@@ -164,6 +197,8 @@ def initialise(sim_variables):
             computational_grid[...,rho] = fv.sine_func(x, params)
         elif config.startswith('gauss'):
             computational_grid[...,rho] = fv.gauss_func(x, params)
+
+    sim_variables.magnetic = computational_grid[...,sim_variables.Bfields].any()
 
     return computational_grid
 

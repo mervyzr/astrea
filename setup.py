@@ -20,7 +20,7 @@ class CustomInstallCommand(install):
 
 setup(
     name="astrea",
-    version="3.4.1",
+    version="3.5.0",
     author="Mervin Yap",
     author_email="myap@ph1.uni-koeln.de",
     description="Astrophysical Shockwave and Turbulence REsearch for interstellar Applications: Multi-dimensional magnetohydrodynamics code for modelling shockwaves & turbulence in the interstellar medium",

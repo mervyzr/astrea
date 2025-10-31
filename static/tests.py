@@ -125,8 +125,8 @@ def generate_test_conditions(config, cells, gamma):
         shock_pos = 5
         t_end = 10
         boundary = "wrap"
-        initial_left = np.array([1,0,0,0,1,0,0,.1])
-        initial_right = np.array([1,0,0,0,1,0,0,.1])
+        initial_left = np.array([1,0,0,0,1,0,0,0])
+        initial_right = np.array([1,0,0,0,1,0,0,0])
         misc = {'vortex_str':1, 'freq':2}
 
     # [Gresho & Chan, 1990]
@@ -145,19 +145,37 @@ def generate_test_conditions(config, cells, gamma):
         shock_pos = 0
         t_end = .8
         boundary = "wrap"
-        initial_left = np.array([1,0,0,0,1/gamma,0,.1,0])
-        initial_right = np.array([1,0,0,0,1/gamma,0,.1,0])
-        misc = {'ampl':1/gamma}
+        initial_left = np.array([gamma*2,0,0,0,gamma,0,0,0])
+        initial_right = np.array([gamma*2,0,0,0,gamma,0,0,0])
+        misc = {'ampl':1}
+
+    # [Balsara, 2004; Li, 2010]
+    elif "vortex" in config and config.startswith("mhd"):
+        boundary = "wrap"
+        t_end = 20
+
+        if len(cells) < 3:
+            axis_coord = [-10,10]
+            shock_pos = 10
+            initial_left = np.array([1,0,0,0,1,0,0,0])
+            initial_right = np.array([1,0,0,0,1,0,0,0])
+            misc = {'kappa':5, 'mu':5}
+        else:
+            axis_coord = [-5,5]
+            shock_pos = 5
+            initial_left = np.array([1,0,0,2,1,0,0,0])
+            initial_right = np.array([1,0,0,2,1,0,0,0])
+            misc = {'kappa':1/np.sqrt(2*np.pi), 'mu':1/np.sqrt(2*np.pi), 'q':1}
 
     # [Balsara & Spicer, 1999]
     elif "rotor" in config:
         axis_coord = [-.5,.5]
         shock_pos = .1
-        t_end = .05
+        t_end = .2
         boundary = "wrap"
         initial_left = np.array([10,0,0,0,1,5/np.sqrt(4*np.pi),0,0])
         initial_right = np.array([1,0,0,0,1,5/np.sqrt(4*np.pi),0,0])
-        misc = {'omega':10, 'ampl':5/np.sqrt(4*np.pi)}
+        misc = {'omega':20, 'ring_pos':.115}
 
     # [Felker & Stone, 2018]
     elif "blast" in config and config.startswith("mhd"):
@@ -165,9 +183,9 @@ def generate_test_conditions(config, cells, gamma):
         shock_pos = .1
         t_end = .2
         boundary = "wrap"
-        initial_left = np.array([1,0,0,0,10,0,0,.1])
-        initial_right = np.array([1,0,0,0,.1,0,0,.1])
-        misc = {'ampl':1/np.sqrt(3)}
+        initial_left = np.array([1,0,0,0,10,0,0,0])
+        initial_right = np.array([1,0,0,0,.1,0,0,0])
+        misc = {'ampl':1/np.sqrt(2)}
 
     # [Gardiner & Stone, 2005]
     elif "sheet" in config or "current" in config:
@@ -198,6 +216,16 @@ def generate_test_conditions(config, cells, gamma):
         initial_left = np.array([gamma*.1,0,0,0,1,0,np.sqrt(2000),0])
         initial_right = np.array([gamma*.1,0,0,0,1,0,np.sqrt(2000),0])
         misc = None
+
+    # [Ziegler, 2000]
+    elif "circular" in config or "polarised" in config or "alfven" in config or config == "cpaw":
+        axis_coord = [0,1]
+        shock_pos = 1
+        t_end = 1
+        boundary = "wrap"
+        initial_left = np.array([1,0,0,0,.1,0,0,0])
+        initial_right = np.array([1,0,0,0,.1,0,0,0])
+        misc = {'A':.9, 'ampl':np.sqrt(2)}
 
     # [Toro, 1999, p.225]
     elif "toro" in config:

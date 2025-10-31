@@ -226,7 +226,6 @@ class SimulationVariables(object):
         self.subgrid_category = db.get(params.accepted.any([self.subgrid]))['category']
         self.solver_category = db.get(params.accepted.any([self.solver]))['category']
 
-        self.magnetic = self.initial_left[self.Bfields].any() or self.initial_right[self.Bfields].any()
         self.convert = fv.point_convert
         self.higher_order = False
 
