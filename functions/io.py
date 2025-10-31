@@ -70,7 +70,7 @@ def handle_CLI(db_path):
     parser.add_argument('--plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot')
 
     parser.add_argument('--file', dest='chkpt_file', metavar='', type=str.lower, default='', help='(absolute) path to astrea checkpoint file')
-    parser.add_argument('--gravity', help='switch on self-gravity in the simulation', action='store_true')
+    #parser.add_argument('--gravity', help='switch on self-gravity in the simulation', action='store_true')
 
     parser.add_argument('--chemistry', help='switch on chemical network in simulation', action='store_true')
     parser.add_argument('--network', metavar='', type=str.lower, default='', help='(absolute) path to chemical network file')
