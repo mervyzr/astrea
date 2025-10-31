@@ -143,16 +143,17 @@ def parse_cli_variables(config_variables, arguments):
                 if v < 1:
                     v = 1.
         elif k == "plot_options":
-            accepted_plot_options, invalid = db.get(params.type == k)['accepted'], []
+            accepted_plot_options, valid, invalid = db.get(params.type == k)['accepted'], [], []
             try:
                 if isinstance(v, str):
                     v = v.replace(' ','').replace('-',',').replace('/',',').replace('|',',').split(',')
                 for option in v:
-                    _option = option.replace(' ','').replace('-','')
+                    _option = option.replace(' ','').replace('-','').replace('_','')
                     if _option.lower() not in accepted_plot_options:
                         invalid.append(option)
-                        v.remove(option)
-                v = [i.lower() for i in v]
+                    else:
+                        valid.append(option)
+                v = [i.lower() for i in valid]
                 _ = v[0]  # Check for empty list
             except (IndexError, TypeError):
                 v = db.get(params.type == 'default')[k]
