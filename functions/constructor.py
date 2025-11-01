@@ -285,9 +285,9 @@ def make_eigenvectors(grids, sim_variables, axis, vectors="both"):
     Bx, By, Bz = Bfields[...,abscissa], Bfields[...,ordinate], Bfields[...,applicate]
 
     # Define the left & right eigenvectors for each cell in each grid
-    if vectors.lower().startswith(("b", "l")):
+    if vectors.casefold().startswith(("b", "l")):
         left_eigenvectors = np.repeat(np.zeros_like(grids)[...,None], grids.shape[-1], axis=-1)
-    if vectors.lower().startswith(("b", "r")):
+    if vectors.casefold().startswith(("b", "r")):
         right_eigenvectors = np.repeat(np.zeros_like(grids)[...,None], grids.shape[-1], axis=-1)
 
     # Compute wavespeeds
@@ -308,7 +308,7 @@ def make_eigenvectors(grids, sim_variables, axis, vectors="both"):
     Af, As = cs * alpha_f * np.sqrt(rhos), cs * alpha_s * np.sqrt(rhos)
 
     # Generate the LEFT eigenvectors
-    if vectors.lower().startswith(("b", "l")):
+    if vectors.casefold().startswith(("b", "l")):
         # First row (Fast- magnetoacoustic wave)
         left_eigenvectors[...,0,1+abscissa] = -Nf * Cff
         left_eigenvectors[...,0,1+ordinate] = Nf * Qss * beta_y
@@ -354,7 +354,7 @@ def make_eigenvectors(grids, sim_variables, axis, vectors="both"):
         left_eigenvectors[...,7,5+applicate] = fv.divide(Nf * As * beta_z, rhos)
 
     # Generate the RIGHT eigenvectors
-    if vectors.lower().startswith(("b", "r")):
+    if vectors.casefold().startswith(("b", "r")):
         # First column (Fast- magnetoacoustic wave)
         right_eigenvectors[...,0,0] = rhos * alpha_f
         right_eigenvectors[...,1+abscissa,0] = -Cff
@@ -402,9 +402,9 @@ def make_eigenvectors(grids, sim_variables, axis, vectors="both"):
         right_eigenvectors[...,5+ordinate,7] = As * beta_y
         right_eigenvectors[...,5+applicate,7] = As * beta_z
 
-    if vectors.lower().startswith("l"):
+    if vectors.casefold().startswith("l"):
         return left_eigenvectors
-    elif vectors.lower().startswith("r"):
+    elif vectors.casefold().startswith("r"):
         return right_eigenvectors
     else:
         return left_eigenvectors, right_eigenvectors
