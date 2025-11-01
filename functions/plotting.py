@@ -1110,3 +1110,13 @@ def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None
     plt.cla()
     plt.clf()
     plt.close()
+
+
+def schlieren(quantity):
+    drho_dx, drho_dy = np.gradient(quantity)  # compute gradients
+    grad_mag = np.sqrt(drho_dx**2 + drho_dy**2)  # gradient magnitude (for schlieren intensity)
+    schlieren_log = np.log1p(grad_mag)  # logarithmic scaling to enhance contrast
+    I_min, I_max = schlieren_log.min(), schlieren_log.max()
+    schlieren_norm = 1 + 999 * (schlieren_log - I_min) / (I_max - I_min)  # normalize from 1 -> 1000
+    #schlieren_norm = schlieren_log/I_max  # normalize to max value
+    return schlieren_norm
