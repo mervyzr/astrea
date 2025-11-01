@@ -101,14 +101,14 @@ def generate_test_conditions(config, cells, gamma):
         initial_right = np.array([.125,0,0,0,.1,.75,-1,0])
         misc = None
 
-    elif "kelvin" in config or "helmholtz" in config or config == "khi":
+    elif "kelvin" in config or "helmholtz" in config or "khi" in config:
         axis_coord = [-1,1]
-        shock_pos = 0
-        t_end = 4
+        shock_pos = .4
+        t_end = 5
         boundary = "wrap"
-        initial_left = np.array([2,-.5,0,0,1,0,0,0])
-        initial_right = np.array([1,.5,0,0,1,0,0,0])
-        misc = {'perturb_ampl':.5, 'freq':4}
+        initial_left = np.array([2,.5,0,0,2.5,0,0,0])
+        initial_right = np.array([1,-.5,0,0,2.5,0,0,0])
+        misc = {'perturb_ampl':.05, 'ampl':.25, 'freq':4, 'Bx':np.sqrt(np.pi)}
 
     elif "turb" in config:
         axis_coord = [0,1]

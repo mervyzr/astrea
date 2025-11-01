@@ -148,9 +148,14 @@ Several (magneto)hydrodynamics tests are in place:
     - Gresho vortex (Gresho & Chan, 1990)
     - "Lax-Liu tests" (Lax & Liu, 1998)
     - Isentropic vortex (Pang & Wu, 2025)
-    - Gaussian wave
+    - Smooth advection wave tests
+      - Gaussian wave
+      - sine-wave
   - Three-dimensional:
     - Sedov blast wave
+    - Smooth advection wave tests
+      - Gaussian wave
+      - sine-wave
 
 - Magnetohydrodynamics
   - One-dimensional:
@@ -158,6 +163,7 @@ Several (magneto)hydrodynamics tests are in place:
     - Brio-Wu shockwave (Brio & Wu, 1988)
   - Two-dimensional:
     - Circular polarised Alfvén wave (Balsara & Spicer, 1999)
+    - Magnetised Kelvin-Helmholtz instability
     - Orszag-Tang vortex (Orszag & Tang, 1998)
     - MHD vortex (Balsara, 2004)
     - MHD rotor (Balsara & Spicer, 1999)
