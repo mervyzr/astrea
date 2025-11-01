@@ -124,7 +124,7 @@ def parse_cli_variables(config_variables, arguments):
                     v = v[:config_variables['dimension']]
             else:
                 v = [128,] * config_variables['dimension']
-        elif k in ['gamma', 'cfl', 'permeability']:
+        elif k in ['gamma', 'cfl']:
             if not isinstance(v, (int, float)):
                 if "/" in v:
                     num, dem = v.split('/')
