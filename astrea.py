@@ -10,7 +10,6 @@ from time import perf_counter
 
 import h5py
 import yaml
-import dotenv
 import numpy as np
 
 from external import krome_funcs
@@ -291,8 +290,4 @@ def run(seed, save_dir) -> None:
     ###################################### SCRIPT END ######################################
 
 if __name__ == "__main__":
-    env_files = [os.path.join(root, file) for root, _, files in os.walk(os.getcwd()) for file in files if file.endswith('.env')]
-    if env_files:
-        dotenv.load_dotenv(env_files[0])
-
     run(*[SEED, SAVE_DIR])

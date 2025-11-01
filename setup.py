@@ -39,7 +39,6 @@ setup(
         "matplotlib",
         "pyyaml",
         "tinydb",
-        "python-dotenv",
         "gitpython",
         "psutil",
         "gputil",
