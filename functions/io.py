@@ -283,7 +283,7 @@ class SimulationVariables(object):
 
         # Exclusion cases
         if self.solver in db.get(params.type == 'solver' and params.category == 'hll')['accepted']:
-            if (self.solver_category == "hll" and self.solver.endswith('c')) and self.magnetic:
+            if (self.solver_category == "hll" and self.solver.endswith('c')) and self.config_category == "magnetic":
                 print(f"{BColours.WARNING}HLLC solver does not work with magnetic fields present..{BColours.ENDC}")
                 self.solver = db.get(params.type == 'default')['solver']
 
