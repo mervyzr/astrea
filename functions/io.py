@@ -243,7 +243,7 @@ class SimulationVariables(object):
 
             # PPM-specific options
             if self.subgrid_category == "ppm":
-                self.ppm_author = "mc:2011"  # [McCorquodale & Colella, 2011 (mc:2011); Colella et al., 2011 (c+:2011); Peterson & Hammett, 2008 (ph:2008)]
+                self.ppm_author = "MC:2011"  # [McCorquodale & Colella, 2011 (MC:2011); Colella et al., 2011 (C+:2011); Peterson & Hammett, 2008 (PH:2008)]
                 self.ppm_dissipate = False
 
         # Permutations for axes

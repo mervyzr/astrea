@@ -89,7 +89,7 @@ def extrapolant_limiter(grid, sim_variables, axis, *args, **kwargs):
     # Set differences
     dw_minus, dw_plus = grid - left_of_centre, right_of_centre - grid
 
-    if sim_variables.ppm_author.startswith(("mccorquodale", "m", "mc")):
+    if sim_variables.ppm_author.casefold().startswith(("mccorquodale", "m", "mc")):
         # Define functions
         wL, wR = np.copy(left_of_centre), np.copy(right_of_centre)
         d2w = 6 * (left_of_centre - 2*grid + right_of_centre)
@@ -168,7 +168,7 @@ def extrapolant_limiter(grid, sim_variables, axis, *args, **kwargs):
         # Check for cell extrema in cells [Colella et al., 2011, eq. 89; Peterson & Hammett, 2008, eq. 3.31]
         cell_extrema = dw_minus*dw_plus <= 0
 
-        if sim_variables.ppm_author.startswith(("peterson", "p", "ph", "x")):
+        if sim_variables.ppm_author.casefold().startswith(("peterson", "p", "ph", "x")):
             extrapolant_extrema = (fv.slice_(padded_grid, axis, end=-2)-grid)*(grid-fv.slice_(padded_grid, axis, start=2)) <= 0
         else:
             # Check for overshoot in cells [Colella et al., 2011, eq. 90]
@@ -207,7 +207,7 @@ def extrapolant_limiter(grid, sim_variables, axis, *args, **kwargs):
             # Update the limited local curvature estimates based on the conditions [Peterson & Hammett, 2008, eq. 3.38]
             D2w_lim[cell_extrema & non_monotonic] = limited_curvature[cell_extrema & non_monotonic]
 
-            if sim_variables.ppm_author.startswith(("peterson", "p", "ph", "x")):
+            if sim_variables.ppm_author.casefold().startswith(("peterson", "p", "ph", "x")):
                 # Get the final limited values [Peterson & Hammett, 2008, eq. 3.39]
                 phi = fv.divide(D2w_lim, D2w)
 

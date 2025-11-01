@@ -29,7 +29,7 @@ def reconstruct(grid, sim_variables, axis, eta=None):
     if sim_variables.magnetic:
         interface[...,5+sim_variables.axes] = grid[...,5+sim_variables.axes]
 
-    if sim_variables.ppm_author.startswith(("peterson", "p", "ph", "x")):
+    if sim_variables.ppm_author.casefold().startswith(("peterson", "p", "ph", "x")):
         """Reconstruction from cell averages to face averages (both sides)
         |                        w(i-1/2)                    w(i+1/2)                       |
         |<--         i-1         -->|<--          i          -->|<--         i+1         -->|
@@ -47,7 +47,7 @@ def reconstruct(grid, sim_variables, axis, eta=None):
 
     else:
         # Limit interface values [Colella et al., 2011, p. 25-26]
-        if sim_variables.ppm_author.startswith(("colella", "c", "c+")):
+        if sim_variables.ppm_author.casefold().startswith(("colella", "c", "c+")):
             interface = limiters.interface_limiter(interface, *[minus_one, grid, plus_one, plus_two])
 
         # Define the left and right parabolic extrapolants
