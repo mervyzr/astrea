@@ -57,7 +57,7 @@ def verbose_timer(func):
 # Print progress status to Terminal
 def print_simple(sim_variables, t=None, status=''):
     _seed = f"{BColours.OKBLUE}{sim_variables.seed}{BColours.ENDC}"
-    _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({sim_variables.dimension}D){BColours.ENDC}"
+    _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({sim_variables.dimensions}D){BColours.ENDC}"
     _config = f"{BColours.OKCYAN}{sim_variables.config.upper()}{BColours.ENDC}"
     _cells = f"{BColours.OKCYAN}{str(sim_variables.cells).strip('[]').replace(' ','').replace(',','x')}{BColours.ENDC}"
     _cfl = f"{BColours.OKCYAN}{sim_variables.cfl}{BColours.ENDC}"
@@ -171,7 +171,7 @@ def print_verbose(sim_variables, t=None, status=''):
             print(f'{"Time evo.":>15} :    {sim_variables.time_evo.upper()}')
             print(f'{"Solver":>15} :    {sim_variables.solver.upper()}')
             print('')
-            print(f'{"Dimension":>15} :    {sim_variables.dimension}D')
+            print(f'{"Dimension":>15} :    {sim_variables.dimensions}D')
             print(f'{"Cells":>15} :    {str(sim_variables.cells).strip("[]").replace(" ","").replace(","," x ")}')
             print(f'{"Boundary":>15} :    {sim_variables.boundary}')
             print(f'{"CFL number":>15} :    {sim_variables.cfl}')

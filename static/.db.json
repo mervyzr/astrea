@@ -210,7 +210,7 @@
       ]
     },
     "7": {
-      "type": "dimension",
+      "type": "dimensions",
       "accepted": [
         1,
         2,
@@ -366,7 +366,7 @@
     "20": {
       "type": "default",
       "config": "sod",
-      "dimension": 1,
+      "dimensions": 1,
       "precision": "float64",
       "subgrid": "pcm",
       "time_evo": "euler",

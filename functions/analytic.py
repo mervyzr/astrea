@@ -49,14 +49,14 @@ def calculate_solution_error(grid, sim_variables, norm):
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
 def calculate_TV(simulation, sim_variables):
-    gamma, dimension, axes, tot_vary = sim_variables.gamma, sim_variables.dimension, sim_variables.axes, {}
+    gamma, dimensions, axes, tot_vary = sim_variables.gamma, sim_variables.dimensions, sim_variables.axes, {}
     rho, pressure = sim_variables.rho, sim_variables.pressure
 
     for t in list(simulation.keys()):
         grid = simulation[t]
         E_tot = fv.divide(fv.convert_variable('pressure', grid, sim_variables), grid[...,rho])
         E_int = fv.divide(grid[...,pressure], grid[...,rho]*(gamma-1))
-        for i in range(dimension):
+        for i in range(dimensions):
             grid = np.diff(grid, axis=i)
             E_tot = np.diff(E_tot, axis=i)
             E_int = np.diff(E_int, axis=i)
@@ -69,10 +69,10 @@ def calculate_TV(simulation, sim_variables):
 # Function for checking the conservation equations; works with primitive variables but needs to be converted
 def calculate_conservation(simulation, sim_variables):
     multidimensional, axes, conservation = sim_variables.multidimensional, sim_variables.axes, {}
-    dimension, axis_coord = sim_variables.dimension, sim_variables.axis_coord
+    dimensions, axis_coord = sim_variables.dimensions, sim_variables.axis_coord
 
     if multidimensional:
-        dV = np.diff(axis_coord)**dimension
+        dV = np.diff(axis_coord)**dimensions
     else:
         dV = np.diff(axis_coord)
 
@@ -89,10 +89,10 @@ def calculate_conservation(simulation, sim_variables):
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
 def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
     multidimensional, axes, conservation = sim_variables.multidimensional, sim_variables.axes, {}
-    dimension, axis_coord = sim_variables.dimension, sim_variables.axis_coord
+    dimensions, axis_coord = sim_variables.dimensions, sim_variables.axis_coord
 
     if multidimensional:
-        dV = np.diff(axis_coord)**dimension
+        dV = np.diff(axis_coord)**dimensions
     else:
         dV = np.diff(axis_coord)
 
@@ -178,7 +178,7 @@ def calculate_Sedov_analytical(grid, t, sim_variables, w=0):
         return np.linspace(_axis[0]-half_cell, _axis[1]+half_cell, _cells+2)[1:-1]
 
     # Initialise initial conditions and variables
-    cells, gamma, j, axis_coord = sim_variables.cells, sim_variables.gamma, sim_variables.dimension, sim_variables.axis_coord
+    cells, gamma, j, axis_coord = sim_variables.cells, sim_variables.gamma, sim_variables.dimensions, sim_variables.axis_coord
     rho0, vx0, vy0, vz0, P0, Bx0, By0, Bz0 = sim_variables.initial_right
     rho, vx, pressure = sim_variables.rho, sim_variables.vx, sim_variables.pressure
     eps = 1e-4

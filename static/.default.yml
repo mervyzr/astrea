@@ -8,7 +8,7 @@ physics_parameters:
   cells         : 128
   cfl           : .5
   gamma         : 1.4
-  dimension     : 1
+  dimensions    : 1
 
 numerical_parameters:
   # Floating-point precision : float16, float32, float64

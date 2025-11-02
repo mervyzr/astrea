@@ -183,7 +183,7 @@ def run(seed, save_dir) -> None:
             _range = 2**np.arange(2,8)
         else:
             _range = 2**np.arange(3,11)
-        grid_sizes = np.array([_range,] * sim_variables.dimension).T
+        grid_sizes = np.array([_range,] * sim_variables.dimensions).T
     else:
         grid_sizes = [sim_variables.cells]
 
@@ -230,7 +230,7 @@ def run(seed, save_dir) -> None:
                     grp.attrs['cells'] = sim_variables.cells
                     grp.attrs['cfl'] = sim_variables.cfl
                     grp.attrs['gamma'] = sim_variables.gamma
-                    grp.attrs['dimension'] = sim_variables.dimension
+                    grp.attrs['dimensions'] = sim_variables.dimensions
                     grp.attrs['precision'] = sim_variables.precision
                     grp.attrs['subgrid'] = sim_variables.subgrid
                     grp.attrs['time_evo'] = sim_variables.time_evo

@@ -53,7 +53,7 @@ def handle_CLI(db_path):
     parser.add_argument('--cells', '--grid', dest='cells', metavar='', default=argparse.SUPPRESS, help='number of cells in the grid')
     parser.add_argument('--cfl', metavar='', type=float, default=argparse.SUPPRESS, help='Courant number in the Courant-Friedrichs-Lewy stability condition')
     parser.add_argument('--gamma', metavar='', type=float, default=argparse.SUPPRESS, help='adiabatic index')
-    parser.add_argument('--dimensions', '--dim', dest='dimension', type=int, metavar='', default=argparse.SUPPRESS, help='dimensionality of the simulation', choices=db.get(params.type == 'dimension')['accepted'])
+    parser.add_argument('--dimensions', '--dims', dest='dimensions', type=int, metavar='', default=argparse.SUPPRESS, help='dimensionality of the simulation', choices=db.get(params.type == 'dimensions')['accepted'])
 
     parser.add_argument('--subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='subgrid model used for reconstruction within grid cells', choices=accepted_values('subgrid'))
     parser.add_argument('--time_evo', metavar='', type=str.lower, default=argparse.SUPPRESS, help='time integration method used for temporal evolution', choices=accepted_values('time_evo'))
@@ -61,7 +61,7 @@ def handle_CLI(db_path):
 
     parser.add_argument('--checkpoints', metavar='', type=int, default=argparse.SUPPRESS, help='number of checkpoints in simulation')
 
-    parser.add_argument('--live', '--live_plot', dest='live_plot', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
+    parser.add_argument('--live_plot', '--live', dest='live_plot', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
     parser.add_argument('--save_snaps', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
     parser.add_argument('--save_plots', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving quantitative plots of the simulation', choices=bool_choices)
     parser.add_argument('--save_video', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving a video of the simulation', choices=bool_choices)
@@ -97,33 +97,33 @@ def parse_cli_variables(config_variables, arguments):
         if k in ['live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file']:
             if not isinstance(v, bool):
                 v = False
-        elif k in ['checkpoints', 'dimension']:
+        elif k in ['checkpoints', 'dimensions']:
             if not isinstance(v, int):
                 v = 1
-            if k == 'dimension' and not (1 <= v <= 3):
+            if k == 'dimensions' and not (1 <= v <= 3):
                 v = 1
         elif k == "cells":
             if isinstance(v, (int, float)):
-                v = [int(v)-int(v)%2,] * config_variables['dimension']
+                v = [int(v)-int(v)%2,] * config_variables['dimensions']
             elif isinstance(v, str):
                 try:
                     v = [int(n)-int(n)%2 for n in v.strip('()').replace(' ','').replace('x',',').split(',')]
                     if len(v) <= 1:
-                        v *= config_variables['dimension']
+                        v *= config_variables['dimensions']
                 except Exception:
-                    v = [128,] * config_variables['dimension']
+                    v = [128,] * config_variables['dimensions']
                 else:
-                    if len(v) > config_variables['dimension']:
-                        v = v[:config_variables['dimension']]
+                    if len(v) > config_variables['dimensions']:
+                        v = v[:config_variables['dimensions']]
             elif isinstance(v, list):
                 try:
                     v = [int(_)-int(_)%2 for _ in v]
                 except Exception:
-                    v = [128,] * config_variables['dimension']
+                    v = [128,] * config_variables['dimensions']
                 else:
-                    v = v[:config_variables['dimension']]
+                    v = v[:config_variables['dimensions']]
             else:
-                v = [128,] * config_variables['dimension']
+                v = [128,] * config_variables['dimensions']
         elif k in ['gamma', 'cfl']:
             if not isinstance(v, (int, float)):
                 if "/" in v:
@@ -187,7 +187,7 @@ class SimulationVariables(object):
     __slots__ = [
         '__dict__',
         'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'energy', 'vels', 'Bfields', 'momentums',
-        'config', 'cells', 'cfl', 'gamma', 'dimension', 'precision', 'subgrid', 'time_evo', 'solver',
+        'config', 'cells', 'cfl', 'gamma', 'dimensions', 'precision', 'subgrid', 'time_evo', 'solver',
         'axis_coord', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'ds',
         'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
         'permeability', 'grav_constant', 'gravity',
@@ -247,8 +247,8 @@ class SimulationVariables(object):
                 self.ppm_dissipate = False
 
         # Permutations for axes
-        self.multidimensional = self.dimension >= 2
-        self.axes = np.array(range(self.dimension))
+        self.multidimensional = self.dimensions >= 2
+        self.axes = np.array(range(self.dimensions))
 
         # Chemistry network set-up
         if self.chemistry:
@@ -293,7 +293,7 @@ class SimulationVariables(object):
             if (self.live_plot or self.save_snaps or self.save_video):
                 self.live_plot = self.save_snaps = self.save_video = False
 
-        if (self.live_plot or self.save_plots or self.save_video) and self.dimension > 2:
+        if (self.live_plot or self.save_plots or self.save_video) and self.dimensions > 2:
             print(f"{BColours.WARNING}Unable to display 3d simulation results with astrea..{BColours.ENDC}")
             self.live_plot = self.save_plots = self.save_video = False
 
@@ -326,7 +326,7 @@ def write_chkpt_file(grid, t, idx, sim_variables):
         f.attrs['cfl'] = sim_variables.cfl
         f.attrs['gamma'] = sim_variables.gamma
         f.attrs['permeability'] = sim_variables.permeability
-        f.attrs['dimension'] = sim_variables.dimension
+        f.attrs['dimensions'] = sim_variables.dimensions
         f.attrs['precision'] = sim_variables.precision
         f.attrs['subgrid'] = sim_variables.subgrid
         f.attrs['time_evo'] = sim_variables.time_evo
@@ -359,7 +359,7 @@ def load_chkpt_file(config_variables, file):
                 config_variables['cfl'] = float(f.attrs['cfl'])
                 config_variables['gamma'] = float(f.attrs['gamma'])
                 config_variables['permeability'] = float(f.attrs['permeability'])
-                config_variables['dimension'] = int(f.attrs['dimension'])
+                config_variables['dimensions'] = int(f.attrs['dimensions'])
                 config_variables['precision'] = f.attrs['precision']
                 config_variables['subgrid'] = f.attrs['subgrid']
                 config_variables['time_evo'] = f.attrs['time_evo']

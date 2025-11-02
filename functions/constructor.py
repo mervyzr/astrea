@@ -19,7 +19,7 @@ def initialise(sim_variables):
         half_cell = dh/2
         return np.linspace(start_pos-half_cell, end_pos+half_cell, _cells+2)[1:-1]
 
-    config, cells, gamma, dimension, multidimensional, precision = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimension, sim_variables.multidimensional, sim_variables.precision
+    config, cells, gamma, dimensions, multidimensional, precision = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.precision
     rho, vx, vy, vz, pressure, Bx, By, Bz = sim_variables.rho, sim_variables.vx, sim_variables.vy, sim_variables.vz, sim_variables.pressure, sim_variables.Bx, sim_variables.By, sim_variables.Bz
     axis_coord, shock_pos, params = sim_variables.axis_coord, sim_variables.shock_pos, sim_variables.misc
     initial_left, initial_right = sim_variables.initial_left, sim_variables.initial_right
@@ -35,7 +35,7 @@ def initialise(sim_variables):
     if multidimensional:
         physical_grid_y = make_physical_grid(axis_coord, cells[1])
 
-        if dimension > 2:
+        if dimensions > 2:
             physical_grid_z = make_physical_grid(axis_coord, cells[2])
             x, y, z = np.meshgrid(physical_grid_x, physical_grid_y, physical_grid_z, indexing='ij')
             r = np.sqrt((x-centre)**2 + (y-centre)**2 + (z-centre)**2)

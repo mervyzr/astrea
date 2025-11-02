@@ -73,7 +73,7 @@ def plot(save=False, title=False):
                         cells = f.attrs['cells']
                         gamma = float(f.attrs['gamma'])
                         permeability = float(f.attrs['permeability'])
-                        dimension = int(f.attrs['dimension'])
+                        dimensions = int(f.attrs['dimensions'])
                         subgrid = f.attrs['subgrid']
                         time_evo = f.attrs['time_evo']
                         solver = f.attrs['solver']
@@ -81,14 +81,14 @@ def plot(save=False, title=False):
                         axis_coord = f.attrs['axis_coord']
                         start_pos, end_pos = axis_coord
 
-                        fig, ax, plot_ = make_figure(plot_options, dimension, axis_coord)
-                        data = make_data(plot_options, grid, dimension, gamma, permeability)
+                        fig, ax, plot_ = make_figure(plot_options, dimensions, axis_coord)
+                        data = make_data(plot_options, grid, dimensions, gamma, permeability)
 
                         for idx, (_i,_j) in enumerate(plot_['indexes']):
                             y = data[idx]
 
-                            if dimension > 1:
-                                if dimension > 2:
+                            if dimensions > 1:
+                                if dimensions > 2:
                                     X, Y, Z = np.meshgrid(
                                         np.linspace(start_pos, end_pos, y.shape[0]), 
                                         np.linspace(start_pos, end_pos, y.shape[1]), 
@@ -116,9 +116,9 @@ def plot(save=False, title=False):
                                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
 
                         if title:
-                            if dimension > 2:
+                            if dimensions > 2:
                                 grid_axes = "$(x,y,z)$"
-                            elif dimension > 1:
+                            elif dimensions > 1:
                                 grid_axes = "$(x,y)$"
                             else:
                                 grid_axes = "$x$"
@@ -126,15 +126,15 @@ def plot(save=False, title=False):
 
                         plt.tight_layout()
 
-                        if dimension < 3:
+                        if dimensions < 3:
                             fig.text(0.5, 0.04, r"$x$", ha='center')
                             fig.subplots_adjust(bottom=0.1)
-                            if dimension > 1:
+                            if dimensions > 1:
                                 fig.text(0.04, 0.5, r"$y$", ha='center', rotation='vertical')
                                 fig.subplots_adjust(left=0.1)
 
                         if save or save_plot:
-                            plt.savefig(f"{os.getcwd()}/varPlot_{dimension}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(time,3)}.png", bbox_inches='tight')
+                            plt.savefig(f"{os.getcwd()}/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(time,3)}.png", bbox_inches='tight')
                         else:
                             plt.show()
 
@@ -259,7 +259,7 @@ ACCEPTED_PLOT_OPTIONS = [
 
 
 # Make figures and axes for plotting
-def make_figure(options, dimension, axis_coord):
+def make_figure(options, dimensions, axis_coord):
     if 0 < len(options) < 13:
         # Set up colours
         colours = plt.rcParams['axes.prop_cycle'].by_key()['color'] * 2
@@ -392,13 +392,13 @@ def make_figure(options, dimension, axis_coord):
         for _i in range(len(options)):
             row, col = divmod(_i, cols)
             if row < len(options)//cols:
-                if dimension > 2:
+                if dimensions > 2:
                     ax[row,col] = fig.add_subplot(spec[row, 2*col:2*(col+1)], projection="3d")
                 else:
                     ax[row,col] = fig.add_subplot(spec[row, 2*col:2*(col+1)])
             else:
                 extra = cols - len(options) % cols
-                if dimension > 2:
+                if dimensions > 2:
                     ax[row,col] = fig.add_subplot(spec[row, 2*col+extra:2*(col+1)+extra], projection="3d")
                 else:
                     ax[row,col] = fig.add_subplot(spec[row, 2*col+extra:2*(col+1)+extra])
@@ -409,12 +409,12 @@ def make_figure(options, dimension, axis_coord):
             ax[_i,_j].tick_params(axis='both', which='major')
             ax[_i,_j].tick_params(axis='both', which='minor')
 
-            if dimension > 1:
+            if dimensions > 1:
                 ax[_i,_j].set_title(labels[idx])
             else:
                 ax[_i,_j].set_ylabel(labels[idx])
 
-            if dimension < 2:
+            if dimensions < 2:
                 ax[_i,_j].set_xlim(axis_coord)
                 ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
@@ -424,7 +424,7 @@ def make_figure(options, dimension, axis_coord):
 
 
 # Create list of data plots; accepts primitive grid
-def make_data(options, grid, dimension, gamma, permeability):
+def make_data(options, grid, dimensions, gamma, permeability):
     rho, pressure, vels, Bfields = 0, 4, slice(1,4), slice(5,8)
     quantities = []
 
@@ -453,7 +453,7 @@ def make_data(options, grid, dimension, gamma, permeability):
                 quantity = grid[...,5+axis]
         elif 'div' in option or 'db' in option:
             if option[-1] == 'b':
-                if dimension > 1:
+                if dimensions > 1:
                     quantity = slice_(np.diff(grid[...,5], axis=0), axis=1, start=1) + slice_(np.diff(grid[...,6], axis=1), axis=0, start=1)
                 else:
                     quantity = np.zeros_like(grid[...,5])

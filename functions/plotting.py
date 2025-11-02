@@ -199,13 +199,13 @@ def make_figure(options, sim_variables, variable="normal"):
         for _i in range(len(options)):
             row, col = divmod(_i, cols)
             if row < len(options)//cols:
-                if sim_variables.dimension > 2:
+                if sim_variables.dimensions > 2:
                     ax[row,col] = fig.add_subplot(spec[row, 2*col:2*(col+1)], projection="3d")
                 else:
                     ax[row,col] = fig.add_subplot(spec[row, 2*col:2*(col+1)])
             else:
                 extra = cols - len(options) % cols
-                if sim_variables.dimension > 2:
+                if sim_variables.dimensions > 2:
                     ax[row,col] = fig.add_subplot(spec[row, 2*col+extra:2*(col+1)+extra], projection="3d")
                 else:
                     ax[row,col] = fig.add_subplot(spec[row, 2*col+extra:2*(col+1)+extra])
@@ -285,7 +285,7 @@ def make_data(options, grid, sim_variables):
 
 # Initiate the live plot feature
 def initiate_live_plot(sim_variables, title=False):
-    cells, dimension, multidimensional, axis_coord = sim_variables.cells, sim_variables.dimension, sim_variables.multidimensional, sim_variables.axis_coord
+    cells, dimensions, multidimensional, axis_coord = sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.axis_coord
     options = sim_variables.plot_options
     start_pos, end_pos = axis_coord
     plt.ion()
@@ -308,9 +308,9 @@ def initiate_live_plot(sim_variables, title=False):
         graphs.append(graph)
 
     if title:
-        if dimension > 2:
+        if dimensions > 2:
             grid_axes = "$(x,y,z)$"
-        elif dimension > 1:
+        elif dimensions > 1:
             grid_axes = "$(x,y)$"
         else:
             grid_axes = "$x$"
@@ -344,9 +344,9 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
     except AttributeError:
         pass
     else:
-        if sim_variables.dimension > 2:
+        if sim_variables.dimensions > 2:
             grid_axes = "$(x,y,z)$"
-        elif sim_variables.dimension > 1:
+        elif sim_variables.dimensions > 1:
             grid_axes = "$(x,y)$"
         else:
             grid_axes = "$x$"
@@ -359,7 +359,7 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
 
 # Function for plotting a snapshot of the grid
 def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
-    config, cells, dimension, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.cells, sim_variables.dimension, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
+    config, cells, dimensions, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     options = sim_variables.plot_options
     start_pos, end_pos = sim_variables.axis_coord
 
@@ -370,7 +370,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
         y = y_data[idx]
 
         if multidimensional:
-            if dimension > 2:
+            if dimensions > 2:
                 X, Y, Z = np.meshgrid(
                     np.linspace(start_pos, end_pos, y.shape[0]), 
                     np.linspace(start_pos, end_pos, y.shape[1]), 
@@ -401,9 +401,9 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
 
     if title:
-        if dimension > 2:
+        if dimensions > 2:
             grid_axes = "$(x,y,z)$"
-        elif dimension > 1:
+        elif dimensions > 1:
             grid_axes = "$(x,y)$"
         else:
             grid_axes = "$x$"
@@ -411,14 +411,14 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
 
     plt.tight_layout()
 
-    if dimension < 3:
+    if dimensions < 3:
         fig.text(0.5, 0.04, r"$x$", ha='center')
         fig.subplots_adjust(bottom=0.1)
         if multidimensional:
             fig.text(0.04, 0.5, r"$y$", ha='center', rotation='vertical')
             fig.subplots_adjust(left=0.1)
 
-    plt.savefig(f"{sim_variables.save_path}/snapshots/varPlot_{dimension}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(t,3)}.png", bbox_inches='tight')
+    plt.savefig(f"{sim_variables.save_path}/snapshots/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(t,3)}.png", bbox_inches='tight')
 
     plt.cla()
     plt.clf()
@@ -428,7 +428,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
 
 # Generic plot of simulation variables
 def plot_quantities(hdf5, sim_variables, title=False):
-    config, dimension, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimension, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
+    config, dimensions, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     precision, t_end, checkpoints = sim_variables.precision, sim_variables.t_end, sim_variables.checkpoints
     options = sim_variables.plot_options
     start_pos, end_pos = sim_variables.axis_coord
@@ -488,9 +488,9 @@ def plot_quantities(hdf5, sim_variables, title=False):
 
             if title:
                 grid_axes, grid_cells = "$x$", f" ($N = {str(cells).strip('[]').replace(' ','').replace(',','x')}$)"
-                if dimension > 2:
+                if dimensions > 2:
                     grid_axes = "$(x,y,z)$"
-                elif dimension > 1:
+                elif dimensions > 1:
                     grid_axes = "$(x,y)$"
                 else:
                     if len(hdf5) != 1:
@@ -543,7 +543,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
             handles, labels = plt.gca().get_legend_handles_labels()
             fig.legend(handles, labels, ncol=_ncol)
 
-        plt.savefig(f"{sim_variables.save_path}/varPlot_{dimension}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(ref_time,3)}.png", bbox_inches='tight')
+        plt.savefig(f"{sim_variables.save_path}/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(ref_time,3)}.png", bbox_inches='tight')
 
         plt.cla()
         plt.clf()
@@ -783,7 +783,7 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
 
 # Make a video of entire simulation; video of all plot options or specific variable
 def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
-    config, dimension, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimension, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
+    config, dimensions, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     start_pos, end_pos = sim_variables.axis_coord
 
     # hdf5 keys are datetime strings
@@ -828,9 +828,9 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
                     if title:
                         grid_axes, grid_cells = "$x$", f" ($N = {str(cells).strip('[]').replace(' ','').replace(',','x')}$)"
-                        if dimension > 2:
+                        if dimensions > 2:
                             grid_axes = "$(x,y,z)$"
-                        elif dimension > 1:
+                        elif dimensions > 1:
                             grid_axes = "$(x,y)$"
                         plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(float(t),4)}${grid_cells}")
 
@@ -955,9 +955,9 @@ def plot_this(grid, sim_variables, **kwargs):
             else:
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
 
-    if sim_variables.dimension > 2:
+    if sim_variables.dimensions > 2:
         grid_axes = "$(x,y,z)$"
-    elif sim_variables.dimension > 1:
+    elif sim_variables.dimensions > 1:
         grid_axes = "$(x,y)$"
     else:
         grid_axes = "$x$"
@@ -1007,7 +1007,7 @@ def gradient_plot(data, plot_index, ax, **kwargs):
 
 # Plot the power spectrum for turbulence
 def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None):
-    cells, dimension, axis_coord, ds = sim_variables.cells, sim_variables.dimension, sim_variables.axis_coord, sim_variables.ds
+    cells, dimensions, axis_coord, ds = sim_variables.cells, sim_variables.dimensions, sim_variables.axis_coord, sim_variables.ds
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -1059,7 +1059,7 @@ def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None
 
         # Compute the wavenumber components
         ks, power_law = {}, -5/3
-        for axis in range(dimension):
+        for axis in range(dimensions):
             ks[axis] = 2 * np.pi * np.fft.fftfreq(cells[axis], d=ds[axis])
         if len(ks) == 1:
             kx = ks[0]
@@ -1089,7 +1089,7 @@ def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None
         # Normalize the power spectrum by area and wavenumber bin width
         if normalise:
             bin_widths = np.diff(k_bins)
-            power_spectrum /= bin_widths * np.diff(axis_coord)**dimension
+            power_spectrum /= bin_widths * np.diff(axis_coord)**dimensions
 
         # Compute the theoretical values (with fitting based on a sliced window of the power spectrum, not the whole spectrum)
         m, c = np.polyfit(np.log10(k_bin_centers[3:10]), np.log10(power_spectrum[3:10]), 1)
