@@ -226,6 +226,7 @@ def print_verbose(sim_variables, t=None, status=''):
             gpu_load = '--'
         print('\n')
         print(tabulate([(
+            sim_variables.seed, 
             datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 
             sim_variables.timesteps, 
             f'{t:.6f}', 
@@ -234,6 +235,7 @@ def print_verbose(sim_variables, t=None, status=''):
             f'{psutil.swap_memory().percent}%', 
             f'{gpu_load}%', 
             )], headers=(
+                'seed', 
                 'datetime', 
                 'step', 
                 'sim. time', 
