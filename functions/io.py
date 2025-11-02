@@ -46,7 +46,7 @@ def handle_CLI(db_path):
 
     parser.add_argument('-v', '--verbose', dest='verbose', help='switch on verbose description of simulation', action='store_true')
     parser.add_argument('-q', '--quiet', dest='quiet', help='switch off printing to screen', action='store_true')
-    parser.add_argument('-w', '--write', dest='write_chkpt', help='switch on checkpoint file saving', action='store_true')
+    parser.add_argument('-w', '--write', '--write_chkpt', '--write_chkpts', dest='write_chkpt', help='switch on checkpoint file saving', action='store_true')
     parser.add_argument('-t', '--test', dest='test', help='run the tests for astrea (convergence, conservation, etc.)', action='store_true')
 
     parser.add_argument('--config', metavar='', type=str.lower, default=argparse.SUPPRESS, help='configuration to run in the simulation', choices=accepted_values('config'))
@@ -310,9 +310,9 @@ class SimulationVariables(object):
 # Write grid to HDF5 checkpoint files
 def write_chkpt_file(grid, t, idx, sim_variables):
     if sim_variables.test:
-        file_name = f"astrea_hdf5_{sim_variables.cells}_chk_{sim_variables.timesteps:05}"
+        file_name = f"astrea_hdf5_{sim_variables.cells}_chkpt_{sim_variables.timesteps:05}"
     else:
-        file_name = f"astrea_hdf5_chk_{sim_variables.timesteps:05}"
+        file_name = f"astrea_hdf5_chkpt_{sim_variables.timesteps:05}"
 
     with h5py.File(f"{sim_variables.save_path}/{file_name}", "w") as f:
         f.attrs['datetime'] = sim_variables.access_key
