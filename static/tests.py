@@ -5,7 +5,9 @@ import numpy as np
 ##############################################################################
 
 # Primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
-def generate_test_conditions(config, cells, gamma):
+def generate_test_conditions(config_variables):
+    config, cells, gamma = config_variables['config'], config_variables['cells'], config_variables['gamma']
+
     # [Sod, 1978]
     if "sod" in config:
         axis_coord = [0,1]

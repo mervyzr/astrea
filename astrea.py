@@ -172,7 +172,7 @@ def run(seed, save_dir) -> None:
     config_variables = io.parse_cli_variables(config_variables, arguments)
 
     # Generate test configuration based on configuration
-    test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'], config_variables['gamma'])
+    test_variables = tests.generate_test_conditions(config_variables)
 
     # Initialise simulation variables
     sim_variables = SimulationVariables(seed, config_variables, test_variables)
