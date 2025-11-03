@@ -20,6 +20,11 @@ def sine_func(x, params):
     return params['y_offset'] + params['ampl']*np.sin(params['freq']*np.pi*x)
 
 
+# Magic function to make errors disappear (!! physics would most likely be messed up so be very careful using this function !!)
+def nan_to_num(arr):
+    return np.nan_to_num(arr, copy=True, nan=0., posinf=1e16, neginf=-1e16)
+
+
 # For handling division-by-zero warnings during array divisions
 # !! MONITOR THE PHYSICS WHEN USING THIS; ZEROS IN DIVISOR MIGHT MEAN YOUR CODE IS INCORRECT !!
 def divide(dividend, divisor, eps=EPSILON):
