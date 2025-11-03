@@ -29,7 +29,7 @@ def reconstruct(grid, sim_variables, axis):
     |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |   w+(i+1/2)   w-(i+3/2)   |
     """
     # Define the linear weights C_k (5th-order) [Levy et al., 1999, tbl. 3.1]
-    C_minus, C_zero, C_plus = 3/16, 5/8, 3/16
+    C_minus, C_zero, C_plus = 1/6, 2/3, 1/6
 
     # Determine the smoothness indicators (O(dx^4) at critical points but O(1) at discontinuities) [eq. 3.14]
     IS_minus = lambda stencils: 13/12 * (stencils[0] - 2*stencils[1] + stencils[2])**2 + 1/4 * (stencils[0] - 4*stencils[1] + 3*stencils[2])**2
@@ -83,7 +83,7 @@ def run(grid, sim_variables, axis):
     intf_avg = fv.compute_Roe_average([prim_plus,prim_minus], sim_variables)
     padded_intf_avg = fv.add_boundary(fv.slice_(intf_avg, axis, start=1), sim_variables, axis=axis)
 
-    # Convert the primitive variables
+    # Convert the primitive variables at the interface
     cons_plus, cons_minus = convert("primitive", prim_plus, sim_variables, axis=axis, pos='intf'), convert("primitive", prim_minus, sim_variables, axis=axis, pos='intf')
 
     # Compute the fluxes and the Jacobian
@@ -94,10 +94,10 @@ def run(grid, sim_variables, axis):
     characteristics = np.linalg.eigvals(jacobian)
     data['eigmax'] = ds[axis]/fv.compute_eigmax(characteristics, axis=axis)
 
-    # Compute alphas and save reconstructed (averaged) interfaces for CT computation
+    # Compute alphas and save the reconstructed interfaces for CT computation
     if magnetic and multidimensional:
         data['alphas'] = ct.compute_alphas(characteristics, axis=axis)
-        data['avgd_interfaces'] = fv.slice_(intf_avg, axis, start=1)
+        data['interfaces'] = fv.slice_(prim_plus, axis, start=1), fv.slice_(prim_minus, axis, start=1)
 
     # Calculate the interface-averaged fluxes
     intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **{
@@ -130,10 +130,6 @@ def run(grid, sim_variables, axis):
     data['fluxes'] = np.diff(intf_fluxes_cntrd, axis=axis)/ds[axis]
 
     return data
-
-
-
-
 
 
 ### EVERYTHING BELOW IS FOLLOWING THE PAPER BY LEVY 1999 ###

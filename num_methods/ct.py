@@ -18,8 +18,8 @@ def compute_alphas(characteristics, axis):
     return fv.slice_(np.maximum(0, max_eigvals), axis, start=1), fv.slice_(-np.minimum(0, min_eigvals), axis, start=1)
 
 
-# Reconstruct the transverse values for each face average (computation done entirely for orthogonal axis)
-# Note that this reconstruction is done at the INTERFACES, NOT CENTRES, and it is for one orthogonal axis
+# Reconstruct the transverse values for each longitudinal axis
+# Note that this reconstruction is done at the INTERFACES, NOT CENTRES
 def reconstruct_transverse(data, sim_variables, axis, method=None, eta=None):
     _axes = np.array(range(3))
     ortho_axes = _axes[_axes != axis]
@@ -31,36 +31,40 @@ def reconstruct_transverse(data, sim_variables, axis, method=None, eta=None):
             method = sim_variables.subgrid_category
 
         """Interpolate the face averages to both corners (upwards & downwards)
-        |                w(i-1/2)            w(i+1/2)               |
-        |-------------------|-------------------|-------------------|
-        |           w_U(i-1/2,j+1/2)    w_U(i+1/2,j+1/2)            |
-        |                  ^|                  ^|                  ^|
-        |                  ||                  ||                  ||
-        |                  ||                  ||                  ||
-        |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
-        |                  ||                  ||                  ||
-        |                  ||                  ||                  ||
-        |                  v|                  v|                  v|
-        |           w_D(i-1/2,j-1/2)    w_D(i+1/2,j-1/2)            |
-        |-------------------|-------------------|-------------------|
+        |                                   w(i-1/2)                               w(i+1/2)                                  |
+        |--------------------------------------|--------------------------------------|--------------------------------------|
+        |                    w_U-(i-1/2,j+1/2) | w_U+(i-1/2,j+1/2)  w_U-(i+1/2,j+1/2) | w_U+(i+1/2,j+1/2)  w_U-(i+3/2,j+1/2) |
+        |                                  ^   |   ^                              ^   |   ^                              ^   |
+        |                                  |   |   |                              |   |   |                              |   |
+        |                                  |   |   |                              |   |   |                              |   |
+        |              o (i-1,j)          w- <-|-> w+           o (i,j)          w- <-|-> w+          o (i+1,j)         w- <-|
+        |                                  |   |   |                              |   |   |                              |   |
+        |                                  |   |   |                              |   |   |                              |   |
+        |                                  v   |   v                              v   |   v                              v   |
+        |                    w_D-(i-1/2,j-1/2) | w_D+(i-1/2,j-1/2)  w_D-(i+1/2,j-1/2) | w_D+(i+1/2,j-1/2)  w_D-(i+3/2,j-1/2) |
+        |--------------------------------------|--------------------------------------|--------------------------------------|
 
             OR
 
         Reconstruct the limited extrapolants from the interface values. Returns the face averages in the form of w+(y) & w-(y) when considering x-axis, and w+(x) & w-(x) when considering y-axis
-        |                w(i-1/2)            w(i+1/2)               |
-        |  o (i-1,j+1)      |  o (i,j+1)        |  o (i+1,j+1)      |
-        |                   |                   |                   |
-        |                   |                   |                   |
-        |           w_D(i-1/2,j+1/2)    w_D(i+1/2,j+1/2)            |
-        |                 w+(y)               w+(y)               w+(y)
-        |                   ^                   ^                   ^
-        |-------------------|-------------------|-------------------|
-        |                   v                   v                   v
-        |                 w-(y)               w-(y)               w-(y)
-        |           w_U(i-1/2,j+1/2)    w_U(i+1/2,j+1/2)            |
-        |                   |                   |                   |
-        |                   |                   |                   |
-        |  o (i-1,j)     -->|  o (i,j)       -->|  o (i+1,j)     -->|
+        |                                   w(i-1/2)                               w(i+1/2)                                  |
+        |           o (i-1,j+1)           w- <-|-> w+          o (i,j+1)         w- <-|-> w+         o (i+1,j+1)        w- <-|
+        |                                      |                                      |                                      |
+        |                                      |                                      |                                      |
+        |                                      |                                      |                                      |
+        |                               w-+(y) | w++(y)                        w-+(y) | w++(y)                        w-+(y) |
+        |                    w_D-(i-1/2,j+1/2) | w_D+(i-1/2,j+1/2)  w_D-(i+1/2,j+1/2) | w_D+(i+1/2,j+1/2)  w_D-(i+3/2,j+1/2) |
+        |                                    ^ | ^                                  ^ | ^                                  ^ |
+        |                                    | | |                                  | | |                                  | |
+        |--------------------------------------|--------------------------------------|--------------------------------------|
+        |                                    | | |                                  | | |                                  | |
+        |                                    v | v                                  v | v                                  v |
+        |                    w_U-(i-1/2,j+1/2) | w_U+(i-1/2,j+1/2)  w_U-(i+1/2,j+1/2) | w_U+(i+1/2,j+1/2)  w_U-(i+3/2,j+1/2) |
+        |                               w--(y) | w+-(y)                        w--(y) | w+-(y)                        w--(y) |
+        |                                      |                                      |                                      |
+        |                                      |                                      |                                      |
+        |                                      |                                      |                                      |
+        |            o (i-1,j)            w- <-|-> w+           o (i,j)          w- <-|-> w+         o (i+1,j)          w- <-|
         """
         if method == "weno":
             reconstruct = lambda _grid, _sim_variables, _axis: weno.reconstruct(_grid, _sim_variables, _axis, order=5)
@@ -76,19 +80,27 @@ def reconstruct_transverse(data, sim_variables, axis, method=None, eta=None):
         else:
             reconstruct = pcm.reconstruct
 
-        interfaces = [data[axis]['avgd_interfaces'] for axis in ortho_axes]
-        with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-            jobs = inner_executor.map(reconstruct, interfaces, repeat(sim_variables), normal_axes)
-            for idx, [wD, wU] in enumerate(jobs):
-                normal_axis = normal_axes[idx]
+        # Each axis data in the 'data' dict will have a pair of reconstructed interfaces w+ & w-
+        # Both interfaces need to be reconstructed in the appropriate orthogonal axis (here named normal_axis)
+        # Therefore for each orthogonal axis, there will be 4 reconstructed corners/lines
+        def reconstruct_per_interface_pair(interface_pair, _sim_variables, normal_axis):
+            intfs = []
+            with concurrent.futures.ThreadPoolExecutor() as inner_executor:
+                jobs = inner_executor.map(reconstruct, interface_pair, repeat(_sim_variables), repeat(normal_axis))
 
-                # Re-align the interfaces so that cell wall is in between interfaces
-                prim_plus, prim_minus = fv.slice_(fv.add_boundary(wD, sim_variables, axis=normal_axis), normal_axis, start=1), fv.slice_(fv.add_boundary(wU, sim_variables, axis=normal_axis), normal_axis, end=-1)
+                for reconstructed_intf_pairs in jobs:
+                    # Re-align the interfaces so that cell wall is in between interfaces
+                    prim_plus, prim_minus = fv.slice_(fv.add_boundary(reconstructed_intf_pairs[0], sim_variables, axis=normal_axis), normal_axis, start=1), fv.slice_(fv.add_boundary(reconstructed_intf_pairs[1], sim_variables, axis=normal_axis), normal_axis, end=-1)
 
-                # Remove the 'leftmost' interface since only the upwind corners/lines are needed
-                prim_plus, prim_minus = fv.slice_(prim_plus, axis=normal_axis, start=1), fv.slice_(prim_minus, axis=normal_axis, start=1)
+                    # Remove the 'leftmost' interface since only the upwind corners/lines are needed, and append to list
+                    intfs.append([fv.slice_(prim_plus, axis=normal_axis, start=1), fv.slice_(prim_minus, axis=normal_axis, start=1)])
 
-                ortho_interfaces[normal_axis] = prim_plus, prim_minus
+            return intfs
+
+        interfaces = [data[axis]['interfaces'] for axis in ortho_axes]
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            jobs = executor.map(reconstruct_per_interface_pair, interfaces, repeat(sim_variables), normal_axes)
+            ortho_interfaces = {normal_axes[idx]:intfs for idx, intfs in enumerate(jobs)}
 
     return ortho_interfaces
 
@@ -103,27 +115,28 @@ def compute_emf(ortho_interfaces, alphas, axis):
     # For -v x B in y-axis (axis=1, thumb), Bx along z (axis=2, index finger) becomes (E,W) & Bz along x (axis=0, middle finger) becomes (N,S)
     # For -v x B in z-axis (axis=2, thumb), By along x (axis=0, index finger) becomes (E,W) & Bx along y (axis=1, middle finger) becomes (N,S)
     try:
-        # Assume computation for the z-axis EMF here (axis=2), and so x-axis (ordinate) & y-axis (applicate) are needed
-        [north, south], [east, west] = axis_data[applicate], axis_data[ordinate]
+        # Assume computation for the z-axis EMF here (axis=2), and so reconstructions along x-axis (ordinate) & y-axis (applicate) are needed
+        [northeast, southeast], [northwest, southwest] = axis_data[applicate]
+        [eastnorth, westnorth], [eastsouth, westsouth] = axis_data[ordinate]
         [ap_x, am_x], [ap_y, am_y] = alphas[ordinate], alphas[applicate]
     except (KeyError, TypeError):
-        # For 2D cases where the z-axis is missing; make a zeros_like data from the x- or y-axis instead
+        # For 2D cases where the z-axis is missing, make a zeros_like data from the x- or y-axis instead
         emf = np.zeros_like(alphas[0][0])
     else:
         vx, vy = 1+ordinate, 1+applicate
         Bx, By = 5+ordinate, 5+applicate
 
         # Compute the corner mag. fields wrt to corner/line
-        SW = .5*(west[...,vy]+south[...,vy])*south[...,Bx] - .5*(west[...,vx]+south[...,vx])*west[...,By]
-        SE = .5*(east[...,vy]+south[...,vy])*south[...,Bx] - .5*(east[...,vx]+south[...,vx])*east[...,By]
-        NW = .5*(west[...,vy]+north[...,vy])*north[...,Bx] - .5*(west[...,vx]+north[...,vx])*west[...,By]
-        NE = .5*(east[...,vy]+north[...,vy])*north[...,Bx] - .5*(east[...,vx]+north[...,vx])*east[...,By]
+        SW = .5*(westsouth[...,vy]+southwest[...,vy])*southwest[...,Bx] - .5*(southwest[...,vx]+westsouth[...,vx])*westsouth[...,By]
+        SE = .5*(eastsouth[...,vy]+southeast[...,vy])*southeast[...,Bx] - .5*(southeast[...,vx]+eastsouth[...,vx])*eastsouth[...,By]
+        NW = .5*(westnorth[...,vy]+northwest[...,vy])*northwest[...,Bx] - .5*(northwest[...,vx]+westnorth[...,vx])*westnorth[...,By]
+        NE = .5*(eastnorth[...,vy]+northeast[...,vy])*northeast[...,Bx] - .5*(northeast[...,vx]+eastnorth[...,vx])*eastnorth[...,By]
 
         # Averaging procedure for the 4-fold values at each corner/line
         emf = (
             fv.divide(ap_x*ap_y*SW + am_x*ap_y*SE + ap_x*am_y*NW + am_x*am_y*NE, (ap_x+am_x)*(ap_y+am_y)) 
-            - fv.divide(ap_y*am_y, ap_y+am_y)*(north[...,Bx]-south[...,Bx]) 
-            + fv.divide(ap_x*am_x, ap_x+am_x)*(east[...,By]-west[...,By])
+            - fv.divide(ap_y*am_y, ap_y+am_y)*(.5*(northeast[...,Bx] + northwest[...,Bx]) - .5*(southeast[...,Bx] + southwest[...,Bx])) 
+            + fv.divide(ap_x*am_x, ap_x+am_x)*(.5*(eastnorth[...,By] + eastsouth[...,By]) - .5*(westnorth[...,By] + westsouth[...,By]))
         )
 
     return emf

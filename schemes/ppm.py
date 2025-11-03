@@ -97,7 +97,7 @@ def run(grid, sim_variables, axis, eta=None):
     intf_avg = fv.compute_Roe_average([prim_plus,prim_minus], sim_variables)
     padded_intf_avg = fv.add_boundary(fv.slice_(intf_avg, axis, start=1), sim_variables, axis=axis)
 
-    # Convert the primitive variables
+    # Convert the primitive variables at the interface
     cons_plus, cons_minus = convert("primitive", prim_plus, sim_variables, axis=axis, pos='intf'), convert("primitive", prim_minus, sim_variables, axis=axis, pos='intf')
 
     # Compute the fluxes and the Jacobian
@@ -108,10 +108,10 @@ def run(grid, sim_variables, axis, eta=None):
     characteristics = np.linalg.eigvals(jacobian)
     data['eigmax'] = ds[axis]/fv.compute_eigmax(characteristics, axis=axis)
 
-    # Compute alphas and save reconstructed (averaged) interfaces for CT computation
+    # Compute alphas and save the reconstructed interfaces for CT computation
     if magnetic and multidimensional:
         data['alphas'] = ct.compute_alphas(characteristics, axis=axis)
-        data['avgd_interfaces'] = fv.slice_(intf_avg, axis, start=1)
+        data['interfaces'] = fv.slice_(prim_plus, axis, start=1), fv.slice_(prim_minus, axis, start=1)
 
     # Calculate the interface-averaged fluxes
     intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **{

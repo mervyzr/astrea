@@ -30,10 +30,10 @@ def run(grid, sim_variables, axis):
     characteristics = np.linalg.eigvals(jacobian)
     data['eigmax'] = ds[axis]/fv.compute_eigmax(characteristics, axis=axis)
 
-    # Compute alphas and save reconstructed (averaged) interfaces for CT computation (interface = centre for PCM)
+    # Compute alphas and save the reconstructed interfaces for CT computation (interface = centre for PCM)
     if magnetic and multidimensional:
         data['alphas'] = ct.compute_alphas(characteristics, axis=axis)
-        data['avgd_interfaces'] = np.copy(grid)
+        data['interfaces'] = np.copy(grid), np.copy(grid)
 
     # Calculate the interface-averaged fluxes (pointwise & averaged values are the same for lower-order schemes)
     intf_fluxes_avgd = intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{

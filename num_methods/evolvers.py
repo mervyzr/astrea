@@ -66,11 +66,10 @@ def evolve_space(grid, sim_variables, first_stage=False):
             alphas = {axis:data[axis]['alphas'] for axis in axes}
 
             # Magnetic transverse interfaces reconstructed along orthogonal axis/axes; use the averaged (+) & (-) values
-            transverse_reconstruct = ct.reconstruct_transverse
+            reconstruct_transverse = ct.reconstruct_transverse
             if subgrid_category == "ppm" and sim_variables.ppm_dissipate:
-                transverse_reconstruct = lambda _data, _sim_variables, _axis: ct.reconstruct_transverse(_data, _sim_variables, _axis, eta=eta)
-
-            ortho_jobs = executor.map(transverse_reconstruct, repeat(data), repeat(sim_variables), range(3))
+                reconstruct_transverse = lambda _data, _sim_variables, _axis: ct.reconstruct_transverse(_data, _sim_variables, _axis, eta=eta)
+            ortho_jobs = executor.map(reconstruct_transverse, repeat(data), repeat(sim_variables), range(3))
             ortho_interfaces = {axis:ortho_interfaces for axis, ortho_interfaces in enumerate(ortho_jobs)}
 
             # The proper assignment of the corners is important for directional updates, so the dict keys are used for this assignment
