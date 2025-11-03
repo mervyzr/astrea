@@ -66,7 +66,7 @@ def print_simple(sim_variables, t=None, status=''):
     _time_evo = f"{BColours.OKCYAN}{sim_variables.time_evo.upper()}{BColours.ENDC}"
 
     if status.lower() == 'final':
-        _performance = f"{BColours.OKCYAN}{round(sim_variables.elapsed*1e6/(np.prod(sim_variables.cells)*sim_variables.timesteps), 3)} \u03BCs/(N * dt){BColours.ENDC}"
+        _performance = f"{1e-3 * (np.prod(sim_variables.cells)*sim_variables.timesteps)/sim_variables.cpu_elapsed:.2f} kCUPS"
 
         if sim_variables.elapsed >= 60*60:
             _elapsed = f"{BColours.FAIL}{str(timedelta(seconds=sim_variables.elapsed))}s{BColours.ENDC}"
@@ -75,7 +75,7 @@ def print_simple(sim_variables, t=None, status=''):
         else:
             _elapsed = f"{BColours.OKGREEN}{str(timedelta(seconds=sim_variables.elapsed))}s{BColours.ENDC}"
 
-        print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SOLVER={_solver}, TIME_EVO={_time_evo} || Elapsed: {_elapsed} ({sim_variables.timesteps})", flush=True)
+        print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SOLVER={_solver}, TIME_EVO={_time_evo} || Elapsed: {_elapsed} ({BColours.OKCYAN}{sim_variables.timesteps} steps, {_performance}{BColours.ENDC})", flush=True)
         pass
     elif status.lower() == 'init':
         pass
@@ -196,6 +196,7 @@ def print_verbose(sim_variables, t=None, status=''):
             sim_variables.now.strftime('%Y-%m-%d %H:%M:%S'), 
             str(timedelta(seconds=sim_variables.elapsed)), 
             sim_variables.timesteps, 
+            f"{1e-3 * (np.prod(sim_variables.cells)*sim_variables.timesteps)/sim_variables.cpu_elapsed:.2f}", 
             '|', 
             sim_variables.config, 
             str(sim_variables.cells).strip('[]').replace(' ','').replace(',',' x '), 
@@ -208,6 +209,7 @@ def print_verbose(sim_variables, t=None, status=''):
                 'start time', 
                 'elapsed', 
                 'steps', 
+                'CUPS', 
                 '|', 
                 'config', 
                 'cells', 

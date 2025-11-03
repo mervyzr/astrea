@@ -6,7 +6,7 @@ import shutil
 import signal
 import traceback
 from datetime import datetime
-from time import perf_counter
+from time import perf_counter, process_time
 
 import h5py
 import yaml
@@ -219,8 +219,7 @@ def run(seed, save_dir) -> None:
             sim_variables.access_key = now.strftime('%Y%m%d%H%M%S')+str(now.microsecond)
             sim_variables.now = now
             sim_variables.cells = grid_size
-            for ax in sim_variables.ds.keys():
-                sim_variables.ds[ax] = np.abs(np.diff(sim_variables.axis_coord))/grid_size[ax]
+            sim_variables.ds = {ax:np.abs(np.diff(sim_variables.axis_coord))/grid_size[ax] for ax in range(len(grid_size))}
 
             # Save simulation variables into HDF5 file
             if sim_variables.full_set_required:
@@ -239,13 +238,13 @@ def run(seed, save_dir) -> None:
             sim_variables.print_status(sim_variables, status='init')
 
             ################### CORE ###################
-            lap = perf_counter()
+            lap, cpu_start = perf_counter(), process_time()
             core_run(sim_variables, **arguments)
-            elapsed = perf_counter() - lap
+            elapsed, cpu_elapsed = perf_counter() - lap, process_time() - cpu_start
             ################### CORE ###################
 
             # Save attributes after individual run is completed
-            sim_variables.elapsed = elapsed
+            sim_variables.elapsed, sim_variables.cpu_elapsed = elapsed, cpu_elapsed
             if sim_variables.full_set_required:
                 with h5py.File(file_name, "a") as f:
                     f[sim_variables.access_key].attrs['elapsed'] = elapsed
