@@ -209,7 +209,7 @@ def print_verbose(sim_variables, t=None, status=''):
                 'start time', 
                 'elapsed', 
                 'steps', 
-                'CUPS', 
+                'kCUPS', 
                 '|', 
                 'config', 
                 'cells', 
