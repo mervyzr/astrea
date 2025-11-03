@@ -106,7 +106,7 @@ def reconstruct_transverse(data, sim_variables, axis, method=None, eta=None):
 
 
 # Compute the corner/line electric fields wrt to corner/line for each axis [Verma et al., 2018; Mignone & Del Zanna, 2020]
-def compute_emf(ortho_interfaces, alphas, axis):
+def compute_emf(ortho_interfaces, alphas, axis, dissipative=False):
     abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
 
     axis_data = ortho_interfaces[abscissa]
@@ -133,11 +133,25 @@ def compute_emf(ortho_interfaces, alphas, axis):
         NE = .5*(eastnorth[...,vy]+northeast[...,vy])*northeast[...,Bx] - .5*(northeast[...,vx]+eastnorth[...,vx])*eastnorth[...,By]
 
         # Averaging procedure for the 4-fold values at each corner/line
-        emf = (
-            fv.divide(ap_x*ap_y*SW + am_x*ap_y*SE + ap_x*am_y*NW + am_x*am_y*NE, (ap_x+am_x)*(ap_y+am_y)) 
-            - fv.divide(ap_y*am_y, ap_y+am_y)*(.5*(northeast[...,Bx] + northwest[...,Bx]) - .5*(southeast[...,Bx] + southwest[...,Bx])) 
-            + fv.divide(ap_x*am_x, ap_x+am_x)*(.5*(eastnorth[...,By] + eastsouth[...,By]) - .5*(westnorth[...,By] + westsouth[...,By]))
-        )
+        if dissipative:
+            # Higher-order methods generate more 'ripples' or spurious oscillations that grow in the simulation with a more accurate EMF solver
+            # This is a switch to use a more diffusive/dissipative solver that uses simple averaging [Balsara, 2010]
+            S = np.maximum(
+                np.maximum(np.abs(ap_x), np.abs(am_x)), 
+                np.maximum(np.abs(ap_y), np.abs(am_y))
+            )
+            emf = (
+                .25 * (SW + SE + NW + NE) 
+                - S/2 * (.5*(northeast[...,Bx] + northwest[...,Bx]) - .5*(southeast[...,Bx] + southwest[...,Bx])) 
+                + S/2 * (.5*(eastnorth[...,By] + eastsouth[...,By]) - .5*(westnorth[...,By] + westsouth[...,By]))
+            )
+        else:
+            # [Londrillo & Del Zanna, 2004]
+            emf = (
+                fv.divide(ap_x*ap_y*SW + am_x*ap_y*SE + ap_x*am_y*NW + am_x*am_y*NE, (ap_x+am_x)*(ap_y+am_y)) 
+                - fv.divide(ap_y*am_y, ap_y+am_y)*(.5*(northeast[...,Bx] + northwest[...,Bx]) - .5*(southeast[...,Bx] + southwest[...,Bx])) 
+                + fv.divide(ap_x*am_x, ap_x+am_x)*(.5*(eastnorth[...,By] + eastsouth[...,By]) - .5*(westnorth[...,By] + westsouth[...,By]))
+            )
 
     return emf
 

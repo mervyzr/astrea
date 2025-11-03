@@ -73,7 +73,10 @@ def evolve_space(grid, sim_variables, first_stage=False):
             ortho_interfaces = {axis:ortho_interfaces for axis, ortho_interfaces in enumerate(ortho_jobs)}
 
             # The proper assignment of the corners is important for directional updates, so the dict keys are used for this assignment
-            emf_jobs = executor.map(ct.compute_emf, repeat(ortho_interfaces), repeat(alphas), range(3))
+            compute_emf = ct.compute_emf
+            if sim_variables.higher_order:
+                compute_emf = lambda _ortho_interfaces, _alphas, _axis: ct.compute_emf(_ortho_interfaces, _alphas, _axis, dissipative=True)
+            emf_jobs = executor.map(compute_emf, repeat(ortho_interfaces), repeat(alphas), range(3))
             emfs = np.asarray([emf for emf in emf_jobs])
 
             # Update fluxes with CT implementation; lists ordered according to axes
