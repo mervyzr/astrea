@@ -228,7 +228,7 @@ def make_figure(options, sim_variables, variable="normal"):
                     ax[_i,_j].set_ylabel(labels[idx])
 
             if not sim_variables.multidimensional:
-                ax[_i,_j].set_xlim(sim_variables.axis_coord)
+                ax[_i,_j].set_xlim(sim_variables.axis_coord[0])
                 ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
         return fig, ax, {'indexes':indexes, 'names':names, 'labels':labels, 'errors':errors, 'tvs':tvs, 'colours': {'theo':theo_colour, '1d':colours, '2d':twod_colours}}
@@ -285,7 +285,7 @@ def make_data(options, grid, sim_variables):
 
 # Initiate the live plot feature
 def initiate_live_plot(sim_variables, title=False):
-    cells, dimensions, multidimensional, axis_coord = sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.axis_coord
+    cells, dimensions, multidimensional, axis_coord = sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.axis_coord[0]
     options = sim_variables.plot_options
     start_pos, end_pos = axis_coord
     plt.ion()
@@ -359,9 +359,8 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
 
 # Function for plotting a snapshot of the grid
 def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
-    config, cells, dimensions, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
+    config, cells, dimensions, multidimensional, axis_coord, subgrid, time_evo, solver = sim_variables.config, sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.axis_coord, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     options = sim_variables.plot_options
-    start_pos, end_pos = sim_variables.axis_coord
 
     fig, ax, plot_ = make_figure(options, sim_variables)
     y_data = make_data(options, grid_snapshot, sim_variables)
@@ -372,9 +371,9 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
         if multidimensional:
             if dimensions > 2:
                 X, Y, Z = np.meshgrid(
-                    np.linspace(start_pos, end_pos, y.shape[0]), 
-                    np.linspace(start_pos, end_pos, y.shape[1]), 
-                    np.linspace(start_pos, end_pos, y.shape[2])
+                    np.linspace(axis_coord[0][0], axis_coord[0][1], y.shape[0]), 
+                    np.linspace(axis_coord[1][0], axis_coord[1][1], y.shape[1]), 
+                    np.linspace(axis_coord[2][0], axis_coord[2][1], y.shape[2])
                     )
 
                 plot_3d = np.full_like(y, np.nan)
@@ -394,7 +393,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
                 cax = divider.append_axes(position='right', size='5%', pad=0.05)
                 fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
-            x = np.linspace(start_pos, end_pos, cells[0])
+            x = np.linspace(axis_coord[0][0], axis_coord[0][1], cells[0])
             if BEAUTIFY_1D_PLOTS:
                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
             else:
@@ -428,10 +427,9 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
 
 # Generic plot of simulation variables
 def plot_quantities(hdf5, sim_variables, title=False):
-    config, dimensions, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
+    config, dimensions, multidimensional, axis_coord, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.axis_coord, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     precision, t_end, checkpoints = sim_variables.precision, sim_variables.t_end, sim_variables.checkpoints
     options = sim_variables.plot_options
-    start_pos, end_pos = sim_variables.axis_coord
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -463,7 +461,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
             cells = simulation.attrs['cells']
             timing = str(plot_timings_for_each_grp[datetime][chkpt])
 
-            x = np.linspace(start_pos, end_pos, cells[0])
+            x = np.linspace(axis_coord[0][0], axis_coord[0][1], cells[0])
             y_data = make_data(options, simulation[timing], sim_variables)
 
             for idx, (_i,_j) in enumerate(plot_['indexes']):
@@ -783,8 +781,7 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
 
 # Make a video of entire simulation; video of all plot options or specific variable
 def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
-    config, dimensions, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
-    start_pos, end_pos = sim_variables.axis_coord
+    config, dimensions, multidimensional, axis_coord, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.axis_coord, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -793,7 +790,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
     for datetime in datetimes:
         simulation = hdf5[datetime]
         cells = simulation.attrs['cells']
-        x = np.linspace(start_pos, end_pos, cells[0])
+        x = np.linspace(axis_coord[0][0], axis_coord[0][1], cells[0])
 
         if isinstance(variable, str):
             variable = variable.lower()
@@ -925,7 +922,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 # Function for plotting instance of the grid; insert into any part of the code
 def plot_this(grid, sim_variables, **kwargs):
     options = ['density', 'pressure', 'total energy', 'vx', 'vy', 'vz', 'Bx', 'By', 'Bz']
-    start_pos, end_pos = sim_variables.axis_coord
+    start_pos, end_pos = sim_variables.axis_coord[0]
 
     try:
         t = kwargs['t']
@@ -1089,7 +1086,7 @@ def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None
         # Normalize the power spectrum by area and wavenumber bin width
         if normalise:
             bin_widths = np.diff(k_bins)
-            power_spectrum /= bin_widths * np.diff(axis_coord)**dimensions
+            power_spectrum /= bin_widths * np.prod(np.diff(list(axis_coord.values()), axis=1))
 
         # Compute the theoretical values (with fitting based on a sliced window of the power spectrum, not the whole spectrum)
         m, c = np.polyfit(np.log10(k_bin_centers[3:10]), np.log10(power_spectrum[3:10]), 1)

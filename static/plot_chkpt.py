@@ -79,7 +79,6 @@ def plot(save=False, title=False):
                         solver = f.attrs['solver']
 
                         axis_coord = f.attrs['axis_coord']
-                        start_pos, end_pos = axis_coord
 
                         fig, ax, plot_ = make_figure(plot_options, dimensions, axis_coord)
                         data = make_data(plot_options, grid, dimensions, gamma, permeability)
@@ -90,9 +89,9 @@ def plot(save=False, title=False):
                             if dimensions > 1:
                                 if dimensions > 2:
                                     X, Y, Z = np.meshgrid(
-                                        np.linspace(start_pos, end_pos, y.shape[0]), 
-                                        np.linspace(start_pos, end_pos, y.shape[1]), 
-                                        np.linspace(start_pos, end_pos, y.shape[2])
+                                        np.linspace(axis_coord[0][0], axis_coord[0][1], y.shape[0]), 
+                                        np.linspace(axis_coord[1][0], axis_coord[1][1], y.shape[1]), 
+                                        np.linspace(axis_coord[2][0], axis_coord[2][1], y.shape[2])
                                         )
 
                                     plot_3d = np.full_like(y, np.nan)
@@ -112,7 +111,7 @@ def plot(save=False, title=False):
                                     cax = divider.append_axes(position='right', size='5%', pad=0.05)
                                     fig.colorbar(graph, cax=cax, orientation='vertical')
                             else:
-                                x = np.linspace(start_pos, end_pos, cells[0])
+                                x = np.linspace(axis_coord[0][0], axis_coord[0][1], cells[0])
                                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
 
                         if title:
@@ -186,8 +185,6 @@ ACCEPTED_PLOT_OPTIONS = [
     "pressure",
     "p",
     "magneticpressure",
-    "magnetic-pressure",
-    "magnetic pressure",
     "magpressure",
     "magneticp",
     "magp",
@@ -207,14 +204,6 @@ ACCEPTED_PLOT_OPTIONS = [
     "divby",
     "divbz",
     "divb",
-    "div bx",
-    "div by",
-    "div bz",
-    "div b",
-    "div-bx",
-    "div-by",
-    "div-bz",
-    "div-b",
     "momentumx",
     "momentumy",
     "momentumz",
@@ -223,34 +212,21 @@ ACCEPTED_PLOT_OPTIONS = [
     "momz",
     "e",
     "totalenergy",
-    "total-energy",
-    "total energy",
     "etotal",
     "etot",
     "totalenergydensity",
-    "total-energy-density",
-    "total energy density",
     "etotaldensity",
     "internalenergy",
-    "internal-energy",
-    "internal energy",
     "einternal",
     "eint",
     "internalenergydensity",
-    "internal energy density",
-    "internal-energy-density",
     "einternaldensity",
     "temp",
     "temperature",
     "internaltemp",
-    "internal temp",
-    "internal-temp",
     "internaltemperature",
-    "internal temperature",
-    "internal-temperature",
     "mach",
-    "mach number",
-    "mach-number"
+    "machnumber",
 ]
 
 
@@ -415,7 +391,7 @@ def make_figure(options, dimensions, axis_coord):
                 ax[_i,_j].set_ylabel(labels[idx])
 
             if dimensions < 2:
-                ax[_i,_j].set_xlim(axis_coord)
+                ax[_i,_j].set_xlim(axis_coord[0])
                 ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
         return fig, ax, {'indexes':indexes, 'names':names, 'labels':labels, 'colours': {'theo':'black', '1d':colours, '2d':twod_colours}}

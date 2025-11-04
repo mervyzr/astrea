@@ -68,14 +68,9 @@ def calculate_TV(simulation, sim_variables):
 
 # Function for checking the conservation equations; works with primitive variables but needs to be converted
 def calculate_conservation(simulation, sim_variables):
-    multidimensional, axes, conservation = sim_variables.multidimensional, sim_variables.axes, {}
-    dimensions, axis_coord = sim_variables.dimensions, sim_variables.axis_coord
+    axes, axis_coord, conservation = sim_variables.axes, sim_variables.axis_coord, {}
 
-    if multidimensional:
-        dV = np.diff(axis_coord)**dimensions
-    else:
-        dV = np.diff(axis_coord)
-
+    dV = np.prod(np.diff(list(axis_coord.values()), axis=1))
     for t in list(simulation.keys()):
         _grid = simulation[t][:]  # Needs the '[:]' to access the array
         grid = sim_variables.convert("primitive", _grid, sim_variables)
@@ -88,14 +83,9 @@ def calculate_conservation(simulation, sim_variables):
 # The reason is because at the boundaries, some values are lost to the ghost cells and not counted into the conservation plots
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
 def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
-    multidimensional, axes, conservation = sim_variables.multidimensional, sim_variables.axes, {}
-    dimensions, axis_coord = sim_variables.dimensions, sim_variables.axis_coord
+    axes, axis_coord, conservation = sim_variables.axes, sim_variables.axis_coord, {}
 
-    if multidimensional:
-        dV = np.diff(axis_coord)**dimensions
-    else:
-        dV = np.diff(axis_coord)
-
+    dV = np.prod(np.diff(list(axis_coord.values()), axis=1))
     simulation_timings = list(simulation.keys())
     simulation_timings.sort()
     intervals = [timing[-1] for timing in np.array_split(simulation_timings, abs(interval))]
@@ -110,7 +100,7 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
 
 # Determine the analytical solution for a Sod shock test (only in 1d)
 def calculate_Sod_analytical(grid, t, sim_variables):
-    gamma, axis_coord, shock_pos = sim_variables.gamma, sim_variables.axis_coord, sim_variables.shock_pos
+    gamma, axis_coord, shock_pos = sim_variables.gamma, sim_variables.axis_coord[0], sim_variables.shock_pos
     start_pos, end_pos = axis_coord
 
     # Define array to be updated and returned
@@ -181,22 +171,24 @@ def calculate_Sedov_analytical(grid, t, sim_variables):
         half_cell = dh/2
         return np.linspace(_axis[0]-half_cell, _axis[1]+half_cell, _cells+2)[1+int(_cells/2):-1]
 
-    centre = np.average(axis_coord)
-    physical_halfgrid_x = make_half_grid(axis_coord, cells[0])
+    x_centre = np.average(axis_coord[0])
+    physical_halfgrid_x = make_half_grid(axis_coord[0], cells[0])
     X, Y, Z = np.array(physical_halfgrid_x), np.zeros_like(physical_halfgrid_x), np.zeros_like(physical_halfgrid_x)
 
     if multidimensional:
-        physical_halfgrid_y = make_half_grid(axis_coord, cells[1])
+        y_centre = np.average(axis_coord[1])
+        physical_halfgrid_y = make_half_grid(axis_coord[1], cells[1])
         X, Y = np.meshgrid(physical_halfgrid_x, physical_halfgrid_y, indexing='ij')
         Z = np.zeros_like(X)
 
         if dimensions == 3:
-            physical_halfgrid_z = make_half_grid(axis_coord, cells[2])
+            z_centre = np.average(axis_coord[2])
+            physical_halfgrid_z = make_half_grid(axis_coord[2], cells[2])
             X, Y, Z = np.meshgrid(physical_halfgrid_x, physical_halfgrid_y, physical_halfgrid_z, indexing='ij')
 
-    rx, ry, rz = X - centre, Y - centre, Z - centre
+    rx, ry, rz = X - x_centre, Y - y_centre, Z - z_centre
     r = np.sqrt(rx**2 + ry**2 + rz**2)
-    E_blast = 4/3 * np.pi * (P0*(shock_pos-centre)**3)/(gamma-1)
+    E_blast = 4/3 * np.pi * (P0*(shock_pos-x_centre)**3)/(gamma-1)
 
     # ----------------------------------------------------
     # Self-similar ODEs for A(η), B(η), C(η)
@@ -328,8 +320,8 @@ def calculate_Sedov_analytical(grid, t, sim_variables):
     vz[inside_shock] = vmag * (rz[inside_shock] / r[inside_shock])
 
     # handle center
-    density[(r - centre) < 1e-6] = rho2 * A[0]
-    pressure[(r - centre) < 1e-6] = P2 * (eta[0]/eta_s)**2 * B[0]
+    density[(r - x_centre) < 1e-6] = rho2 * A[0]
+    pressure[(r - x_centre) < 1e-6] = P2 * (eta[0]/eta_s)**2 * B[0]
 
     # populate arr
     arr = np.zeros_like(grid)

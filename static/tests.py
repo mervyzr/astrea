@@ -372,13 +372,23 @@ def generate_test_conditions(config_variables):
         initial_right = np.array([.125,0,0,0,.1,0,0,0])
         misc = None
 
+    try:
+        for _ in range(len(cells)):
+            start, end = axis_coord[_]
+    except:
+        coordinates = {ax:axis_coord for ax in range(len(cells))}
+    else:
+        coordinates = axis_coord
+    finally:
+        ds = {ax: np.abs(np.diff(coordinates[ax]))/cells[ax] for ax in range(len(cells))}
+
     return {
-        'axis_coord':axis_coord,
+        'axis_coord':coordinates,
         'shock_pos':shock_pos,
         't_end':t_end,
         'boundary':boundary.lower(),
         'misc':misc,
         'initial_left':initial_left,
         'initial_right':initial_right,
-        'ds':{ax: np.abs(np.diff(axis_coord))/cells[ax] for ax in range(len(cells))},
+        'ds':ds,
     }
