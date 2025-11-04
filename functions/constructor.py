@@ -72,7 +72,7 @@ def initialise(sim_variables):
             r = np.sqrt((x-centre)**2 + (y-centre)**2)
 
             if "sedov" in config or "blast" in config:
-                mask = np.where(((x-centre)**2 + (y-centre)**2) <= (shock_pos-centre)**2)
+                mask = np.where(r**2 <= (shock_pos-centre)**2)
                 computational_grid[mask] = initial_left
                 if config.startswith("mhd"):
                     computational_grid[...,5+axes] = params['ampl']
