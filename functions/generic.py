@@ -56,26 +56,33 @@ def verbose_timer(func):
 
 # Print progress status to Terminal
 def print_simple(sim_variables, t=None, status=''):
+    cyan_text = lambda text: f"{BColours.OKCYAN}{text}{BColours.ENDC}"
+
     _seed = f"{BColours.OKBLUE}{sim_variables.seed}{BColours.ENDC}"
-    _dimension = f"{BColours.OKCYAN}{BColours.BOLD}({sim_variables.dimensions}D){BColours.ENDC}"
-    _config = f"{BColours.OKCYAN}{sim_variables.config.upper()}{BColours.ENDC}"
-    _cells = f"{BColours.OKCYAN}{str(sim_variables.cells).strip('[]').replace(' ','').replace(',','x')}{BColours.ENDC}"
-    _cfl = f"{BColours.OKCYAN}{sim_variables.cfl}{BColours.ENDC}"
-    _subgrid = f"{BColours.OKCYAN}{sim_variables.subgrid.upper()}{BColours.ENDC}"
-    _solver = f"{BColours.OKCYAN}{sim_variables.solver.upper()}{BColours.ENDC}"
-    _time_evo = f"{BColours.OKCYAN}{sim_variables.time_evo.upper()}{BColours.ENDC}"
+    _dimension = cyan_text(f"({sim_variables.dimensions}D)")
+    _config = cyan_text(sim_variables.config.upper())
+    _cells = cyan_text(str(sim_variables.cells).strip('[]').replace(' ','').replace(',','x'))
+    _cfl = cyan_text(sim_variables.cfl)
+    _subgrid = cyan_text(sim_variables.subgrid.upper())
+    _solver = cyan_text(sim_variables.solver.upper())
+    _time_evo = cyan_text(sim_variables.time_evo.upper())
 
     if status.lower() == 'final':
-        _performance = f"{1e-3 * (np.prod(sim_variables.cells)*sim_variables.timesteps)/sim_variables.cpu_elapsed:.2f} kCUPS"
-
         if sim_variables.elapsed >= 60*60:
-            _elapsed = f"{BColours.FAIL}{str(timedelta(seconds=sim_variables.elapsed))}s{BColours.ENDC}"
+            colour = lambda text: f"{BColours.FAIL}{text}{BColours.ENDC}"
         elif 60*60 > sim_variables.elapsed >= 30*60:
-            _elapsed = f"{BColours.WARNING}{str(timedelta(seconds=sim_variables.elapsed))}s{BColours.ENDC}"
+            colour = lambda text: f"{BColours.WARNING}{text}{BColours.ENDC}"
         else:
-            _elapsed = f"{BColours.OKGREEN}{str(timedelta(seconds=sim_variables.elapsed))}s{BColours.ENDC}"
+            colour = lambda text: f"{BColours.OKGREEN}{text}{BColours.ENDC}"
+        _performance = (
+            colour(f"Elapsed: {str(timedelta(seconds=sim_variables.elapsed))}s") 
+            + " | " 
+            + colour(f"{sim_variables.timesteps} steps") 
+            + " | "
+            + colour(f"{1e-3 * (np.prod(sim_variables.cells)*sim_variables.timesteps)/sim_variables.cpu_elapsed:.2f} kCUPS")
+        )
 
-        print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SOLVER={_solver}, TIME_EVO={_time_evo} || Elapsed: {_elapsed} ({BColours.OKCYAN}{sim_variables.timesteps} steps, {_performance}{BColours.ENDC})", flush=True)
+        print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SOLVER={_solver}, TIME_EVO={_time_evo} || {_performance} ||", flush=True)
         pass
     elif status.lower() == 'init':
         pass
