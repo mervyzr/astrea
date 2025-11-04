@@ -168,7 +168,223 @@ def calculate_Sod_analytical(grid, t, sim_variables):
     return arr
 
 
-# Determine the analytical solution for a Sedov blast wave (only in 1d, doesn't work currently) [Kamm & Timmes, 2000]
+# Determine the analytical solution for a Sedov blast wave [Dullemond, Numerical Methods, Chpt. 10]
+def calculate_Sedov_analytical(grid, t, sim_variables):
+    # Initialise initial conditions and variables
+    cells, gamma, dimensions, multidimensional, axis_coord = sim_variables.cells, sim_variables.gamma, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.axis_coord
+    rho0, vx0, vy0, vz0, P0, Bx0, By0, Bz0 = sim_variables.initial_left
+    shock_pos = sim_variables.shock_pos
+
+    # Create a physical half-grid for a single axis
+    def make_half_grid(_axis, _cells):
+        dh = np.abs(np.diff(_axis)[0])/_cells
+        half_cell = dh/2
+        return np.linspace(_axis[0]-half_cell, _axis[1]+half_cell, _cells+2)[1+int(_cells/2):-1]
+
+    centre = np.average(axis_coord)
+    physical_halfgrid_x = make_half_grid(axis_coord, cells[0])
+    X, Y, Z = np.array(physical_halfgrid_x), np.zeros_like(physical_halfgrid_x), np.zeros_like(physical_halfgrid_x)
+
+    if multidimensional:
+        physical_halfgrid_y = make_half_grid(axis_coord, cells[1])
+        X, Y = np.meshgrid(physical_halfgrid_x, physical_halfgrid_y, indexing='ij')
+        Z = np.zeros_like(X)
+
+        if dimensions == 3:
+            physical_halfgrid_z = make_half_grid(axis_coord, cells[2])
+            X, Y, Z = np.meshgrid(physical_halfgrid_x, physical_halfgrid_y, physical_halfgrid_z, indexing='ij')
+
+    rx, ry, rz = X - centre, Y - centre, Z - centre
+    r = np.sqrt(rx**2 + ry**2 + rz**2)
+    E_blast = 4/3 * np.pi * (P0*(shock_pos-centre)**3)/(gamma-1)
+
+    # ----------------------------------------------------
+    # Self-similar ODEs for A(η), B(η), C(η)
+    # ----------------------------------------------------
+    def sedov_derivs(eta, eta_funcs):
+        A, B, C = eta_funcs
+        if eta <= 0:
+            return [0.0, 0.0, 0.0]
+
+        # Equation coefficients [eq. 10.30-10.32]
+        coeff_dA_1 = eta * (2*C - (gamma+1))/(gamma+1)
+        coeff_dB_1 = 0
+        coeff_dC_1 = (2 * eta * A) / (gamma+1)
+        const1 = -(6*A*C) / (gamma+1)
+
+        coeff_dA_2 = 0
+        coeff_dB_2 = eta * (gamma-1)/A
+        coeff_dC_2 = eta * (2*C - (gamma+1))
+        const2 = 2.5 * (gamma+1) * C - 2 * C**2 - 2 * (gamma-1) * B/A
+
+        coeff_dA_3 = C**2 * eta * (gamma + 1 - 2*C)
+        coeff_dB_3 = eta * (gamma + 1 - 2*gamma*C)
+        coeff_dC_3 = 2 * eta * (A*C*(gamma+1) + gamma*B - A*C**2)
+        const3 = 10 * C * (gamma*B + A*C**2) - 5 * (gamma+1) * (B + A*C**2)
+
+        coeffs = np.array([
+            [coeff_dA_1, coeff_dB_1, coeff_dC_1],
+            [coeff_dA_2, coeff_dB_2, coeff_dC_2],
+            [coeff_dA_3, coeff_dB_3, coeff_dC_3]
+        ])
+        consts = np.array([const1, const2, const3])
+
+        try:
+            dA, dB, dC = np.linalg.solve(coeffs, consts)
+        except np.linalg.LinAlgError:
+            coeffs += np.eye(3) * np.finfo(sim_variables.precision).eps
+            dA, dB, dC = np.linalg.solve(coeffs, consts)
+
+        return [dA, dB, dC]
+
+    # ----------------------------------------------------
+    # Integrate similarity ODEs inward from shock
+    # ----------------------------------------------------
+    def integrate_profiles(eta_s, eta_min=1e-6, npts=2000):
+        eta_start = eta_s * (1 - 1e-8)
+        solution = sp.integrate.solve_ivp(
+            lambda _eta, _eta_funcs: sedov_derivs(_eta, _eta_funcs),
+            t_span=(eta_start, eta_min),
+            y0=[1, 1, 1],
+            t_eval=np.linspace(eta_start, eta_min, npts),
+            method='RK45',
+            rtol=1e-8,
+            atol=1e-10
+        )
+
+        if not solution.success:
+            raise RuntimeError(solution.message)
+        eta_arr = solution.t[::-1]
+        A, B, C = solution.y[:, ::-1]
+        return eta_arr, A, B, C
+
+    # ----------------------------------------------------
+    # Energy integral condition (eq. 10.34)
+    # ----------------------------------------------------
+    def energy_integral(eta, A, B, C):
+        integrand = (B + A*C**2) * eta**4
+        coeff = 32*np.pi / (25*(sim_variables.gamma**2 - 1))
+        return coeff * np.trapezoid(integrand, eta)
+
+    # ----------------------------------------------------
+    # Find ηs by shooting
+    # ----------------------------------------------------
+    def find_eta_s():
+        def residual(eta_s):
+            eta, A, B, C = integrate_profiles(eta_s)
+            return energy_integral(eta, A, B, C) - 1.0
+
+        # Secant iteration
+        g1, g2 = 1.0, 1.5
+        r1, r2 = residual(g1), residual(g2)
+        for _ in range(20):
+            if abs(r2 - r1) < 1e-12:
+                break
+            g3 = g2 - r2 * (g2 - g1) / (r2 - r1)
+            r3 = residual(g3)
+            if abs(r3) < 1e-6:
+                g2, r2 = g3, r3
+                break
+            g1, r1, g2, r2 = g2, r2, g3, r3
+        eta_s = g2
+        eta, A, B, C = integrate_profiles(eta_s, npts=3000)
+        return eta_s, eta, A, B, C
+
+
+    eta_s, eta, A, B, C = find_eta_s()
+
+    # similarity length scale and shock radius
+    length_scale = (E_blast * t**2 / rho0)**0.2
+    shock_radius = eta_s * length_scale
+    shock_vel = (2/5) * shock_radius / t
+
+    # interpolate A,B,C
+    Aint = sp.interpolate.interp1d(eta, A, kind="cubic", fill_value=(A[0], 1.0), bounds_error=False)
+    Bint = sp.interpolate.interp1d(eta, B, kind="cubic", fill_value=(B[0], 1.0), bounds_error=False)
+    Cint = sp.interpolate.interp1d(eta, C, kind="cubic", fill_value=(C[0], 1.0), bounds_error=False)
+
+    eta_grid = r / length_scale
+    inside_shock = (eta_grid <= eta_s) & (r > 0)
+
+    # strong shock jump conditions
+    rho2 = (gamma + 1)/(gamma - 1) * rho0
+    P2 = 2 * rho0 * shock_vel**2 / (gamma + 1)
+    v2 = 2 * shock_vel / (gamma + 1)
+
+    density = np.full_like(r, rho0)
+    pressure = np.zeros_like(r)
+    vx = np.zeros_like(r)
+    vy = np.zeros_like(r)
+    vz = np.zeros_like(r)
+
+    # interior values
+    zeta = eta_grid[inside_shock]
+    A_in, B_in, C_in = Aint(zeta), Bint(zeta), Cint(zeta)
+    density[inside_shock] = rho2 * A_in
+    pressure[inside_shock] = P2 * (zeta / eta_s)**2 * B_in
+    vmag = v2 * (zeta / eta_s) * C_in
+    vx[inside_shock] = vmag * (rx[inside_shock] / r[inside_shock])
+    vy[inside_shock] = vmag * (ry[inside_shock] / r[inside_shock])
+    vz[inside_shock] = vmag * (rz[inside_shock] / r[inside_shock])
+
+    # handle center
+    density[(r - centre) < 1e-6] = rho2 * A[0]
+    pressure[(r - centre) < 1e-6] = P2 * (eta[0]/eta_s)**2 * B[0]
+
+    # populate arr
+    arr = np.zeros_like(grid)
+    midpoint_x = int(cells[0]/2)
+
+    if multidimensional:
+        if dimensions == 2:
+            midpoint_y = int(cells[1]/2)
+
+            def rotate(key, quantity):
+                temp_arr = np.zeros_like(arr[...,key])
+                temp_arr[:midpoint_x, midpoint_y:] = quantity
+                temp_arr[:midpoint_x, :midpoint_y] = np.rot90(quantity, k=1)
+                temp_arr[midpoint_x:, :midpoint_y] = np.rot90(quantity, k=2)
+                temp_arr[midpoint_x:, midpoint_y:] = np.rot90(quantity, k=3)
+                return temp_arr
+
+            arr[...,sim_variables.rho] = rotate(sim_variables.rho, density)
+            arr[...,sim_variables.pressure] = rotate(sim_variables.pressure, pressure)
+            arr[...,sim_variables.vx] = rotate(sim_variables.vx, vx)
+            arr[...,sim_variables.vy] = rotate(sim_variables.vy, vy)
+            arr[...,sim_variables.vz] = rotate(sim_variables.vz, vz)
+
+        else:
+            midpoint_z = int(cells[2]/2)
+
+            def rotate(key, quantity):
+                temp_arr = np.zeros_like(arr[...,key])
+                temp_arr[:midpoint_x, :midpoint_y, :midpoint_z] = quantity
+                temp_arr[midpoint_x:, :midpoint_y, :midpoint_z] = np.flip(quantity, axis=0)
+                temp_arr[:midpoint_x, midpoint_y:, :midpoint_z] = np.flip(quantity, axis=1)
+                temp_arr[midpoint_x:, midpoint_y:, :midpoint_z] = np.flip(quantity, axis=(0,1))
+                temp_arr[:midpoint_x, :midpoint_y, midpoint_z:] = np.flip(quantity, axis=2)
+                temp_arr[midpoint_x:, :midpoint_y, midpoint_z:] = np.flip(quantity, axis=(0,2))
+                temp_arr[:midpoint_x, midpoint_y:, midpoint_z:] = np.flip(quantity, axis=(1,2))
+                temp_arr[midpoint_x:, midpoint_y:, midpoint_z:] = np.flip(quantity, axis=(0,1,2))
+                return temp_arr
+
+            arr[...,sim_variables.rho] = rotate(sim_variables.rho, density)
+            arr[...,sim_variables.pressure] = rotate(sim_variables.pressure, pressure)
+            arr[...,sim_variables.vx] = rotate(sim_variables.vx, vx)
+            arr[...,sim_variables.vy] = rotate(sim_variables.vy, vy)
+            arr[...,sim_variables.vz] = rotate(sim_variables.vz, vz)
+
+    else:
+        arr[...,sim_variables.rho] = np.concatenate((np.flip(density), density))
+        arr[...,sim_variables.pressure] = np.concatenate((np.flip(pressure), pressure))
+        arr[...,sim_variables.vx] = np.concatenate((np.flip(vx), vx))
+        arr[...,sim_variables.vy] = np.concatenate((np.flip(vy), vy))
+        arr[...,sim_variables.vz] = np.concatenate((np.flip(vz), vz))
+
+    return arr
+
+
+"""# Determine the analytical solution for a Sedov blast wave (only in 1d, doesn't work currently) [Kamm & Timmes, 2000]
 def calculate_Sedov_analytical(grid, t, sim_variables, w=0):
 
     # Create a physical grid for a single axis
@@ -326,4 +542,4 @@ def calculate_Sedov_analytical(grid, t, sim_variables, w=0):
     arr[...,pressure][physical_grid_x > r2] = P0
     arr[...,vx][physical_grid_x > r2] = vx0
 
-    return arr
+    return arr"""
