@@ -376,9 +376,9 @@ def generate_test_conditions(config_variables):
         for _ in range(len(cells)):
             start, end = axis_coord[_]
     except:
-        coordinates = {ax:axis_coord for ax in range(len(cells))}
+        coordinates = {ax: axis_coord for ax in range(len(cells))}
     else:
-        coordinates = axis_coord
+        coordinates = {ax: coord for ax, coord in enumerate(axis_coord)}
     finally:
         ds = {ax: np.abs(np.diff(coordinates[ax]))/cells[ax] for ax in range(len(cells))}
 
