@@ -71,6 +71,7 @@ def handle_CLI(db_path):
 
     parser.add_argument('--file', dest='chkpt_file', metavar='', type=str.lower, default='', help='(absolute) path to astrea checkpoint file')
     #parser.add_argument('--gravity', help='switch on self-gravity in the simulation', action='store_true')
+    #parser.add_argument('--tracers', help='switch on tracer particles in the simulation', action='store_true')
 
     parser.add_argument('--chemistry', help='switch on chemical network in simulation', action='store_true')
     parser.add_argument('--network', metavar='', type=str.lower, default='', help='(absolute) path to chemical network file')
@@ -86,7 +87,8 @@ def parse_cli_variables(config_variables, arguments):
 
     skip_cases = [
         'hdf5', 'home', 'db_path', 'plot_style', 'verbose', 'quiet', 
-        'write_chkpt', 'test', 'chkpt_file', 'gravity', 'chemistry', 'network', 'abundances'
+        'write_chkpt', 'test', 'chkpt_file', 'gravity', 'tracers', 
+        'chemistry', 'network', 'abundances', 
     ]
 
     # Replace the relevant configuration variables with the additional arguments
@@ -190,7 +192,7 @@ class SimulationVariables(object):
         'config', 'cells', 'cfl', 'gamma', 'dimensions', 'precision', 'subgrid', 'time_evo', 'solver',
         'axis_coord', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'ds',
         'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
-        'permeability', 'grav_constant', 'gravity',
+        'permeability', 'grav_constant', 'gravity', 'tracers', 
         'axes', 'magnetic', 'convert', 'roots', 'weights', 'ppm_dissipate', 'higher_order', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'home', 'save_path', 'db_path', 'timesteps', 'print_status',
         'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test',
