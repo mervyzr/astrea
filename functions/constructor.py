@@ -175,6 +175,8 @@ def initialise(sim_variables):
             elif "jet" in config:
                 mask = np.where((np.abs(x) < .05) & (y <= shock_pos))
                 computational_grid[...,vy][mask] = 800
+                perturbation = np.random.uniform(-100, 100, size=(computational_grid[...,(vx,vy)].shape))
+                computational_grid[...,(vx,vy)] += perturbation
 
             elif "circular" in config or "polarised" in config or "alfven" in config or config == "cpaw":
                 computational_grid[...,vx] = -params['A']/np.sqrt(2) * np.sin(2*np.pi*(x+y))
