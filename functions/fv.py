@@ -2,6 +2,7 @@ import concurrent.futures
 from itertools import repeat
 
 import numpy as np
+from skimage.measure import block_reduce
 
 ##############################################################################
 # Generic functions used throughout the finite volume code
@@ -18,6 +19,44 @@ def gauss_func(x, params):
 # Generic sin function
 def sine_func(x, params):
     return params['y_offset'] + params['ampl']*np.sin(params['freq']*np.pi*x)
+
+
+# Resample grid to populate cell variables; value in grid cell is weighted by area covered
+def resample_grid(grid, sim_variables, resample_size=100):
+    cells, dimensions, multidimensional, axis_coord, shock_pos = sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.axis_coord, sim_variables.shock_pos
+
+    _grid = np.copy(grid)
+    fine_grid = np.resize(np.zeros_like(grid), np.asarray(cells)*resample_size)
+
+    physical_space = lambda coord_set: np.linspace(coord_set[0], coord_set[1], resample_size*coord_set[2])
+
+    x_shape = axis_coord[0] + [int(cells[0]),]
+    x_centre = np.average(axis_coord[0])
+    x = np.meshgrid(physical_space(x_shape))
+    fine_r = x - x_centre
+
+    if multidimensional:
+        y_shape = axis_coord[1] + [int(cells[1]),]
+        y_centre = np.average(axis_coord[1])
+        x, y = np.meshgrid(physical_space(x_shape), physical_space(y_shape), indexing='ij')
+        fine_r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
+
+        if dimensions == 3:
+            z_shape = axis_coord[2] + [int(cells[2]),]
+            z_centre = np.average(axis_coord[2])
+            x, y, z = np.meshgrid(physical_space(x_shape), physical_space(y_shape), physical_space(z_shape), indexing='ij')
+            fine_r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2 + (z-z_centre)**2)
+
+    mask = np.where(fine_r**2 <= (shock_pos-x_centre)**2)
+
+    fine_grid[mask] = 1
+    remapped_grid = block_reduce(fine_grid, block_size=tuple([resample_size,]*dimensions), func=np.sum)
+    weight = remapped_grid/np.max(remapped_grid)
+
+    mask = np.where(weight > 0)
+    _grid[mask] = _grid[mask] * weight[mask][...,None]
+
+    return _grid
 
 
 # Magic function to make errors disappear (!! physics would most likely be messed up so be very careful using this function !!)
