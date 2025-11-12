@@ -1,23 +1,24 @@
 import numpy as np
 
-from functions import fv
+from functions import analytic, fv
 from functions.generic import verbose_timer
 
 ##############################################################################
 # Functions for constructing objects such as the grid, eigenvectors, Jacobian and flux terms
 ##############################################################################
 
+# Create a physical grid for a single axis
+def make_physical_grid(axis_coord, cells):
+    start_pos, end_pos = axis_coord
+    dh = np.abs(np.diff(axis_coord)[0])/cells
+    half_cell = dh/2
+    return np.linspace(start_pos-half_cell, end_pos+half_cell, cells+2)[1:-1]
+
+
 # Initialise the discrete POINTWISE solution array with initial conditions and primitive variables w, and transform into discrete AVERAGES <w>
 # For magnetohydrodynamics, this returns a staggered grid
 @verbose_timer
 def initialise(sim_variables):
-
-    # Create a physical grid for a single axis
-    def make_physical_grid(_coord, _cells):
-        start_pos, end_pos = _coord
-        dh = np.abs(np.diff(_coord)[0])/_cells
-        half_cell = dh/2
-        return np.linspace(start_pos-half_cell, end_pos+half_cell, _cells+2)[1:-1]
 
     config, cells, gamma, dimensions, multidimensional, precision = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.precision
     rho, vx, vy, vz, pressure, Bx, By, Bz = sim_variables.rho, sim_variables.vx, sim_variables.vy, sim_variables.vz, sim_variables.pressure, sim_variables.Bx, sim_variables.By, sim_variables.Bz
@@ -46,6 +47,7 @@ def initialise(sim_variables):
             if "sedov" in config or "blast" in config:
                 mask = np.where(r**2 <= (shock_pos-x_centre)**2)
                 computational_grid[mask] = initial_left
+                computational_grid = analytic.resample_blast(computational_grid, sim_variables)
                 if config.startswith("mhd"):
                     computational_grid[...,5+axes] = params['ampl']
 
@@ -77,7 +79,7 @@ def initialise(sim_variables):
             if "sedov" in config or "blast" in config:
                 mask = np.where(r**2 <= (shock_pos-x_centre)**2)
                 computational_grid[mask] = initial_left
-                computational_grid = fv.resample_grid(computational_grid, sim_variables)
+                computational_grid = analytic.resample_blast(computational_grid, sim_variables)
                 if config.startswith("mhd"):
                     computational_grid[...,5+axes] = params['ampl']
 
@@ -198,6 +200,9 @@ def initialise(sim_variables):
         else:
             mask = np.where(x <= shock_pos)
         computational_grid[mask] = initial_left
+
+        if "sedov" in config or "blast" in config:
+            computational_grid = analytic.resample_blast(computational_grid, sim_variables)
 
         if config.startswith("mhd"):
             computational_grid[...,5+axes] = params['ampl']

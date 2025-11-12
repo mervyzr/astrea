@@ -22,7 +22,7 @@ def generate_test_conditions(config_variables):
     elif "sedov" in config:
         axis_coord = [-10,10]
         shock_pos = .5
-        t_end = 1
+        t_end = 2
         boundary = "wrap"  # periodic
         initial_left = np.array([1,0,0,0,100,0,0,0])
         initial_right = np.array([1,0,0,0,1e-12,0,0,0])

@@ -26,6 +26,7 @@ from static import tests
 # Globals
 SAVE_DIR = "saved_data"
 SEED = np.random.randint(0, 1e8)
+np.set_printoptions(linewidth=1000, suppress=True)
 
 
 # Finite volume simulation
