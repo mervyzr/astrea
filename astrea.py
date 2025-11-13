@@ -4,6 +4,7 @@ import os
 import sys
 import shutil
 import signal
+import warnings
 import traceback
 from datetime import datetime
 from time import perf_counter, process_time
@@ -26,8 +27,10 @@ from static import tests
 # Globals
 SAVE_DIR = "saved_data"
 SEED = np.random.randint(0, 1e8)
-np.set_printoptions(linewidth=1000, suppress=True)
 
+# Global settings
+warnings.filterwarnings('ignore')
+np.set_printoptions(linewidth=1000, suppress=True)
 
 # Finite volume simulation
 def core_run(sim_variables, **kwargs):
