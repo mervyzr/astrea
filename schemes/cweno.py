@@ -130,3 +130,70 @@ def run(grid, sim_variables, axis):
     data['fluxes'] = np.diff(intf_fluxes_cntrd, axis=axis)/ds[axis]
 
     return data
+
+
+
+
+
+
+    ### EVERYTHING BELOW IS FOLLOWING THE PAPER BY LEVY 1999 ###
+
+    """# Compute the coefficients in the parabolic interpolant R_j(x) [eq. 3.10]
+    u_tilde = lambda _order, _stencil: reconstruct(_order, _stencil, cells=[minus_two, minus_one, zeroth, plus_one, plus_two])
+    uj_zeroth = (
+        wj_minus * (u_tilde('', -1) + h*u_tilde('prime', -1) + .5*u_tilde('primeprime', -1)*h**2)
+        + wj_zero * u_tilde('', 0)
+        + wj_plus * (u_tilde('', +1) - h*u_tilde('prime', +1) + .5*u_tilde('primeprime', +1)*h**2)
+    )
+    uj_first = (
+        wj_minus * (u_tilde('prime', -1) + h*u_tilde('primeprime', -1))
+        + wj_zero * u_tilde('prime', 0)
+        + wj_plus * (u_tilde('prime', +1) - h*u_tilde('primeprime', +1))
+    )
+    uj_second = (
+        wj_minus * u_tilde('primeprime', -1)
+        + wj_zero * u_tilde('primeprime', 0)
+        + wj_plus * u_tilde('primeprime', +1)
+    )
+
+    # CWENO reconstruction [Levy et al., 1999, 2000]
+    # |               w(i-1/2)            w(i+1/2)                |
+    # |  i-1           -->|   i            -->|  i+1           -->|
+    # |        w_R(i-1)   |          w_R(i)   |        w_R(i+1)   |
+
+    # Compute the parabolic interpolant at the interfaces R_j(x+1/2) [eq. 3.9]
+    Rj = uj_zeroth + uj_first*h/2 + .5*uj_second*(h/2)**2
+    if magnetic:
+        Rj[...,5+axes] = grid[...,5+axes]
+
+        # Magnetic transverse interfaces reconstructed longitudinal to the axis (returns [ prim_plus, prim_minus ]); will be used for orthogonal axes later
+        if multidimensional:
+            data['ortho_interfaces'] = ct.reconstruct_transverse(grid, sim_variables, axis=axis)
+
+
+    # Compute the fluxes (NO NEED FOR RIEMANN SOLVERS)
+    flux = constructor.make_flux(Rj, sim_variables, axis=axis)
+    padded_flux_2 = fv.add_boundary(flux, sim_variables, stencil=2, axis=axis)
+    padded_flux = fv.slice_(padded_flux_2, axis, *[1,-1])
+
+    fz = np.copy(flux)
+    fm1, fm2 = fv.slice_(padded_flux, axis, end=-2), fv.slice_(padded_flux_2, axis, end=-4)
+    fp1, fp2 = fv.slice_(padded_flux, axis, start=2), fv.slice_(padded_flux_2, axis, start=4)
+
+    # Compute the non-linear weights for fluxes
+    denominator = (
+        alpha(dC_minus, IS_minus([fm2, fm1, fz]))
+        + alpha(dC_zero, IS_zero([fm1, fz, fp1]))
+        + alpha(dC_plus, IS_plus([fz, fp1, fp2]))
+    )
+    wj_minus = fv.divide(alpha(dC_minus, IS_minus([fm2, fm1, fz])), denominator)
+    wj_zero = fv.divide(alpha(dC_zero, IS_zero([fm1, fz, fp1])), denominator)
+    wj_plus = fv.divide(alpha(dC_plus, IS_plus([fz, fp1, fp2])), denominator)
+
+    # Compute the intermediate flux values [eq. 3.17]
+    f_tilde = lambda _order, _stencil: reconstruct(_order, _stencil, cells=[fm2, fm1, fz, fp1, fp2])
+    flux_first = (
+        wj_minus * (f_tilde('prime', -1) + h*f_tilde('primeprime', -1))
+        + wj_zero * f_tilde('prime', 0)
+        + wj_plus * (f_tilde('prime', +1) - h*f_tilde('primeprime', +1))
+    )"""
