@@ -78,7 +78,7 @@ def plot(save=False, title=False):
                         time_evo = f.attrs['time_evo']
                         solver = f.attrs['solver']
 
-                        axis_coord = f.attrs['axis_coord']
+                        axis_coord = {axis:coord for axis, coord in enumerate(f.attrs['axis_coord'])}
 
                         fig, ax, plot_ = make_figure(plot_options, dimensions, axis_coord)
                         data = make_data(plot_options, grid, dimensions, gamma, permeability)

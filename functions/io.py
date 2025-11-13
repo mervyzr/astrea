@@ -333,7 +333,7 @@ def write_chkpt_file(grid, t, idx, sim_variables):
         f.attrs['subgrid'] = sim_variables.subgrid
         f.attrs['time_evo'] = sim_variables.time_evo
         f.attrs['solver'] = sim_variables.solver
-        f.attrs['axis_coord'] = sim_variables.axis_coord
+        f.attrs['axis_coord'] = tuple(sim_variables.axis_coord.values())
 
         f.create_dataset('grid', data=grid, compression="gzip", compression_opts=9)
 
