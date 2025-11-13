@@ -160,7 +160,7 @@ def calculate_Sod_analytical(grid, t, sim_variables):
 
 
 # Resample grid for circular blast injection to populate cell variables with a circle/sphere; value in grid cell is weighted by area/volume covered
-def resample_blast(grid, sim_variables, resample_size=100):
+def resample_blast(grid, sim_variables, resample_size=50):
     print(f"{generic.BColours.WARNING}Blast config. used; supersampling initialised grid before starting simulation for better resolution..{generic.BColours.ENDC}")
     cells, dimensions, multidimensional, axis_coord, shock_pos = sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.axis_coord, sim_variables.shock_pos
 
