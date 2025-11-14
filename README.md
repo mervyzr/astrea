@@ -29,7 +29,6 @@
 - [Installation](#installation)
 - [Usage](#usage)
 - [Organisation](#organisation)
-- [References](#references)
 
 
 <a name="description"></a>
@@ -131,52 +130,140 @@ HI, HII, H2, CII, CO, O, OH, e-
 
 Several (magneto)hydrodynamics tests are in place:
 
-- Hydrodynamics
-  - One-dimensional:
-    - Sod shock tube (Sod, 1978)
-    - Sedov blast wave (Sedov, 1946)
-    - Slow-moving shockwave (Zingale, 2023, p.148)
-    - Shu-Osher shockwave (Shu & Osher, 1988)
-    - Toro tests (Toro, 1999, p.225)
-    - Smooth advection wave tests
-      - Gaussian wave
-      - sine-wave
-  - Two-dimensional:
-    - Sedov blast wave
-    - Kelvin-Helmholtz instability
-    - Noh problem (Noh, 1987)
-    - Gresho vortex (Gresho & Chan, 1990)
-    - "Lax-Liu tests" (Lax & Liu, 1998)
-    - Isentropic vortex (Pang & Wu, 2025)
-    - Smooth advection wave tests
-      - Gaussian wave
-      - sine-wave
-  - Three-dimensional:
-    - Sedov blast wave
-    - Smooth advection wave tests
-      - Gaussian wave
-      - sine-wave
+<ul>
+  <li>Hydrodynamics</li>
+  <details>
+  <summary>One-dimensional</summary>
+  <ul>
+    <li>Sod shock tube (Sod, 1978)</li>
+    <li>Sedov blast wave (Sedov, 1946)</li>
+    <li>Slow-moving shockwave (Zingale, 2023, p.148)</li>
+    <li>Shu-Osher shockwave (Shu & Osher, 1988)</li>
+    <li>Toro tests (Toro, 1999, p.225)</li>
+    <li>Smooth advection wave tests</li>
+    <ul>
+      <li>Gaussian wave</li>
+      <li>sine-wave</li>
+    </ul>
+  </ul>
+  </details>
+  <details>
+  <summary>Two-dimensional</summary>
+  <ul>
+    <li>Sedov blast wave (Sedov, 1946)</li>
+    <li>Kelvin-Helmholtz instability</li>
+    <li>Noh problem (Noh, 1987)</li>
+    <li>Gresho vortex (Gresho & Chan, 1990)</li>
+    <li>"Lax-Liu tests" (Lax & Liu, 1998)</li>
+    <li>Isentropic vortex (Pang & Wu, 2025)</li>
+    <li>Smooth advection wave tests</li>
+    <ul>
+      <li>Gaussian wave</li>
+      <li>sine-wave</li>
+    </ul>
+  </ul>
+  </details>
+  <details>
+  <summary>Three-dimensional</summary>
+  <ul>
+    <li>Sedov blast wave</li>
+    <li>Smooth advection wave tests</li>
+    <ul>
+      <li>Gaussian wave</li>
+      <li>sine-wave</li>
+    </ul>
+  </ul>
+  </details>
+</ul>
 
-- Magnetohydrodynamics
-  - One-dimensional:
-    - Ryu-Jones 2a shockwave (Ryu & Jones, 1995)
-    - Brio-Wu shockwave (Brio & Wu, 1988)
-  - Two-dimensional:
-    - Circular polarised Alfvén wave (Balsara & Spicer, 1999)
-    - Magnetised Kelvin-Helmholtz instability
-    - Orszag-Tang vortex (Orszag & Tang, 1998)
-    - MHD vortex (Balsara, 2004)
-    - MHD rotor (Balsara & Spicer, 1999)
-    - MHD blast wave (Londrillo & Del Zanna, 2000)
-    - MHD current sheet (Gardiner & Stone, 2005)
-    - Shock cloud (Dai & Woodward, 1998)
-    - Astrophysical jet (Wu & Shu, 2018)
-  - Three-dimensional:
-    - Orszag-Tang vortex (Orszag & Tang, 1998)
-    - MHD vortex (Mignone et al., 2010)
-    - MHD blast wave (Londrillo & Del Zanna, 2000)
+<ul>
+  <li>Magnetohydrodynamics</li>
+  <details>
+  <summary>One-dimensional</summary>
+  <ul>
+    <li>Ryu-Jones 2a shockwave (Ryu & Jones, 1995)</li>
+    <li>Brio-Wu shockwave (Brio & Wu, 1988)</li>
+  </ul>
+  </details>
+  <details>
+  <summary>Two-dimensional</summary>
+  <ul>
+    <li>Circular polarised Alfvén wave (Balsara & Spicer, 1999)</li>
+    <li>Magnetised Kelvin-Helmholtz instability</li>
+    <li>Orszag-Tang vortex (Orszag & Tang, 1998)</li>
+    <li>MHD vortex (Balsara, 2004)</li>
+    <li>MHD rotor (Balsara & Spicer, 1999)</li>
+    <li>MHD blast wave (Londrillo & Del Zanna, 2000)</li>
+    <li>MHD current sheet (Gardiner & Stone, 2005)</li>
+    <li>Shock cloud (Dai & Woodward, 1998)</li>
+    <li>Astrophysical jet (Wu & Shu, 2018)</li>
+  </ul>
+  </details>
+  <details>
+  <summary>Three-dimensional</summary>
+  <ul>
+    <li>Orszag-Tang vortex (Orszag & Tang, 1998)</li>
+    <li>MHD vortex (Mignone et al., 2010)</li>
+    <li>MHD blast wave (Londrillo & Del Zanna, 2000)</li>
+  </ul>
+  </details>
+</ul>
 
 Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussian wave test and the sine wave test are overplotted in the saved plots. The solution error norms are also calculated when the smooth advection wave tests are run (Gaussian & sine waves).
+
+<details>
+  <summary><p style="font-size:18px; font-weight:bold; display:inline">References</p></summary>
+  <ol>
+    <li>Balsara, D. S., & Spicer, D. S. (1999). A Staggered Mesh Algorithm Using High Order Godunov Fluxes to Ensure Solenoidal Magnetic Fields in Magnetohydrodynamic Simulations. Journal of Computational Physics, 149, 270–292.</li>
+    <li>Beam, R. M., & Warming, R. F. (1976). An implicit finite-difference algorithm for hyperbolic systems in conservation-law form. Journal of Computational Physics, 22(1), 87-110.</li>
+    <li>Brio, M., & Wu, C. C. (1988). An upwind diﬀerencing scheme for the equations of ideal magnetohydrodynamics. Journal of Computational Physics, 75(2), 400–422.</li>
+    <li>Butcher, J. C. (1975). A stability property of implicit Runge-Kutta methods. BIT, 15(4), 358–361.</li>
+    <li>Cargo, P., & Gallice, G. (1997). Roe Matrices for Ideal MHD and Systematic Construction of Roe Matrices for Systems of Conservation Laws. Journal of Computational Physics, 136(2), 446–466.</li>
+    <li>Colella, P., Dorr, M. R., Hittinger, J. A. F., & Martin, D. F. (2011). High-order, finite-volume methods in mapped coordinates. Journal of Computational Physics, 230(8), 2952–2976.</li>
+    <li>Dedner, A., Kemm, F., Kröner, F., Munz, C.-D., Schnitzer, T., & Wesenberg, M. (2002). Hyperbolic Divergence Cleaning for the MHD Equations. Journal of Computational Physics, 175(2), 645-673.</li>
+    <li>Derigs, D., Gassner, G. J., Walch, S., & Winters, A. R. (2017). Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics (arXiv:1708.03537). arXiv.</li>
+    <li>Dumbser, M., & Toro, E. F. (2011). A Simple Extension of the Osher Riemann Solver to Non-conservative Hyperbolic Systems. Journal of Scientific Computing, 48(1–3), 70–88.</li>
+    <li>Evans, C. R., & Hawley, J. F. (1988). Simulation of Magnetohydrodynamic Flows: A Constrained Transport Model. The Astrophysical Journal, 332, 659.</li>
+    <li>Felker, K. G., & Stone, J. (2018). A fourth-order accurate finite volume method for ideal MHD via upwind constrained transport. Journal of Computational Physics, 375, 1365–1400.</li>
+    <li>Fleischmann, N., Adami, S., & Adams, N. A. (2020). A shock-stable modification of the HLLC Riemann solver with reduced numerical dissipation. Journal of Computational Physics, 423, 109762.</li>
+    <li>Fromm, J. E. (1968). A method for reducing dispersion in convective difference schemes. Journal of Computational Physics, 3, 176.</li>
+    <li>Gardiner, T. A. & Stone, J. M. (2005). An unsplit Godunov method for ideal MHD via constrained transport. Journal of Computational Physics, 205(2), 509–539.</li>
+    <li>Godunov, S. K. (1959). A Difference Scheme for Numerical Solution of Discontinuous Solution of Hydrodynamic Equations. Mat. Sbornik, 47, 271-306. Translated US Joint Publ. Res. Service, JPRS 7226, 1969</li>
+    <li>Gottlieb, S., Ketcheson, D. I., & Shu, C.-W. (2009). High Order Strong Stability Preserving Time Discretizations. Journal of Scientific Computing, 38(3), 251–289.</li>
+    <li>Grosheintz-Laval, L., & Käppeli, R. (2019). High-order well-balanced finite volume schemes for the Euler equations with gravitation. Journal of Computational Physics, 378, 324-343.</li>
+    <li>Harten, A. (1983). High Resolution Schemes for Hyperbolic Conservation Laws. Journal of Computational Physics, 49(3), 357–393.</li>
+    <li>Helzel, C., Rossmanith, J. A., & Taetz, B. (2011). An unstaggered constrained transport method for the 3D ideal magnetohydrodynamic equations. Journal of Computational Physics, 230(10), 3803-3829.</li>
+    <li>Ketcheson, D. I. (2008). Highly Efficient Strong Stability-Preserving Runge–Kutta Methods with Low-Storage Implementations. SIAM Journal on Scientific Computing, 30(4), 2113–2136.</li>
+    <li>Kraaijevanger, J. F. B. M. (1991). Contractivity of Runge-Kutta methods. BIT, 31(3), 482–528.</li>
+    <li>Lax, P. D., & Wendroff, B. (1960). Systems of conservation laws. Commun. Pure Appl. Math. 13 (2), 217–237.</li>
+    <li>Lax, P. D., & Liu, X.-D. (1998). Solution of Two-Dimensional Riemann Problems of Gas Dynamics by Positive Schemes. SIAM Journal on Scientific Computing, 19(2), 319–340.</li>
+    <li>LeVeque, R. J. (1992). Numerical Methods for Conservation Laws (2nd ed.). Birkhäuser Basel.</li>
+    <li>Levy, D., Puppo, G., & Russo, G. (1999). Central WENO Schemes for Hyperbolic Systems of Conservation Laws. Mathematical Modelling and Numerical Analysis, 33(3), 547-571.</li>
+    <li>Levy, D., Puppo, G., & Russo, G. (2000). Compact Central WENO Schemes for Multidimensional Conservation Laws. SIAM Journal on Scientific Computing, 22(2), 656-672.</li>
+    <li>McCorquodale, P., & Colella, P. (2011). A high-order finite-volume method for conservation laws on locally refined grids. Communications in Applied Mathematics and Computational Science, 6(1), 1–25.</li>
+    <li>Mignone, A. & Del Zanna, L. (2021). Systematic construction of upwind constrained transport schemes for MHD. Journal of Computational Physics, 424, 109748.</li>
+    <li>Miyoshi, T., & Kusano, K. (2005). A multi-state HLL approximate Riemann solver for ideal magnetohydrodynamics. Journal of Computational Physics, 208(1), 315–344.</li>
+    <li>Noh, W. F. (1987). Errors for calculations of strong shocks using an artificial viscosity and an artificial heat flux. Journal of Computational Physics, 72(1), 78-120.</li>
+    <li>Orszag, S. A., & Tang, C.-M. (1979). Small-scale structure of two-dimensional magnetohydrodynamic turbulence. Journal of Fluid Mechanics, 90, 129-143.</li>
+    <li>Pfrommer, C., Springel, V., Ensslin, T. A., & Jubelgas, M. (2006). Detecting shock waves in cosmological smoothed particle hydrodynamics simulations. Monthly Notices of the Royal Astronomical Society, 367(1), 113–131.</li>
+    <li>Powell, K. G. (1994). An approximate Riemann solver for magnetohydrodynamics (that works in more than one dimension). NASA Technical Reports, NAS 1.26:194902.</li>
+    <li>Prince, P. J., & Dormand, J. R. (1981). High order embedded Runge-Kutta formulae. Journal of Computational and Applied Mathematics, 7(1), 67–75.</li>
+    <li>Roe, P., & Pike, J. (1984). Efficient Conservation and Utilisation of Approximate Riemann Solution. Computing Methods in Applied Science and Engineering, 6, pp. 499-558.</li>
+    <li>Ryu, D., & Jones, T. W. (1995). Numerical magetohydrodynamics in astrophysics: Algorithm and tests for one-dimensional flow. The Astrophysical Journal, 442, 228.</li>
+    <li>San, O., & Kara, K. (2015). Evaluation of Riemann flux solvers for WENO reconstruction schemes: Kelvin–Helmholtz instability. Computers & Fluids, 117, 24–41.</li>
+    <li>Sedov, L. I. (1946). Propagation of strong shock waves. Journal of Applied Mathematics and Mechanics, 10, 241-250.</li>
+    <li>Sod, G. A. (1978). A survey of several finite difference methods for systems of nonlinear hyperbolic conservation laws. Journal of Computational Physics, 27(1), 1-31.</li>
+    <li>Shu, C.-W., & Osher, S. (1988). Efficient implementation of essentially non-oscillatory shock-capturing schemes. Journal of Computational Physics, 77(2), 439–471.</li>
+    <li>Shu, C.-W. (2009). High Order Weighted Essentially Nonoscillatory Schemes for Convection Dominated Problems. SIAM Review, 51(1), 82–126.</li>
+    <li>Shu, F. (1991). Physics of Astrophysics, Vol. II: Gas Dynamics. New York: University Science Books.</li>
+    <li>Spiteri, R. J., & Ruuth, S. J. (2002). A New Class of Optimal High-Order Strong-Stability-Preserving Time Discretization Methods. SIAM Journal on Numerical Analysis, 40(2), 469–491.</li>
+    <li>Toro, E. F., Spruce, M., & Speares, W. (1994). Restoration of the Contact Surface in the HLL Riemann Solver. Shock Waves, 4, 25-34.</li>
+    <li>Toro, E. F., & Titarev, V. A. (2006). MUSTA fluxes for systems of conservation laws. Journal of Computational Physics, 216(2), 403–429.</li>
+    <li>Verma, P. S., Jean-Mathieu, T., & Müller, W.-C. (2018). Fourth-order accurate finite-volume CWENO scheme for astrophysical MHD problems. Monthly Notices of the Royal Astronomical Society, 482(1), 416-437.</li>
+    <li>Williamson, J. H. (1980). Low-storage Runge-Kutta schemes. Journal of Computational Physics, 35(1), 48–56.</li>
+    <li>Yee, H-C., Sandham, N., & Djomehri, M., (1999). Low dissipative high order shock-capturing methods using characteristic-based filters. Journal of Computational Physics, 150(1), 199-238.</li>
+  </ol>
+</details>
 
 
 <a name="installation"></a>
@@ -262,60 +349,5 @@ astrea.run(*globals)
 │   ├── constants.py     : Conversion between code units & CGS units
 |   ├── *.gif            : .gif files for graphics in README.md
 │   ├── plot_chkpt.py    : Plotting function for checkpoint files
-│   ├── requirements.txt : Full Python package requirements
 │   ├── tests.py         : Initial conditions for (magneto)hydrodynamics tests
 ```
-
-
-<a name="references"></a>
-
-## References
-
-1. Balsara, D. S., & Spicer, D. S. (1999). A Staggered Mesh Algorithm Using High Order Godunov Fluxes to Ensure Solenoidal Magnetic Fields in Magnetohydrodynamic Simulations. Journal of Computational Physics, 149, 270–292.
-1. Beam, R. M., & Warming, R. F. (1976). An implicit finite-difference algorithm for hyperbolic systems in conservation-law form. Journal of Computational Physics, 22(1), 87-110.
-1. Brio, M., & Wu, C. C. (1988). An upwind diﬀerencing scheme for the equations of ideal magnetohydrodynamics. Journal of Computational Physics, 75(2), 400–422.
-1. Butcher, J. C. (1975). A stability property of implicit Runge-Kutta methods. BIT, 15(4), 358–361.
-1. Cargo, P., & Gallice, G. (1997). Roe Matrices for Ideal MHD and Systematic Construction of Roe Matrices for Systems of Conservation Laws. Journal of Computational Physics, 136(2), 446–466.
-1. Colella, P., Dorr, M. R., Hittinger, J. A. F., & Martin, D. F. (2011). High-order, finite-volume methods in mapped coordinates. Journal of Computational Physics, 230(8), 2952–2976.
-1. Dedner, A., Kemm, F., Kröner, F., Munz, C.-D., Schnitzer, T., & Wesenberg, M. (2002). Hyperbolic Divergence Cleaning for the MHD Equations. Journal of Computational Physics, 175(2), 645-673.
-1. Derigs, D., Gassner, G. J., Walch, S., & Winters, A. R. (2017). Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics (arXiv:1708.03537). arXiv.
-1. Dumbser, M., & Toro, E. F. (2011). A Simple Extension of the Osher Riemann Solver to Non-conservative Hyperbolic Systems. Journal of Scientific Computing, 48(1–3), 70–88.
-1. Evans, C. R., & Hawley, J. F. (1988). Simulation of Magnetohydrodynamic Flows: A Constrained Transport Model. The Astrophysical Journal, 332, 659.
-1. Felker, K. G., & Stone, J. (2018). A fourth-order accurate finite volume method for ideal MHD via upwind constrained transport. Journal of Computational Physics, 375, 1365–1400.
-1. Fleischmann, N., Adami, S., & Adams, N. A. (2020). A shock-stable modification of the HLLC Riemann solver with reduced numerical dissipation. Journal of Computational Physics, 423, 109762.
-1. Fromm, J. E. (1968). A method for reducing dispersion in convective difference schemes. Journal of Computational Physics, 3, 176.
-1. Gardiner, T. A. & Stone, J. M. (2005). An unsplit Godunov method for ideal MHD via constrained transport. Journal of Computational Physics, 205(2), 509–539.
-1. Godunov, S. K. (1959). A Difference Scheme for Numerical Solution of Discontinuous Solution of Hydrodynamic Equations. Mat. Sbornik, 47, 271-306. Translated US Joint Publ. Res. Service, JPRS 7226, 1969
-1. Gottlieb, S., Ketcheson, D. I., & Shu, C.-W. (2009). High Order Strong Stability Preserving Time Discretizations. Journal of Scientific Computing, 38(3), 251–289.
-1. Grosheintz-Laval, L., & Käppeli, R. (2019). High-order well-balanced finite volume schemes for the Euler equations with gravitation. Journal of Computational Physics, 378, 324-343.
-1. Harten, A. (1983). High Resolution Schemes for Hyperbolic Conservation Laws. Journal of Computational Physics, 49(3), 357–393.
-1. Helzel, C., Rossmanith, J. A., & Taetz, B. (2011). An unstaggered constrained transport method for the 3D ideal magnetohydrodynamic equations. Journal of Computational Physics, 230(10), 3803-3829.
-1. Ketcheson, D. I. (2008). Highly Efficient Strong Stability-Preserving Runge–Kutta Methods with Low-Storage Implementations. SIAM Journal on Scientific Computing, 30(4), 2113–2136.
-1. Kraaijevanger, J. F. B. M. (1991). Contractivity of Runge-Kutta methods. BIT, 31(3), 482–528.
-1. Lax, P. D., & Wendroff, B. (1960). Systems of conservation laws. Commun. Pure Appl. Math. 13 (2), 217–237.
-1. Lax, P. D., & Liu, X.-D. (1998). Solution of Two-Dimensional Riemann Problems of Gas Dynamics by Positive Schemes. SIAM Journal on Scientific Computing, 19(2), 319–340.
-1. LeVeque, R. J. (1992). Numerical Methods for Conservation Laws (2nd ed.). Birkhäuser Basel.
-1. Levy, D., Puppo, G., & Russo, G. (1999). Central WENO Schemes for Hyperbolic Systems of Conservation Laws. Mathematical Modelling and Numerical Analysis, 33(3), 547-571.
-1. Levy, D., Puppo, G., & Russo, G. (2000). Compact Central WENO Schemes for Multidimensional Conservation Laws. SIAM Journal on Scientific Computing, 22(2), 656-672.
-1. McCorquodale, P., & Colella, P. (2011). A high-order finite-volume method for conservation laws on locally refined grids. Communications in Applied Mathematics and Computational Science, 6(1), 1–25.
-1. Mignone, A. & Del Zanna, L. (2021). Systematic construction of upwind constrained transport schemes for MHD. Journal of Computational Physics, 424, 109748.
-1. Miyoshi, T., & Kusano, K. (2005). A multi-state HLL approximate Riemann solver for ideal magnetohydrodynamics. Journal of Computational Physics, 208(1), 315–344.
-1. Noh, W. F. (1987). Errors for calculations of strong shocks using an artificial viscosity and an artificial heat flux. Journal of Computational Physics, 72(1), 78-120.
-1. Orszag, S. A., & Tang, C.-M. (1979). Small-scale structure of two-dimensional magnetohydrodynamic turbulence. Journal of Fluid Mechanics, 90, 129-143.
-1. Pfrommer, C., Springel, V., Ensslin, T. A., & Jubelgas, M. (2006). Detecting shock waves in cosmological smoothed particle hydrodynamics simulations. Monthly Notices of the Royal Astronomical Society, 367(1), 113–131.
-1. Powell, K. G. (1994). An approximate Riemann solver for magnetohydrodynamics (that works in more than one dimension). NASA Technical Reports, NAS 1.26:194902.
-1. Prince, P. J., & Dormand, J. R. (1981). High order embedded Runge-Kutta formulae. Journal of Computational and Applied Mathematics, 7(1), 67–75.
-1. Roe, P., & Pike, J. (1984). Efficient Conservation and Utilisation of Approximate Riemann Solution. Computing Methods in Applied Science and Engineering, 6, pp. 499-558.
-1. Ryu, D., & Jones, T. W. (1995). Numerical magetohydrodynamics in astrophysics: Algorithm and tests for one-dimensional flow. The Astrophysical Journal, 442, 228.
-1. San, O., & Kara, K. (2015). Evaluation of Riemann flux solvers for WENO reconstruction schemes: Kelvin–Helmholtz instability. Computers & Fluids, 117, 24–41.
-1. Sedov, L. I. (1946). Propagation of strong shock waves. Journal of Applied Mathematics and Mechanics, 10, 241-250.
-1. Sod, G. A. (1978). A survey of several finite difference methods for systems of nonlinear hyperbolic conservation laws. Journal of Computational Physics, 27(1), 1-31.
-1. Shu, C.-W., & Osher, S. (1988). Efficient implementation of essentially non-oscillatory shock-capturing schemes. Journal of Computational Physics, 77(2), 439–471.
-1. Shu, F. (1991). Physics of Astrophysics, Vol. II: Gas Dynamics. New York: University Science Books.
-1. Shu, C.-W. (2009). High Order Weighted Essentially Nonoscillatory Schemes for Convection Dominated Problems. SIAM Review, 51(1), 82–126.
-1. Spiteri, R. J., & Ruuth, S. J. (2002). A New Class of Optimal High-Order Strong-Stability-Preserving Time Discretization Methods. SIAM Journal on Numerical Analysis, 40(2), 469–491.
-1. Toro, E. F., Spruce, M., & Speares, W. (1994). Restoration of the Contact Surface in the HLL Riemann Solver. Shock Waves, 4, 25-34.
-1. Toro, E. F., & Titarev, V. A. (2006). MUSTA fluxes for systems of conservation laws. Journal of Computational Physics, 216(2), 403–429.
-1. Verma, P. S., Jean-Mathieu, T., & Müller, W.-C. (2018). Fourth-order accurate finite-volume CWENO scheme for astrophysical MHD problems. Monthly Notices of the Royal Astronomical Society, 482(1), 416-437.
-1. Williamson, J. H. (1980). Low-storage Runge-Kutta schemes. Journal of Computational Physics, 35(1), 48–56.
-1. Yee, H-C., Sandham, N., & Djomehri, M., (1999). Low dissipative high order shock-capturing methods using characteristic-based filters. Journal of Computational Physics, 150(1), 199-238.
