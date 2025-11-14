@@ -184,55 +184,6 @@ def approx_face_avg(interfaces, sim_variables, axis):
     return [job for job in jobs]
 
 
-# 'Inverse reconstruct' the mag. fields' cell-averaged values from the (staggered grid) face-averaged values [Felker & Stone, 2018]
-def inverse_reconstruct(grid, sim_variables):
-    axes = sim_variables.axes
-    new_grid = np.copy(grid)
-
-    def per_axis(_grid, _sim_variables, axis):
-        ortho_axes = _sim_variables.axes[_sim_variables.axes != axis]
-
-        if _sim_variables.higher_order:
-            face_cntrd = np.copy(_grid)
-
-            if _sim_variables.multidimensional:
-                # Approximate the face-averaged values to face-centred values (eq. 38)
-                with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-                    jobs = inner_executor.map(laplacian, repeat(_grid), repeat(_sim_variables), ortho_axes)
-                    for idx, job in enumerate(jobs):
-                        face_cntrd -= (sim_variables.ds[ortho_axes[idx]]**2)/24 * job
-
-            # Interpolate the face-centred values to cell-centred values (eq. 39)
-            face_cntrd_padded_2 = add_boundary(face_cntrd, _sim_variables, stencil=2, axis=axis)
-            face_cntrd_padded = slice_(face_cntrd_padded_2, axis, *[1,-1])
-            cell_cntrd = -1/16 * (slice_(face_cntrd_padded, axis, end=-2) + slice_(face_cntrd_padded_2, axis, start=4)) \
-                        + 9/16 * (face_cntrd + slice_(face_cntrd_padded, axis, start=2))
-
-            # Apply Laplacian operator to convert cell-centred values to cell-averaged values (eq. 40)
-            cell_avgd = np.copy(cell_cntrd)
-            with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-                jobs = inner_executor.map(laplacian, repeat(cell_cntrd), repeat(_sim_variables), _sim_variables.axes)
-                for idx, job in enumerate(jobs):
-                    cell_avgd += (_sim_variables.ds[_sim_variables.axes[idx]]**2)/24 * job
-
-        elif _sim_variables.subgrid_category == 'plm':
-            padded_grid = add_boundary(_grid, _sim_variables, axis=axis)
-            cell_avgd = slice_(.5 * (slice_(padded_grid, axis, start=1) + slice_(padded_grid, axis, end=-1)), axis, start=1)
-
-        else:
-            cell_avgd = _grid
-
-        return cell_avgd
-
-    # Update the grid values with the updated B-field values
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        jobs = executor.map(per_axis, repeat(grid), repeat(sim_variables), axes)
-        for axis, Bfield in enumerate(jobs):
-            new_grid[...,5+axes[axis]] = Bfield[...,5+axes[axis]]
-
-    return new_grid
-
-
 # Compute the max eigenvalues for calculating the time evolution
 def compute_eigmax(characteristics, axis):
     # Local max eigenvalue for each cell (1- or 3-Riemann invariant; shock wave or rarefaction wave)

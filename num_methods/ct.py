@@ -105,6 +105,54 @@ def reconstruct_transverse(data, sim_variables, axis, method=None, eta=None):
     return ortho_interfaces
 
 
+# 'Inverse reconstruct' the mag. fields' cell-averaged values from the (staggered grid) face-averaged values [Felker & Stone, 2018]
+def inverse_reconstruct(grid, sim_variables):
+    axes = sim_variables.axes
+    new_grid = np.copy(grid)
+
+    def per_axis(_grid, _sim_variables, axis):
+        if _sim_variables.higher_order:
+            ortho_axes = _sim_variables.axes[_sim_variables.axes != axis]
+            face_cntrd = np.copy(_grid)
+
+            if _sim_variables.multidimensional:
+                # Approximate the face-averaged values to face-centred values (eq. 38)
+                with concurrent.futures.ThreadPoolExecutor() as inner_executor:
+                    jobs = inner_executor.map(fv.laplacian, repeat(_grid), repeat(_sim_variables), ortho_axes)
+                    for idx, job in enumerate(jobs):
+                        face_cntrd -= (sim_variables.ds[ortho_axes[idx]]**2)/24 * job
+
+            # Interpolate the face-centred values to cell-centred values (eq. 39)
+            face_cntrd_padded_2 = fv.add_boundary(face_cntrd, _sim_variables, stencil=2, axis=axis)
+            face_cntrd_padded = fv.slice_(face_cntrd_padded_2, axis, *[1,-1])
+            cell_cntrd = -1/16 * (fv.slice_(face_cntrd_padded, axis, end=-2) + fv.slice_(face_cntrd_padded_2, axis, start=4)) \
+                        + 9/16 * (face_cntrd + fv.slice_(face_cntrd_padded, axis, start=2))
+
+            # Apply Laplacian operator to convert cell-centred values to cell-averaged values (eq. 40)
+            cell_avgd = np.copy(cell_cntrd)
+            with concurrent.futures.ThreadPoolExecutor() as inner_executor:
+                jobs = inner_executor.map(fv.laplacian, repeat(cell_cntrd), repeat(_sim_variables), _sim_variables.axes)
+                for idx, job in enumerate(jobs):
+                    cell_avgd += (_sim_variables.ds[_sim_variables.axes[idx]]**2)/24 * job
+
+        elif _sim_variables.subgrid_category == 'plm':
+            padded_grid = fv.add_boundary(_grid, _sim_variables, axis=axis)
+            cell_avgd = fv.slice_(.5 * (fv.slice_(padded_grid, axis, start=1) + fv.slice_(padded_grid, axis, end=-1)), axis, start=1)
+
+        else:
+            cell_avgd = _grid
+
+        return cell_avgd
+
+    # Update the grid values with the updated B-field values
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        jobs = executor.map(per_axis, repeat(grid), repeat(sim_variables), axes)
+        for axis, Bfield in enumerate(jobs):
+            new_grid[...,5+axes[axis]] = Bfield[...,5+axes[axis]]
+
+    return new_grid
+
+
 # Compute the corner/line electric fields wrt to corner/line for each axis [Verma et al., 2018; Mignone & Del Zanna, 2020]
 def compute_emf(ortho_interfaces, alphas, axis, dissipative=False):
     abscissa, ordinate, applicate = (axis + np.array(range(3)))%3

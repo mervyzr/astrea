@@ -3,7 +3,6 @@ from itertools import repeat
 
 import numpy as np
 
-from functions import fv
 from num_methods import ct
 from schemes import pcm, plm, ppm, weno, cweno
 from functions.generic import verbose_timer
@@ -18,7 +17,7 @@ def evolve_space(grid, sim_variables, first_stage=False):
     multidimensional, subgrid_category, axes, magnetic = sim_variables.multidimensional, sim_variables.subgrid_category, sim_variables.axes, sim_variables.magnetic
 
     # Convert to primitive variables
-    centred_grid = fv.inverse_reconstruct(grid, sim_variables) if magnetic else grid
+    centred_grid = ct.inverse_reconstruct(grid, sim_variables) if magnetic else grid
     primitive = sim_variables.convert("conservative", centred_grid, sim_variables)
     primitive[...,5+axes] = grid[...,5+axes]
 

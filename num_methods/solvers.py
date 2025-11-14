@@ -1,6 +1,7 @@
 import numpy as np
 
 from functions import constructor, fv
+from num_methods import ct
 
 ##############################################################################
 # Approximate linearised and non-linearised Riemann solvers
@@ -53,7 +54,7 @@ def calculate_LaxWendroff_flux(axis, sim_variables, **kwargs):
     intermediate_cons = .5*(cons_minus+cons_plus) - .5*fv.divide(flux_plus-flux_minus, max_eigvals[...,None])
 
     # Convert to primitive grid again for flux computation
-    centred_grid = fv.inverse_reconstruct(intermediate_cons, sim_variables) if sim_variables.magnetic else intermediate_cons
+    centred_grid = ct.inverse_reconstruct(intermediate_cons, sim_variables) if sim_variables.magnetic else intermediate_cons
     intermediate_prim = sim_variables.convert("conservative", centred_grid, sim_variables)
     intermediate_prim[...,5+sim_variables.axes] = cons_plus[...,5+sim_variables.axes]
 
