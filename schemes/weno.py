@@ -11,7 +11,7 @@ from num_methods import ct, solvers
 ##############################################################################
 
 def reconstruct(grid, sim_variables, axis, order=5):
-    eps = np.finfo(sim_variables.precision).eps
+    eps = sim_variables.eps
 
     # Define frequently used terms
     padded_grid = fv.add_boundary(grid, sim_variables, axis=axis)

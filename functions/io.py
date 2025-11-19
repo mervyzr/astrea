@@ -86,13 +86,30 @@ def parse_cli_variables(config_variables, arguments):
     db, params = TinyDB(config_variables['db_path']), Query()
 
     skip_cases = [
-        'hdf5', 'home', 'db_path', 'plot_style', 'verbose', 'quiet', 
+        'hdf5', 'home', 'db_path', 'plot_style', 'verbose', 'quiet', 'eps', 
         'write_chkpt', 'test', 'chkpt_file', 'gravity', 'tracers', 
         'chemistry', 'network', 'abundances', 
     ]
 
     # Replace the relevant configuration variables with the additional arguments
     config_variables.update(arguments)
+
+    # Pre-process some variables that are needed for next section
+    try:
+        precision = config_variables['precision']
+    except KeyError:
+        precision = np.float64
+        config_variables['precision'] = precision
+    finally:
+        try:
+            eps = np.finfo(precision).eps
+        except ValueError:
+            #eps = 1e-16     # 64 bit
+            eps = 1e-7      # 32 bit
+        else:
+            if eps < 1e-14:
+                eps = 1e-29  # [Jiang & Shu, 1996]
+        config_variables['eps'] = eps
 
     # Check validity of variables; revert to default values if not valid
     for k,v in config_variables.items():
@@ -139,10 +156,10 @@ def parse_cli_variables(config_variables, arguments):
                     else:
                         v = 1.
             if k == "gamma" and v == 1:
-                v += np.finfo(config_variables['precision']).eps
+                v += eps
             if k == "cfl":
                 if v <= 0:
-                    v = np.finfo(config_variables['precision']).eps
+                    v = eps
                 elif v > 1:
                     v = 1
         elif k == "plot_options":
@@ -194,7 +211,7 @@ class SimulationVariables(object):
         'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
         'permeability', 'grav_constant', 'gravity', 'tracers', 
         'axes', 'magnetic', 'convert', 'roots', 'weights', 'ppm_dissipate', 'higher_order', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
-        'seed', 'now', 'elapsed', 'access_key', 'datetime', 'home', 'save_path', 'db_path', 'timesteps', 'print_status',
+        'seed', 'now', 'elapsed', 'access_key', 'datetime', 'eps', 'home', 'save_path', 'db_path', 'timesteps', 'print_status',
         'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test',
         'chemistry', 'network', 'pykrome', 'species', 'abundances',
     ]
@@ -330,6 +347,7 @@ def write_chkpt_file(grid, t, idx, sim_variables):
         f.attrs['permeability'] = sim_variables.permeability
         f.attrs['dimensions'] = sim_variables.dimensions
         f.attrs['precision'] = sim_variables.precision
+        f.attrs['eps'] = sim_variables.eps
         f.attrs['subgrid'] = sim_variables.subgrid
         f.attrs['time_evo'] = sim_variables.time_evo
         f.attrs['solver'] = sim_variables.solver
@@ -363,6 +381,7 @@ def load_chkpt_file(config_variables, file):
                 config_variables['permeability'] = float(f.attrs['permeability'])
                 config_variables['dimensions'] = int(f.attrs['dimensions'])
                 config_variables['precision'] = f.attrs['precision']
+                config_variables['eps'] = f.attrs['eps']
                 config_variables['subgrid'] = f.attrs['subgrid']
                 config_variables['time_evo'] = f.attrs['time_evo']
                 config_variables['solver'] = f.attrs['solver']

@@ -264,7 +264,7 @@ def calculate_Sedov_analytical(grid, t, sim_variables):
         try:
             dA, dB, dC = np.linalg.solve(coeffs, consts)
         except np.linalg.LinAlgError:
-            coeffs += np.eye(3) * np.finfo(sim_variables.precision).eps
+            coeffs += np.eye(3) * sim_variables.eps
             dA, dB, dC = np.linalg.solve(coeffs, consts)
 
         return [dA, dB, dC]

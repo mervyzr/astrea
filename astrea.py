@@ -235,6 +235,7 @@ def run(seed, save_dir) -> None:
                     grp.attrs['gamma'] = sim_variables.gamma
                     grp.attrs['dimensions'] = sim_variables.dimensions
                     grp.attrs['precision'] = sim_variables.precision
+                    grp.attrs['eps'] = sim_variables.eps
                     grp.attrs['subgrid'] = sim_variables.subgrid
                     grp.attrs['time_evo'] = sim_variables.time_evo
                     grp.attrs['solver'] = sim_variables.solver

@@ -20,7 +20,7 @@ def reconstruct(grid, sim_variables, axis):
     plus_one, plus_two = fv.slice_(padded_grid, axis, start=2), fv.slice_(padded_grid_2, axis, start=4)
 
     # Define the empirical parameters for Eq. 3.12
-    eps, power = np.finfo(sim_variables.precision).eps, 2
+    eps, power = sim_variables.eps, 2
 
     """CWENO reconstruction from cell averages to face averages (both sides) [Verma et al., 2018]
     |                        w(i-1/2)                    w(i+1/2)                       |
