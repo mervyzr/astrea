@@ -100,7 +100,24 @@ def evolve_time(grid, fluxes, dt, sim_variables):
         time_evo = sim_variables.time_evo.replace(',','').replace('(','').replace(')','').replace('ssprk','')
         register, order = int(time_evo[:-1]), int(time_evo[-1])
 
-        if order == 4:
+        if order == 5:
+            if register == 6:
+                # Evolve system by SSP-RK (6,5) method (5th-order); effective SSP coeff = 1.78
+
+                # Coefficients for SSP formulation
+                coeffs = [84449/(3**12), 313328/(5*3**11), 9344/(3**10), 137216/(3**12), (2**13)/(3**11), 0, (2**16)/(5*3**12)]
+
+                # Computation of i-th registers (i = 1,2,3,4,5,6)
+                k, expansion = np.copy(grid), 0
+                for _ in range(1,7):
+                    k += 9/16*dt*fluxes
+                    expansion += coeffs[_] * k
+                    if _ < 6:
+                        fluxes = evolve_space(k, sim_variables)
+
+                return coeffs[0]*grid + expansion
+
+        elif order == 4:
             if register == 10:
                 # Evolve system by SSP-RK (10,4) method (4th-order); effective SSP coeff = 0.6 [Ketcheson, 2008]
                 # Computation of i-th registers (i = 1,2,3,4)

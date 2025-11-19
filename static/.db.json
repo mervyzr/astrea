@@ -318,7 +318,10 @@
         "ssprk5,4",
         "ssprk(10,4)",
         "ssprk104",
-        "ssprk10,4"
+        "ssprk10,4",
+        "ssprk(6,)",
+        "ssprk65",
+        "ssprk6,5"
       ]
     },
     "17": {
