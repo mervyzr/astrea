@@ -111,23 +111,6 @@ def inverse_reconstruct(grid, sim_variables):
     new_grid = np.copy(grid)
 
     def per_axis(_grid, _sim_variables, axis):
-
-        #### VERMA ET AL ####
-        """if _sim_variables.higher_order:
-            padded_grid_2 = fv.add_boundary(_grid, _sim_variables, stencil=2, axis=axis)
-            padded_grid = fv.slice_(padded_grid_2, axis, *[1,-1])
-
-            zeroth = np.copy(_grid)
-            minus_one, minus_two = fv.slice_(padded_grid, axis, end=-2), fv.slice_(padded_grid_2, axis, end=-4)
-            plus_one, plus_two = fv.slice_(padded_grid, axis, start=2), fv.slice_(padded_grid_2, axis, start=4)
-
-            cell_avgd = 1/6 * (
-                zeroth + plus_one + .25 * (
-                    -minus_one + 9*zeroth + 9*plus_one - plus_two
-                )
-            )"""
-
-        #### FELKER & STONE ####
         if _sim_variables.higher_order:
             ortho_axes = _sim_variables.axes[_sim_variables.axes != axis]
             face_cntrd = np.copy(_grid)
