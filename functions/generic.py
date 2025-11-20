@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 import git
 import psutil
-import GPUtil
+import pynvml
 import numpy as np
 from tabulate import tabulate
 
@@ -35,6 +35,33 @@ def get_size(_bytes):
         if _bytes < factor:
             return f"{_bytes:.2f}{unit}B"
         _bytes /= factor
+
+
+def get_gpu_info():
+    pynvml.nvmlInit()
+
+    list_gpus = []
+    for i in range(pynvml.nvmlDeviceGetCount()):
+        handle = pynvml.nvmlDeviceGetHandleByIndex(i)
+        mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+        util = pynvml.nvmlDeviceGetUtilizationRates(handle)
+        temp = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
+        uuid = pynvml.nvmlDeviceGetUUID(handle)
+        name = pynvml.nvmlDeviceGetName(handle).decode("utf-8")
+
+        list_gpus.append((
+            i,                      # GPU id
+            name,                   # GPU name
+            f'{util.gpu}%',         # GPU load
+            get_size(mem_info.free),   # memory free
+            get_size(mem_info.used),   # memory used
+            get_size(mem_info.total),  # memory total
+            f'{temp} C',            # temperature
+            uuid                     # UUID
+        ))
+
+    pynvml.nvmlShutdown()
+    return list_gpus
 
 
 def verbose_timer(func):
@@ -139,8 +166,8 @@ def print_verbose(sim_variables, t=None, status=''):
             print(f'{"Used":>10} :    {get_size(swap.used)}')
 
         if gpu_info:
+            list_gpus = get_gpu_info()
             print('='*30, 'GPU Information', '='*30)
-            list_gpus = [(gpu.id, gpu.name, f'{gpu.load*100}%', f'{gpu.memoryFree}MB', f'{gpu.memoryUsed}MB', f'{gpu.memoryTotal}MB', f'{gpu.temperature} C', gpu.uuid) for gpu in GPUtil.getGPUs()]
             print(tabulate(list_gpus, headers=('id', 'name', 'load', 'free memory', 'used memory', 'total memory', 'temperature', 'uuid')))
 
         if dsk_info:
@@ -230,7 +257,9 @@ def print_verbose(sim_variables, t=None, status=''):
 
     else:
         try:
-            gpu_load = np.average([[gpu.load*100] for gpu in GPUtil.getGPUs()])
+            pynvml.nvmlInit()
+            gpu_load = np.average([[pynvml.nvmlDeviceGetUtilizationRates(pynvml.nvmlDeviceGetHandleByIndex(i)).gpu] for i in range(pynvml.nvmlDeviceGetCount())])
+            pynvml.nvmlShutdown()
         except Exception:
             gpu_load = '--'
         print('\n')

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-import os
 import sys
 import shutil
 import signal
 import warnings
 import traceback
+from pathlib import Path
 from datetime import datetime
 from time import perf_counter, process_time
 
@@ -134,11 +134,11 @@ def core_run(sim_variables, **kwargs):
 def run(seed=SEED, save_dir=SAVE_DIR) -> None:
     np.random.seed(seed)
 
-    current_dir = os.getcwd()
+    current_dir = Path(__file__).resolve().parent
     arguments = {}
 
     # Save the HDF5 file (with seed) to store the temporary data, if full_set_required
-    file_name = f"{current_dir}/.astrea_hdf5_temp_{seed}"
+    file_name = current_dir/f".astrea_hdf5_temp_{seed}"
     arguments['hdf5'] = file_name
 
     # Signal handler for Ctrl+C
@@ -147,9 +147,15 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
         print(f"{BColours.WARNING}Simulation end by SIGINT; exiting gracefully..{BColours.ENDC}")
         sys.exit(0)
 
+    # Copy static/.default.yml -> parameters.yml if missing
+    default = current_dir/"static"/".default.yml"
+    dest = current_dir/"parameters.yml"
+    if not dest.exists() and default.exists():
+        shutil.copy2(default, dest)
+
     # Generate the simulation variables from settings (dict); priority: checkpoint file > CLI > parameters.yml
     config_variables = {}
-    with open(f"{current_dir}/parameters.yml", "r") as settings_file:
+    with open(dest, "r") as settings_file:
         _config_variables = yaml.safe_load(settings_file)
 
         # Remove nested dictionary from config_variables
@@ -158,7 +164,7 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
                 config_variables[k] = v
 
     config_variables['home'] = current_dir
-    db_path = f"{current_dir}/static/.db.json"
+    db_path = current_dir/"static"/".db.json"
     config_variables['db_path'] = db_path
 
     # Check CLI arguments
@@ -193,15 +199,14 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
 
     ###################################### SCRIPT INITIATE ######################################
     script_start = datetime.now().strftime('%Y%m%d%H%M')
-    save_path = f"{current_dir}/{save_dir}/sim{script_start}_{seed}"
+    save_path = current_dir/f"{save_dir}/sim{script_start}_{seed}"
     sim_variables.save_path = save_path
 
     # Make directories if they do not exist
     if sim_variables.save_snaps or sim_variables.save_plots or sim_variables.save_video or sim_variables.save_file or sim_variables.write_chkpt:
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
-    if sim_variables.save_snaps and not os.path.exists(f"{save_path}/snapshots"):
-        os.makedirs(f"{save_path}/snapshots")
+        Path(save_path).mkdir(parents=True, exist_ok=True)
+    if sim_variables.save_snaps:
+        Path(save_path/"snapshots").mkdir(parents=True, exist_ok=True)
 
     # Run in a try-except-else to handle crashes and prevent exiting code entirely, with signal handler
     original_sigint_handler = signal.getsignal(signal.SIGINT)
@@ -271,9 +276,8 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
 
         if sim_variables.save_video:
             with h5py.File(file_name, "r") as f:
-                vidpath = f"{save_path}/.vidplots"
-                if not os.path.exists(vidpath):
-                    os.makedirs(vidpath)
+                vidpath = save_path/".vidplots"
+                Path(vidpath).mkdir(parents=True, exist_ok=True)
                 plotting.make_video(f, sim_variables, vidpath)
 
     # Exception handling; deletes the temporary HDF5 database to prevent clutter
@@ -288,7 +292,7 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
             if sim_variables.save_file:
                 shutil.move(file_name, f"{save_path}/astrea_{sim_variables.config}_{sim_variables.subgrid}_{sim_variables.time_evo}_{sim_variables.seed}.hdf5")
             else:
-                os.remove(file_name)
+                Path.unlink(file_name, missing_ok=True)
 
         signal.signal(signal.SIGINT, original_sigint_handler)
 
