@@ -270,7 +270,7 @@ Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussi
 
 # Installation
 
-Clone this repository onto your local machine, and navigate to the cloned repository. In the command line, run _`/path/to/python3 -m pip install .`_; this will install the minimum packages to run the simulation and create a `parameters.yml` file for simulation configurations.
+Clone this repository onto your local machine, and navigate to the cloned repository. In the command line, run _`/path/to/python3 -m pip install .`_; this will install the minimum packages to run the simulation. A `parameters.yml` file for simulation configurations will be created after running the simulation for the first time.
 
 
 <a name="usage"></a>
@@ -300,8 +300,8 @@ See _`--help`_ for a list of available options.
 _Running the code in a Python interactive shell is also possible, although this is generally not recommended:_
 
 ```python
-import astrea
-astrea.run(*globals)
+>>> import astrea
+>>> astrea.run()
 ```
 
 

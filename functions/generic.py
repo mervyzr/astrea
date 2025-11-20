@@ -166,9 +166,13 @@ def print_verbose(sim_variables, t=None, status=''):
             print(f'{"Used":>10} :    {get_size(swap.used)}')
 
         if gpu_info:
-            list_gpus = get_gpu_info()
             print('='*30, 'GPU Information', '='*30)
-            print(tabulate(list_gpus, headers=('id', 'name', 'load', 'free memory', 'used memory', 'total memory', 'temperature', 'uuid')))
+            try:
+                list_gpus = get_gpu_info()
+            except Exception:
+                print("Unable to obtain GPU information")
+            else:
+                print(tabulate(list_gpus, headers=('id', 'name', 'load', 'free memory', 'used memory', 'total memory', 'temperature', 'uuid')))
 
         if dsk_info:
             print('='*30, 'Disk Information', '='*30)
