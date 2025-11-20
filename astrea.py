@@ -131,7 +131,7 @@ def core_run(sim_variables, **kwargs):
 ##############################################################################
 
 # __main__ script; includes handlers and core execution of simulation
-def run(seed, save_dir) -> None:
+def run(seed=SEED, save_dir=SAVE_DIR) -> None:
     np.random.seed(seed)
 
     current_dir = os.getcwd()
@@ -295,4 +295,4 @@ def run(seed, save_dir) -> None:
     ###################################### SCRIPT END ######################################
 
 if __name__ == "__main__":
-    run(*[SEED, SAVE_DIR])
+    run()

@@ -44,6 +44,8 @@ setup(
         "psutil",
         "gputil",
         "tabulate",
+        "threadpoolctl",
+        "python-dotenv",
         "wheel",
         "setuptools",
     ],
