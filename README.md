@@ -212,7 +212,7 @@ Several (magneto)hydrodynamics tests are in place:
 Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussian wave test and the sine wave test are overplotted in the saved plots. The solution error norms are also calculated when the smooth advection wave tests are run (Gaussian & sine waves).
 
 <details>
-  <summary><p style="font-size:18px; font-weight:bold; display:inline">References</p></summary>
+  <summary>References</summary>
   <ol>
     <li>Balsara, D. S., & Spicer, D. S. (1999). A Staggered Mesh Algorithm Using High Order Godunov Fluxes to Ensure Solenoidal Magnetic Fields in Magnetohydrodynamic Simulations. Journal of Computational Physics, 149, 270–292.</li>
     <li>Beam, R. M., & Warming, R. F. (1976). An implicit finite-difference algorithm for hyperbolic systems in conservation-law form. Journal of Computational Physics, 22(1), 87-110.</li>
