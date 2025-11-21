@@ -92,11 +92,12 @@ def add_boundary(grid, sim_variables, stencil=1, axis=0):
 def convert_variable(variable, grid, sim_variables):
     rho, pressure, vels, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields
     energy, momentums = pressure, vels
+    gamma, permeability = sim_variables.gamma, sim_variables.constants.mu_0
 
     if variable.lower().startswith('p'):
-        return grid[...,pressure]/(sim_variables.gamma-1) + .5 * (grid[...,rho]*norm(grid[...,vels])**2 + (norm(grid[...,Bfields])**2)/sim_variables.permeability)
+        return grid[...,pressure]/(gamma-1) + .5 * (grid[...,rho]*norm(grid[...,vels])**2 + (norm(grid[...,Bfields])**2)/permeability)
     elif variable.lower().startswith('e') or 'energy' in variable.lower():
-        return (sim_variables.gamma-1) * (grid[...,energy] - .5 * (grid[...,rho]*norm(divide(grid[...,momentums], grid[...,rho][...,None]))**2 + (norm(grid[...,Bfields])**2)/sim_variables.permeability))
+        return (gamma-1) * (grid[...,energy] - .5 * (grid[...,rho]*norm(divide(grid[...,momentums], grid[...,rho][...,None]))**2 + (norm(grid[...,Bfields])**2)/permeability))
 
 
 # Pointwise (exact) conversion of conservative variables q <-> primitive variables w (up to 2nd-order accurate)

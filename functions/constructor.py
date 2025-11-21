@@ -222,7 +222,7 @@ def initialise(sim_variables):
 # Make flux as a function of cell-averaged (primitive) variables
 def make_flux(grid, sim_variables, axis):
     abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
-    gamma, permeability = sim_variables.gamma, sim_variables.permeability
+    gamma, permeability = sim_variables.gamma, sim_variables.constants.mu_0
 
     # In code units
     rhos, vels, pressures, Bfields = grid[...,sim_variables.rho], grid[...,sim_variables.vels], grid[...,sim_variables.pressure], grid[...,sim_variables.Bfields]
@@ -242,7 +242,7 @@ def make_flux(grid, sim_variables, axis):
 # Jacobian matrix based on primitive variables [Winters & Gassner, 2016]
 def make_Jacobian(grid, sim_variables, axis):
     abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
-    gamma, permeability = sim_variables.gamma, sim_variables.permeability
+    gamma, permeability = sim_variables.gamma, sim_variables.constants.mu_0
 
     # In code units
     rhos, vels, pressures, Bfields = grid[...,sim_variables.rho], grid[...,sim_variables.vels], grid[...,sim_variables.pressure], grid[...,sim_variables.Bfields]
@@ -273,7 +273,7 @@ def make_Jacobian(grid, sim_variables, axis):
 
 # Compute wavespeeds for a grid
 def make_wavespeeds(grid, sim_variables, axis):
-    gamma, permeability = sim_variables.gamma, sim_variables.permeability
+    gamma, permeability = sim_variables.gamma, sim_variables.constants.mu_0
     rho, pressure, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.Bfields
 
     sound_speed = np.sqrt(fv.divide(gamma * grid[...,pressure], grid[...,rho]))

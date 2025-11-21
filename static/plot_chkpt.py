@@ -72,13 +72,14 @@ def plot(save=False, title=False):
                         config = f.attrs['config']
                         cells = f.attrs['cells']
                         gamma = float(f.attrs['gamma'])
-                        permeability = float(f.attrs['permeability'])
+                        constants = f.attrs['constants']
                         dimensions = int(f.attrs['dimensions'])
                         subgrid = f.attrs['subgrid']
                         time_evo = f.attrs['time_evo']
                         solver = f.attrs['solver']
 
                         axis_coord = {axis:coord for axis, coord in enumerate(f.attrs['axis_coord'])}
+                        permeability = constants.mu_0
 
                         fig, ax, plot_ = make_figure(plot_options, dimensions, axis_coord)
                         data = make_data(plot_options, grid, dimensions, gamma, permeability)

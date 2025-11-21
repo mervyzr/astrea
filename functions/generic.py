@@ -245,7 +245,6 @@ def print_verbose(sim_variables, t=None, status=''):
             print(f'{"Boundary":>15} :    {'PERIODIC' if sim_variables.boundary.lower() == 'wrap' else 'OUTFLOW'}')
             print(f'{"CFL number":>15} :    {sim_variables.cfl}')
             print(f'{"Adiabatic index":>15} :    {sim_variables.gamma}')
-            print(f'{"Permeability":>15} :    {sim_variables.permeability}')
             print('')
             print(f'{"End time":>15} :    {sim_variables.t_end}')
             print(f'{"Checkpoints":>15} :    {sim_variables.checkpoints}')

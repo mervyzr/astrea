@@ -369,7 +369,6 @@
     "20": {
       "type": "default",
       "config": "sod",
-      "dimensions": 1,
       "precision": "float64",
       "subgrid": "pcm",
       "time_evo": "euler",

@@ -10,7 +10,8 @@ from tinydb import TinyDB, Query
 from external import krome_funcs
 from functions import fv, generic
 from functions.generic import BColours
-from static import tests, constants
+from static import tests
+from static import constants as const
 
 ##############################################################################
 # I/O functions for simulation
@@ -86,12 +87,6 @@ def handle_CLI(db_path):
 
 def filter_variables(config_variables):
     db, params = TinyDB(config_variables['db_path']), Query()
-
-    skip_cases = [
-        'hdf5', 'home', 'db_path', 'plot_style', 'verbose', 'quiet', 'eps', 
-        'write_chkpt', 'test', 'chkpt_file', 'gravity', 'tracers', 
-        'chemistry', 'network', 'abundances', 
-    ]
 
     # Pre-process some variables that are needed for next section
     try:
@@ -180,25 +175,35 @@ def filter_variables(config_variables):
             finally:
                 if invalid != []:
                     print(f"{BColours.WARNING}Invalid plot options: {invalid}{BColours.ENDC}")
-        elif k in skip_cases:
-            pass
         else:
-            if isinstance(v, str):
-                v = v.lower()
+            if k in ['config', 'precision', 'subgrid', 'time_evo', 'solver']:
+                if isinstance(v, str):
+                    v = v.lower()
 
-            found = False
-            for dct in db.search(params.type == k):
-                if v in dct['accepted']:
-                    found = True
-                    break
+                found = False
+                for dct in db.search(params.type == k):
+                    if v in dct['accepted']:
+                        found = True
+                        break
 
-            if not found:
-                v = db.get(params.type == 'default')[k]
-                print(f"{BColours.WARNING}{k.upper()} value not valid; reverting back to default value: {v}..{BColours.ENDC}")
+                if not found:
+                    v = db.get(params.type == 'default')[k]
+                    print(f"{BColours.WARNING}{k.upper()} value not valid; reverting back to default value: {v}..{BColours.ENDC}")
 
         config_variables[k] = v
 
     return config_variables
+
+
+class Constants(object):
+    def __init__(self, obj):
+        try:
+            for name, value in obj.__dict__.items():
+                if not name.startswith("_"):
+                    setattr(self, name, value)
+        except Exception:
+            for name, value in obj.items():
+                setattr(self, name, value)
 
 
 class SimulationVariables(object):
@@ -208,11 +213,10 @@ class SimulationVariables(object):
         'config', 'cells', 'cfl', 'gamma', 'dimensions', 'precision', 'subgrid', 'time_evo', 'solver',
         'axis_coord', 'shock_pos', 't_end', 'boundary', 'misc', 'initial_left', 'initial_right', 'ds',
         'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
-        'permeability', 'grav_constant', 'gravity', 'tracers', 
         'axes', 'magnetic', 'convert', 'roots', 'weights', 'ppm_dissipate', 'higher_order', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'eps', 'home', 'save_path', 'db_path', 'timesteps', 'print_status',
         'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test',
-        'chemistry', 'network', 'pykrome', 'species', 'abundances',
+        'constants', 'chemistry', 'network', 'pykrome', 'species', 'abundances', 'gravity', 'tracers', 
     ]
 
     def __init__(self, seed, config_variables, test_variables):
@@ -238,9 +242,7 @@ class SimulationVariables(object):
         self.access_key = None
         self.timesteps = 0
 
-        # Physics parameters
-        self.permeability = 1.
-        self.grav_constant = 4 * np.pi * 1.  # G = 1
+        self.constants = Constants(const)
 
         # 5th-order Gauss-Legendre quadrature with interval [0,1] for OS solver
         roots, weights = np.array(list(np.polynomial.legendre.leggauss(5)))/2
@@ -343,14 +345,17 @@ def write_chkpt_file(grid, t, idx, sim_variables):
         f.attrs['cells'] = sim_variables.cells
         f.attrs['cfl'] = sim_variables.cfl
         f.attrs['gamma'] = sim_variables.gamma
-        f.attrs['permeability'] = sim_variables.permeability
         f.attrs['dimensions'] = sim_variables.dimensions
         f.attrs['precision'] = sim_variables.precision
         f.attrs['eps'] = sim_variables.eps
         f.attrs['subgrid'] = sim_variables.subgrid
         f.attrs['time_evo'] = sim_variables.time_evo
         f.attrs['solver'] = sim_variables.solver
+        f.attrs['magnetic'] = sim_variables.magnetic
         f.attrs['axis_coord'] = tuple(sim_variables.axis_coord.values())
+
+        for name, value in sim_variables.constants.__dict__.items():
+            f.attrs[f'constants-{name}'] = float(value)
 
         f.create_dataset('grid', data=grid, compression="gzip", compression_opts=9)
 
@@ -377,12 +382,18 @@ def load_chkpt_file(config_variables, file):
                 config_variables['cells'] = f.attrs['cells']
                 config_variables['cfl'] = float(f.attrs['cfl'])
                 config_variables['gamma'] = float(f.attrs['gamma'])
-                config_variables['permeability'] = float(f.attrs['permeability'])
                 config_variables['dimensions'] = int(f.attrs['dimensions'])
                 config_variables['precision'] = f.attrs['precision']
                 config_variables['eps'] = f.attrs['eps']
                 config_variables['subgrid'] = f.attrs['subgrid']
                 config_variables['time_evo'] = f.attrs['time_evo']
                 config_variables['solver'] = f.attrs['solver']
+                config_variables['magnetic'] = f.attrs['magnetic']
+
+                _const = {}
+                for name, value in f.attrs.items():
+                    if name.startswith('constants-'):
+                        _const[name.split('constants-')[-1]] = value
+                config_variables['constants'] = Constants(_const)
 
                 return seed, config_variables, {'time':time, 'idx':idx, 'grid':grid}

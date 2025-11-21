@@ -177,6 +177,8 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
             seed, config_variables, chkpt_kwargs = io.load_chkpt_file(config_variables, checkpoint_file)
         except Exception as e:
             print(f"{generic.BColours.FAIL}Unable to load checkpoint file: {e}..{generic.BColours.ENDC}")
+        else:
+            print(f"{generic.BColours.OKGREEN}Checkpoint file loaded! Running simulation from checkpoint..{generic.BColours.ENDC}")
 
     config_variables = io.filter_variables(config_variables)
 

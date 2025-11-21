@@ -15,6 +15,8 @@ R = 8.3145e+7               # Gas constant [erg K^-1 mol^-1]
 N_A = 6.02214076e-23        # Avogadro constant [mol^-1]
 arad = 4.0 * sigma/c        # radiation constant [erg cm^-3 K^-4]
 arad2 = (h*c) / k_B         # second radiation constant [cm K]
+mu_0 = 1.                   # vacuum magnetic permeability [g cm s^-2 A^-2]
+eps_0 = 1.                  # vacuum electric permittivity [A^2 s^4 g^-1 cm^-3]
 
 #   astronomical:
 au = 1.49598e+13            # astronomical unit [cm]
