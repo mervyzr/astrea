@@ -14,9 +14,7 @@ import yaml
 import numpy as np
 
 from external import krome_funcs
-from functions import constructor, fv, io, plotting
-from functions.io import SimulationVariables
-from functions.generic import BColours
+from functions import constructor, fv, generic, io, plotting
 from num_methods import ct, evolvers
 from static import tests
 
@@ -130,62 +128,63 @@ def core_run(sim_variables, **kwargs):
 
 ##############################################################################
 
+# Signal handler for Ctrl+C
+def graceful_exit(sig, frame):
+    sys.stdout.write('\033[2K\033[1G')
+    print(f"{generic.BColours.WARNING}Simulation end by SIGINT; exiting gracefully..{generic.BColours.ENDC}")
+    sys.exit(0)
+
+
 # __main__ script; includes handlers and core execution of simulation
 def run(seed=SEED, save_dir=SAVE_DIR) -> None:
     np.random.seed(seed)
 
     current_dir = Path(__file__).resolve().parent
-    arguments = {}
-
-    # Save the HDF5 file (with seed) to store the temporary data, if full_set_required
-    file_name = current_dir/f".astrea_hdf5_temp_{seed}"
-    arguments['hdf5'] = file_name
-
-    # Signal handler for Ctrl+C
-    def graceful_exit(sig, frame):
-        sys.stdout.write('\033[2K\033[1G')
-        print(f"{BColours.WARNING}Simulation end by SIGINT; exiting gracefully..{BColours.ENDC}")
-        sys.exit(0)
-
-    # Copy static/.default.yml -> parameters.yml if missing
-    default = current_dir/"static"/".default.yml"
-    dest = current_dir/"parameters.yml"
-    if not dest.exists() and default.exists():
-        shutil.copy2(default, dest)
-
-    # Generate the simulation variables from settings (dict); priority: checkpoint file > CLI > parameters.yml
-    config_variables = {}
-    with open(dest, "r") as settings_file:
-        _config_variables = yaml.safe_load(settings_file)
-
-        # Remove nested dictionary from config_variables
-        for parameters in _config_variables.values():
-            for k,v in parameters.items():
-                config_variables[k] = v
-
-    config_variables['home'] = current_dir
     db_path = current_dir/"static"/".db.json"
-    config_variables['db_path'] = db_path
+    file_name = current_dir/f".astrea_hdf5_temp_{seed}"
 
-    # Check CLI arguments
-    arguments.update(io.handle_CLI(db_path))
+    config_variables = {
+        'home': current_dir,
+        'db_path': db_path,
+        'hdf5': file_name,
+    }
 
-    # Check for checkpoint file loading
-    checkpoint_file = arguments['chkpt_file']
+    cli_arguments = io.handle_CLI(db_path)
+
+    init = cli_arguments.get('init', False)
+    if init:
+        generic.check_init(current_dir)
+        sys.exit(0)
+    else:
+        # Generate the simulation variables from settings (dict)
+        try:
+            with open(current_dir/"parameters.yml", "r") as settings_file:
+                _config_variables = yaml.safe_load(settings_file)
+        except Exception:
+            print(f"{generic.BColours.FAIL}parameters.yml file not found; please run astrea again with the --init option..{generic.BColours.ENDC}")
+        else:
+            # Remove nested dictionary from config_variables
+            for parameters in _config_variables.values():
+                for k,v in parameters.items():
+                    config_variables[k] = v
+
+    # Replace the relevant configuration variables; priority: checkpoint file > CLI > parameters.yml
+    config_variables.update(cli_arguments)
+
+    checkpoint_file = cli_arguments['chkpt_file']
     if checkpoint_file:
         try:
-            seed, config_variables, dct = io.load_chkpt_file(config_variables, checkpoint_file)
-            arguments.update(dct)
+            seed, config_variables, chkpt_kwargs = io.load_chkpt_file(config_variables, checkpoint_file)
         except Exception as e:
-            print(f"{BColours.FAIL}Unable to load checkpoint file: {e}..{BColours.ENDC}")
-            sys.exit(0)
-    config_variables = io.parse_cli_variables(config_variables, arguments)
+            print(f"{generic.BColours.FAIL}Unable to load checkpoint file: {e}..{generic.BColours.ENDC}")
+
+    config_variables = io.filter_variables(config_variables)
 
     # Generate test configuration based on configuration
     test_variables = tests.generate_test_conditions(config_variables)
 
     # Initialise simulation variables
-    sim_variables = SimulationVariables(seed, config_variables, test_variables)
+    sim_variables = io.SimulationVariables(seed, config_variables, test_variables)
 
     # Auto-generate the resolutions/grid-sizes for run type
     if sim_variables.test:
@@ -249,7 +248,7 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
 
             ################### CORE ###################
             lap, cpu_start = perf_counter(), process_time()
-            core_run(sim_variables, **arguments)
+            core_run(sim_variables) if not sim_variables.chkpt_file else core_run(sim_variables, **chkpt_kwargs)
             elapsed, cpu_elapsed = perf_counter() - lap, process_time() - cpu_start
             ################### CORE ###################
 
@@ -283,7 +282,7 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
     # Exception handling; deletes the temporary HDF5 database to prevent clutter
     except Exception as e:
         print(end='\x1b[2K')
-        print(f"\n{BColours.FAIL}{'='*15} Error : {seed} {'='*15}{BColours.ENDC}")
+        print(f"\n{generic.BColours.FAIL}{'='*15} Error : {seed} {'='*15}{generic.BColours.ENDC}")
         print(traceback.format_exc())
 
     finally:

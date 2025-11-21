@@ -21,7 +21,7 @@ from static import tests, constants
 def make_sim_variables():
     with open('parameters.yml', "r") as _f:
         config_variables = yaml.safe_load(_f)
-    config_variables = parse_cli_variables(config_variables, {})
+    config_variables = filter_variables(config_variables)
     test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'], config_variables['gamma'])
     sim_variables = SimulationVariables(1, config_variables, test_variables)
     return sim_variables
@@ -46,7 +46,7 @@ def handle_CLI(db_path):
 
     parser.add_argument('-v', '--verbose', dest='verbose', help='switch on verbose description of simulation', action='store_true')
     parser.add_argument('-q', '--quiet', dest='quiet', help='switch off printing to screen', action='store_true')
-    parser.add_argument('-w', '--write_chkpt', dest='write_chkpt', help='switch on checkpoint file saving', action='store_true')
+    parser.add_argument('-w', '--write', dest='write_chkpt', help='switch on checkpoint file saving', action='store_true')
     parser.add_argument('-t', '--test', dest='test', help='run the tests for astrea (convergence, conservation, etc.)', action='store_true')
 
     parser.add_argument('--config', metavar='', type=str.lower, default=argparse.SUPPRESS, help='configuration to run in the simulation', choices=accepted_values('config'))
@@ -77,12 +77,14 @@ def handle_CLI(db_path):
     parser.add_argument('--network', metavar='', type=str.lower, default='', help='(absolute) path to chemical network file')
     parser.add_argument('--abundances', metavar='', type=str.lower, default='', help='(absolute) path to (.yml) file for initial abundances of chemical species')
 
+    parser.add_argument('--init', default=argparse.SUPPRESS, help=argparse.SUPPRESS, action='store_true')
+
     args = parser.parse_args()
 
     return vars(args)
 
 
-def parse_cli_variables(config_variables, arguments):
+def filter_variables(config_variables):
     db, params = TinyDB(config_variables['db_path']), Query()
 
     skip_cases = [
@@ -90,9 +92,6 @@ def parse_cli_variables(config_variables, arguments):
         'write_chkpt', 'test', 'chkpt_file', 'gravity', 'tracers', 
         'chemistry', 'network', 'abundances', 
     ]
-
-    # Replace the relevant configuration variables with the additional arguments
-    config_variables.update(arguments)
 
     # Pre-process some variables that are needed for next section
     try:

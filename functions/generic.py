@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 import datetime
 import platform
 from time import perf_counter
@@ -27,6 +28,36 @@ class BColours:
     BOLD = '\033[1m'
     ITALIC = '\033[3m'
     UNDERLINE = '\033[4m'
+
+
+# Copy static/.default.yml -> parameters.yml
+def check_init(current_dir):
+    default = current_dir/"static/.default.yml"
+    dest = current_dir/"parameters.yml"
+    if not dest.exists() and default.exists():
+        shutil.copy2(default, dest)
+        print(f"{BColours.OKGREEN}Created parameters.yml file!{BColours.ENDC}")
+    else:
+        print(f"{BColours.WARNING}parameters.yml file already exists!{BColours.ENDC}")
+
+    try:
+        import git
+        import h5py
+        import yaml
+        import numpy
+        import scipy
+        import tinydb
+        import dotenv
+        import pynvml
+        import skimage
+        import tabulate
+        import matplotlib
+        import threadpoolctl
+    except Exception:
+        print(f"{BColours.FAIL}Unable to import some modules. Check if installation is installed properly!{BColours.ENDC}")
+    else:
+        print(f"{BColours.OKGREEN}Import modules working!{BColours.ENDC}")
+    pass
 
 
 def get_size(_bytes):
