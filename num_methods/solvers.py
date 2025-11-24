@@ -13,8 +13,10 @@ def get_Riemann_solver(sim_variables):
     if sim_variables.solver_category == "hll":
         if sim_variables.solver.endswith("d"):
             return calculate_HLLD_flux
-        else:
+        elif sim_variables.solver.endswith("c"):
             return calculate_HLLC_flux
+        else:
+            return calculate_HLL_flux
     # 'Complete Riemann' solvers
     elif sim_variables.solver_category == "complete":
         if sim_variables.solver.startswith("e"):
@@ -65,6 +67,19 @@ def calculate_LaxWendroff_flux(axis, sim_variables, **kwargs):
 def calculate_gForce_flux(axis, sim_variables, **kwargs):
     wg = 1/(1+sim_variables.cfl)
     return wg*calculate_LaxWendroff_flux(axis, sim_variables, **kwargs) + (1-wg)*calculate_LaxFriedrich_flux(axis, sim_variables, **kwargs)
+
+
+# HLL Riemann solver [Harten, Lax & van Leer, 1983]
+def calculate_HLL_flux(axis, sim_variables, **kwargs):
+    cons_plus, cons_minus = kwargs["cons_interfaces"]
+    flux_plus, flux_minus = kwargs["flux_interfaces"]
+    characteristics = kwargs["characteristics"]
+
+    local_max_eigvals, local_min_eigvals = np.max(np.real(characteristics), axis=-1), np.min(np.real(characteristics), axis=-1)
+    max_eigvals, min_eigvals = fv.slice_(local_max_eigvals, axis, end=-1), fv.slice_(local_min_eigvals, axis, end=-1)
+    alpha_plus, alpha_minus = np.maximum(0, max_eigvals)[...,None], -np.minimum(0, min_eigvals)[...,None]
+
+    return fv.divide((flux_minus*alpha_plus + flux_plus*alpha_minus) - (alpha_plus*alpha_minus*(cons_plus-cons_minus)), alpha_plus+alpha_minus)
 
 
 # HLLC Riemann solver [Fleischmann et al., 2020]

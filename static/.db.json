@@ -346,6 +346,7 @@
       "type": "solver",
       "category": "hll",
       "accepted": [
+        "hll",
         "hllc",
         "c",
         "hlld",
