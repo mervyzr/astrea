@@ -6,7 +6,7 @@
 
 # astrea
 
-**_astrea_** (**A**strophysical **S**hockwave and **T**urbulence **RE**search for interstellar **A**pplications) is a multi-dimensional ideal magnetohydrodynamics simulation toy-model code with a chemical network ([`krome`](https://kromepackage.org)) for the purpose of modelling shockwaves in the interstellar medium.
+**_astrea_** (**A**strophysical **S**hockwave and **T**urbulence **RE**search for interstellar **A**pplications) is a multi-dimensional ideal magnetohydrodynamics simulation toy-model code with an experimental chemical network solver for the purpose of modelling shockwaves in the interstellar medium.
 
 **_This code was originally created as part of my Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner. The thesis has since been completed._**
 
