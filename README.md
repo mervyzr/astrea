@@ -43,7 +43,9 @@ The simulation employs a higher-order finite volume subgrid model (Eulerian) wit
 
 The code is mostly written with Python language, and uses the `numpy` and `h5py` modules extensively for calculations and data handling respectively. The last _stable^_ Python version supported is _**Python 3.13**_.
 
-### Is this simulation slow? _Yes (relatively)_. Would I consider this a production-ready code? _No_.
+### Is this simulation slow? _Yes (relatively)_.
+### Would I consider this a production-ready code? _No_.
+### Should this code still be used? _Absolutely_.
 By nature, interpreted languages are slower than compiled languages. This code is not meant to replace or compete with other production-ready MHD simulations codes, such as FLASH, AREPO, or ATHENA++. This code is meant to be a toy/test model for various numerical schemes, therefore it has the most bare-bones scripts in order to run the numerical simulations (relative to the aforementioned codes). The underlying principles/physics are the same as those codes, therefore I hope this code can allow others to experiment and learn on their own.
 
 Some experimentation was done to parallelise the code with `Open MPI` and `MPICH`. However, this is generally not recommended because of the global-interpreter-lock (GIL); the GIL in Python makes it more difficult to achieve parallelisation. Attempts have been made with multi-processing (`multiprocessing`) and multi-threading (`concurrent.futures`), with limited success. Some of the main slow-downs come from the sequential nature of the (explicit) time evolution method and the I/O of the `hdf5` data file. Most of the functions have also been vectorised to make use of `numpy`'s multi-threading _wherever possible_. But ultimately the benefits of having a 'semi-parallelised' Python code with `numpy` might not outweigh having a fully compiled code such as Fortran or C (Ross, 2016).
