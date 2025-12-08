@@ -124,6 +124,8 @@ def core_run(sim_variables, **kwargs):
             # Roll the order of the axis sweep
             sim_variables.axes = np.roll(sim_variables.axes, shift=-1)
 
+            # Post update steps (if any)
+
     ########################
 
 ##############################################################################

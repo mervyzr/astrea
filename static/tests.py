@@ -110,7 +110,7 @@ def generate_test_conditions(config_variables):
         boundary = "wrap"
         initial_left = np.array([2,.5,0,0,2.5,0,0,0])
         initial_right = np.array([1,-.5,0,0,2.5,0,0,0])
-        misc = {'perturb_ampl':.05, 'ampl':.25, 'freq':4, 'Bx':np.sqrt(np.pi)}
+        misc = {'perturb':True, 'perturb_ampl':.05, 'ampl':.25, 'freq':4, 'Bx':np.sqrt(np.pi)}
 
     elif "turb" in config:
         axis_coord = [0,1]
@@ -212,12 +212,12 @@ def generate_test_conditions(config_variables):
     # [Wu & Shu, 2018]
     elif "jet" in config:
         axis_coord = [-.5,.5]
-        shock_pos = -.49
+        shock_pos = .05
         t_end = .01
         boundary = "edge"
-        initial_left = np.array([gamma*.1,0,0,0,1,0,np.sqrt(2000),0])
-        initial_right = np.array([gamma*.1,0,0,0,1,0,np.sqrt(2000),0])
-        misc = None
+        initial_left = np.array([gamma*.1,0,0,0,1,0,np.sqrt(20),0])
+        initial_right = np.array([gamma*.1,0,0,0,1,0,np.sqrt(20),0])
+        misc = {'perturb':False, 'velocity':800}
 
     # [Ziegler, 2000]
     elif "circular" in config or "polarised" in config or "alfven" in config or config == "cpaw":

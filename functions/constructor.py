@@ -22,7 +22,7 @@ def initialise(sim_variables):
 
     config, cells, gamma, dimensions, multidimensional, precision = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.precision
     rho, vx, vy, vz, pressure, Bx, By, Bz = sim_variables.rho, sim_variables.vx, sim_variables.vy, sim_variables.vz, sim_variables.pressure, sim_variables.Bx, sim_variables.By, sim_variables.Bz
-    axis_coord, shock_pos, params = sim_variables.axis_coord, sim_variables.shock_pos, sim_variables.misc
+    ds, axis_coord, shock_pos, params = sim_variables.ds, sim_variables.axis_coord, sim_variables.shock_pos, sim_variables.misc
     initial_left, initial_right = sim_variables.initial_left, sim_variables.initial_right
     axes = sim_variables.axes
 
@@ -93,8 +93,9 @@ def initialise(sim_variables):
                 layer = np.where(np.abs(y) <= shock_pos)
                 computational_grid[layer] = initial_left
                 computational_grid[...,vy] = params['ampl'] * np.sin(params['freq']*np.pi*x/np.diff(axis_coord[0]))
-                perturbation = np.random.uniform(-params['perturb_ampl'], params['perturb_ampl'], size=(computational_grid[...,(vx,vy)][layer].shape))
-                computational_grid[...,(vx,vy)][layer] += perturbation
+                if params['perturb']:
+                    perturbation = np.random.uniform(-params['perturb_ampl'], params['perturb_ampl'], size=(computational_grid[...,(vx,vy)][layer].shape))
+                    computational_grid[...,(vx,vy)][layer] += perturbation
                 if config.startswith('m'):
                     computational_grid[...,Bx] = params['Bx']
 
@@ -176,10 +177,14 @@ def initialise(sim_variables):
                 computational_grid[...,rho][mask] = 10
 
             elif "jet" in config:
-                mask = np.where((np.abs(x) < .05) & (y <= shock_pos))
-                computational_grid[...,vy][mask] = 800
-                perturbation = np.random.uniform(-100, 100, size=(computational_grid[...,(vx,vy)].shape))
-                computational_grid[...,(vx,vy)] += perturbation
+                nozzle = np.where((np.abs(x) < shock_pos) & (y <= (axis_coord[1][0] + ds[1])))
+                sim_variables.mask = nozzle
+                computational_grid[...,rho][nozzle] = gamma
+                computational_grid[...,vy][nozzle] = params['velocity']
+                computational_grid[...,By] *= np.sqrt(10)  # weak: 1, moderate:np.sqrt(10), strong:np.sqrt(1e2), extreme:np.sqrt(1e3)
+                if params['perturb']:
+                    perturbation = np.random.uniform(-10, 10, size=(computational_grid[...,(vx,vy)].shape))
+                    computational_grid[...,(vx,vy)] += perturbation
 
             elif "circular" in config or "polarised" in config or "alfven" in config or config == "cpaw":
                 computational_grid[...,vx] = -params['A']/np.sqrt(2) * np.sin(2*np.pi*(x+y))
