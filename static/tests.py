@@ -26,10 +26,10 @@ def generate_test_conditions(config_variables):
         boundary = "wrap"  # periodic
         init_cond = np.array([1,0,0,0,100,0,0,0])
         ambient = np.array([1,0,0,0,1e-12,0,0,0])
-        misc = None
+        misc = {'ampl':1}
 
     # [Shu & Osher, 1989]
-    elif "shu" in config or "osher" in config or config == "so":
+    elif ("shu" or "osher") in config or config == "so":
         axis_coord = [-1,1]
         shock_pos = -.8
         t_end = .47
@@ -84,7 +84,7 @@ def generate_test_conditions(config_variables):
         misc = None
 
     # [Ryu & Jones, 1995]
-    elif "ryu" in config or "jones" in config or config == "rj":
+    elif ("ryu" or "jones") in config or config == "rj":
         axis_coord = [-.5,.5]
         shock_pos = 0
         t_end = .15
@@ -94,7 +94,7 @@ def generate_test_conditions(config_variables):
         misc = None
 
     # [Brio & Wu, 1988]
-    elif "brio" in config or "wu" in config or config == "bw":
+    elif ("brio" or "wu") in config or config == "bw":
         axis_coord = [-.5,.5]
         shock_pos = 0
         t_end = .1
@@ -103,7 +103,7 @@ def generate_test_conditions(config_variables):
         ambient = np.array([.125,0,0,0,.1,.75,-1,0])
         misc = None
 
-    elif "kelvin" in config or "helmholtz" in config or "khi" in config:
+    elif ("kelvin" or "helmholtz" or "khi") in config:
         axis_coord = [-1,1]
         shock_pos = .4
         t_end = 5
@@ -122,7 +122,7 @@ def generate_test_conditions(config_variables):
         misc = {'force':'solenoidal', 'mach':5, 'beta':1, 'ampl':.5, 'k1':1, 'k2':2, 'pk':0}
 
     # [Pang & Wu, 2025]
-    elif config in ["ivc", "isentropic"]:
+    elif ("ivc" or "isentropic") in config:
         axis_coord = [0,10]
         shock_pos = 5
         t_end = 10
@@ -142,17 +142,17 @@ def generate_test_conditions(config_variables):
         misc = {'mach':.1}
 
     # [Orszag & Tang, 1998; Stone et al., 2008; Pang & Wu, 2025]
-    elif "orszag" in config or "tang" in config or config == "ot":
+    elif ("orszag" or "tang") in config or config == "ot":
         axis_coord = [0,1]
         shock_pos = 0
         t_end = 1
         boundary = "wrap"
         init_cond = np.array([gamma**2,0,0,0,gamma,0,0,0])
         ambient = np.array([gamma**2,0,0,0,gamma,0,0,0])
-        misc = {'ampl':1}
+        misc = {'norm_factor':2*np.pi, 'ampl':1, 'eps':.2}
 
     # [Balsara, 2004; Li, 2010]
-    elif "vortex" in config and config.startswith("mhd"):
+    elif ("mhd" and "vortex") in config:
         boundary = "wrap"
         t_end = 20
 
@@ -173,14 +173,14 @@ def generate_test_conditions(config_variables):
     elif "rotor" in config:
         axis_coord = [-.5,.5]
         shock_pos = .1
-        t_end = .3
+        t_end = .5
         boundary = "wrap"
         init_cond = np.array([10,0,0,0,.5,2.5/np.sqrt(4*np.pi),0,0])
         ambient = np.array([1,0,0,0,.5,2.5/np.sqrt(4*np.pi),0,0])
-        misc = {'omega':20, 'ring_width':.015}
+        misc = {'omega':1, 'ring_width':.015}
 
     # [Felker & Stone, 2018]
-    elif "blast" in config and config.startswith("mhd"):
+    elif ("mhd" and "blast") in config:
         axis_coord = [-.5,.5]
         shock_pos = .1
         t_end = .2
@@ -190,7 +190,7 @@ def generate_test_conditions(config_variables):
         misc = {'ampl':1/np.sqrt(2)}
 
     # [Gardiner & Stone, 2005]
-    elif "sheet" in config or "current" in config:
+    elif ("current" or "sheet") in config:
         axis_coord = [-.5,.5]
         shock_pos = .25
         t_end = 10
@@ -199,7 +199,7 @@ def generate_test_conditions(config_variables):
         ambient = np.array([1,0,0,0,.05/(4*np.pi),0,1/np.sqrt(4*np.pi),0])
         misc = {'ampl':.1}
 
-    # [Dai & Woodward, 1998]
+    # [Dai & Woodward, 1998; Pang & Wu, 2025]
     elif "cloud" in config:
         axis_coord = [0,1]
         shock_pos = .6
@@ -207,7 +207,7 @@ def generate_test_conditions(config_variables):
         boundary = "edge"
         init_cond = np.array([3.86859,0,0,0,167.345,0,2.1826182,-2.1826182])
         ambient = np.array([1,-11.2536,0,0,1,0,.56418958,.56418958])
-        misc = None
+        misc = {'cloud_mass':10}
 
     # [Wu & Shu, 2018]
     elif "jet" in config:
@@ -220,7 +220,7 @@ def generate_test_conditions(config_variables):
         misc = {'perturb':False, 'velocity':800}
 
     # [Ziegler, 2000]
-    elif "circular" in config or "polarised" in config or "alfven" in config or config == "cpaw":
+    elif ("circular" or "polarised" or "alfven") in config or config == "cpaw":
         axis_coord = [0,1]
         shock_pos = 1
         t_end = 1
@@ -267,7 +267,7 @@ def generate_test_conditions(config_variables):
             ambient = np.array([.125,0,0,0,.1,0,0,0])
 
     # [Lax & Liu, 1998]
-    elif ("lax" in config or "liu" in config) or "ll" in config:
+    elif ("lax" or "liu" or "ll") in config:
         axis_coord = [0,1]
         shock_pos = .5
         t_end = 2

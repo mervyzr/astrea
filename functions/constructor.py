@@ -44,11 +44,11 @@ def initialise(sim_variables):
             x, y, z = np.meshgrid(physical_grid_x, physical_grid_y, physical_grid_z, indexing='ij')
             r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2 + (z-z_centre)**2)
 
-            if "sedov" in config or "blast" in config:
-                mask = np.where(r**2 <= (shock_pos-x_centre)**2)
+            if ("sedov" or "blast") in config:
+                mask = np.where((r <= (shock_pos-x_centre)) & (r <= (shock_pos-y_centre)) & (r <= (shock_pos-z_centre)))
                 computational_grid[mask] = init_cond
                 computational_grid = analytic.resample_blast(computational_grid, sim_variables)
-                if config.startswith("mhd"):
+                if "mhd" in config:
                     computational_grid[...,5+axes] = params['ampl']
 
             elif config.startswith("sin"):
@@ -58,13 +58,16 @@ def initialise(sim_variables):
                 mask = params['y_offset'] + params['ampl']*np.exp(-(r**2)/params['fwhm'])
                 computational_grid[...,rho] = mask
 
-            elif config in ["orszag-tang", "orszag", "tang", "ot"]:
-                computational_grid[...,vx] = -np.sin(2*np.pi*y)
-                computational_grid[...,vy] = np.sin(2*np.pi*x)
-                computational_grid[...,Bx] = params['ampl'] * -np.sin(2*np.pi*y)
-                computational_grid[...,By] = params['ampl'] * np.sin(4*np.pi*x)
+            elif ("orszag" or "tang") in config or config == "ot":
+                _x, _y, _z, ampl, eps = params['norm_factor']*x, params['norm_factor']*y, params['norm_factor']*z, params['ampl'], params['eps']
 
-            elif "vortex" in config and config.startswith("mhd"):
+                computational_grid[...,vx] = -(1 + eps*np.sin(_z)) * np.sin(_y)
+                computational_grid[...,vy] = (1 + eps*np.sin(_z)) * np.sin(_x)
+                computational_grid[...,vz] = eps * np.sin(_z)
+                computational_grid[...,Bx] = -ampl * np.sin(_y)
+                computational_grid[...,By] = ampl * np.sin(2*_x)
+
+            elif ("mhd" and "vortex") in config:
                 factor = np.exp(params['q'] * (1 - r**2))
                 computational_grid[...,vx] = 1 - (y-y_centre)*params['kappa']*factor
                 computational_grid[...,vy] = 1 + (x-x_centre)*params['kappa']*factor
@@ -76,11 +79,11 @@ def initialise(sim_variables):
             x, y = np.meshgrid(physical_grid_x, physical_grid_y, indexing='ij')
             r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
 
-            if "sedov" in config or "blast" in config:
-                mask = np.where(r**2 <= (shock_pos-x_centre)**2)
+            if ("sedov" or "blast") in config:
+                mask = np.where((r <= (shock_pos-x_centre)) & (r <= (shock_pos-y_centre)))
                 computational_grid[mask] = init_cond
                 computational_grid = analytic.resample_blast(computational_grid, sim_variables)
-                if config.startswith("mhd"):
+                if "mhd" in config:
                     computational_grid[...,5+axes] = params['ampl']
 
             elif config.startswith("sin"):
@@ -89,17 +92,17 @@ def initialise(sim_variables):
             elif config.startswith("gauss"):
                 computational_grid[...,rho] = params['y_offset'] + params['ampl']*np.exp(-(r**2)/params['fwhm'])
 
-            elif "kelvin" in config or "helmholtz" in config or "khi" in config:
+            elif ("kelvin" or "helmholtz" or "khi") in config:
                 layer = np.where(np.abs(y) <= shock_pos)
                 computational_grid[layer] = init_cond
                 computational_grid[...,vy] = params['ampl'] * np.sin(params['freq']*np.pi*x/np.diff(axis_coord[0]))
                 if params['perturb']:
                     perturbation = np.random.uniform(-params['perturb_ampl'], params['perturb_ampl'], size=(computational_grid[...,(vx,vy)][layer].shape))
                     computational_grid[...,(vx,vy)][layer] += perturbation
-                if config.startswith('m'):
+                if config.startswith('m') or "mhd" in config:
                     computational_grid[...,Bx] = params['Bx']
 
-            elif config in ["ivc", "isentropic"]:
+            elif ("ivc" or "isentropic") in config:
                 b, freq = params['vortex_str'], params['freq']
 
                 dv = lambda _array: (b*np.exp(.5*(1-r**2))*_array)/(np.sqrt(freq)*np.pi)
@@ -110,8 +113,8 @@ def initialise(sim_variables):
                 computational_grid[...,Bx] = db(-(y-y_centre))
                 computational_grid[...,By] = db(x-x_centre)
 
-                dp = ((1+r**2) * np.exp(1-r**2) * b**2)/(2 * (freq*np.pi)**2)
-                computational_grid[...,pressure] = 1 + dp
+                dp = -(b**2 * (1+r**2) * np.exp(1-r**2))/(2 * (freq*np.pi)**2)
+                computational_grid[...,pressure] += dp
 
             elif "gresho" in config:
                 core, ring = np.where((0 <= r) & (r < .2)), np.where((.2 <= r) & (r < .4))
@@ -130,18 +133,20 @@ def initialise(sim_variables):
                 computational_grid[...,vy][ring] = (v_phi * ry)[ring]
                 computational_grid[...,pressure][ring] = (p0 + (25/2)*r**2 + 4*(1 - 5*r + np.log(5*r)))[ring]
 
-            elif "ll" in config or "lax-liu" in config:
+            elif ("lax" or "liu" or "ll") in config:
                 computational_grid[np.where(x < shock_pos)] = init_cond
                 computational_grid[np.where((x < shock_pos) & (y < shock_pos))] = params['bottom_left']
                 computational_grid[np.where((x >= shock_pos) & (y < shock_pos))] = params['bottom_right']
 
-            elif config in ["orszag-tang", "orszag", "tang", "ot"]:
-                computational_grid[...,vx] = -np.sin(2*np.pi*y)
-                computational_grid[...,vy] = np.sin(2*np.pi*x)
-                computational_grid[...,Bx] = -params['ampl'] * np.sin(2*np.pi*y)
-                computational_grid[...,By] = params['ampl'] * np.sin(4*np.pi*x)
+            elif ("orszag" or "tang") in config or config == "ot":
+                _x, _y, ampl = params['norm_factor']*x, params['norm_factor']*y, params['ampl']
 
-            elif "vortex" in config and config.startswith("mhd"):
+                computational_grid[...,vx] = -np.sin(_y)
+                computational_grid[...,vy] = np.sin(_x)
+                computational_grid[...,Bx] = -ampl * np.sin(_y)
+                computational_grid[...,By] = ampl * np.sin(2*_x)
+
+            elif ("mhd" and "vortex") in config:
                 computational_grid[...,vx] = 1 - (((y-y_centre)*params['kappa'])/(2*np.pi) * np.exp((1-r**2)/2))
                 computational_grid[...,vy] = 1 + (((x-x_centre)*params['kappa'])/(2*np.pi) * np.exp((1-r**2)/2))
                 computational_grid[...,pressure] = 1 + (((1-r**2)*params['kappa']**2 - params['mu']**2)/(8*np.pi**2) * np.exp(1-r**2))
@@ -149,19 +154,20 @@ def initialise(sim_variables):
                 computational_grid[...,By] = ((x-x_centre)*params['mu'])/(2*np.pi) * np.exp((1-r**2)/2)
 
             elif "rotor" in config:
-                f = (params['ring_pos'] - r)/(params['ring_pos'] - shock_pos)
+                ring_pos = shock_pos + params['ring_width']
+                phi = (ring_pos - r)/(ring_pos - shock_pos)
 
-                ring = np.where(r**2 <= (params['ring_pos']-x_centre)**2)
-                computational_grid[...,rho][ring] = (1 + 9*f)[ring]
-                computational_grid[...,vx][ring] = ((-f*params['omega']*(y-y_centre)*shock_pos)/r)[ring]
-                computational_grid[...,vy][ring] = ((f*params['omega']*(x-x_centre)*shock_pos)/r)[ring]
+                ring = np.where((r <= (ring_pos-x_centre)) & (r <= (ring_pos-y_centre)))
+                computational_grid[...,rho][ring] = (1 + 9*phi)[ring]
+                computational_grid[...,vx][ring] = ((-params['omega']*phi*(y-y_centre)*shock_pos)/r)[ring]
+                computational_grid[...,vy][ring] = ((params['omega']*phi*(x-x_centre)*shock_pos)/r)[ring]
 
-                core = np.where(r**2 <= (shock_pos-x_centre)**2)
+                core = np.where((r <= (shock_pos-x_centre)) & (r <= (shock_pos-y_centre)))
                 computational_grid[core] = init_cond
-                computational_grid[...,vx][core] = (-params['omega']*(y-y_centre))[core]
-                computational_grid[...,vy][core] = (params['omega']*(x-x_centre))[core]
+                computational_grid[...,vx][core] = ((-params['omega']*(y-y_centre))/shock_pos)[core]
+                computational_grid[...,vy][core] = ((params['omega']*(x-x_centre))/shock_pos)[core]
 
-            elif "sheet" in config or "current" in config:
+            elif ("current" or "sheet") in config:
                 computational_grid[...,vx] = params['ampl'] * np.sin(2*np.pi*y)
                 mask = np.where((-shock_pos < x) & (x < shock_pos))
                 computational_grid[...,By][mask] = -computational_grid[...,By][mask]
@@ -172,9 +178,9 @@ def initialise(sim_variables):
                 computational_grid[...,vy][mask] = -np.cos(x-shock_pos)[mask]
 
             elif "cloud" in config:
-                mask = np.where(((x-.8)**2 + (y-.5)**2) < .15**2)
                 computational_grid[np.where(x < shock_pos)] = init_cond
-                computational_grid[...,rho][mask] = 10
+                mask = np.where(((x-.8)**2 + (y-.5)**2) < .15**2)
+                computational_grid[...,rho][mask] = params['cloud_mass']
 
             elif "jet" in config:
                 nozzle = np.where((np.abs(x) < shock_pos) & (y <= (axis_coord[1][0] + ds[1])))
@@ -186,7 +192,7 @@ def initialise(sim_variables):
                     perturbation = np.random.uniform(-10, 10, size=(computational_grid[...,(vx,vy)].shape))
                     computational_grid[...,(vx,vy)] += perturbation
 
-            elif "circular" in config or "polarised" in config or "alfven" in config or config == "cpaw":
+            elif ("circular" or "polarised" or "alfven") in config or config == "cpaw":
                 computational_grid[...,vx] = -params['A']/np.sqrt(2) * np.sin(2*np.pi*(x+y))
                 computational_grid[...,vy] = params['A']/np.sqrt(2) * np.sin(2*np.pi*(x+y))
                 computational_grid[...,vz] = params['A'] * np.cos(2*np.pi*(x+y))
