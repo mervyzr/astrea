@@ -74,7 +74,7 @@ def core_run(sim_variables, **kwargs):
 
         # Save each instance of the system (primitive variables) at time t, if full_set_required
         if sim_variables.full_set_required:
-            with h5py.File(kwargs['hdf5'], "a") as f:
+            with h5py.File(sim_variables.hdf5, "a") as f:
                 dataset = f[sim_variables.access_key].create_dataset(str(float(t)), data=grid_snapshot, compression="gzip", compression_opts=9)
                 dataset.attrs['t'] = float(t)
 
@@ -252,7 +252,7 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
 
             ################### CORE ###################
             lap, cpu_start = perf_counter(), process_time()
-            core_run(sim_variables) if not sim_variables.chkpt_file else core_run(sim_variables, **chkpt_kwargs)
+            core_run(sim_variables, **chkpt_kwargs) if sim_variables.chkpt_file else core_run(sim_variables)
             elapsed, cpu_elapsed = perf_counter() - lap, process_time() - cpu_start
             ################### CORE ###################
 
