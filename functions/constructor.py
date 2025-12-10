@@ -23,12 +23,12 @@ def initialise(sim_variables):
     config, cells, gamma, dimensions, multidimensional, precision = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.precision
     rho, vx, vy, vz, pressure, Bx, By, Bz = sim_variables.rho, sim_variables.vx, sim_variables.vy, sim_variables.vz, sim_variables.pressure, sim_variables.Bx, sim_variables.By, sim_variables.Bz
     ds, axis_coord, shock_pos, params = sim_variables.ds, sim_variables.axis_coord, sim_variables.shock_pos, sim_variables.misc
-    initial_left, initial_right = sim_variables.initial_left, sim_variables.initial_right
+    init_cond, ambient = sim_variables.init_cond, sim_variables.ambient
     axes = sim_variables.axes
 
 
-    computational_grid = np.zeros(list(cells)+[len(initial_right),], dtype=precision)
-    computational_grid[:] = initial_right
+    computational_grid = np.zeros(list(cells)+[len(ambient),], dtype=precision)
+    computational_grid[:] = ambient
 
     x_centre = np.average(axis_coord[0])
     physical_grid_x = make_physical_grid(axis_coord[0], cells[0])
@@ -46,7 +46,7 @@ def initialise(sim_variables):
 
             if "sedov" in config or "blast" in config:
                 mask = np.where(r**2 <= (shock_pos-x_centre)**2)
-                computational_grid[mask] = initial_left
+                computational_grid[mask] = init_cond
                 computational_grid = analytic.resample_blast(computational_grid, sim_variables)
                 if config.startswith("mhd"):
                     computational_grid[...,5+axes] = params['ampl']
@@ -78,7 +78,7 @@ def initialise(sim_variables):
 
             if "sedov" in config or "blast" in config:
                 mask = np.where(r**2 <= (shock_pos-x_centre)**2)
-                computational_grid[mask] = initial_left
+                computational_grid[mask] = init_cond
                 computational_grid = analytic.resample_blast(computational_grid, sim_variables)
                 if config.startswith("mhd"):
                     computational_grid[...,5+axes] = params['ampl']
@@ -91,7 +91,7 @@ def initialise(sim_variables):
 
             elif "kelvin" in config or "helmholtz" in config or "khi" in config:
                 layer = np.where(np.abs(y) <= shock_pos)
-                computational_grid[layer] = initial_left
+                computational_grid[layer] = init_cond
                 computational_grid[...,vy] = params['ampl'] * np.sin(params['freq']*np.pi*x/np.diff(axis_coord[0]))
                 if params['perturb']:
                     perturbation = np.random.uniform(-params['perturb_ampl'], params['perturb_ampl'], size=(computational_grid[...,(vx,vy)][layer].shape))
@@ -116,7 +116,7 @@ def initialise(sim_variables):
             elif "gresho" in config:
                 core, ring = np.where((0 <= r) & (r < .2)), np.where((.2 <= r) & (r < .4))
                 rx, ry = -np.sin(np.arctan2(y-y_centre,x-x_centre)), np.cos(np.arctan2(y-y_centre,x-x_centre))
-                p0 = initial_left[...,rho]/(gamma*params['mach']**2)
+                p0 = init_cond[...,rho]/(gamma*params['mach']**2)
 
                 computational_grid[...,pressure] = p0 - 2 + 4*np.log(2)
 
@@ -131,7 +131,7 @@ def initialise(sim_variables):
                 computational_grid[...,pressure][ring] = (p0 + (25/2)*r**2 + 4*(1 - 5*r + np.log(5*r)))[ring]
 
             elif "ll" in config or "lax-liu" in config:
-                computational_grid[np.where(x < shock_pos)] = initial_left
+                computational_grid[np.where(x < shock_pos)] = init_cond
                 computational_grid[np.where((x < shock_pos) & (y < shock_pos))] = params['bottom_left']
                 computational_grid[np.where((x >= shock_pos) & (y < shock_pos))] = params['bottom_right']
 
@@ -157,7 +157,7 @@ def initialise(sim_variables):
                 computational_grid[...,vy][ring] = ((f*params['omega']*(x-x_centre)*shock_pos)/r)[ring]
 
                 core = np.where(r**2 <= (shock_pos-x_centre)**2)
-                computational_grid[core] = initial_left
+                computational_grid[core] = init_cond
                 computational_grid[...,vx][core] = (-params['omega']*(y-y_centre))[core]
                 computational_grid[...,vy][core] = (params['omega']*(x-x_centre))[core]
 
@@ -173,7 +173,7 @@ def initialise(sim_variables):
 
             elif "cloud" in config:
                 mask = np.where(((x-.8)**2 + (y-.5)**2) < .15**2)
-                computational_grid[np.where(x < shock_pos)] = initial_left
+                computational_grid[np.where(x < shock_pos)] = init_cond
                 computational_grid[...,rho][mask] = 10
 
             elif "jet" in config:
@@ -195,7 +195,7 @@ def initialise(sim_variables):
                 computational_grid[...,Bz] = -params['A'] * np.cos(2*np.pi*(x+y))
 
             else:
-                computational_grid[np.where(x < shock_pos)] = initial_left
+                computational_grid[np.where(x < shock_pos)] = init_cond
 
     else:
         x = physical_grid_x
@@ -204,7 +204,7 @@ def initialise(sim_variables):
             mask = np.where(np.abs(x) <= shock_pos)
         else:
             mask = np.where(x <= shock_pos)
-        computational_grid[mask] = initial_left
+        computational_grid[mask] = init_cond
 
         if "sedov" in config or "blast" in config:
             computational_grid = analytic.resample_blast(computational_grid, sim_variables)
