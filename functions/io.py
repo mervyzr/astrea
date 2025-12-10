@@ -98,8 +98,8 @@ def filter_variables(config_variables):
         try:
             eps = np.finfo(precision).eps
         except ValueError:
-            #eps = 1e-16     # 64 bit
-            eps = 1e-7      # 32 bit
+            eps = 1e-16     # 64 bit
+            #eps = 1e-7      # 32 bit
         else:
             if eps < 1e-14:
                 eps = 1e-29  # [Jiang & Shu, 1996]
@@ -214,7 +214,7 @@ class SimulationVariables(object):
         'axis_coord', 'shock_pos', 't_end', 'boundary', 'misc', 'init_cond', 'ambient', 'ds',
         'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
         'axes', 'magnetic', 'convert', 'roots', 'weights', 'ppm_dissipate', 'higher_order', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
-        'seed', 'now', 'elapsed', 'access_key', 'datetime', 'eps', 'home', 'save_path', 'db_path', 'timesteps', 'print_status',
+        'seed', 'now', 'elapsed', 'access_key', 'datetime', 'eps', 'home', 'save_path', 'db_path', 'hdf5', 'timesteps', 'print_status',
         'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test',
         'constants', 'chemistry', 'network', 'pykrome', 'species', 'abundances', 'gravity', 'tracers', 
     ]
@@ -231,7 +231,7 @@ class SimulationVariables(object):
         for key in config_variables:
             setattr(self, key, config_variables[key])
 
-        # Parse test variables into the class
+        # Parse tests variables into the class
         for key in test_variables:
             setattr(self, key, test_variables[key])
 
@@ -256,7 +256,7 @@ class SimulationVariables(object):
         self.convert = fv.point_convert
         self.higher_order = False
 
-        # Higher-order conversion functions
+        # Higher-order method options
         if self.subgrid_category in ["cweno", "weno", "ppm"]:
             self.convert = fv.high_order_convert
             self.higher_order = True
@@ -318,7 +318,7 @@ class SimulationVariables(object):
             self.live_plot = self.save_plots = self.save_video = False
 
         if (self.save_snaps or self.save_plots or self.save_video) and self.live_plot:
-            print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live plot interferes with matplotlib.savefig..{BColours.ENDC}")
+            print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live_plot interferes with matplotlib.savefig..{BColours.ENDC}")
             self.live_plot = False
 
         if self.save_snaps or self.save_plots or self.save_video or self.save_file:
