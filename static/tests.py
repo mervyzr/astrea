@@ -7,6 +7,7 @@ import numpy as np
 # Primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
 def generate_test_conditions(config_variables):
     config, cells, gamma = config_variables['config'], config_variables['cells'], config_variables['gamma']
+    match = lambda match_type, substrings: match_type(substring in config for substring in substrings)
 
     # [Sod, 1978]
     if "sod" in config:
@@ -29,7 +30,7 @@ def generate_test_conditions(config_variables):
         misc = {'ampl':1}
 
     # [Shu & Osher, 1989]
-    elif ("shu" or "osher") in config or config == "so":
+    elif match(any, ["shu", "osher"]) or config == "so":
         axis_coord = [-1,1]
         shock_pos = -.8
         t_end = .47
@@ -84,7 +85,7 @@ def generate_test_conditions(config_variables):
         misc = None
 
     # [Ryu & Jones, 1995]
-    elif ("ryu" or "jones") in config or config == "rj":
+    elif match(any, ["ryu", "jones"]) or config == "rj":
         axis_coord = [-.5,.5]
         shock_pos = 0
         t_end = .15
@@ -94,7 +95,7 @@ def generate_test_conditions(config_variables):
         misc = None
 
     # [Brio & Wu, 1988]
-    elif ("brio" or "wu") in config or config == "bw":
+    elif match(any, ["brio", "wu"]) or config == "bw":
         axis_coord = [-.5,.5]
         shock_pos = 0
         t_end = .1
@@ -103,7 +104,7 @@ def generate_test_conditions(config_variables):
         ambient = np.array([.125,0,0,0,.1,.75,-1,0])
         misc = None
 
-    elif ("kelvin" or "helmholtz" or "khi") in config:
+    elif match(any, ["kelvin", "helmholtz", "khi"]):
         axis_coord = [-1,1]
         shock_pos = .4
         t_end = 5
@@ -122,7 +123,7 @@ def generate_test_conditions(config_variables):
         misc = {'force':'solenoidal', 'mach':5, 'beta':1, 'ampl':.5, 'k1':1, 'k2':2, 'pk':0}
 
     # [Pang & Wu, 2025]
-    elif ("ivc" or "isentropic") in config:
+    elif match(any, ["ivc", "isentropic"]):
         axis_coord = [0,10]
         shock_pos = 5
         t_end = 10
@@ -142,7 +143,7 @@ def generate_test_conditions(config_variables):
         misc = {'mach':.1}
 
     # [Orszag & Tang, 1998; Stone et al., 2008; Pang & Wu, 2025]
-    elif ("orszag" or "tang") in config or config == "ot":
+    elif match(any, ["orszag", "tang"]) or config == "ot":
         axis_coord = [0,1]
         shock_pos = 0
         t_end = 1
@@ -152,7 +153,7 @@ def generate_test_conditions(config_variables):
         misc = {'norm_factor':2*np.pi, 'ampl':1, 'eps':.2}
 
     # [Balsara, 2004; Li, 2010]
-    elif ("mhd" and "vortex") in config:
+    elif match(all, ["mhd", "vortex"]):
         boundary = "wrap"
         t_end = 20
 
@@ -180,7 +181,7 @@ def generate_test_conditions(config_variables):
         misc = {'omega':1, 'ring_width':.015}
 
     # [Felker & Stone, 2018]
-    elif ("mhd" and "blast") in config:
+    elif match(all, ["mhd", "blast"]):
         axis_coord = [-.5,.5]
         shock_pos = .1
         t_end = .2
@@ -190,7 +191,7 @@ def generate_test_conditions(config_variables):
         misc = {'ampl':1/np.sqrt(2)}
 
     # [Gardiner & Stone, 2005]
-    elif ("current" or "sheet") in config:
+    elif match(any, ["current", "sheet"]):
         axis_coord = [-.5,.5]
         shock_pos = .25
         t_end = 10
@@ -220,7 +221,7 @@ def generate_test_conditions(config_variables):
         misc = {'perturb':False, 'velocity':800}
 
     # [Ziegler, 2000]
-    elif ("circular" or "polarised" or "alfven") in config or config == "cpaw":
+    elif match(any, ["circular", "polarised", "alfven"]) or config == "cpaw":
         axis_coord = [0,1]
         shock_pos = 1
         t_end = 1
@@ -267,7 +268,7 @@ def generate_test_conditions(config_variables):
             ambient = np.array([.125,0,0,0,.1,0,0,0])
 
     # [Lax & Liu, 1998]
-    elif ("lax" or "liu" or "ll") in config:
+    elif match(any, ["lax", "liu", "ll"]):
         axis_coord = [0,1]
         shock_pos = .5
         t_end = 2
