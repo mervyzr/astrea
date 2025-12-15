@@ -950,7 +950,7 @@ def plot_tracer_particles(tracers, t, sim_variables):
         ax = fig.add_subplot()
 
     fig_kwargs = {
-        's': int(500/np.average(sim_variables.cells)),
+        's': max(1, int(500/np.average(sim_variables.cells))),
         'color': 'green',
         'marker': 'o',
     }
