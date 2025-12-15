@@ -15,7 +15,7 @@ import numpy as np
 
 from external import krome_funcs
 from functions import constructor, fv, generic, io, plotting
-from num_methods import ct, evolvers
+from num_methods import ct, evolvers, tracers
 from static import tests
 
 ##############################################################################
@@ -47,10 +47,16 @@ def core_run(sim_variables, **kwargs):
 
     ########################
 
-    # Initialise the chemical grid if activated;.
+    # Initialise the chemical grid if activated
     # Abundances can be overriden; accepts a dictionary of atom/molecule/ion name as key and the number densities [1/cm3] or mass fraction [X] as value
     if sim_variables.chemistry:
         chem_grid = krome_funcs.initialise(sim_variables, perturb=True)
+
+    ########################
+
+    # Initialise the tracer particles if activated
+    if sim_variables.tracers:
+        tracer_positions = tracers.initialise(sim_variables)
 
     ########################
 
@@ -85,6 +91,7 @@ def core_run(sim_variables, **kwargs):
             plotting.update_plot(grid_snapshot, t, sim_variables, *plotting_params)
         if plot_snapshot:
             plotting.plot_snapshot(grid_snapshot, t, sim_variables)
+            plotting.plot_tracer_particles(tracer_positions, t, sim_variables)
             plot_snapshot = False
         if create_chkpt_file:
             io.write_chkpt_file(grid_snapshot, t, idx, sim_variables)
@@ -114,8 +121,13 @@ def core_run(sim_variables, **kwargs):
             # Update the solution with the numerical fluxes using iterative methods
             grid = evolvers.evolve_time(grid, fluxes, dt, sim_variables)
 
+            # Update chemical grid
             if sim_variables.chemistry:
                 chem_grid = krome_funcs.krome_run(chem_grid, grid, dt, sim_variables)
+
+            # Update tracer particles
+            if sim_variables.tracers:
+                tracer_positions = tracers.update(tracer_positions, grid, dt, sim_variables)
 
             # Update time step
             t += dt

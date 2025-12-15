@@ -351,6 +351,7 @@ _Running the code in a Python interactive shell is also possible, although this 
 │   ├── evolvers.py      : Computation of space and time evolution
 │   ├── limiters.py      : Implements slope limiters for the reconstructed states
 │   ├── solvers.py       : Contains the various Riemann solvers
+│   ├── tracers.py       : Contains functions for tracer particles
 ├── parameters.yml       : Parameters for the simulation
 ├── schemes
 │   ├── __init__.py

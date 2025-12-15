@@ -919,6 +919,65 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
         shutil.rmtree(vidpath)
 
 
+# Plot positions of tracer particles
+def plot_tracer_particles(tracers, t, sim_variables):
+    dimensions, multidimensional, axis_coord = sim_variables.dimensions, sim_variables.multidimensional, sim_variables.axis_coord
+
+    fig = plt.figure()
+
+    mpl.rcParams['text.usetex'] = True
+    plt.rcParams['text.latex.preamble'] = r"\usepackage{lmodern}"
+    params = {
+        'font.size': 12,
+        'font.family': 'DejaVuSans',
+        'axes.labelsize': 12,
+        'axes.titlesize': 12,
+        'legend.fontsize': 12,
+        'xtick.labelsize': 12,
+        'ytick.labelsize': 12,
+
+        'figure.dpi': 300,
+        'savefig.dpi': 300,
+
+        'lines.linewidth': 1.0,
+        'lines.dashed_pattern': [3, 2]
+    }
+    plt.rcParams.update(params)
+
+    if dimensions > 2:
+        ax = fig.add_subplot(projection='3d')
+    else:
+        ax = fig.add_subplot()
+
+    fig_kwargs = {
+        's': int(500/np.average(sim_variables.cells)),
+        'color': 'green',
+        'marker': 'o',
+    }
+
+    ax.set_xlabel("X")
+    ax.set_xlim(axis_coord[0])
+
+    if multidimensional:
+        ax.set_ylabel("Y")
+        ax.set_ylim(axis_coord[1])
+
+        if dimensions > 2:
+            ax.set_zlabel("Z")
+            ax.set_zlim(axis_coord[2])
+            ax.scatter(tracers[...,0], tracers[...,1], tracers[...,2], **fig_kwargs)
+        else:
+            ax.scatter(tracers[...,0], tracers[...,1], **fig_kwargs)
+    else:
+        ax.scatter(tracers[...,0], **fig_kwargs)
+
+    plt.savefig(f"{sim_variables.save_path}/snapshots/tracers_{'%.3f' % round(t,3)}.png", bbox_inches='tight')
+
+    plt.cla()
+    plt.clf()
+    plt.close()
+
+
 # Function for plotting instance of the grid; insert into any part of the code
 def plot_this(grid, sim_variables, **kwargs):
     options = ['density', 'pressure', 'total energy', 'vx', 'vy', 'vz', 'Bx', 'By', 'Bz']

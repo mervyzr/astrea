@@ -19,7 +19,6 @@ def make_physical_grid(axis_coord, cells):
 # For magnetohydrodynamics, this returns a staggered grid
 @verbose_timer
 def initialise(sim_variables):
-
     config, cells, gamma, dimensions, multidimensional, precision = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.precision
     rho, vx, vy, vz, pressure, Bx, By, Bz = sim_variables.rho, sim_variables.vx, sim_variables.vy, sim_variables.vz, sim_variables.pressure, sim_variables.Bx, sim_variables.By, sim_variables.Bz
     ds, axis_coord, shock_pos, params = sim_variables.ds, sim_variables.axis_coord, sim_variables.shock_pos, sim_variables.misc
