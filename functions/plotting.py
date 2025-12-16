@@ -417,7 +417,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
             fig.text(0.04, 0.5, r"$y$", ha='center', rotation='vertical')
             fig.subplots_adjust(left=0.1)
 
-    plt.savefig(f"{sim_variables.save_path}/snapshots/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(t,3)}.png", bbox_inches='tight')
+    plt.savefig(f"{sim_variables.save_path}/snapshots/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(t,3)}.pdf", bbox_inches='tight', backend='pdf')
 
     plt.cla()
     plt.clf()
@@ -541,7 +541,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
             handles, labels = plt.gca().get_legend_handles_labels()
             fig.legend(handles, labels, ncol=_ncol)
 
-        plt.savefig(f"{sim_variables.save_path}/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(ref_time,3)}.png", bbox_inches='tight')
+        plt.savefig(f"{sim_variables.save_path}/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(ref_time,3)}.pdf", bbox_inches='tight', backend='pdf')
 
         plt.cla()
         plt.clf()
@@ -619,7 +619,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
     fig.text(0.5, 0.04, r"$N$", ha='center')
     fig.subplots_adjust(bottom=0.15)
 
-    plt.savefig(f"{sim_variables.save_path}/solErr_{config}_L{error_norm}_{subgrid}_{time_evo}_{solver}.png", bbox_inches='tight')
+    plt.savefig(f"{sim_variables.save_path}/solErr_{config}_L{error_norm}_{subgrid}_{time_evo}_{solver}.pdf", bbox_inches='tight', backend='pdf')
 
     plt.cla()
     plt.clf()
@@ -653,7 +653,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
     ax.set_xticklabels(_xticklabels, rotation=45, ha="right")
     ax.legend()
 
-    plt.savefig(f"{sim_variables.save_path}/convergenceOrder_{config}_{subgrid}_{time_evo}_{solver}.png", bbox_inches='tight')
+    plt.savefig(f"{sim_variables.save_path}/convergenceOrder_{config}_{subgrid}_{time_evo}_{solver}.pdf", bbox_inches='tight', backend='pdf')
 
     plt.cla()
     plt.clf()
@@ -710,7 +710,7 @@ def plot_total_variation(hdf5, sim_variables, title=False):
         fig.text(0.5, 0.04, rf"Time $t$ [arb. units]", ha='center')
         fig.subplots_adjust(bottom=0.1)
 
-        plt.savefig(f"{sim_variables.save_path}/TV_{config}_{subgrid}_{time_evo}_{solver}_{grid_size}.png", bbox_inches='tight')
+        plt.savefig(f"{sim_variables.save_path}/TV_{config}_{subgrid}_{time_evo}_{solver}_{grid_size}.pdf", bbox_inches='tight', backend='pdf')
 
         plt.cla()
         plt.clf()
@@ -772,7 +772,7 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
         fig.text(0.5, 0.04, rf"Time $t$ [arb. units]", ha='center')
         fig.subplots_adjust(bottom=0.1)
 
-        plt.savefig(f"{sim_variables.save_path}/conserveEq_{config}_{subgrid}_{time_evo}_{solver}_{grid_size}.png", bbox_inches='tight')
+        plt.savefig(f"{sim_variables.save_path}/conserveEq_{config}_{subgrid}_{time_evo}_{solver}_{grid_size}.pdf", bbox_inches='tight', backend='pdf')
 
         plt.cla()
         plt.clf()
@@ -839,7 +839,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                         fig.text(0.04, 0.5, r"$y$", ha='center', rotation='vertical')
                         fig.subplots_adjust(left=0.1)
 
-                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight')
+                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight', backend='cairo')
 
                 else:
                     idx = 0
@@ -853,7 +853,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
                     ax[idx,idx].set_title('')
 
-                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight', pad_inches=0, transparent=True)
+                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight', pad_inches=0, transparent=True, backend='cairo')
 
                 plt.cla()
                 plt.clf()
@@ -894,7 +894,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
                     ax[idx,idx].set_title('')
 
-                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight', pad_inches=0, transparent=True)
+                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight', pad_inches=0, transparent=True, backend='cairo')
 
                     plt.cla()
                     plt.clf()
@@ -917,65 +917,6 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                         if os.path.isfile(filepath) or os.path.islink(filepath):
                             os.remove(filepath)
         shutil.rmtree(vidpath)
-
-
-# Plot positions of tracer particles
-def plot_tracer_particles(tracers, t, sim_variables):
-    dimensions, multidimensional, axis_coord = sim_variables.dimensions, sim_variables.multidimensional, sim_variables.axis_coord
-
-    fig = plt.figure()
-
-    mpl.rcParams['text.usetex'] = True
-    plt.rcParams['text.latex.preamble'] = r"\usepackage{lmodern}"
-    params = {
-        'font.size': 12,
-        'font.family': 'DejaVuSans',
-        'axes.labelsize': 12,
-        'axes.titlesize': 12,
-        'legend.fontsize': 12,
-        'xtick.labelsize': 12,
-        'ytick.labelsize': 12,
-
-        'figure.dpi': 300,
-        'savefig.dpi': 300,
-
-        'lines.linewidth': 1.0,
-        'lines.dashed_pattern': [3, 2]
-    }
-    plt.rcParams.update(params)
-
-    if dimensions > 2:
-        ax = fig.add_subplot(projection='3d')
-    else:
-        ax = fig.add_subplot()
-
-    fig_kwargs = {
-        's': max(1, int(500/np.average(sim_variables.cells))),
-        'color': 'green',
-        'marker': 'o',
-    }
-
-    ax.set_xlabel("X")
-    ax.set_xlim(axis_coord[0])
-
-    if multidimensional:
-        ax.set_ylabel("Y")
-        ax.set_ylim(axis_coord[1])
-
-        if dimensions > 2:
-            ax.set_zlabel("Z")
-            ax.set_zlim(axis_coord[2])
-            ax.scatter(tracers[...,0], tracers[...,1], tracers[...,2], **fig_kwargs)
-        else:
-            ax.scatter(tracers[...,0], tracers[...,1], **fig_kwargs)
-    else:
-        ax.scatter(tracers[...,0], **fig_kwargs)
-
-    plt.savefig(f"{sim_variables.save_path}/snapshots/tracers_{'%.3f' % round(t,3)}.png", bbox_inches='tight')
-
-    plt.cla()
-    plt.clf()
-    plt.close()
 
 
 # Function for plotting instance of the grid; insert into any part of the code
@@ -1029,35 +970,6 @@ def plot_this(grid, sim_variables, **kwargs):
 
     if not sim_variables.live_plot:
         plt.show(block=True)
-    pass
-
-
-# Gradient fill the plots
-def gradient_plot(data, plot_index, ax, **kwargs):
-    x, y = data
-    i, j = plot_index
-
-    line, = ax[i,j].plot(x, y, **kwargs)
-    fill_color = line.get_color()
-
-    zorder = line.get_zorder()
-    alpha = line.get_alpha()
-    alpha = 1.0 if alpha is None else alpha
-
-    z = np.empty((100, 1, 4), dtype=float)
-    rgb = mcolors.colorConverter.to_rgb(fill_color)
-    z[:,:,:3] = rgb
-    z[:,:,-1] = np.linspace(0, alpha, 100)[:,None]
-
-    xmin, xmax, ymin, ymax = x.min(), x.max(), y.min(), y.max()
-    im = ax[i,j].imshow(z, aspect='auto', extent=[xmin, xmax, ymin, ymax], origin='lower', zorder=zorder)
-
-    xy = np.column_stack([x, y])
-    xy = np.vstack([[xmin, ymin], xy, [xmax, ymin], [xmin, ymin]])
-    clip_path = Polygon(xy, facecolor='none', edgecolor='none', closed=True)
-    ax[i,j].add_patch(clip_path)
-    im.set_clip_path(clip_path)
-
     pass
 
 
@@ -1161,11 +1073,99 @@ def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None
 
     plt.tight_layout()
 
-    plt.savefig(f'{sim_variables.save_path}/e_spectrum_{t}.png', bbox_inches='tight')
+    plt.savefig(f'{sim_variables.save_path}/e_spectrum_{t}.pdf', bbox_inches='tight', backend='pdf')
 
     plt.cla()
     plt.clf()
     plt.close()
+
+
+# Plot positions of tracer particles
+def plot_tracer_particles(tracers, t, sim_variables):
+    dimensions, multidimensional, axis_coord = sim_variables.dimensions, sim_variables.multidimensional, sim_variables.axis_coord
+
+    fig = plt.figure()
+
+    mpl.rcParams['text.usetex'] = True
+    plt.rcParams['text.latex.preamble'] = r"\usepackage{lmodern}"
+    params = {
+        'font.size': 12,
+        'font.family': 'DejaVuSans',
+        'axes.labelsize': 12,
+        'axes.titlesize': 12,
+        'legend.fontsize': 12,
+        'xtick.labelsize': 12,
+        'ytick.labelsize': 12,
+
+        'figure.dpi': 300,
+        'savefig.dpi': 300,
+
+        'lines.linewidth': 1.0,
+        'lines.dashed_pattern': [3, 2]
+    }
+    plt.rcParams.update(params)
+
+    if dimensions > 2:
+        ax = fig.add_subplot(projection='3d')
+    else:
+        ax = fig.add_subplot()
+
+    fig_kwargs = {
+        's': max(1, int(500/np.average(sim_variables.cells))),
+        'color': 'green',
+        'marker': 'o',
+    }
+
+    ax.set_xlabel("X")
+    ax.set_xlim(axis_coord[0])
+
+    if multidimensional:
+        ax.set_ylabel("Y")
+        ax.set_ylim(axis_coord[1])
+
+        if dimensions > 2:
+            ax.set_zlabel("Z")
+            ax.set_zlim(axis_coord[2])
+            ax.scatter(tracers[...,0], tracers[...,1], tracers[...,2], **fig_kwargs)
+        else:
+            ax.scatter(tracers[...,0], tracers[...,1], **fig_kwargs)
+    else:
+        ax.scatter(tracers[...,0], **fig_kwargs)
+
+    plt.savefig(f"{sim_variables.save_path}/snapshots/tracers_{'%.3f' % round(t,3)}.pdf", bbox_inches='tight', backend='pdf')
+
+    plt.cla()
+    plt.clf()
+    plt.close()
+
+
+# Gradient fill the plots
+def gradient_plot(data, plot_index, ax, **kwargs):
+    x, y = data
+    i, j = plot_index
+
+    line, = ax[i,j].plot(x, y, **kwargs)
+    fill_color = line.get_color()
+
+    zorder = line.get_zorder()
+    alpha = line.get_alpha()
+    alpha = 1.0 if alpha is None else alpha
+
+    z = np.empty((100, 1, 4), dtype=float)
+    rgb = mcolors.colorConverter.to_rgb(fill_color)
+    z[:,:,:3] = rgb
+    z[:,:,-1] = np.linspace(0, alpha, 100)[:,None]
+
+    xmin, xmax, ymin, ymax = x.min(), x.max(), y.min(), y.max()
+    im = ax[i,j].imshow(z, aspect='auto', extent=[xmin, xmax, ymin, ymax], origin='lower', zorder=zorder)
+
+    xy = np.column_stack([x, y])
+    xy = np.vstack([[xmin, ymin], xy, [xmax, ymin], [xmin, ymin]])
+    clip_path = Polygon(xy, facecolor='none', edgecolor='none', closed=True)
+    ax[i,j].add_patch(clip_path)
+    im.set_clip_path(clip_path)
+
+    pass
 
 
 def schlieren(quantity):

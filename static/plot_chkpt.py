@@ -134,7 +134,7 @@ def plot(save=False, title=False):
                                 fig.subplots_adjust(left=0.1)
 
                         if save or save_plot:
-                            plt.savefig(f"{os.getcwd()}/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(time,3)}.png", bbox_inches='tight')
+                            plt.savefig(f"{os.getcwd()}/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(time,3)}.pdf", bbox_inches='tight', backend='pdf')
                         else:
                             plt.show()
 
