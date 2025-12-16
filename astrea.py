@@ -91,8 +91,9 @@ def core_run(sim_variables, **kwargs):
             plotting.update_plot(grid_snapshot, t, sim_variables, *plotting_params)
         if plot_snapshot:
             plotting.plot_snapshot(grid_snapshot, t, sim_variables)
-            plotting.plot_tracer_particles(tracer_positions, t, sim_variables)
             plot_snapshot = False
+            if sim_variables.tracers:
+                plotting.plot_tracer_particles(tracer_positions, t, sim_variables)
         if create_chkpt_file:
             io.write_chkpt_file(grid_snapshot, t, idx, sim_variables)
             create_chkpt_file = False
