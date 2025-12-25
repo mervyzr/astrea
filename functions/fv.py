@@ -210,3 +210,30 @@ def compute_Roe_average(interfaces, sim_variables):
     avg[...,pressure] = divide((rho_plus * plus_interface[...,pressure]) + (rho_minus * minus_interface[...,pressure]), rho_minus + rho_plus)
     avg[...,Bfields] = divide((plus_interface[...,Bfields] * rho_minus[...,None]) + (minus_interface[...,Bfields] * rho_plus[...,None]), (rho_minus + rho_plus)[...,None])
     return avg
+
+
+# Function for checking the numerical errors when computing the (primitive) Jacobian matrices, characteristic waves (eigenvalues/diagonal matrix), and left and right eigenvectors
+def compute_characteristic_errors(grid, sim_variables, axis, check='jacobian'):
+    from functions import constructor
+
+    left_eigenvectors, right_eigenvectors = constructor.make_eigenvectors(grid, sim_variables, axis)
+
+    # Jacobian check: A = R @ λ @ L (stricter)
+    if check == "jacobian":
+        jacobian = constructor.make_Jacobian(grid, sim_variables, axis=axis)
+
+        cs, cA, cff, css = constructor.make_wavespeeds(grid, sim_variables, axis=axis)
+        uN = grid[...,1+axis]
+        characteristics = np.array([uN - cff, uN - cA, uN - css, uN, uN, uN + css, uN + cA, uN + cff])
+
+        Lambda = np.zeros(sim_variables.cells + [8,8])
+        idx = np.arange(8)
+        Lambda[:, idx, idx] = characteristics
+
+        err = np.linalg.norm(jacobian - (left_eigenvectors @ Lambda @ right_eigenvectors), axis=(-2,-1))
+
+    # Identity check: L @ R = I
+    elif check == "identity":
+        err = np.linalg.norm((left_eigenvectors @ right_eigenvectors) - np.eye(8), axis=(-2,-1))
+
+    return err.max()

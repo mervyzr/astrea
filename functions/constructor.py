@@ -314,23 +314,32 @@ def make_eigenvectors(grids, sim_variables, axis, vectors="both"):
 
     # Compute wavespeeds
     cs, cAx, caF, caS = make_wavespeeds(grids, sim_variables, axis)
-    degenerate = np.where(cAx == cs)
-    Nf = Ns = 1/(2*cs**2)
 
-    # Define frequently used components
-    S = np.sign(Bx)
+    # Define abbreviated terms
     alpha_f = np.sqrt(fv.divide(cs**2 - caS**2, caF**2 - caS**2))
     alpha_s = np.sqrt(fv.divide(caF**2 - cs**2, caF**2 - caS**2))
-    alpha_f[degenerate], alpha_s[degenerate] = 1, 0
+
+    # Magnetic field cases
+    S = np.sign(Bx)
     beta_y = fv.divide(By, np.sqrt(By**2 + Bz**2))
     beta_z = fv.divide(Bz, np.sqrt(By**2 + Bz**2))
+    #none_transverse_field = np.where((grids[...,5+ordinate] == 0) | (grids[...,5+applicate] == 0))  # By = Bz = 0
+    #beta_y[none_transverse_field], beta_z[none_transverse_field] = 1/np.sqrt(2), 1/np.sqrt(2)
+    #alpha_f[none_transverse_field], alpha_s[none_transverse_field] = 1/np.sqrt(2), 1/np.sqrt(2)
 
+    # Handle degeneracy cases
+    degenerate = np.where(cAx == cs)
+    alpha_f[degenerate], alpha_s[degenerate] = 1, 0
+
+    # Define frequently used terms
     Cff, Css = caF * alpha_f, caS * alpha_s
     Qff, Qss = Cff * S, Css * S
     Af, As = cs * alpha_f * np.sqrt(rhos), cs * alpha_s * np.sqrt(rhos)
 
     # Generate the LEFT eigenvectors
     if vectors.casefold().startswith(("b", "l")):
+        Nf = Ns = 1/(2*cs**2)
+
         # First row (Fast- magnetoacoustic wave)
         left_eigenvectors[...,0,1+abscissa] = -Nf * Cff
         left_eigenvectors[...,0,1+ordinate] = Nf * Qss * beta_y
