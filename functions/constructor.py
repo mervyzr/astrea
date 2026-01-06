@@ -323,9 +323,9 @@ def make_eigenvectors(grids, sim_variables, axis, vectors="both"):
     S = np.sign(Bx)
     beta_y = fv.divide(By, np.sqrt(By**2 + Bz**2))
     beta_z = fv.divide(Bz, np.sqrt(By**2 + Bz**2))
-    none_transverse_field = np.where((grids[...,5+ordinate] == 0) | (grids[...,5+applicate] == 0))  # By = Bz = 0
-    beta_y[none_transverse_field], beta_z[none_transverse_field] = 1/np.sqrt(2), 1/np.sqrt(2)
-    alpha_f[none_transverse_field], alpha_s[none_transverse_field] = 1/np.sqrt(2), 1/np.sqrt(2)
+    #none_transverse_field = np.where((grids[...,5+ordinate] == 0) | (grids[...,5+applicate] == 0))  # By = Bz = 0
+    #beta_y[none_transverse_field], beta_z[none_transverse_field] = 1/np.sqrt(2), 1/np.sqrt(2)
+    #alpha_f[none_transverse_field], alpha_s[none_transverse_field] = 1/np.sqrt(2), 1/np.sqrt(2)
 
     # Handle degeneracy cases
     degenerate = np.where(cAx == cs)
