@@ -226,9 +226,10 @@ def compute_characteristic_errors(grid, sim_variables, axis, check='jacobian'):
         uN = grid[...,1+axis]
         characteristics = np.array([uN - cff, uN - cA, uN - css, uN, uN, uN + css, uN + cA, uN + cff])
 
-        Lambda = np.zeros(sim_variables.cells + [8,8])
-        idx = np.arange(8)
-        Lambda[:, idx, idx] = characteristics
+        _vars = len(characteristics)
+        Lambda = np.zeros(sim_variables.cells + [_vars,_vars])
+        idx = np.arange(_vars)
+        Lambda[..., idx, idx] = characteristics.T
 
         err = np.linalg.norm(jacobian - (left_eigenvectors @ Lambda @ right_eigenvectors), axis=(-2,-1))
 
