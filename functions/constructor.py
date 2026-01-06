@@ -323,9 +323,9 @@ def make_eigenvectors(grids, sim_variables, axis, vectors="both"):
     S = np.sign(Bx)
     beta_y = fv.divide(By, np.sqrt(By**2 + Bz**2))
     beta_z = fv.divide(Bz, np.sqrt(By**2 + Bz**2))
-    #none_transverse_field = np.where((grids[...,5+ordinate] == 0) | (grids[...,5+applicate] == 0))  # By = Bz = 0
-    #beta_y[none_transverse_field], beta_z[none_transverse_field] = 1/np.sqrt(2), 1/np.sqrt(2)
-    #alpha_f[none_transverse_field], alpha_s[none_transverse_field] = 1/np.sqrt(2), 1/np.sqrt(2)
+    none_transverse_field = np.where((grids[...,5+ordinate] == 0) | (grids[...,5+applicate] == 0))  # By = Bz = 0
+    beta_y[none_transverse_field], beta_z[none_transverse_field] = 1/np.sqrt(2), 1/np.sqrt(2)
+    alpha_f[none_transverse_field], alpha_s[none_transverse_field] = 1/np.sqrt(2), 1/np.sqrt(2)
 
     # Handle degeneracy cases
     degenerate = np.where(cAx == cs)
@@ -417,8 +417,8 @@ def make_eigenvectors(grids, sim_variables, axis, vectors="both"):
         right_eigenvectors[...,1+ordinate,5] = Qff * beta_y
         right_eigenvectors[...,1+applicate,5] = Qff * beta_z
         right_eigenvectors[...,4,5] = rhos * alpha_s * cs**2
-        right_eigenvectors[...,ordinate+5,5] = -Af * beta_y
-        right_eigenvectors[...,applicate+5,5] = -Af * beta_z
+        right_eigenvectors[...,5+ordinate,5] = -Af * beta_y
+        right_eigenvectors[...,5+applicate,5] = -Af * beta_z
         # Seventh column (Alfven+ wave)
         right_eigenvectors[...,1+ordinate,6] = beta_z
         right_eigenvectors[...,1+applicate,6] = -beta_y
