@@ -28,8 +28,8 @@ def nan_to_num(arr):
 # For handling division-by-zero warnings during array divisions
 # !! MONITOR THE PHYSICS WHEN USING THIS; ZEROS IN DIVISOR MIGHT MEAN YOUR CODE IS INCORRECT !!
 def divide(dividend, divisor, eps=EPSILON):
-    return np.divide(np.real(dividend), np.real(divisor+eps))
-    #return np.divide(np.real(dividend), np.real(divisor), out=np.zeros_like(dividend), where=divisor!=0)
+    #return np.divide(np.real(dividend), np.real(divisor+eps))
+    return np.divide(np.real(dividend), np.real(divisor), out=np.zeros_like(dividend), where=divisor!=0)
 
 
 # For handling log zero and log negative values

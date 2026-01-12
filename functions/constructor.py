@@ -339,100 +339,115 @@ def make_eigenvectors(grids, sim_variables, axis, vectors="both"):
 
     # Generate the RIGHT eigenvectors
     if vectors.casefold().startswith(("b", "r")):
+        ralphaf, ralphas = rhos * alpha_f, rhos * alpha_s
+        r2alphaf, r2alphas = ralphaf * cs**2, ralphas * cs**2
+        QssBy, QssBz = Qss * beta_y, Qss * beta_z
+        QffBy, QffBz = Qff * beta_y, Qff * beta_z
+        AsBy, AsBz = As * beta_y, As * beta_z
+        AfBy, AfBz = Af * beta_y, Af * beta_z
+        BySrho, BzSrho = beta_y * S * np.sqrt(rhos), beta_z * S * np.sqrt(rhos)
+
         # First column (Fast- magnetoacoustic wave)
-        right_eigenvectors[...,0,0] = rhos * alpha_f
+        right_eigenvectors[...,0,0] = ralphaf
         right_eigenvectors[...,1+abscissa,0] = -Cff
-        right_eigenvectors[...,1+ordinate,0] = Qss * beta_y
-        right_eigenvectors[...,1+applicate,0] = Qss * beta_z
-        right_eigenvectors[...,4,0] = rhos * alpha_f * cs**2
-        right_eigenvectors[...,5+ordinate,0] = As * beta_y
-        right_eigenvectors[...,5+applicate,0] = As * beta_z
+        right_eigenvectors[...,1+ordinate,0] = QssBy
+        right_eigenvectors[...,1+applicate,0] = QssBz
+        right_eigenvectors[...,4,0] = r2alphaf
+        right_eigenvectors[...,5+ordinate,0] = AsBy
+        right_eigenvectors[...,5+applicate,0] = AsBz
         # Second column (Alfven- wave)
         right_eigenvectors[...,1+ordinate,1] = -beta_z
         right_eigenvectors[...,1+applicate,1] = beta_y
-        right_eigenvectors[...,5+ordinate,1] = -beta_z * S * np.sqrt(rhos)
-        right_eigenvectors[...,5+applicate,1] = beta_y * S * np.sqrt(rhos)
+        right_eigenvectors[...,5+ordinate,1] = -BzSrho
+        right_eigenvectors[...,5+applicate,1] = BySrho
         # Third column (Slow- magnetoacoustic wave)
-        right_eigenvectors[...,0,2] = rhos * alpha_s
+        right_eigenvectors[...,0,2] = ralphas
         right_eigenvectors[...,1+abscissa,2] = -Css
-        right_eigenvectors[...,1+ordinate,2] = -Qff * beta_y
-        right_eigenvectors[...,1+applicate,2] = -Qff * beta_z
-        right_eigenvectors[...,4,2] = rhos * alpha_s * cs**2
-        right_eigenvectors[...,5+ordinate,2] = -Af * beta_y
-        right_eigenvectors[...,5+applicate,2] = -Af * beta_z
+        right_eigenvectors[...,1+ordinate,2] = -QffBy
+        right_eigenvectors[...,1+applicate,2] = -QffBz
+        right_eigenvectors[...,4,2] = r2alphas
+        right_eigenvectors[...,5+ordinate,2] = -AfBy
+        right_eigenvectors[...,5+applicate,2] = -AfBz
         # Fourth column (Entropy/contact wave)
         right_eigenvectors[...,0,3] = 1
         # Fifth column (Divergence wave)
         right_eigenvectors[...,5+abscissa,4] = 1
         # Sixth column (Slow+ magnetoacoustic wave)
-        right_eigenvectors[...,0,5] = rhos * alpha_s
+        right_eigenvectors[...,0,5] = ralphas
         right_eigenvectors[...,1+abscissa,5] = Css
-        right_eigenvectors[...,1+ordinate,5] = Qff * beta_y
-        right_eigenvectors[...,1+applicate,5] = Qff * beta_z
-        right_eigenvectors[...,4,5] = rhos * alpha_s * cs**2
-        right_eigenvectors[...,5+ordinate,5] = -Af * beta_y
-        right_eigenvectors[...,5+applicate,5] = -Af * beta_z
+        right_eigenvectors[...,1+ordinate,5] = QffBy
+        right_eigenvectors[...,1+applicate,5] = QffBz
+        right_eigenvectors[...,4,5] = r2alphas
+        right_eigenvectors[...,5+ordinate,5] = -AfBy
+        right_eigenvectors[...,5+applicate,5] = -AfBz
         # Seventh column (Alfven+ wave)
         right_eigenvectors[...,1+ordinate,6] = beta_z
         right_eigenvectors[...,1+applicate,6] = -beta_y
-        right_eigenvectors[...,5+ordinate,6] = -beta_z * S * np.sqrt(rhos)
-        right_eigenvectors[...,5+applicate,6] = beta_y * S * np.sqrt(rhos)
+        right_eigenvectors[...,5+ordinate,6] = -BzSrho
+        right_eigenvectors[...,5+applicate,6] = BySrho
         # Eighth column (Fast+ magnetoacoustic wave)
-        right_eigenvectors[...,0,7] = rhos * alpha_f
+        right_eigenvectors[...,0,7] = ralphaf
         right_eigenvectors[...,1+abscissa,7] = Cff
-        right_eigenvectors[...,1+ordinate,7] = -Qss * beta_y
-        right_eigenvectors[...,1+applicate,7] = -Qss * beta_z
-        right_eigenvectors[...,4,7] = rhos * alpha_f * cs**2
-        right_eigenvectors[...,5+ordinate,7] = As * beta_y
-        right_eigenvectors[...,5+applicate,7] = As * beta_z
+        right_eigenvectors[...,1+ordinate,7] = -QssBy
+        right_eigenvectors[...,1+applicate,7] = -QssBz
+        right_eigenvectors[...,4,7] = r2alphaf
+        right_eigenvectors[...,5+ordinate,7] = AsBy
+        right_eigenvectors[...,5+applicate,7] = AsBz
 
     # Generate the LEFT eigenvectors
     if vectors.casefold().startswith(("b", "l")):
         Nf = Ns = 1/(2*cs**2)
+        NfCff, NsCss = Nf * Cff, Ns * Css
+        Nfalphaf, Nsalphas = fv.divide(Nf * alpha_f, rhos), fv.divide(Ns * alpha_s, rhos)
+        NfQssBy, NfQssBz = Nf * Qss * beta_y, Nf * Qss * beta_z
+        NsQffBy, NsQffBz = Ns * Qff * beta_y, Ns * Qff * beta_z
+        NfAsBy, NfAsBz = fv.divide(Nf * As * beta_y, rhos), fv.divide(Nf * As * beta_z, rhos)
+        NsAfBy, NsAfBz = fv.divide(Ns * Af * beta_y, rhos), fv.divide(Ns * Af * beta_z, rhos)
+        ByS2rho, BzS2rho = fv.divide(beta_y * S, 2 * np.sqrt(rhos)), fv.divide(beta_z * S, 2 * np.sqrt(rhos))
 
         # First row (Fast- magnetoacoustic wave)
-        left_eigenvectors[...,0,1+abscissa] = -Nf * Cff
-        left_eigenvectors[...,0,1+ordinate] = Nf * Qss * beta_y
-        left_eigenvectors[...,0,1+applicate] = Nf * Qss * beta_z
-        left_eigenvectors[...,0,4] = fv.divide(Nf * alpha_f, rhos)
-        left_eigenvectors[...,0,5+ordinate] = fv.divide(Nf * As * beta_y, rhos)
-        left_eigenvectors[...,0,5+applicate] = fv.divide(Nf * As * beta_z, rhos)
+        left_eigenvectors[...,0,1+abscissa] = -NfCff
+        left_eigenvectors[...,0,1+ordinate] = NfQssBy
+        left_eigenvectors[...,0,1+applicate] = NfQssBz
+        left_eigenvectors[...,0,4] = Nfalphaf
+        left_eigenvectors[...,0,5+ordinate] = NfAsBy
+        left_eigenvectors[...,0,5+applicate] = NfAsBz
         # Second row (Alfven- wave)
         left_eigenvectors[...,1,1+ordinate] = -beta_z/2
         left_eigenvectors[...,1,1+applicate] = beta_y/2
-        left_eigenvectors[...,1,5+ordinate] = -fv.divide(beta_z * S, 2 * np.sqrt(rhos))
-        left_eigenvectors[...,1,5+applicate] = fv.divide(beta_y * S, 2 * np.sqrt(rhos))
+        left_eigenvectors[...,1,5+ordinate] = -BzS2rho
+        left_eigenvectors[...,1,5+applicate] = ByS2rho
         # Third row (Slow- magnetoacoustic wave)
-        left_eigenvectors[...,2,1+abscissa] = -Ns * Css
-        left_eigenvectors[...,2,1+ordinate] = -Ns * Qff * beta_y
-        left_eigenvectors[...,2,1+applicate] = -Ns * Qff * beta_z
-        left_eigenvectors[...,2,4] = fv.divide(Ns * alpha_s, rhos)
-        left_eigenvectors[...,2,5+ordinate] = -fv.divide(Ns * Af * beta_y, rhos)
-        left_eigenvectors[...,2,5+applicate] = -fv.divide(Ns * Af * beta_z, rhos)
+        left_eigenvectors[...,2,1+abscissa] = -NsCss
+        left_eigenvectors[...,2,1+ordinate] = -NsQffBy
+        left_eigenvectors[...,2,1+applicate] = -NsQffBz
+        left_eigenvectors[...,2,4] = Nsalphas
+        left_eigenvectors[...,2,5+ordinate] = -NsAfBy
+        left_eigenvectors[...,2,5+applicate] = -NsAfBz
         # Fourth row (Entropy/contact wave)
         left_eigenvectors[...,3,0] = 1
         left_eigenvectors[...,3,4] = -2 * Nf
         # Fifth row (Divergence wave)
         left_eigenvectors[...,4,5+abscissa] = 1
         # Sixth row (Slow+ magnetoacoustic wave)
-        left_eigenvectors[...,5,1+abscissa] = Ns * Css
-        left_eigenvectors[...,5,1+ordinate] = Ns * Qff * beta_y
-        left_eigenvectors[...,5,1+applicate] = Ns * Qff * beta_z
-        left_eigenvectors[...,5,4] = fv.divide(Ns * alpha_s, rhos)
-        left_eigenvectors[...,5,5+ordinate] = -fv.divide(Ns * Af * beta_y, rhos)
-        left_eigenvectors[...,5,5+applicate] = -fv.divide(Ns * Af * beta_z, rhos)
+        left_eigenvectors[...,5,1+abscissa] = NsCss
+        left_eigenvectors[...,5,1+ordinate] = NsQffBy
+        left_eigenvectors[...,5,1+applicate] = NsQffBz
+        left_eigenvectors[...,5,4] = Nsalphas
+        left_eigenvectors[...,5,5+ordinate] = -NsAfBy
+        left_eigenvectors[...,5,5+applicate] = -NsAfBz
         # Seventh row (Alfven+ wave)
         left_eigenvectors[...,6,1+ordinate] = beta_z/2
         left_eigenvectors[...,6,1+applicate] = -beta_y/2
-        left_eigenvectors[...,6,5+ordinate] = -fv.divide(beta_z * S, 2 * np.sqrt(rhos))
-        left_eigenvectors[...,6,5+applicate] = fv.divide(beta_y * S, 2 * np.sqrt(rhos))
+        left_eigenvectors[...,6,5+ordinate] = -BzS2rho
+        left_eigenvectors[...,6,5+applicate] = ByS2rho
         # Eighth row (Fast+ magnetoacoustic wave)
-        left_eigenvectors[...,7,1+abscissa] = Nf * Cff
-        left_eigenvectors[...,7,1+ordinate] = -Nf * Qss * beta_y
-        left_eigenvectors[...,7,1+applicate] = -Nf * Qss * beta_z
-        left_eigenvectors[...,7,4] = fv.divide(Nf * alpha_f, rhos)
-        left_eigenvectors[...,7,5+ordinate] = fv.divide(Nf * As * beta_y, rhos)
-        left_eigenvectors[...,7,5+applicate] = fv.divide(Nf * As * beta_z, rhos)
+        left_eigenvectors[...,7,1+abscissa] = NfCff
+        left_eigenvectors[...,7,1+ordinate] = -NfQssBy
+        left_eigenvectors[...,7,1+applicate] = -NfQssBz
+        left_eigenvectors[...,7,4] = Nfalphaf
+        left_eigenvectors[...,7,5+ordinate] = NfAsBy
+        left_eigenvectors[...,7,5+applicate] = NfAsBz
 
     if vectors.casefold().startswith("l"):
         return left_eigenvectors
