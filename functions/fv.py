@@ -222,7 +222,7 @@ def compute_characteristic_errors(grid, sim_variables, axis, check='jacobian'):
     if check == "jacobian":
         jacobian = constructor.make_Jacobian(grid, sim_variables, axis=axis)
 
-        cs, cA, cff, css = constructor.make_wavespeeds(grid, sim_variables, axis=axis)
+        _, cA, _, cff, css = constructor.make_wavespeeds(grid, sim_variables, axis=axis)
         uN = grid[...,1+axis]
         characteristics = np.array([uN - cff, uN - cA, uN - css, uN, uN, uN + css, uN + cA, uN + cff])
 
