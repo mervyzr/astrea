@@ -306,12 +306,6 @@ def make_eigenvectors(grids, sim_variables, axis, vectors="both"):
     rhos, Bfields = grids[...,sim_variables.rho], grids[...,sim_variables.Bfields]
     Bx, By, Bz = Bfields[...,abscissa], Bfields[...,ordinate], Bfields[...,applicate]
 
-    # Define the left & right eigenvectors for each cell in each grid
-    if vectors.casefold().startswith(("b", "l")):
-        left_eigenvectors = np.repeat(np.zeros_like(grids)[...,None], grids.shape[-1], axis=-1)
-    if vectors.casefold().startswith(("b", "r")):
-        right_eigenvectors = np.repeat(np.zeros_like(grids)[...,None], grids.shape[-1], axis=-1)
-
     # Compute wavespeeds
     cs, cA, cAx, caF, caS = make_wavespeeds(grids, sim_variables, axis)
 
@@ -337,7 +331,7 @@ def make_eigenvectors(grids, sim_variables, axis, vectors="both"):
     Qff, Qss = Cff * S, Css * S
     Af, As = cs * alpha_f * np.sqrt(rhos), cs * alpha_s * np.sqrt(rhos)
 
-    # Generate the RIGHT eigenvectors
+    # Compute characteristics and generate the RIGHT eigenvectors
     if vectors.casefold().startswith(("b", "r")):
         ralphaf, ralphas = rhos * alpha_f, rhos * alpha_s
         r2alphaf, r2alphas = ralphaf * cs**2, ralphas * cs**2
@@ -346,6 +340,8 @@ def make_eigenvectors(grids, sim_variables, axis, vectors="both"):
         AsBy, AsBz = As * beta_y, As * beta_z
         AfBy, AfBz = Af * beta_y, Af * beta_z
         BySrho, BzSrho = beta_y * S * np.sqrt(rhos), beta_z * S * np.sqrt(rhos)
+
+        right_eigenvectors = np.repeat(np.zeros_like(grids)[...,None], grids.shape[-1], axis=-1)
 
         # First column (Fast- magnetoacoustic wave)
         right_eigenvectors[...,0,0] = ralphaf
@@ -394,7 +390,7 @@ def make_eigenvectors(grids, sim_variables, axis, vectors="both"):
         right_eigenvectors[...,5+ordinate,7] = AsBy
         right_eigenvectors[...,5+applicate,7] = AsBz
 
-    # Generate the LEFT eigenvectors
+    # Compute characteristics and generate the LEFT eigenvectors
     if vectors.casefold().startswith(("b", "l")):
         Nf = Ns = 1/(2*cs**2)
         NfCff, NsCss = Nf * Cff, Ns * Css
@@ -404,6 +400,8 @@ def make_eigenvectors(grids, sim_variables, axis, vectors="both"):
         NfAsBy, NfAsBz = fv.divide(Nf * As * beta_y, rhos), fv.divide(Nf * As * beta_z, rhos)
         NsAfBy, NsAfBz = fv.divide(Ns * Af * beta_y, rhos), fv.divide(Ns * Af * beta_z, rhos)
         ByS2rho, BzS2rho = fv.divide(beta_y * S, 2 * np.sqrt(rhos)), fv.divide(beta_z * S, 2 * np.sqrt(rhos))
+
+        left_eigenvectors = np.repeat(np.zeros_like(grids)[...,None], grids.shape[-1], axis=-1)
 
         # First row (Fast- magnetoacoustic wave)
         left_eigenvectors[...,0,1+abscissa] = -NfCff
