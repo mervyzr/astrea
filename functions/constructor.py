@@ -28,7 +28,7 @@ def initialise(sim_variables):
     match = lambda match_type, substrings: match_type(substring in config for substring in substrings)
 
 
-    computational_grid = np.zeros(list(cells)+[len(ambient),], dtype=precision)
+    computational_grid = np.zeros(list(cells)+[len(ambient),], dtype=precision, order='C')
     computational_grid[:] = ambient
 
     x_centre = np.average(axis_coord[0])
