@@ -102,8 +102,8 @@ def calculate_HLLC_flux(axis, sim_variables, low_mach=False, **kwargs):
     rhoR, uR, pR, qR = prim_plus[...,rho], prim_plus[...,1+axis], prim_plus[...,pressure], cons_plus
 
     # Compute the wavespeeds
-    cs_L, _, _, _, _ = constructor.make_wavespeeds(prim_minus, sim_variables, axis)
-    cs_R, _, _, _, _ = constructor.make_wavespeeds(prim_plus, sim_variables, axis)
+    cs_L = constructor.make_wavespeeds(prim_minus, sim_variables, axis, waves='cs')
+    cs_R = constructor.make_wavespeeds(prim_plus, sim_variables, axis, waves='cs')
     sL = np.minimum(0, np.minimum(uL, uR) - np.maximum(cs_L, cs_R))
     sR = np.maximum(0, np.maximum(uL, uR) + np.maximum(cs_L, cs_R))
     sM = fv.divide(pL - pR + rhoR*uR*(sR-uR) - rhoL*uL*(sL-uL), rhoR*(sR-uR) - rhoL*(sL-uL))
@@ -158,10 +158,10 @@ def calculate_HLLD_flux(axis, sim_variables, **kwargs):
     pTL, pTR = pL + .5*fv.norm(bL)**2, pR + .5*fv.norm(bR)**2
 
     # Compute the wavespeeds
-    _, _, _, caf_L, _ = constructor.make_wavespeeds(prim_minus, sim_variables, axis)
-    _, _, _, caf_R, _ = constructor.make_wavespeeds(prim_plus, sim_variables, axis)
-    sL = np.minimum(0, np.minimum(vecL[...,abscissa], vecR[...,abscissa]) - np.maximum(caf_L, caf_R))
-    sR = np.maximum(0, np.maximum(vecL[...,abscissa], vecR[...,abscissa]) + np.maximum(caf_L, caf_R))
+    cFF_L = constructor.make_wavespeeds(prim_minus, sim_variables, axis, waves='cff')
+    cFF_R = constructor.make_wavespeeds(prim_plus, sim_variables, axis, waves='cff')
+    sL = np.minimum(0, np.minimum(vecL[...,abscissa], vecR[...,abscissa]) - np.maximum(cFF_L, cFF_R))
+    sR = np.maximum(0, np.maximum(vecL[...,abscissa], vecR[...,abscissa]) + np.maximum(cFF_L, cFF_R))
     sM = fv.divide(pTL - pTR + rhoR*vecR[...,axis]*(sR-vecR[...,axis]) - rhoL*vecL[...,axis]*(sL-vecL[...,axis]), rhoR*(sR-vecR[...,axis]) - rhoL*(sL-vecL[...,axis]))
 
     # Calculate the star states
@@ -238,18 +238,18 @@ def calculate_DOTS_flux(axis, sim_variables, **kwargs):
     eigenvalues = np.zeros_like(right_eigenvectors)
 
     # Compute wavespeeds
-    _, _, alfven_speed_x, fast_magnetosonic_wave, slow_magnetosonic_wave = constructor.make_wavespeeds(psi, sim_variables, axis)
+    _, _, cAx, cFF, cSS = constructor.make_wavespeeds(psi, sim_variables, axis)
     vxs = psi[...,1+axis]
 
     # Compute the diagonal matrix of eigenvalues
-    eigenvalues[...,0,0] = vxs - fast_magnetosonic_wave
-    eigenvalues[...,1,1] = vxs - alfven_speed_x
-    eigenvalues[...,2,2] = vxs - slow_magnetosonic_wave
+    eigenvalues[...,0,0] = vxs - cFF
+    eigenvalues[...,1,1] = vxs - cAx
+    eigenvalues[...,2,2] = vxs - cSS
     eigenvalues[...,3,3] = vxs
     eigenvalues[...,4,4] = vxs
-    eigenvalues[...,5,5] = vxs + slow_magnetosonic_wave
-    eigenvalues[...,6,6] = vxs + alfven_speed_x
-    eigenvalues[...,7,7] = vxs + fast_magnetosonic_wave
+    eigenvalues[...,5,5] = vxs + cSS
+    eigenvalues[...,6,6] = vxs + cAx
+    eigenvalues[...,7,7] = vxs + cFF
 
     # Compute the absolute value of the Jacobian
     abs_A = right_eigenvectors @ np.abs(eigenvalues) @ left_eigenvectors

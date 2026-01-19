@@ -8,6 +8,16 @@ from functions import constructor, fv, generic
 # Functions for analytic solutions
 ##############################################################################
 
+# Generic Gaussian function
+def gauss_func(r, params):
+    return params['y_offset'] + params['ampl']*np.exp(-(r**2)/params['fwhm'])
+
+
+# Generic sin function
+def sine_func(r, params):
+    return params['y_offset'] + params['ampl']*np.sin(params['freq']*np.pi*r)
+
+
 # Customised rounding function
 def round_off(value):
     if value%int(value) >= .5:
