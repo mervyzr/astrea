@@ -10,16 +10,6 @@ import numpy as np
 EPSILON = np.finfo('float64').eps
 
 
-# Generic Gaussian function
-def gauss_func(x, params):
-    return params['y_offset'] + params['ampl']*np.exp(-((x-params['peak_pos'])**2)/params['fwhm'])
-
-
-# Generic sin function
-def sine_func(x, params):
-    return params['y_offset'] + params['ampl']*np.sin(params['freq']*np.pi*x)
-
-
 # Magic function to make errors disappear (!! physics would most likely be messed up so be very careful using this function !!)
 def nan_to_num(arr):
     return np.nan_to_num(arr, copy=True, nan=0., posinf=1e16, neginf=-1e16)
@@ -213,28 +203,30 @@ def compute_Roe_average(interfaces, sim_variables):
 
 
 # Function for checking the numerical errors when computing the (primitive) Jacobian matrices, characteristic waves (eigenvalues/diagonal matrix), and left and right eigenvectors
-def compute_characteristic_errors(grid, sim_variables, axis, check='jacobian'):
+def compute_characteristic_errors(grid, sim_variables, axis, check='identity'):
     from functions import constructor
 
     left_eigenvectors, right_eigenvectors = constructor.make_eigenvectors(grid, sim_variables, axis)
+    _axis = tuple(np.arange(-sim_variables.dimensions, 0))
 
     # Jacobian check: A = R @ λ @ L (stricter)
     if check == "jacobian":
-        jacobian = constructor.make_Jacobian(grid, sim_variables, axis=axis)
-
-        _, cA, _, cff, css = constructor.make_wavespeeds(grid, sim_variables, axis=axis)
         uN = grid[...,1+axis]
-        characteristics = np.array([uN - cff, uN - cA, uN - css, uN, uN, uN + css, uN + cA, uN + cff])
+        _, cA, _, cFF, cSS = constructor.make_wavespeeds(grid, sim_variables, axis=axis)
+        characteristics = np.array([uN - cFF, uN - cA, uN - cSS, uN, uN + cSS, uN + cA, uN + cFF]).T
 
-        _vars = len(characteristics)
-        Lambda = np.zeros(sim_variables.cells + [_vars,_vars])
-        idx = np.arange(_vars)
-        Lambda[..., idx, idx] = characteristics.T
+        i, j = np.diag_indices(characteristics.shape[-1])
+        Lambda = np.zeros(sim_variables.cells + [len(i),len(j)])
+        Lambda[...,i,j] = characteristics
 
-        err = np.linalg.norm(jacobian - (left_eigenvectors @ Lambda @ right_eigenvectors), axis=(-2,-1))
+        jacobian = constructor.make_Jacobian(grid, sim_variables, axis=axis)
+        jacobian = np.delete(jacobian, 5+axis, axis=-2)
+        jacobian = np.delete(jacobian, 5+axis, axis=-1)
+
+        err = np.linalg.norm(jacobian - (right_eigenvectors @ Lambda @ left_eigenvectors), axis=_axis)
 
     # Identity check: L @ R = I
     elif check == "identity":
-        err = np.linalg.norm((left_eigenvectors @ right_eigenvectors) - np.eye(8), axis=(-2,-1))
+        err = np.linalg.norm((left_eigenvectors @ right_eigenvectors) - np.eye(right_eigenvectors.shape[-1]), axis=_axis)
 
     return err.max()
