@@ -28,7 +28,7 @@ SEED = np.random.randint(0, 1e8)
 
 # Global settings
 warnings.filterwarnings('ignore')
-np.set_printoptions(linewidth=1000, suppress=True)
+np.set_printoptions(linewidth=1000, edgeitems=4, suppress=True)
 
 # Finite volume simulation
 def core_run(sim_variables, **kwargs):

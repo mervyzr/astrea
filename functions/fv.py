@@ -19,7 +19,7 @@ def nan_to_num(arr):
 # !! MONITOR THE PHYSICS WHEN USING THIS; ZEROS IN DIVISOR MIGHT MEAN YOUR CODE IS INCORRECT !!
 def divide(dividend, divisor, eps=EPSILON):
     #return np.divide(np.real(dividend), np.real(divisor+eps))
-    return np.divide(np.real(dividend), np.real(divisor), out=np.zeros_like(dividend), where=divisor!=0)
+    return np.divide(np.real(dividend), np.real(divisor), out=np.full_like(dividend, 1/eps), where=divisor!=0)
 
 
 # For handling log zero and log negative values
@@ -210,10 +210,8 @@ def compute_characteristic_errors(grid, sim_variables, axis, check='identity'):
     _axis = tuple(np.arange(-sim_variables.dimensions, 0))
 
     # Jacobian check: A = R @ λ @ L (stricter)
-    if check == "jacobian":
-        uN = grid[...,1+axis]
-        _, cA, _, cFF, cSS = constructor.make_wavespeeds(grid, sim_variables, axis=axis)
-        characteristics = np.array([uN - cFF, uN - cA, uN - cSS, uN, uN + cSS, uN + cA, uN + cFF]).T
+    if check.lower() == "jacobian":
+        characteristics = constructor.make_characteristics(grid, sim_variables, axis)
 
         i, j = np.diag_indices(characteristics.shape[-1])
         Lambda = np.zeros(sim_variables.cells + [len(i),len(j)])
@@ -226,7 +224,7 @@ def compute_characteristic_errors(grid, sim_variables, axis, check='identity'):
         err = np.linalg.norm(jacobian - (right_eigenvectors @ Lambda @ left_eigenvectors), axis=_axis)
 
     # Identity check: L @ R = I
-    elif check == "identity":
+    elif check.lower() == "identity":
         err = np.linalg.norm((left_eigenvectors @ right_eigenvectors) - np.eye(right_eigenvectors.shape[-1]), axis=_axis)
 
     return err.max()

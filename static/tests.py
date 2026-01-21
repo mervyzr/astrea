@@ -53,8 +53,8 @@ def generate_test_conditions(config_variables):
         shock_pos = 1
         t_end = 2
         boundary = "wrap"
-        init_cond = np.array([0,1,1,1,1e-6,0,0,0])
-        ambient = np.array([0,1,1,1,1e-6,0,0,0])
+        init_cond = np.array([0,1,1,1,1,0,0,0])
+        ambient = np.array([0,1,1,1,1,0,0,0])
         misc = {'peak_pos':0, 'ampl':.75, 'fwhm':.08, 'y_offset':1}
 
     elif "noh" in config:
