@@ -13,7 +13,7 @@ def reconstruct(grid, sim_variables, axis):
 
 
 def run(grid, sim_variables, axis):
-    convert, multidimensional, axes, magnetic, ds = sim_variables.convert, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
+    convert, multidimensional, magnetic, ds = sim_variables.convert, sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds
     data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
