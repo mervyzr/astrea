@@ -26,8 +26,16 @@ def run(grid, sim_variables, axis):
     fluxes = constructor.make_flux(padded_primitive, sim_variables, axis=axis)
     jacobian = constructor.make_Jacobian(padded_primitive, sim_variables, axis=axis)
 
+    # Resolve characteristics at interfaces
+    try:
+        characteristics = np.linalg.eigvals(jacobian)
+    except np.linalg.LinAlgError:
+        try:
+            characteristics = constructor.make_characteristics(padded_primitive, sim_variables, axis=axis)
+        except np.linalg.LinAlgError:
+            characteristics = np.full_like(padded_primitive, .1)
+
     # Compute eigmax for time stepping limits
-    characteristics = np.linalg.eigvals(jacobian)
     data['eigmax'] = ds[axis]/fv.compute_eigmax(characteristics, axis=axis)
 
     # Compute alphas and save the reconstructed interfaces for CT computation (interface = centre for PCM)
