@@ -61,9 +61,9 @@ def evolve_space(grid, sim_variables, first_stage=False):
 
     # Magnetohydrodynamics computation
     if magnetic and multidimensional:
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            alphas = {axis:data[axis]['alphas'] for axis in axes}
+        alphas = {axis:data[axis]['alphas'] for axis in axes}
 
+        with concurrent.futures.ThreadPoolExecutor() as executor:
             # Magnetic transverse interfaces reconstructed along orthogonal axis/axes; use the averaged (+) & (-) values
             reconstruct_transverse = ct.reconstruct_transverse
             if subgrid_category == "ppm" and sim_variables.ppm_dissipate:

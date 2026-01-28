@@ -18,18 +18,22 @@ def compute_alphas(characteristics, axis):
     return fv.slice_(np.maximum(0, max_eigvals), axis, start=1), fv.slice_(-np.minimum(0, min_eigvals), axis, start=1)
 
 
-# Reconstruct the transverse values for each longitudinal axis
-# Note that this reconstruction is done at the INTERFACES, NOT CENTRES
+# Reconstruct the longitudinal B-fields for each transverse axis
+# Note that this reconstruction is done at the cell INTERFACES, NOT cell CENTRES
 def reconstruct_transverse(data, sim_variables, axis, method=None, eta=None):
     _axes = np.array(range(3))
     ortho_axes = _axes[_axes != axis]
     normal_axes = np.roll(ortho_axes, shift=-1)
-
     ortho_interfaces = {}
-    if not None in list(map(data.get, ortho_axes)):
-        if not method:
-            method = sim_variables.subgrid_category
 
+    if not method:
+        method = sim_variables.subgrid_category
+
+    # Check if there are any missing transverse-axis data; skips computation if missing (i.e. data[transverse_axis] = None)
+    # 1D: skips for all axes
+    # 2D: only computes for z-axis
+    # 3D: computes for all axes
+    if not None in list(map(data.get, ortho_axes)):
         """Interpolate the face averages to both corners (upwards & downwards)
         |                                   w(i-1/2)                               w(i+1/2)                                  |
         |--------------------------------------|--------------------------------------|--------------------------------------|
@@ -82,15 +86,17 @@ def reconstruct_transverse(data, sim_variables, axis, method=None, eta=None):
 
         # Each axis data in the 'data' dict will have a pair of reconstructed interfaces w+ & w-
         # Both interfaces need to be reconstructed in the appropriate orthogonal axis (here named normal_axis)
-        # Therefore for each orthogonal axis, there will be 4 reconstructed corners/lines
+        # Therefore for each orthogonal axis, there will be 4 reconstructed corners/lines (2D/3D)
+        # However, for the magnetic fields there would only be 2 reconstructed corners/lines; magnetic field values are the same at the interface
         def reconstruct_per_interface_pair(interface_pair, _sim_variables, normal_axis):
+            w_plus, w_minus = 0, 1
             intfs = []
             with concurrent.futures.ThreadPoolExecutor() as inner_executor:
                 jobs = inner_executor.map(reconstruct, interface_pair, repeat(_sim_variables), repeat(normal_axis))
 
                 for reconstructed_intf_pairs in jobs:
                     # Re-align the interfaces so that cell wall is in between interfaces
-                    prim_plus, prim_minus = fv.slice_(fv.add_boundary(reconstructed_intf_pairs[0], sim_variables, axis=normal_axis), normal_axis, start=1), fv.slice_(fv.add_boundary(reconstructed_intf_pairs[1], sim_variables, axis=normal_axis), normal_axis, end=-1)
+                    prim_plus, prim_minus = fv.slice_(fv.add_boundary(reconstructed_intf_pairs[w_plus], sim_variables, axis=normal_axis), normal_axis, start=1), fv.slice_(fv.add_boundary(reconstructed_intf_pairs[w_minus], sim_variables, axis=normal_axis), normal_axis, end=-1)
 
                     # Remove the 'leftmost' interface since only the upwind corners/lines are needed, and append to list
                     intfs.append([fv.slice_(prim_plus, axis=normal_axis, start=1), fv.slice_(prim_minus, axis=normal_axis, start=1)])
@@ -164,8 +170,8 @@ def compute_emf(ortho_interfaces, alphas, axis, dissipative=False):
     # For -v x B in z-axis (axis=2, thumb), By along x (axis=0, index finger) becomes (E,W) & Bx along y (axis=1, middle finger) becomes (N,S)
     try:
         # Assume computation for the z-axis EMF here (axis=2), and so reconstructions along x-axis (ordinate) & y-axis (applicate) are needed
-        [northeast, southeast], [northwest, southwest] = axis_data[applicate]
         [eastnorth, westnorth], [eastsouth, westsouth] = axis_data[ordinate]
+        [northeast, southeast], [northwest, southwest] = axis_data[applicate]
         [ap_x, am_x], [ap_y, am_y] = alphas[ordinate], alphas[applicate]
     except (KeyError, TypeError):
         # For 2D cases where the z-axis is missing, make a zeros_like data from the x- or y-axis instead
@@ -197,8 +203,8 @@ def compute_emf(ortho_interfaces, alphas, axis, dissipative=False):
             # [Londrillo & Del Zanna, 2004]
             emf = (
                 fv.divide(ap_x*ap_y*SW + am_x*ap_y*SE + ap_x*am_y*NW + am_x*am_y*NE, (ap_x+am_x)*(ap_y+am_y)) 
-                - fv.divide(ap_y*am_y, ap_y+am_y)*(.5*(northeast[...,Bx] + northwest[...,Bx]) - .5*(southeast[...,Bx] + southwest[...,Bx])) 
-                + fv.divide(ap_x*am_x, ap_x+am_x)*(.5*(eastnorth[...,By] + eastsouth[...,By]) - .5*(westnorth[...,By] + westsouth[...,By]))
+                + fv.divide(ap_y*am_y, ap_y+am_y) * .5 * ((southeast[...,Bx] + southwest[...,Bx]) - (northeast[...,Bx] + northwest[...,Bx])) 
+                - fv.divide(ap_x*am_x, ap_x+am_x) * .5 * ((westnorth[...,By] + westsouth[...,By]) - (eastnorth[...,By] + eastsouth[...,By]))
             )
 
     return emf

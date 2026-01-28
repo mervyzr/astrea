@@ -1,9 +1,9 @@
 ---
 physics_parameters:
-  # List of available configurations to run
-  # : Sod, (MHD-)Sedov, Gaussian, sine-wave, Shu-Osher, Ryu-Jones, Brio-Wu, slow-moving shock, Toro 1-5, Lax-Liu 1-19, 
-  # : isentropic vortex, (magnetised) Kelvin-Helmholtz instability, shock cloud, astrophysical jet, Gresho vortex, 
-  # : Noh problem, circular polarised Alfvén wave (CPAW), Orszag-Tang vortex, MHD-vortex, MHD-blast, MHD-rotor, MHD-sheet
+  # List of available configurations to run (spaces are hyphenated)
+  # : Sod, (MHD) Sedov, Gaussian, sine wave, Shu-Osher (SO), Ryu-Jones (RJ), Brio-Wu (BW), slow-moving shock, Toro 1-5, 
+  # : isentropic vortex (IVC), (MHD) Lax-Liu (LL) 1-19, Gresho vortex, Noh problem, (MHD) Kelvin-Helmholtz instability (KHI), 
+  # : circular polarised Alfvén wave (CPAW), MHD blast, MHD rotor, MHD sheet, MHD vortex, Orszag-Tang vortex, shock cloud, astrophysical jet
   config        : Sod
   cells         : 128
   cfl           : .5

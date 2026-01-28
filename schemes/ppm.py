@@ -92,6 +92,7 @@ def run(grid, sim_variables, axis, eta=None):
     if magnetic:
         padded_grid = fv.add_boundary(grid, sim_variables, axis=axis)
         prim_plus[...,5+axes] = prim_minus[...,5+axes] = fv.slice_(padded_grid, axis, end=-1)[...,5+axes]
+        data['interfaces'] = fv.slice_(prim_plus, axis, start=1), fv.slice_(prim_minus, axis, start=1)
 
     # Get the average solution between the interfaces at the boundaries
     intf_avg = fv.compute_Roe_average([prim_plus,prim_minus], sim_variables)
@@ -119,7 +120,6 @@ def run(grid, sim_variables, axis, eta=None):
     # Compute alphas and save the reconstructed interfaces for CT computation
     if magnetic and multidimensional:
         data['alphas'] = ct.compute_alphas(characteristics, axis=axis)
-        data['interfaces'] = fv.slice_(prim_plus, axis, start=1), fv.slice_(prim_minus, axis, start=1)
 
     # Calculate the interface-averaged fluxes
     intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **{

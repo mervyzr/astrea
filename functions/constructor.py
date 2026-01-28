@@ -137,6 +137,9 @@ def initialise(sim_variables):
                 computational_grid[np.where(x < shock_pos)] = init_cond
                 computational_grid[np.where((x < shock_pos) & (y < shock_pos))] = params['bottom_left']
                 computational_grid[np.where((x >= shock_pos) & (y < shock_pos))] = params['bottom_right']
+                if config.startswith('m') or "mhd" in config:
+                    computational_grid[...,Bx] = np.cos(y) * np.sin(x)
+                    computational_grid[...,By] = -np.cos(x) * np.sin(y)
 
             elif match(any, ["orszag", "tang"]) or config == "ot":
                 _x, _y, ampl = params['norm_factor']*x, params['norm_factor']*y, params['ampl']
