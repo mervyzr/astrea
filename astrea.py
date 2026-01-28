@@ -13,10 +13,10 @@ import h5py
 import yaml
 import numpy as np
 
-from external import krome_funcs
+from external import krome_funcs, source_terms
 from functions import constructor, fv, generic, io, plotting
 from num_methods import ct, evolvers, tracers
-from static import tests
+from static import constants, tests
 
 ##############################################################################
 # Main script
@@ -122,6 +122,17 @@ def core_run(sim_variables, **kwargs):
             # Update the solution with the numerical fluxes using iterative methods
             grid = evolvers.evolve_time(grid, fluxes, dt, sim_variables)
 
+            ##############################
+            # Post update steps (if any)
+            ##############################
+
+            # Update source terms (e.g. self-gravity)
+            if sim_variables.gravity:
+                phi = source_terms.poisson_solver(grid, sim_variables)
+                g = np.moveaxis(source_terms.calcute_gravity(phi, sim_variables), 0, -1)
+                grid[...,1+sim_variables.axes] += dt * g
+                grid[...,sim_variables.energy] += dt * grid[...,sim_variables.rho] * np.sum((grid[...,1+sim_variables.axes] * g), axis=-1)
+
             # Update chemical grid
             if sim_variables.chemistry:
                 chem_grid = krome_funcs.krome_run(chem_grid, grid, dt, sim_variables)
@@ -136,8 +147,6 @@ def core_run(sim_variables, **kwargs):
 
             # Roll the order of the axis sweep
             sim_variables.axes = np.roll(sim_variables.axes, shift=-1)
-
-            # Post update steps (if any)
 
     ########################
 
