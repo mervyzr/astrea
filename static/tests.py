@@ -173,12 +173,38 @@ def generate_test_conditions(config_variables):
     # [Balsara & Spicer, 1999; Pang & Wu, 2025]
     elif "rotor" in config:
         axis_coord = [-.5,.5]
-        shock_pos = .1
-        t_end = .5
         boundary = "wrap"
-        init_cond = np.array([10,0,0,0,.5,2.5/np.sqrt(4*np.pi),0,0])
-        ambient = np.array([1,0,0,0,.5,2.5/np.sqrt(4*np.pi),0,0])
-        misc = {'omega':1, 'ring_width':.015}
+        t_end = .5
+
+        if "blob" in config:
+            shock_pos = .5
+            init_cond = np.array([1,0,0,0,.1,.1,0,0])
+            ambient = np.array([1,0,0,0,.1,.1,0,0])
+            misc = {'ampl':4, 'omega':1, 'sigma':.1}
+        else:
+            shock_pos = .1
+            init_cond = np.array([10,0,0,0,.5,2.5/np.sqrt(4*np.pi),0,0])
+            ambient = np.array([1,0,0,0,.5,2.5/np.sqrt(4*np.pi),0,0])
+            misc = {'omega':1, 'ring_width':.015}
+
+    elif "blob" in config:
+        axis_coord = [-.5,.5]
+        boundary = "wrap"
+        t_end = .5
+        shock_pos = .5
+        init_cond = np.array([1,0,0,0,.1,.1,0,0])
+        ambient = np.array([1,0,0,0,.1,.1,0,0])
+        misc = {'ampl':4, 'omega':1, 'sigma':.1}
+
+    # Blank field with tiny perturbations in densities
+    elif "blank" in config:
+        axis_coord = [-.5,.5]
+        boundary = "wrap"
+        t_end = .05
+        shock_pos = 0
+        init_cond = np.array([1,0,0,0,.6,.1,0,0])
+        ambient = np.array([1,0,0,0,.6,.1,0,0])
+        misc = {'perturb_ampl':.01}
 
     # [Felker & Stone, 2018]
     elif match(all, ["mhd", "blast"]):

@@ -6,7 +6,7 @@
 
 # astrea
 
-**_astrea_** (**A**strophysical **S**hockwave and **T**urbulence **RE**search for interstellar **A**pplications) is a multi-dimensional ideal magnetohydrodynamics simulation toy-model code with an experimental chemical network solver for the purpose of modelling shockwaves in the interstellar medium.
+**_astrea_** (**A**strophysical **S**hockwave and **T**urbulence **RE**search for interstellar **A**pplications) is a multi-dimensional ideal magnetohydrodynamics simulation toy-model code with an experimental chemical network solver and self-gravity for the purpose of modelling shockwaves in the interstellar medium.
 
 **_This code was originally created as part of my Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner. The thesis has since been completed._**
 
@@ -187,6 +187,7 @@ Several (magneto)hydrodynamics tests are in place:
   <details>
   <summary>One-dimensional</summary>
   <ul>
+    <li>Blank field with perturbations</li>
     <li>Ryu-Jones 2a shockwave (Ryu & Jones, 1995)</li>
     <li>Brio-Wu shockwave (Brio & Wu, 1988)</li>
   </ul>
@@ -194,6 +195,7 @@ Several (magneto)hydrodynamics tests are in place:
   <details>
   <summary>Two-dimensional</summary>
   <ul>
+    <li>Blank field with perturbations</li>
     <li>Circular polarised Alfvén wave (Balsara & Spicer, 1999)</li>
     <li>Magnetised Kelvin-Helmholtz instability</li>
     <li>Orszag-Tang vortex (Orszag & Tang, 1998)</li>
@@ -208,6 +210,7 @@ Several (magneto)hydrodynamics tests are in place:
   <details>
   <summary>Three-dimensional</summary>
   <ul>
+    <li>Blank field with perturbations</li>
     <li>Orszag-Tang vortex (Orszag & Tang, 1998)</li>
     <li>MHD vortex (Mignone et al., 2010)</li>
     <li>MHD blast wave (Londrillo & Del Zanna, 2000)</li>

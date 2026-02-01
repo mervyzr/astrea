@@ -58,6 +58,10 @@ def initialise(sim_variables):
             elif config.startswith("gauss"):
                 computational_grid[...,rho] = analytic.gauss_func(r, params)
 
+            elif "blank" in config:
+                perturbation = 1 + params['perturb_ampl'] * np.random.uniform(-1, 1, size=(computational_grid[...,rho].shape))
+                computational_grid[...,rho] *= perturbation
+
             elif match(any, ["orszag", "tang"]) or config == "ot":
                 _x, _y, _z, ampl, eps = params['norm_factor']*x, params['norm_factor']*y, params['norm_factor']*z, params['ampl'], params['eps']
 
@@ -157,18 +161,34 @@ def initialise(sim_variables):
                 computational_grid[...,By] = ((x-x_centre)*params['mu'])/(2*np.pi) * np.exp((1-r**2)/2)
 
             elif "rotor" in config:
-                ring_pos = shock_pos + params['ring_width']
-                phi = (ring_pos - r)/(ring_pos - shock_pos)
+                if "blob" in config:
+                    computational_grid[...,rho] += params['ampl'] * np.exp(-(r**2)/(2*params['sigma']**2))
+                    computational_grid[...,pressure] *= computational_grid[...,rho]**gamma
+                    computational_grid[...,vx] = -params['omega'] * y * np.exp(-(r**2)/(2 * (.4*np.diff(axis_coord[0]))**2))
+                    computational_grid[...,vy] = params['omega'] * x * np.exp(-(r**2)/(2 * (.4*np.diff(axis_coord[1]))**2))
+                else:
+                    ring_pos = shock_pos + params['ring_width']
+                    phi = (ring_pos - r)/(ring_pos - shock_pos)
 
-                ring = np.where((r <= (ring_pos-x_centre)) & (r <= (ring_pos-y_centre)))
-                computational_grid[...,rho][ring] = (1 + 9*phi)[ring]
-                computational_grid[...,vx][ring] = ((-params['omega']*phi*(y-y_centre)*shock_pos)/r)[ring]
-                computational_grid[...,vy][ring] = ((params['omega']*phi*(x-x_centre)*shock_pos)/r)[ring]
+                    ring = np.where((r <= (ring_pos-x_centre)) & (r <= (ring_pos-y_centre)))
+                    computational_grid[...,rho][ring] = (1 + 9*phi)[ring]
+                    computational_grid[...,vx][ring] = ((-params['omega']*phi*(y-y_centre)*shock_pos)/r)[ring]
+                    computational_grid[...,vy][ring] = ((params['omega']*phi*(x-x_centre)*shock_pos)/r)[ring]
 
-                core = np.where((r <= (shock_pos-x_centre)) & (r <= (shock_pos-y_centre)))
-                computational_grid[core] = init_cond
-                computational_grid[...,vx][core] = ((-params['omega']*(y-y_centre))/shock_pos)[core]
-                computational_grid[...,vy][core] = ((params['omega']*(x-x_centre))/shock_pos)[core]
+                    core = np.where((r <= (shock_pos-x_centre)) & (r <= (shock_pos-y_centre)))
+                    computational_grid[core] = init_cond
+                    computational_grid[...,vx][core] = ((-params['omega']*(y-y_centre))/shock_pos)[core]
+                    computational_grid[...,vy][core] = ((params['omega']*(x-x_centre))/shock_pos)[core]
+
+            elif "blob" in config:
+                computational_grid[...,rho] += params['ampl'] * np.exp(-(r**2)/(2*params['sigma']**2))
+                computational_grid[...,pressure] *= computational_grid[...,rho]**gamma
+                computational_grid[...,vx] = -params['omega'] * y * np.exp(-(r**2)/(2 * (.4*np.diff(axis_coord[0]))**2))
+                computational_grid[...,vy] = params['omega'] * x * np.exp(-(r**2)/(2 * (.4*np.diff(axis_coord[1]))**2))
+
+            elif "blank" in config:
+                perturbation = 1 + params['perturb_ampl'] * np.random.uniform(-1, 1, size=(computational_grid[...,rho].shape))
+                computational_grid[...,rho] *= perturbation
 
             elif match(any, ["current", "sheet"]):
                 computational_grid[...,vx] = params['ampl'] * np.sin(2*np.pi*y)
@@ -226,6 +246,9 @@ def initialise(sim_variables):
             computational_grid[...,rho] = analytic.sine_func(x, params)
         elif config.startswith('gauss'):
             computational_grid[...,rho] = analytic.gauss_func(x-params['peak_pos'], params)
+        elif "blank" in config:
+            perturbation = 1 + params['perturb_ampl'] * np.random.uniform(-1, 1, size=(computational_grid[...,rho].shape))
+            computational_grid[...,rho] *= perturbation
 
     sim_variables.magnetic = computational_grid[...,sim_variables.Bfields].any()
 

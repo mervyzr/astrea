@@ -13,7 +13,7 @@ import h5py
 import yaml
 import numpy as np
 
-from external import krome_funcs, source_terms
+from external import krome_funcs, self_gravity
 from functions import constructor, fv, generic, io, plotting
 from num_methods import ct, evolvers, tracers
 from static import constants, tests
@@ -126,12 +126,15 @@ def core_run(sim_variables, **kwargs):
             # Post update steps (if any)
             ##############################
 
-            # Update source terms (e.g. self-gravity)
+            # Update conservative grid from self-gravity
             if sim_variables.gravity:
-                phi = source_terms.poisson_solver(grid, sim_variables)
-                g = np.moveaxis(source_terms.calcute_gravity(phi, sim_variables), 0, -1)
-                grid[...,1+sim_variables.axes] += dt * g
-                grid[...,sim_variables.energy] += dt * grid[...,sim_variables.rho] * np.sum((grid[...,1+sim_variables.axes] * g), axis=-1)
+                static_momentums = np.copy(grid[...,1+sim_variables.axes])
+
+                phi = self_gravity.poisson_solver(grid, sim_variables)
+                g_accs = np.moveaxis(self_gravity.get_acceleration(phi, sim_variables), 0, -1)
+
+                grid[...,1+sim_variables.axes] += dt * grid[...,sim_variables.rho][...,None] * g_accs
+                grid[...,sim_variables.energy] += dt * np.sum(static_momentums * g_accs, axis=-1)
 
             # Update chemical grid
             if sim_variables.chemistry:
