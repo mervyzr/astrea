@@ -13,9 +13,10 @@ import h5py
 import yaml
 import numpy as np
 
-from external import krome_funcs, self_gravity
+from external import krome_funcs
 from functions import constructor, fv, generic, io, plotting
-from num_methods import ct, evolvers, tracers
+from num_methods import ct, evolvers
+from physics import self_gravity, tracers
 from static import constants, tests
 
 ##############################################################################
