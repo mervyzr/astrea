@@ -16,7 +16,7 @@ import numpy as np
 from external import krome_funcs
 from functions import constructor, fv, generic, io, plotting
 from num_methods import ct, evolvers
-from physics import self_gravity, tracers
+from physics import gravity, tracers
 from static import constants, tests
 
 ##############################################################################
@@ -131,8 +131,8 @@ def core_run(sim_variables, **kwargs):
             if sim_variables.gravity:
                 static_momentums = np.copy(grid[...,1+sim_variables.axes])
 
-                phi = self_gravity.poisson_solver(grid, sim_variables)
-                g_accs = np.moveaxis(self_gravity.get_acceleration(phi, sim_variables), 0, -1)
+                phi = gravity.poisson_solver(grid, sim_variables)
+                g_accs = np.moveaxis(gravity.get_acceleration(phi, sim_variables), 0, -1)
 
                 grid[...,1+sim_variables.axes] += dt * grid[...,sim_variables.rho][...,None] * g_accs
                 grid[...,sim_variables.energy] += dt * np.sum(static_momentums * g_accs, axis=-1)

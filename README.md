@@ -331,8 +331,11 @@ _Running the code in a Python interactive shell is also possible, although this 
 # Organisation
 
 ```
+astrea/
+├── .gitignore
 ├── LICENSE
 ├── README.md
+├── pyproject.toml
 ├── __init__.py
 ├── astrea.py            : Core script for running the simulation
 ├── external
@@ -340,6 +343,7 @@ _Running the code in a Python interactive shell is also possible, although this 
 │   ├── __init__.py
 │   ├── abundances.yml   : Initial abundances for chemical species in default network
 │   ├── krome_funcs.py   : Functions for building and parsing krome routines
+│   ├── plot_chkpt.py    : Plotting function for checkpoint files
 ├── functions
 │   ├── __init__.py
 │   ├── analytic.py      : Analytical solutions to smooth advection wave tests
@@ -354,8 +358,11 @@ _Running the code in a Python interactive shell is also possible, although this 
 │   ├── evolvers.py      : Computation of space and time evolution
 │   ├── limiters.py      : Implements slope limiters for the reconstructed states
 │   ├── solvers.py       : Contains the various Riemann solvers
-│   ├── tracers.py       : Contains functions for tracer particles
-├── parameters.yml       : Parameters for the simulation
+├── parameters.yml       : Parameters for the simulation (not tracked by git)
+├── physics
+│   ├── __init__.py
+│   ├── gravity.py       : Functions for self-gravity (FFT Poisson solver)
+│   ├── tracers.py       : Functions for tracer particles
 ├── schemes
 │   ├── __init__.py
 │   ├── cweno.py         : Central weighted essentially non-oscillatory method [Levy et al., 1999]
@@ -363,13 +370,11 @@ _Running the code in a Python interactive shell is also possible, although this 
 │   ├── plm.py           : Piecewise linear method [Derigs et al., 2018]
 │   ├── ppm.py           : Piecewise parabolic method [McCorquodale & Colella, 2011; Felker & Stone, 2018]
 │   ├── weno.py          : Weighted essentially non-oscillatory method [Shu, 2009]
-├── setup.py             : Installation script
 ├── static
 │   ├── __init__.py
 │   ├── .db.json         : Database for parameters
 │   ├── .default.yml     : Default parameters file
 │   ├── constants.py     : Conversion between code units & CGS units
 |   ├── *.gif            : .gif files for graphics in README.md
-│   ├── plot_chkpt.py    : Plotting function for checkpoint files
 │   ├── tests.py         : Initial conditions for (magneto)hydrodynamics tests
 ```
