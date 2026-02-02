@@ -113,6 +113,15 @@ def generate_test_conditions(config_variables):
         ambient = np.array([1,-.5,0,0,2.5,0,0,0])
         misc = {'perturb':True, 'perturb_ampl':.05, 'ampl':.25, 'freq':4, 'Bx':np.sqrt(np.pi)}
 
+    elif match(any, ["jeans"]):
+        axis_coord = [-.5,.5]
+        shock_pos = 0
+        t_end = 1
+        boundary = "wrap"
+        init_cond = np.array([gamma**2,0,0,0,gamma,0,0,0])
+        ambient = np.array([gamma**2,0,0,0,gamma,0,0,0])
+        misc = {'beta':1e3, 'eps':1e3}
+
     elif "turb" in config:
         axis_coord = [0,1]
         shock_pos = .5
@@ -171,30 +180,20 @@ def generate_test_conditions(config_variables):
             misc = {'kappa':1/np.sqrt(2*np.pi), 'mu':1/np.sqrt(2*np.pi), 'q':1}
 
     # [Balsara & Spicer, 1999; Pang & Wu, 2025]
-    elif "rotor" in config:
+    elif match(any, ["rotor", "blob"]):
         axis_coord = [-.5,.5]
         boundary = "wrap"
         t_end = .5
+        shock_pos = .1
 
         if "blob" in config:
-            shock_pos = .5
-            init_cond = np.array([1,0,0,0,.1,.1,0,0])
-            ambient = np.array([1,0,0,0,.1,.1,0,0])
-            misc = {'ampl':4, 'omega':1, 'sigma':.1}
+            init_cond = np.array([gamma**2,0,0,0,gamma,0,0,0])
+            ambient = np.array([gamma/10,0,0,0,.1,0,0,0])
+            misc = {'beta':1e3, 'eps':1e-6}
         else:
-            shock_pos = .1
             init_cond = np.array([10,0,0,0,.5,2.5/np.sqrt(4*np.pi),0,0])
             ambient = np.array([1,0,0,0,.5,2.5/np.sqrt(4*np.pi),0,0])
             misc = {'omega':1, 'ring_width':.015}
-
-    elif "blob" in config:
-        axis_coord = [-.5,.5]
-        boundary = "wrap"
-        t_end = .5
-        shock_pos = .5
-        init_cond = np.array([1,0,0,0,.1,.1,0,0])
-        ambient = np.array([1,0,0,0,.1,.1,0,0])
-        misc = {'ampl':4, 'omega':1, 'sigma':.1}
 
     # Blank field with tiny perturbations in densities
     elif "blank" in config:

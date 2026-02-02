@@ -20,7 +20,7 @@ def poisson_solver(grid, sim_variables, G=1., eps=1e-6):
     # Construct k-vectors for each dimension from FFT
     compute_k = lambda n, d: 2 * np.pi * np.fft.fftfreq(n, d=d)
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        jobs = executor.map(compute_k, cells, [dh for _, dh in ds.items()])
+        jobs = executor.map(compute_k, cells, [dh for dh in ds.values()])
 
         # Build |k|^2 on full grid
         kx, ky = np.meshgrid(*[kvector for kvector in jobs], indexing='ij')

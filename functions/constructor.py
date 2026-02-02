@@ -2,6 +2,7 @@ import numpy as np
 
 from functions import analytic, fv
 from functions.generic import verbose_timer
+from static import constants
 
 ##############################################################################
 # Functions for constructing objects such as the grid, eigenvectors, Jacobian and flux terms
@@ -106,6 +107,13 @@ def initialise(sim_variables):
                 if config.startswith('m') or "mhd" in config:
                     computational_grid[...,Bx] = params['Bx']
 
+            elif match(any, ["jeans"]):
+                computational_grid[...,vx] = 1 - (((y-y_centre)*params['kappa'])/(2*np.pi) * np.exp((1-r**2)/2))
+                computational_grid[...,vy] = 1 + (((x-x_centre)*params['kappa'])/(2*np.pi) * np.exp((1-r**2)/2))
+                computational_grid[...,pressure] = 1 + (((1-r**2)*params['kappa']**2 - params['mu']**2)/(8*np.pi**2) * np.exp(1-r**2))
+                computational_grid[...,Bx] = (-(y-y_centre)*params['mu'])/(2*np.pi) * np.exp((1-r**2)/2)
+                computational_grid[...,By] = ((x-x_centre)*params['mu'])/(2*np.pi) * np.exp((1-r**2)/2)
+
             elif match(any, ["ivc", "isentropic"]):
                 b, freq = params['vortex_str'], params['freq']
 
@@ -160,12 +168,23 @@ def initialise(sim_variables):
                 computational_grid[...,Bx] = (-(y-y_centre)*params['mu'])/(2*np.pi) * np.exp((1-r**2)/2)
                 computational_grid[...,By] = ((x-x_centre)*params['mu'])/(2*np.pi) * np.exp((1-r**2)/2)
 
-            elif "rotor" in config:
+            elif match(any, ["rotor", "blob"]):
                 if "blob" in config:
-                    computational_grid[...,rho] += params['ampl'] * np.exp(-(r**2)/(2*params['sigma']**2))
-                    computational_grid[...,pressure] *= computational_grid[...,rho]**gamma
-                    computational_grid[...,vx] = -params['omega'] * y * np.exp(-(r**2)/(2 * (.4*np.diff(axis_coord[0]))**2))
-                    computational_grid[...,vy] = params['omega'] * x * np.exp(-(r**2)/(2 * (.4*np.diff(axis_coord[1]))**2))
+                    dr = np.sqrt(np.sum([dh**2 for dh in ds.values()]))
+                    smoothing = 1 - np.tanh((r - shock_pos)/(5 * dr))
+                    computational_grid[...,rho] += (init_cond-ambient)[rho] * .5 * smoothing
+                    computational_grid[...,pressure] += (init_cond-ambient)[pressure] * .5 * smoothing
+
+                    omega = np.sqrt(init_cond[rho] * np.pi/shock_pos)
+                    computational_grid[...,vx] = -omega * y
+                    computational_grid[...,vy] = omega * x
+
+                    B0 = np.sqrt((2*init_cond[pressure])/params['beta'])
+                    #computational_grid[...,Bz] = B0
+                    B_phi = B0 * smoothing * r/shock_pos
+                    computational_grid[...,Bx] = -B_phi * (y/(r+params['eps']))
+                    computational_grid[...,Bx] = B_phi * (x/(r+params['eps']))
+
                 else:
                     ring_pos = shock_pos + params['ring_width']
                     phi = (ring_pos - r)/(ring_pos - shock_pos)
@@ -179,12 +198,6 @@ def initialise(sim_variables):
                     computational_grid[core] = init_cond
                     computational_grid[...,vx][core] = ((-params['omega']*(y-y_centre))/shock_pos)[core]
                     computational_grid[...,vy][core] = ((params['omega']*(x-x_centre))/shock_pos)[core]
-
-            elif "blob" in config:
-                computational_grid[...,rho] += params['ampl'] * np.exp(-(r**2)/(2*params['sigma']**2))
-                computational_grid[...,pressure] *= computational_grid[...,rho]**gamma
-                computational_grid[...,vx] = -params['omega'] * y * np.exp(-(r**2)/(2 * (.4*np.diff(axis_coord[0]))**2))
-                computational_grid[...,vy] = params['omega'] * x * np.exp(-(r**2)/(2 * (.4*np.diff(axis_coord[1]))**2))
 
             elif "blank" in config:
                 perturbation = 1 + params['perturb_ampl'] * np.random.uniform(-1, 1, size=(computational_grid[...,rho].shape))
