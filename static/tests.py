@@ -113,15 +113,6 @@ def generate_test_conditions(config_variables):
         ambient = np.array([1,-.5,0,0,2.5,0,0,0])
         misc = {'perturb':True, 'perturb_ampl':.05, 'ampl':.25, 'freq':4, 'Bx':np.sqrt(np.pi)}
 
-    elif match(any, ["jeans"]):
-        axis_coord = [-.5,.5]
-        shock_pos = 0
-        t_end = 1
-        boundary = "wrap"
-        init_cond = np.array([gamma**2,0,0,0,gamma,0,0,0])
-        ambient = np.array([gamma**2,0,0,0,gamma,0,0,0])
-        misc = {'beta':1e3, 'eps':1e3}
-
     elif "turb" in config:
         axis_coord = [0,1]
         shock_pos = .5
@@ -399,8 +390,8 @@ def generate_test_conditions(config_variables):
         misc = None
 
     try:
-        for _ in range(len(cells)):
-            start, end = axis_coord[_]
+        for idx, _ in enumerate(cells):
+            _, _ = axis_coord[idx]
     except:
         coordinates = {ax: axis_coord for ax in range(len(cells))}
     else:
