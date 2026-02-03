@@ -61,3 +61,18 @@ def get_acceleration(potentials, sim_variables):
         g_accs = np.stack([g_acc for g_acc in jobs], axis=0)
 
     return g_accs
+
+
+# Update step for gravity with conservative grid, given the timestep dt
+def update(grid, dt, sim_variables):
+    rho, momentums, energy = sim_variables.rho, 1+sim_variables.axes, sim_variables.energy
+
+    frozen_momentum = np.copy(grid[...,momentums])
+
+    phi = poisson_solver(grid, sim_variables)
+    g_accs = np.moveaxis(get_acceleration(phi, sim_variables), 0, -1)
+
+    grid[...,momentums] += dt * grid[...,rho][...,None] * g_accs
+    grid[...,energy] += dt * np.sum(frozen_momentum * g_accs, axis=-1)
+
+    return grid
