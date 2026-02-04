@@ -127,6 +127,7 @@ def run(grid, sim_variables, axis, eta=None):
         'cons_interfaces': [cons_plus, cons_minus],
         'flux_interfaces': [flux_plus, flux_minus],
         'characteristics': characteristics,
+        'jacobian': fv.slice_(jacobian, axis, end=-1),
     })
 
     # Compute the orthogonal L/R Riemann states and fluxes at higher-order accuracy
@@ -137,6 +138,7 @@ def run(grid, sim_variables, axis, eta=None):
             'cons_interfaces': fv.approx_face_avg([cons_plus, cons_minus], sim_variables, axis),
             'flux_interfaces': fv.approx_face_avg([flux_plus, flux_minus], sim_variables, axis),
             'characteristics': characteristics,
+            'jacobian': fv.slice_(jacobian, axis, end=-1),
         })
 
         # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation for each orthogonal axis

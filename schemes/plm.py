@@ -73,6 +73,7 @@ def run(grid, sim_variables, axis):
         'cons_interfaces': [cons_plus, cons_minus],
         'flux_interfaces': [flux_plus, flux_minus],
         'characteristics': characteristics,
+        'jacobian': fv.slice_(jacobian, axis, end=-1),
     })
 
     # Compute flux difference for hydrodynamic components

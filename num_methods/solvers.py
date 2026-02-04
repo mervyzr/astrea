@@ -49,18 +49,11 @@ def calculate_LaxWendroff_flux(axis, sim_variables, **kwargs):
     cons_plus, cons_minus = kwargs["cons_interfaces"]
     flux_plus, flux_minus = kwargs["flux_interfaces"]
     characteristics = kwargs["characteristics"]
+    jacobian = kwargs["jacobian"]
 
-    local_max_eigvals = np.max(np.abs(np.real(characteristics)), axis=-1)  # Get maximum eigenvalues in each (localised) cell
-    max_eigvals = np.maximum(fv.slice_(local_max_eigvals, axis, end=-1), fv.slice_(local_max_eigvals, axis, start=1))  # Get the maximum eigenvalue between each consecutive pair of cells
-
-    intermediate_cons = .5*(cons_minus+cons_plus) - .5*fv.divide(flux_plus-flux_minus, max_eigvals[...,None])
-
-    # Convert to primitive grid again for flux computation
-    centred_grid = ct.inverse_reconstruct(intermediate_cons, sim_variables) if sim_variables.magnetic else intermediate_cons
-    intermediate_prim = sim_variables.convert("conservative", centred_grid, sim_variables)
-    intermediate_prim[...,5+sim_variables.axes] = cons_plus[...,5+sim_variables.axes]
-
-    return constructor.make_flux(intermediate_prim, sim_variables, axis)
+    local_max_eigvals = np.max(np.abs(np.real(characteristics)), axis=-1)
+    max_eigvals = np.maximum(fv.slice_(local_max_eigvals, axis, end=-1), fv.slice_(local_max_eigvals, axis, start=1))
+    return .5*(flux_minus+flux_plus) - .5*((cons_plus-cons_minus) * max_eigvals[...,None]) + .5*(jacobian * (cons_plus-cons_minus)[...,None])[...,0]
 
 
 # GFORCE solver [Toro & Titarev, 2006; Mignone & Del Zanna, 2021]
