@@ -1084,7 +1084,11 @@ def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None
 def plot_tracer_particles(tracers, t, sim_variables):
     dimensions, multidimensional, axis_coord = sim_variables.dimensions, sim_variables.multidimensional, sim_variables.axis_coord
 
-    fig = plt.figure()
+    try:
+        plt.style.use(sim_variables.plot_style)
+    except Exception:
+        print('Unrecognised plot style')
+        plt.style.use('default')
 
     mpl.rcParams['text.usetex'] = True
     plt.rcParams['text.latex.preamble'] = r"\usepackage{lmodern}"
@@ -1104,6 +1108,7 @@ def plot_tracer_particles(tracers, t, sim_variables):
         'lines.dashed_pattern': [3, 2]
     }
     plt.rcParams.update(params)
+    fig = plt.figure()
 
     if dimensions > 2:
         ax = fig.add_subplot(projection='3d')
@@ -1114,17 +1119,19 @@ def plot_tracer_particles(tracers, t, sim_variables):
         's': max(1, int(500/np.average(sim_variables.cells))),
         'color': 'green',
         'marker': 'o',
+        'alpha': max(.2, 1.1 - .1*np.log2(np.average(sim_variables.cells))),
+        'linewidths': 1.,
     }
 
-    ax.set_xlabel("X")
+    ax.set_xlabel("x")
     ax.set_xlim(axis_coord[0])
 
     if multidimensional:
-        ax.set_ylabel("Y")
+        ax.set_ylabel("y")
         ax.set_ylim(axis_coord[1])
 
         if dimensions > 2:
-            ax.set_zlabel("Z")
+            ax.set_zlabel("z")
             ax.set_zlim(axis_coord[2])
             ax.scatter(tracers[...,0], tracers[...,1], tracers[...,2], **fig_kwargs)
         else:
