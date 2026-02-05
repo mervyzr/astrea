@@ -114,13 +114,13 @@ def generate_test_conditions(config_variables):
         misc = {'perturb':True, 'perturb_ampl':.05, 'ampl':.25, 'freq':4, 'Bx':np.sqrt(np.pi)}
 
     elif "turb" in config:
-        axis_coord = [0,1]
-        shock_pos = .5
+        axis_coord = [-.5,.5]
+        shock_pos = 0
         t_end = 1
         boundary = "wrap"
-        init_cond = np.array([1,1e-6,1e-6,1e-6,1/gamma,np.sqrt(2),0,1e-6])
-        ambient = np.array([1,1e-6,1e-6,1e-6,1/gamma,np.sqrt(2),0,1e-6])
-        misc = {'force':'solenoidal', 'mach':5, 'beta':1, 'ampl':.5, 'k1':1, 'k2':2, 'pk':0}
+        init_cond = np.array([gamma**2,1e-6,1e-6,1e-6,gamma,0,0,0])
+        ambient = np.array([gamma**2,1e-6,1e-6,1e-6,gamma,0,0,0])
+        misc = {'force':'solenoidal', 'mach':5, 'beta':2/gamma, 'ampl':.5, 'k1':1, 'k2':2, 'pk':0}
 
     # [Pang & Wu, 2025]
     elif match(any, ["ivc", "isentropic"]):
@@ -190,10 +190,10 @@ def generate_test_conditions(config_variables):
     elif "blank" in config:
         axis_coord = [-.5,.5]
         boundary = "wrap"
-        t_end = .05
+        t_end = .5
         shock_pos = 0
-        init_cond = np.array([1,0,0,0,.6,.1,0,0])
-        ambient = np.array([1,0,0,0,.6,.1,0,0])
+        init_cond = np.array([1,0,0,0,1/gamma,0,0,.01])
+        ambient = np.array([1,0,0,0,1/gamma,0,0,.01])
         misc = {'perturb_ampl':.01}
 
     # [Felker & Stone, 2018]
