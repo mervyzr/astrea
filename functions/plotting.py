@@ -1120,7 +1120,7 @@ def plot_tracer_particles(tracers, t, sim_variables):
         'color': 'green',
         'marker': 'o',
         'alpha': max(.2, 1.1 - .1*np.log2(np.average(sim_variables.cells))),
-        'linewidths': 1.,
+        'linewidths': max(.2, 1.1 - .1*np.log2(np.average(sim_variables.cells))),
     }
 
     ax.set_xlabel("x")
