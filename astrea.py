@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import sys
 import shutil
 import signal
@@ -11,6 +12,7 @@ from time import perf_counter, process_time
 
 import h5py
 import yaml
+import dotenv
 import numpy as np
 
 from external import krome_funcs
@@ -184,6 +186,7 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
                 _config_variables = yaml.safe_load(settings_file)
         except Exception:
             print(f"{generic.BColours.FAIL}parameters.yml file not found; please run astrea again with the --init option..{generic.BColours.ENDC}")
+            sys.exit(0)
         else:
             # Remove nested dictionary from config_variables
             for parameters in _config_variables.values():
@@ -322,4 +325,7 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
     ###################################### SCRIPT END ######################################
 
 if __name__ == "__main__":
+    env_files = [os.path.join(root, file) for root, _, files in os.walk(os.getcwd()) for file in files if file.endswith('.env')]
+    if env_files:
+        dotenv.load_dotenv(env_files[0])
     run()
