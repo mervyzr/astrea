@@ -16,19 +16,20 @@ authors = [
 
 dependencies = [
     "numpy>=2.0.0",
-    "h5py>=3.7",
+    "h5py",
     "matplotlib",
-    "pycairo",
-    "gitpython",
     "scipy",
+    "threadpoolctl",
+    "python-dotenv",
     "pyyaml",
     "tinydb",
-    "scikit-image",
+    "gitpython",
+    "pycairo",
     "psutil",
+    "scikit-image",
     "nvidia-ml-py3",
     "tabulate",
-    "threadpoolctl",
-    "python-dotenv"
+    "mpi4py",
 ]
 
 keywords = [
