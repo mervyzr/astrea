@@ -196,7 +196,7 @@ Several (magneto)hydrodynamics tests are in place:
   <summary>Two-dimensional</summary>
   <ul>
     <li>Blank field with perturbations</li>
-    <li>Circular polarised Alfvén wave (Balsara & Spicer, 1999)</li>
+    <li>Circular polarised Alfvén wave (Tóth, 2000)</li>
     <li>Magnetised Kelvin-Helmholtz instability</li>
     <li>Orszag-Tang vortex (Orszag & Tang, 1998)</li>
     <li>MHD vortex (Balsara, 2004)</li>
