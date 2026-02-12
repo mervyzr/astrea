@@ -236,15 +236,16 @@ def generate_test_conditions(config_variables):
         ambient = np.array([gamma*.1,0,0,0,1,0,np.sqrt(20),0])
         misc = {'perturb':False, 'velocity':800}
 
-    # [Ziegler, 2000]
+    # [Tóth, 2000]
     elif match(any, ["circular", "polarised", "alfven"]) or config == "cpaw":
-        axis_coord = [0,1]
-        shock_pos = 1
-        t_end = 1
+        alpha = np.pi/6
+        axis_coord = [0,1/np.cos(alpha)], [0,1/np.sin(alpha)]
+        shock_pos = 0
+        t_end = 5
         boundary = "wrap"
         init_cond = np.array([1,0,0,0,.1,0,0,0])
         ambient = np.array([1,0,0,0,.1,0,0,0])
-        misc = {'A':.9, 'ampl':np.sqrt(2)}
+        misc = {'alpha':alpha, 'ampl':.1, 'wave':'moving'}
 
     # [Toro, 1999, p.225]
     elif "toro" in config:

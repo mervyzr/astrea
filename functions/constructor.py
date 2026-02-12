@@ -234,12 +234,23 @@ def initialise(sim_variables):
                     computational_grid[...,(vx,vy)] += perturbation
 
             elif match(any, ["circular", "polarised", "alfven"]) or config == "cpaw":
-                computational_grid[...,vx] = -params['A']/np.sqrt(2) * np.sin(2*np.pi*(x+y))
-                computational_grid[...,vy] = params['A']/np.sqrt(2) * np.sin(2*np.pi*(x+y))
-                computational_grid[...,vz] = params['A'] * np.cos(2*np.pi*(x+y))
-                computational_grid[...,Bx] = params['ampl']/np.sqrt(2) + (params['A']/np.sqrt(2) * np.sin(2*np.pi*(x+y)))
-                computational_grid[...,By] = params['ampl']/np.sqrt(2) - (params['A']/np.sqrt(2) * np.sin(2*np.pi*(x+y)))
-                computational_grid[...,Bz] = -params['A'] * np.cos(2*np.pi*(x+y))
+                alpha, ampl, wave = params['alpha'], params['ampl'], params['wave']
+                s = x*np.cos(alpha) + y*np.sin(alpha)
+
+                v_perp = B_perp = ampl*np.sin(2*np.pi*s)
+                computational_grid[...,vz] = ampl*np.cos(2*np.pi*s)
+                computational_grid[...,Bz] = ampl*np.cos(2*np.pi*s)
+
+                # Ensure that v_parallel = 0, B_parallel = 1
+                computational_grid[...,vx] = -v_perp*np.sin(alpha)
+                computational_grid[...,vy] = v_perp*np.cos(alpha)
+                computational_grid[...,Bx] = np.cos(alpha) - B_perp*np.sin(alpha)
+                computational_grid[...,By] = np.sin(alpha) + B_perp*np.cos(alpha)
+
+                # v_parallel = 1
+                if wave == "standing":
+                    computational_grid[...,vx] = np.cos(alpha) - v_perp*np.sin(alpha)
+                    computational_grid[...,vy] = np.sin(alpha) + v_perp*np.cos(alpha)
 
             else:
                 computational_grid[np.where(x < shock_pos)] = init_cond
