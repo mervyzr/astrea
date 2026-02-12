@@ -119,7 +119,7 @@ def print_simple(sim_variables, t=None, status=''):
     _seed = f"{BColours.OKBLUE}{sim_variables.seed}{BColours.ENDC}"
     _dimension = cyan_text(f"({sim_variables.dimensions}D)")
     _config = cyan_text(sim_variables.config.upper())
-    _cells = cyan_text(str(sim_variables.cells).strip('[]').replace(' ','').replace(',','x'))
+    _cells = cyan_text(str(sim_variables.cells).strip('[]').replace(',','').replace(' ','x'))
     _cfl = cyan_text(sim_variables.cfl)
     _subgrid = cyan_text(sim_variables.subgrid.upper())
     _solver = cyan_text(sim_variables.solver.upper())
