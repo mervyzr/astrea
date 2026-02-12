@@ -32,7 +32,7 @@ def plot(save=False, title=False):
         try:
             plot_options = args.plot_options
         except Exception as e:
-            plot_options = ['density', 'pressure', 'total energy', 'internal energy', 'vx', 'vy', 'Bx', 'By']
+            plot_options = ['density', 'pressure', 'total energy', 'vx', 'vy', 'vz', 'Bx', 'By', 'Bz']
         finally:
             invalid = []
             try:
@@ -72,11 +72,16 @@ def plot(save=False, title=False):
                         config = f.attrs['config']
                         cells = f.attrs['cells']
                         gamma = float(f.attrs['gamma'])
-                        constants = f.attrs['constants']
                         dimensions = int(f.attrs['dimensions'])
                         subgrid = f.attrs['subgrid']
                         time_evo = f.attrs['time_evo']
                         solver = f.attrs['solver']
+
+                        _const = {}
+                        for name, value in f.attrs.items():
+                            if name.startswith('constants-'):
+                                _const[name.split('constants-')[-1]] = value
+                        constants = Constants(_const)
 
                         axis_coord = {axis:coord for axis, coord in enumerate(f.attrs['axis_coord'])}
                         permeability = constants.mu_0
@@ -178,6 +183,15 @@ def convert_variable(grid, gamma, permeability):
     rho, pressure, vels, Bfields = 0, 4, slice(1,4), slice(5,8)
     return grid[...,pressure]/(gamma-1) + .5 * (grid[...,rho]*norm(grid[...,vels])**2 + (norm(grid[...,Bfields])**2)/permeability)
 
+class Constants(object):
+    def __init__(self, obj):
+        try:
+            for name, value in obj.__dict__.items():
+                if not name.startswith("_"):
+                    setattr(self, name, value)
+        except Exception:
+            for name, value in obj.items():
+                setattr(self, name, value)
 
 ACCEPTED_PLOT_OPTIONS = [
     "density",
