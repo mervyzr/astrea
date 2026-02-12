@@ -17,14 +17,30 @@ from static import constants as const
 # I/O functions for simulation
 ##############################################################################
 
-# Make simulation variables; most functions accept sim_variables with all the options included,
-# so it might be useful to have a function auto-generate it when needed
+# Make simulation variables when testing functions in Python REPL; 
+# most functions require sim_variables, so it might be useful to have a function auto-generate one as needed
 def make_sim_variables():
+    config_variables = {
+        'home': '.',
+        'db_path': "static/.db.json",
+        'hdf5': ".astrea_hdf5_temp_-1",
+        'chemistry': False,
+        'tracers': False,
+        'gravity': False,
+        'init': False,
+        'verbose': False,
+        'write_chkpt': False,
+        'test': False,
+        'quiet': False,
+    }
     with open('parameters.yml', "r") as _f:
-        config_variables = yaml.safe_load(_f)
+        _config_variables = yaml.safe_load(_f)
+        for parameters in _config_variables.values():
+            for k,v in parameters.items():
+                config_variables[k] = v
     config_variables = filter_variables(config_variables)
-    test_variables = tests.generate_test_conditions(config_variables['config'], config_variables['cells'], config_variables['gamma'])
-    sim_variables = SimulationVariables(1, config_variables, test_variables)
+    test_variables = tests.generate_test_conditions(config_variables)
+    sim_variables = SimulationVariables(-1, config_variables, test_variables)
     return sim_variables
 
 
@@ -326,13 +342,17 @@ class SimulationVariables(object):
 
         self.full_set_required = True if (self.save_plots or self.save_video or self.save_file) else False
 
+        # Environment options
+        self.beautify_1d_plots = os.getenv("BEAUTIFY_1D_PLOTS", False)
+        self.save_as_pdf = os.getenv("SAVE_AS_PDF", False)
+
 
 # Write grid to HDF5 checkpoint files
 def write_chkpt_file(grid, t, idx, sim_variables):
     if sim_variables.test:
-        file_name = f"astrea_hdf5_{sim_variables.cells}_chkpt_{sim_variables.timesteps:05}"
+        file_name = f"astrea_hdf5_{sim_variables.cells}_chkpt_{sim_variables.timesteps:05}_{t:06}"
     else:
-        file_name = f"astrea_hdf5_chkpt_{sim_variables.timesteps:05}"
+        file_name = f"astrea_hdf5_chkpt_{sim_variables.timesteps:05}_{t:06}"
 
     with h5py.File(f"{sim_variables.save_path}/{file_name}", "w") as f:
         f.attrs['datetime'] = sim_variables.access_key

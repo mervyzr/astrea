@@ -18,9 +18,6 @@ from static import constants
 # Plotting functions and media handling
 ##############################################################################
 
-BEAUTIFY_1D_PLOTS = False
-
-
 # Make figures and axes for plotting
 def make_figure(options, sim_variables, variable="normal"):
     if 0 < len(options) < 15:
@@ -239,6 +236,7 @@ def make_figure(options, sim_variables, variable="normal"):
 # Create list of data plots; accepts primitive grid
 def make_data(options, grid, sim_variables):
     rho, pressure, vels, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields
+    axes = lambda op: {"x":0, "y":1, "z":2}[op[-1]]
     quantities = []
 
     for option in options:
@@ -254,7 +252,7 @@ def make_data(options, grid, sim_variables):
         elif option.startswith("p"):
             quantity = grid[...,pressure]
         elif option.startswith("v") or "mom" in option:
-            axis = {"x":0, "y":1, "z":2}[option[-1]]
+            axis = axes(option)
             quantity = grid[...,1+axis]
             if "mom" in option:
                 quantity *= grid[...,rho]
@@ -262,7 +260,7 @@ def make_data(options, grid, sim_variables):
             if "p" in option:
                 quantity = .5 * fv.norm(grid[...,Bfields])**2
             else:
-                axis = {"x":0, "y":1, "z":2}[option[-1]]
+                axis = axes(option)
                 quantity = grid[...,5+axis]
         elif 'div' in option or 'db' in option:
             if option[-1] == 'b':
@@ -271,7 +269,7 @@ def make_data(options, grid, sim_variables):
                 else:
                     quantity = np.zeros_like(grid[...,5])
             else:
-                axis = {"x":0, "y":1, "z":2}[option[-1]]
+                axis = axes(option)
                 quantity = np.diff(grid[...,5+axis], axis=axis)
         elif "mach" in option:
             quantity = np.sqrt(fv.divide(fv.norm(grid[...,vels])**2, fv.divide(sim_variables.gamma*grid[...,pressure], grid[...,rho])))
@@ -365,6 +363,11 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
     fig, ax, plot_ = make_figure(options, sim_variables)
     y_data = make_data(options, grid_snapshot, sim_variables)
 
+    if sim_variables.save_as_pdf:
+        extension = backend = "pdf"
+    else:
+        extension, backend = "png", "cairo"
+
     for idx, (_i,_j) in enumerate(plot_['indexes']):
         y = y_data[idx]
 
@@ -394,7 +397,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
                 fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
             x = np.linspace(axis_coord[0][0], axis_coord[0][1], cells[0])
-            if BEAUTIFY_1D_PLOTS:
+            if sim_variables.beautify_1d_plots:
                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
             else:
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
@@ -417,7 +420,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
             fig.text(0.04, 0.5, r"$y$", ha='center', rotation='vertical')
             fig.subplots_adjust(left=0.1)
 
-    plt.savefig(f"{sim_variables.save_path}/snapshots/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(t,3)}.pdf", bbox_inches='tight', backend='pdf')
+    plt.savefig(f"{sim_variables.save_path}/snapshots/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(t,3)}.{extension}", bbox_inches='tight', backend=backend)
 
     plt.cla()
     plt.clf()
@@ -430,6 +433,11 @@ def plot_quantities(hdf5, sim_variables, title=False):
     config, dimensions, multidimensional, axis_coord, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.axis_coord, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     precision, t_end, checkpoints = sim_variables.precision, sim_variables.t_end, sim_variables.checkpoints
     options = sim_variables.plot_options
+
+    if sim_variables.save_as_pdf:
+        extension = backend = "pdf"
+    else:
+        extension, backend = "png", "cairo"
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -478,7 +486,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
                         cax = divider.append_axes(position='right', size='5%', pad=0.05)
                         fig.colorbar(graph, cax=cax, orientation='vertical')
                     else:
-                        if BEAUTIFY_1D_PLOTS:
+                        if sim_variables.beautify_1d_plots:
                             gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
                         else:
                             #ax[_i,_j].plot(x, y, linestyle="-", marker="D", ms=4, markerfacecolor=fig.get_facecolor(), markeredgecolor=plot_['colours']['1d'], color=plot_['colours']['1d'])
@@ -541,7 +549,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
             handles, labels = plt.gca().get_legend_handles_labels()
             fig.legend(handles, labels, ncol=_ncol)
 
-        plt.savefig(f"{sim_variables.save_path}/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(ref_time,3)}.pdf", bbox_inches='tight', backend='pdf')
+        plt.savefig(f"{sim_variables.save_path}/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(ref_time,3)}.{extension}", bbox_inches='tight', backend=backend)
 
         plt.cla()
         plt.clf()
@@ -554,6 +562,11 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
 
     options = ["density"]
     config, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
+
+    if sim_variables.save_as_pdf:
+        extension = backend = "pdf"
+    else:
+        extension, backend = "png", "cairo"
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -619,7 +632,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
     fig.text(0.5, 0.04, r"$N$", ha='center')
     fig.subplots_adjust(bottom=0.15)
 
-    plt.savefig(f"{sim_variables.save_path}/solErr_{config}_L{error_norm}_{subgrid}_{time_evo}_{solver}.pdf", bbox_inches='tight', backend='pdf')
+    plt.savefig(f"{sim_variables.save_path}/solErr_{config}_L{error_norm}_{subgrid}_{time_evo}_{solver}.{extension}", bbox_inches='tight', backend=backend)
 
     plt.cla()
     plt.clf()
@@ -653,7 +666,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
     ax.set_xticklabels(_xticklabels, rotation=45, ha="right")
     ax.legend()
 
-    plt.savefig(f"{sim_variables.save_path}/convergenceOrder_{config}_{subgrid}_{time_evo}_{solver}.pdf", bbox_inches='tight', backend='pdf')
+    plt.savefig(f"{sim_variables.save_path}/convergenceOrder_{config}_{subgrid}_{time_evo}_{solver}.{extension}", bbox_inches='tight', backend=backend)
 
     plt.cla()
     plt.clf()
@@ -664,6 +677,11 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
 def plot_total_variation(hdf5, sim_variables, title=False):
     config, subgrid, time_evo, solver = sim_variables.config, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     options = sim_variables.plot_options
+
+    if sim_variables.save_as_pdf:
+        extension = backend = "pdf"
+    else:
+        extension, backend = "png", "cairo"
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -710,7 +728,7 @@ def plot_total_variation(hdf5, sim_variables, title=False):
         fig.text(0.5, 0.04, rf"Time $t$ [arb. units]", ha='center')
         fig.subplots_adjust(bottom=0.1)
 
-        plt.savefig(f"{sim_variables.save_path}/TV_{config}_{subgrid}_{time_evo}_{solver}_{grid_size}.pdf", bbox_inches='tight', backend='pdf')
+        plt.savefig(f"{sim_variables.save_path}/TV_{config}_{subgrid}_{time_evo}_{solver}_{grid_size}.{extension}", bbox_inches='tight', backend=backend)
 
         plt.cla()
         plt.clf()
@@ -721,6 +739,11 @@ def plot_total_variation(hdf5, sim_variables, title=False):
 def plot_conservation_equations(hdf5, sim_variables, title=False):
     options = ["mass", "momentum_x", "total energy"]
     config, subgrid, time_evo, solver = sim_variables.config, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
+
+    if sim_variables.save_as_pdf:
+        extension = backend = "pdf"
+    else:
+        extension, backend = "png", "cairo"
     
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -772,7 +795,7 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
         fig.text(0.5, 0.04, rf"Time $t$ [arb. units]", ha='center')
         fig.subplots_adjust(bottom=0.1)
 
-        plt.savefig(f"{sim_variables.save_path}/conserveEq_{config}_{subgrid}_{time_evo}_{solver}_{grid_size}.pdf", bbox_inches='tight', backend='pdf')
+        plt.savefig(f"{sim_variables.save_path}/conserveEq_{config}_{subgrid}_{time_evo}_{solver}_{grid_size}.{extension}", bbox_inches='tight', backend=backend)
 
         plt.cla()
         plt.clf()
@@ -818,7 +841,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                             fig.colorbar(graph, cax=cax, orientation='vertical')
                             #graph.set_clim(0, 1)
                         else:
-                            if BEAUTIFY_1D_PLOTS:
+                            if sim_variables.beautify_1d_plots:
                                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
                             else:
                                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
@@ -947,7 +970,7 @@ def plot_this(grid, sim_variables, **kwargs):
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
             x = np.linspace(start_pos, end_pos, len(y))
-            if BEAUTIFY_1D_PLOTS:
+            if sim_variables.beautify_1d_plots:
                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
             else:
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
@@ -976,6 +999,11 @@ def plot_this(grid, sim_variables, **kwargs):
 # Plot the power spectrum for turbulence
 def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None):
     cells, dimensions, axis_coord, ds = sim_variables.cells, sim_variables.dimensions, sim_variables.axis_coord, sim_variables.ds
+
+    if sim_variables.save_as_pdf:
+        extension = backend = "pdf"
+    else:
+        extension, backend = "png", "cairo"
 
     # hdf5 keys are datetime strings
     datetimes = [datetime for datetime in hdf5.keys()]
@@ -1073,7 +1101,7 @@ def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None
 
     plt.tight_layout()
 
-    plt.savefig(f'{sim_variables.save_path}/e_spectrum_{t}.pdf', bbox_inches='tight', backend='pdf')
+    plt.savefig(f"{sim_variables.save_path}/e_spectrum_{t}.{extension}", bbox_inches='tight', backend=backend)
 
     plt.cla()
     plt.clf()
@@ -1083,6 +1111,11 @@ def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None
 # Plot positions of tracer particles
 def plot_tracer_particles(tracers, t, sim_variables):
     dimensions, multidimensional, axis_coord = sim_variables.dimensions, sim_variables.multidimensional, sim_variables.axis_coord
+
+    if sim_variables.save_as_pdf:
+        extension = backend = "pdf"
+    else:
+        extension, backend = "png", "cairo"
 
     try:
         plt.style.use(sim_variables.plot_style)
@@ -1139,7 +1172,7 @@ def plot_tracer_particles(tracers, t, sim_variables):
     else:
         ax.scatter(tracers[...,0], **fig_kwargs)
 
-    plt.savefig(f"{sim_variables.save_path}/snapshots/tracers_{'%.3f' % round(t,3)}.pdf", bbox_inches='tight', backend='pdf')
+    plt.savefig(f"{sim_variables.save_path}/snapshots/tracers_{'%.3f' % round(t,3)}.{extension}", bbox_inches='tight', backend=backend)
 
     plt.cla()
     plt.clf()
