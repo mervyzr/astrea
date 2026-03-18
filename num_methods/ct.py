@@ -21,11 +21,15 @@ def compute_alphas(characteristics, axis):
 # Reconstruct the longitudinal B-fields for each transverse axis
 # Note that this reconstruction is done at the cell INTERFACES, NOT cell CENTRES
 def reconstruct_transverse(data, sim_variables, axis, method=None, eta=None):
-    _axes = np.array(range(3))
-    ortho_axes = _axes[_axes != axis]
-    normal_axes = np.roll(ortho_axes, shift=-1)
     ortho_interfaces = {}
 
+    # Get the orthogonal axes & emfs from the axis being computed
+    ortho_axes = np.delete(np.arange(3), axis)
+
+    # Get normal axis to the orthogonal axes (for derivatives)
+    normal_axes = np.roll(ortho_axes, shift=-1)
+
+    # Default to same reconstruction method as longitudinal reconstruction
     if not method:
         method = sim_variables.subgrid_category
 
@@ -85,28 +89,30 @@ def reconstruct_transverse(data, sim_variables, axis, method=None, eta=None):
             reconstruct = pcm.reconstruct
 
         # Each axis data in the 'data' dict will have a pair of reconstructed interfaces w+ & w-
-        # Both interfaces need to be reconstructed in the appropriate orthogonal axis (here named normal_axis)
-        # Therefore for each orthogonal axis, there will be 4 reconstructed corners/lines (2D/3D)
-        # However, for the magnetic fields there would only be 2 reconstructed corners/lines; magnetic field values are the same at the interface
+        # Each interface need to be reconstructed along the same appropriate normal axis (returns intfs=[[w++,w+-],[w-+,w--]])
+        # e.g. x-axis interface reconstructed along y-axis --> intfs = [[E+,E-],[W+,W-]]
+        # Therefore for each normal axis, there will be 4 reconstructed corners/lines (2D/3D)
         def reconstruct_per_interface_pair(interface_pair, _sim_variables, normal_axis):
-            w_plus, w_minus = 0, 1
             intfs = []
             with concurrent.futures.ThreadPoolExecutor() as inner_executor:
                 jobs = inner_executor.map(reconstruct, interface_pair, repeat(_sim_variables), repeat(normal_axis))
 
-                for reconstructed_intf_pairs in jobs:
+                for [wD, wU] in jobs:
                     # Re-align the interfaces so that cell wall is in between interfaces
-                    prim_plus, prim_minus = fv.slice_(fv.add_boundary(reconstructed_intf_pairs[w_plus], sim_variables, axis=normal_axis), normal_axis, start=1), fv.slice_(fv.add_boundary(reconstructed_intf_pairs[w_minus], sim_variables, axis=normal_axis), normal_axis, end=-1)
+                    prim_plus, prim_minus = fv.slice_(fv.add_boundary(wD, sim_variables, axis=normal_axis), normal_axis, start=1), fv.slice_(fv.add_boundary(wU, sim_variables, axis=normal_axis), normal_axis, end=-1)
 
-                    # Remove the 'leftmost' interface since only the upwind corners/lines are needed, and append to list
-                    intfs.append([fv.slice_(prim_plus, axis=normal_axis, start=1), fv.slice_(prim_minus, axis=normal_axis, start=1)])
+                    # Append only the upwind corners/lines to list
+                    intfs.append([fv.slice_(prim_plus, normal_axis, start=1), fv.slice_(prim_minus, normal_axis, start=1)])
 
             return intfs
 
+        # Collate interfaces based on ortho_axes
+        # e.g. computing emf in z-axis: axis = 2 --> ortho_axes = [0,1], normal_axes = [1,0]
+        # interfaces = [ 0: (E,W) , 1: (N,S) ]
         interfaces = [data[axis]['interfaces'] for axis in ortho_axes]
         with concurrent.futures.ThreadPoolExecutor() as executor:
             jobs = executor.map(reconstruct_per_interface_pair, interfaces, repeat(sim_variables), normal_axes)
-            ortho_interfaces = {normal_axes[idx]:intfs for idx, intfs in enumerate(jobs)}
+            ortho_interfaces = dict(zip(normal_axes, jobs))
 
     return ortho_interfaces
 
@@ -165,11 +171,25 @@ def compute_emf(ortho_interfaces, alphas, axis, dissipative=False):
 
     axis_data = ortho_interfaces[abscissa]
 
+    # DICT KEYS CORRESPOND TO RECONSTRUCTION AXIS
     # For -v x B in x-axis (axis=0, thumb), Bz along y (axis=1, index finger) becomes (E,W) & By along z (axis=2, middle finger) becomes (N,S)
     # For -v x B in y-axis (axis=1, thumb), Bx along z (axis=2, index finger) becomes (E,W) & Bz along x (axis=0, middle finger) becomes (N,S)
     # For -v x B in z-axis (axis=2, thumb), By along x (axis=0, index finger) becomes (E,W) & Bx along y (axis=1, middle finger) becomes (N,S)
     try:
         # Assume computation for the z-axis EMF here (axis=2), and so reconstructions along x-axis (ordinate) & y-axis (applicate) are needed
+        """
+        By:                                 Bx:
+                         |                             |
+                         |                      NW (+) | NE (+)
+        N --->  (-) WN <-|-> EN (+)                  ^ | ^
+        -----------------o-----------       -----------o-----------
+        S --->  (-) WS <-|-> ES (+)                  v | v
+                         |                      SW (-) | SE (-)
+                         |                             |
+                                                     ^ | ^
+                                                     | | |
+                                                     W | E
+        """
         [eastnorth, westnorth], [eastsouth, westsouth] = axis_data[ordinate]
         [northeast, southeast], [northwest, southwest] = axis_data[applicate]
         [ap_x, am_x], [ap_y, am_y] = alphas[ordinate], alphas[applicate]
@@ -214,15 +234,14 @@ def compute_emf(ortho_interfaces, alphas, axis, dissipative=False):
 # The hydro fluxes are unaltered. The magnetic fluxes are computed for each axis and automatically allocated,
 # while setting the other axes to zero
 def compute_ct_flux(flux, emfs, sim_variables, axis):
-    _axes = np.array(range(3))
-
     # Get the orthogonal axes & emfs from the axis being computed
-    ortho_axes = _axes[_axes != axis]
-    ortho_emfs = emfs[_axes != axis]
+    ortho_axes = np.delete(np.arange(3), axis)
+    ortho_emfs = list(map(emfs.get, ortho_axes))
 
     # Get normal axis to the orthogonal axes (for derivatives)
     normal_axes = np.roll(ortho_axes, shift=-1)
 
+    # Pad emf in normal axis and compute centred difference for emf flux
     def per_normal_axis(emf, _sim_variables, normal_axis):
         try:
             padded_emf = fv.add_boundary(emf, _sim_variables, axis=normal_axis)

@@ -7,7 +7,7 @@ from num_methods import ct, solvers
 # Piecewise constant reconstruction method (PCM) [Godunov, 1959]
 ##############################################################################
 
-# Reconstruct from averaged cell <w>_{i,j} to averaged interface <w>_{i+1/2,j} (interface = centre for PCM)
+# Reconstruct from averaged cell <w>_{i,j} to averaged interfaces <w>_{i-1/2,j} & <w>_{i+1/2,j} (interface = centre for PCM)
 def reconstruct(grid, sim_variables, axis):
     return grid, grid
 
@@ -41,7 +41,7 @@ def run(grid, sim_variables, axis):
     # Compute alphas and save the reconstructed interfaces for CT computation (interface = centre for PCM)
     if magnetic and multidimensional:
         data['alphas'] = ct.compute_alphas(characteristics, axis=axis)
-        data['interfaces'] = np.copy(grid), np.copy(grid)
+        data['interfaces'] = fv.slice_(fv.add_boundary(grid, sim_variables, axis=axis), axis, start=2), np.copy(grid)
 
     # Calculate the interface-averaged fluxes (pointwise & averaged values are the same for lower-order schemes)
     intf_fluxes_avgd = intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{

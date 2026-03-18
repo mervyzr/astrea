@@ -47,46 +47,42 @@ def evolve_space(grid, sim_variables, first_stage=False):
         else:
             jobs = executor.map(pcm.run, repeat(primitive), repeat(sim_variables), axes)
 
-        data = {axes[idx]: result for idx, result in enumerate(jobs)}
+        data = dict(zip(axes, jobs))
 
 
     # Extract specific values needed from data dict
-    extract = lambda variable: [subdict[variable] for subdict in list(data.values())]
-    eigmaxes = extract('eigmax')
+    extract = lambda variable: {axis: data[axis][variable] for axis in axes}
     fluxes = extract('fluxes')
-
-    # Compute the maximum eigenvalues for determining the full time step
-    eigmax = np.min(eigmaxes)
-
 
     # Magnetohydrodynamics computation
     if magnetic and multidimensional:
-        alphas = {axis:data[axis]['alphas'] for axis in axes}
+        alphas = extract('alphas')
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             # Magnetic transverse interfaces reconstructed along orthogonal axis/axes; use the averaged (+) & (-) values
             reconstruct_transverse = ct.reconstruct_transverse
             if subgrid_category == "ppm" and sim_variables.ppm_dissipate:
                 reconstruct_transverse = lambda _data, _sim_variables, _axis: ct.reconstruct_transverse(_data, _sim_variables, _axis, eta=eta)
-            ortho_jobs = executor.map(reconstruct_transverse, repeat(data), repeat(sim_variables), range(3))
-            ortho_interfaces = {axis:ortho_interfaces for axis, ortho_interfaces in enumerate(ortho_jobs)}
+            ortho_interfaces = dict(enumerate(executor.map(reconstruct_transverse, repeat(data), repeat(sim_variables), range(3))))
 
             # The proper assignment of the corners is important for directional updates, so the dict keys are used for this assignment
             compute_emf = ct.compute_emf
             if sim_variables.higher_order:
                 compute_emf = lambda _ortho_interfaces, _alphas, _axis: ct.compute_emf(_ortho_interfaces, _alphas, _axis, dissipative=True)
-            emf_jobs = executor.map(compute_emf, repeat(ortho_interfaces), repeat(alphas), range(3))
-            emfs = np.asarray([emf for emf in emf_jobs])
+            emfs = dict(enumerate(executor.map(compute_emf, repeat(ortho_interfaces), repeat(alphas), range(3))))
 
-            # Update fluxes with CT implementation; lists ordered according to axes
-            emf_flux_jobs = executor.map(ct.compute_ct_flux, fluxes, repeat(emfs), repeat(sim_variables), range(3))
-            fluxes = [emf_flux for emf_flux in emf_flux_jobs]
+            # Update fluxes with CT implementation
+            ct_fluxes = executor.map(ct.compute_ct_flux, map(fluxes.get, axes), repeat(emfs), repeat(sim_variables), axes)
+            fluxes.update(dict(zip(axes, ct_fluxes)))
 
     # Calculate the total fluxes through all upwind surfaces [F(i+1/2,j,k) - F(i-1/2,j,k)]/dx, [G(i,j+1/2,k) - G(i,j-1/2,k)]/dy, [H(i,j,k+1/2) - H(i,j,k-1/2)]/dz
-    total_flux = -np.sum(fluxes, axis=0)
+    total_flux = -np.sum(list(fluxes.values()), axis=0)
 
     if first_stage:
-        return total_flux, eigmax
+        # Compute the maximum eigenvalues from each axis for determining the full time step
+        eigmaxes = extract('eigmax')
+
+        return total_flux, np.min(list(eigmaxes.values()))
     else:
         return total_flux
 

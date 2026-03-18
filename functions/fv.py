@@ -171,8 +171,7 @@ def avg_cntr_convert(grid_form, grid, sim_variables, **kwargs):
 def approx_face_avg(interfaces, sim_variables, axis):
     inner_func = lambda func, _grid_form, _grid, _sim_variables, _kwargs: func(_grid_form, _grid, _sim_variables, **_kwargs)
     with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-        jobs = inner_executor.map(inner_func, repeat(avg_cntr_convert), repeat('avg'), interfaces, repeat(sim_variables), repeat({'axis':axis, 'pos':'intf'}))
-    return [job for job in jobs]
+        return list(inner_executor.map(inner_func, repeat(avg_cntr_convert), repeat('avg'), interfaces, repeat(sim_variables), repeat({'axis':axis, 'pos':'intf'})))
 
 
 # Compute the max eigenvalues for calculating the time evolution
