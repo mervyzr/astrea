@@ -350,9 +350,9 @@ class SimulationVariables(object):
 # Write grid to HDF5 checkpoint files
 def write_chkpt_file(grid, t, idx, sim_variables):
     if sim_variables.test:
-        file_name = f"astrea_hdf5_{sim_variables.cells}_chkpt_{sim_variables.timesteps:05}_{t:06}"
+        file_name = f"astrea_hdf5_{sim_variables.cells}_chkpt_{sim_variables.timesteps:05}_{t:.6f}".replace('.','')
     else:
-        file_name = f"astrea_hdf5_chkpt_{sim_variables.timesteps:05}_{t:06}"
+        file_name = f"astrea_hdf5_chkpt_{sim_variables.timesteps:05}_{t:.6f}".replace('.','')
 
     with h5py.File(f"{sim_variables.save_path}/{file_name}", "w") as f:
         f.attrs['datetime'] = sim_variables.access_key
