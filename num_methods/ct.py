@@ -117,7 +117,7 @@ def reconstruct_transverse(data, sim_variables, axis, method=None, eta=None):
     return ortho_interfaces
 
 
-# 'Inverse reconstruct' the mag. fields' cell-averaged values from the (staggered grid) face-averaged values [Felker & Stone, 2018]
+# 'Inverse reconstruct' the magnetic fields' cell-averaged values from the (staggered grid) face-averaged values [Felker & Stone, 2018]
 def inverse_reconstruct(grid, sim_variables):
     axes = sim_variables.axes
     new_grid = np.copy(grid)
