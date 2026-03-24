@@ -41,13 +41,13 @@ def run(grid, sim_variables, axis):
     # Compute alphas and save the reconstructed interfaces for CT computation (interface = centre for PCM)
     if magnetic and multidimensional:
         data['alphas'] = ct.compute_alphas(characteristics, axis=axis)
-        data['interfaces'] = fv.slice_(fv.add_boundary(grid, sim_variables, axis=axis), axis, start=2), np.copy(grid)
+        data['interfaces'] = fv.slice_(padded_primitive, axis, start=2), np.copy(grid)
 
     # Calculate the interface-averaged fluxes (pointwise & averaged values are the same for lower-order schemes)
     intf_fluxes_avgd = intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
-        'prim_interfaces': [fv.slice_(padded_primitive, axis, start=1), fv.slice_(padded_primitive, axis, end=-1)],
-        'cons_interfaces': [fv.slice_(padded_conservative, axis, start=1), fv.slice_(padded_conservative, axis, end=-1)],
-        'flux_interfaces': [fv.slice_(fluxes, axis, start=1), fv.slice_(fluxes, axis, end=-1)],
+        'prim_interfaces': (fv.slice_(padded_primitive, axis, start=1), fv.slice_(padded_primitive, axis, end=-1)),
+        'cons_interfaces': (fv.slice_(padded_conservative, axis, start=1), fv.slice_(padded_conservative, axis, end=-1)),
+        'flux_interfaces': (fv.slice_(fluxes, axis, start=1), fv.slice_(fluxes, axis, end=-1)),
         'characteristics': characteristics,
         'jacobian': fv.slice_(jacobian, axis, end=-1),
     })

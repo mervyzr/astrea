@@ -25,7 +25,7 @@ def reconstruct(grid, sim_variables, axis):
 
 
 def run(grid, sim_variables, axis):
-    convert, multidimensional, axes, magnetic, ds = sim_variables.convert, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
+    convert, multidimensional, magnetic, ds = sim_variables.convert, sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds
     data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
@@ -36,9 +36,7 @@ def run(grid, sim_variables, axis):
     # Re-align the interfaces so that cell wall is in between interfaces
     prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, sim_variables, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, sim_variables, axis=axis), axis, end=-1)
     if magnetic:
-        padded_grid = fv.add_boundary(grid, sim_variables, axis=axis)
-        prim_plus[...,5+axes] = prim_minus[...,5+axes] = fv.slice_(padded_grid, axis, end=-1)[...,5+axes]
-        data['interfaces'] = fv.slice_(prim_plus, axis, start=1), fv.slice_(prim_minus, axis, start=1)
+        prim_plus, prim_minus = ct.reassign_mag_interfaces((prim_plus, prim_minus), grid, sim_variables, axis)
 
     # Get the average solution between the interfaces at the boundaries
     intf_avg = .5 * (prim_plus + prim_minus)
@@ -66,12 +64,13 @@ def run(grid, sim_variables, axis):
     # Compute alphas and save the reconstructed interfaces for CT computation
     if magnetic and multidimensional:
         data['alphas'] = ct.compute_alphas(characteristics, axis=axis)
+        data['interfaces'] = fv.slice_(prim_plus, axis, start=1), fv.slice_(prim_minus, axis, start=1)
 
     # Calculate the interface-averaged fluxes (pointwise & averaged values are the same for lower-order schemes)
     intf_fluxes_avgd = intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
-        'prim_interfaces': [prim_plus, prim_minus],
-        'cons_interfaces': [cons_plus, cons_minus],
-        'flux_interfaces': [flux_plus, flux_minus],
+        'prim_interfaces': (prim_plus, prim_minus),
+        'cons_interfaces': (cons_plus, cons_minus),
+        'flux_interfaces': (flux_plus, flux_minus),
         'characteristics': characteristics,
         'jacobian': fv.slice_(jacobian, axis, end=-1),
     })
