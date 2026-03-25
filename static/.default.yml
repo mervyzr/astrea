@@ -1,15 +1,15 @@
 ---
 physics_parameters:
   # List of available configurations to run (spaces are hyphenated)
-  # : Blank field, Sod, (MHD) Sedov, Gaussian, sine wave, Shu-Osher (SO), Ryu-Jones (RJ), Brio-Wu (BW), slow-moving shock, Toro 1-5, 
+  # : Blank field, Sod, (MHD)-Sedov, Gaussian, sine wave, Shu-Osher (SO), Ryu-Jones (RJ), Brio-Wu (BW), slow-moving shock, Toro 1-5, 
   # : isentropic vortex (IVC), (MHD) Lax-Liu (LL) 1-19, Gresho vortex, Noh problem, (MHD) Kelvin-Helmholtz instability (KHI), 
-  # : circular polarised Alfvén wave (CPAW), MHD blast, MHD rotor, MHD blob, MHD sheet, MHD vortex, Orszag-Tang vortex, 
+  # : circular polarised Alfvén wave (CPAW), MHD-blast, MHD-rotor, MHD-blob, MHD-sheet, MHD-vortex, Orszag-Tang vortex, 
   # : shock cloud, astrophysical jet
-  config        : Sod
+  config        : Sedov
   cells         : 128
   cfl           : .5
   gamma         : 1.4
-  dimensions    : 1
+  dimensions    : 2
 
 numerical_parameters:
   # Floating-point precision : float16, float32, float64

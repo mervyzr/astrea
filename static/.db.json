@@ -424,7 +424,7 @@
     },
     "20": {
       "type": "default",
-      "config": "sod",
+      "config": "sedov",
       "precision": "float64",
       "subgrid": "pcm",
       "time_evo": "euler",
