@@ -17,9 +17,7 @@ def evolve_space(grid, sim_variables, first_stage=False):
     multidimensional, subgrid_category, axes, magnetic = sim_variables.multidimensional, sim_variables.subgrid_category, sim_variables.axes, sim_variables.magnetic
 
     # Convert to primitive variables
-    centred_grid = ct.inverse_reconstruct(grid, sim_variables) if magnetic else grid
-    primitive = sim_variables.convert("conservative", centred_grid, sim_variables)
-    primitive[...,5+axes] = grid[...,5+axes]
+    primitive = ct.staggered_convert("conservative", grid, sim_variables)
 
 
     # Hydrodynamics computation (with fluxes and eigmax)

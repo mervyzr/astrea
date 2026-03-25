@@ -41,12 +41,8 @@ def core_run(sim_variables, **kwargs):
     else:
         primitive_grid, t, idx = constructor.initialise(sim_variables), 0., 1
 
-    # For magnetic simulations, inverse reconstruction needed for the conversion, as well as returning converted centred grid to staggered values
-    centred_grid = ct.inverse_reconstruct(primitive_grid, sim_variables) if sim_variables.magnetic else primitive_grid
-
     # Convert primitive grid to conservative variables <q>
-    grid = fv.point_convert("primitive", centred_grid, sim_variables)
-    grid[...,5+sim_variables.axes] = primitive_grid[...,5+sim_variables.axes]
+    grid = ct.staggered_convert("primitive", primitive_grid, sim_variables)
 
     ########################
 
@@ -75,9 +71,8 @@ def core_run(sim_variables, **kwargs):
     ########################
 
     while t <= sim_variables.t_end:
-        # Transform grid for visualisation; always use centred grid for visualisation, not staggered grid
-        centred_grid = ct.inverse_reconstruct(grid, sim_variables) if sim_variables.magnetic else grid
-        grid_snapshot = sim_variables.convert("conservative", centred_grid, sim_variables)
+        # Transform grid for visualisation (staggered grid)
+        grid_snapshot = ct.staggered_convert("conservative", grid, sim_variables)
 
         ########################
 
