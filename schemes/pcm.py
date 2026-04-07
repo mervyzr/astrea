@@ -13,17 +13,20 @@ def reconstruct(grid, sim_variables, axis):
 
 
 def run(grid, sim_variables, axis):
-    convert, multidimensional, magnetic, ds = sim_variables.convert, sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds
+    multidimensional, magnetic, ds = sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds
     data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
 
     # Pad array with boundaries
     padded_primitive = fv.add_boundary(grid, sim_variables, axis=axis)
-    padded_conservative = convert("primitive", padded_primitive, sim_variables)
+
+    # Re-align the interfaces so that cell wall is in between interfaces
+    prim_plus, prim_minus = fv.slice_(padded_primitive, axis, start=1), fv.slice_(padded_primitive, axis, end=-1)
+    cons_plus, cons_minus = fv.convert_intf("primitive", prim_plus, sim_variables, axis=axis), fv.convert_intf("primitive", prim_minus, sim_variables, axis=axis)
 
     # Compute the fluxes and the Jacobian
-    fluxes = constructor.make_flux(padded_primitive, sim_variables, axis=axis)
+    flux_plus, flux_minus = constructor.make_flux(prim_plus, sim_variables, axis=axis), constructor.make_flux(prim_minus, sim_variables, axis=axis)
     jacobian = constructor.make_Jacobian(padded_primitive, sim_variables, axis=axis)
 
     # Resolve characteristics at interfaces
@@ -45,9 +48,9 @@ def run(grid, sim_variables, axis):
 
     # Calculate the interface-averaged fluxes (pointwise & averaged values are the same for lower-order schemes)
     intf_fluxes_avgd = intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
-        'prim_interfaces': (fv.slice_(padded_primitive, axis, start=1), fv.slice_(padded_primitive, axis, end=-1)),
-        'cons_interfaces': (fv.slice_(padded_conservative, axis, start=1), fv.slice_(padded_conservative, axis, end=-1)),
-        'flux_interfaces': (fv.slice_(fluxes, axis, start=1), fv.slice_(fluxes, axis, end=-1)),
+        'prim_interfaces': (prim_plus, prim_minus),
+        'cons_interfaces': (cons_plus, cons_minus),
+        'flux_interfaces': (flux_plus, flux_minus),
         'characteristics': characteristics,
         'jacobian': fv.slice_(jacobian, axis, end=-1),
     })

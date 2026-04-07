@@ -88,10 +88,16 @@ def convert_variable(variable, grid, sim_variables):
         return grid[...,pressure]/(gamma-1) + .5 * (grid[...,rho]*norm(grid[...,vels])**2 + (norm(grid[...,Bfields])**2)/permeability)
     elif variable.lower().startswith('e') or 'energy' in variable.lower():
         return (gamma-1) * (grid[...,energy] - .5 * (grid[...,rho]*norm(divide(grid[...,momentums], grid[...,rho][...,None]))**2 + (norm(grid[...,Bfields])**2)/permeability))
+    
+
+# Handler for conversion
+def convert(variable_form, grid, sim_variables):
+    converter = high_order_convert if sim_variables.higher_order else point_convert
+    return converter(variable_form, grid, sim_variables)
 
 
 # Pointwise (exact) conversion of conservative variables q <-> primitive variables w (up to 2nd-order accurate)
-def point_convert(variable_form, grid, sim_variables, **kwargs):
+def point_convert(variable_form, grid, sim_variables):
     rho, pressure, energy, vels, momentums = sim_variables.rho, sim_variables.pressure, sim_variables.energy, sim_variables.vels, sim_variables.momentums
     arr = np.copy(grid)
 
@@ -104,37 +110,45 @@ def point_convert(variable_form, grid, sim_variables, **kwargs):
     return arr
 
 
-# Converting cell-averaged conservative variables <q>_{i,j}     <-> cell-averaged primitive variables <w>_{i,j} through a Laplacian (2nd-deriv, 2nd-order) approx. (up to 4th-order accurate), OR
-# converting face-averaged conservative variables <q>_{i+1/2,j} <-> face-averaged primitive variables <w>_{i+1/2,j}
-def high_order_convert(variable_form, grid, sim_variables, **kwargs):
-    base, expansion = np.copy(grid), np.zeros_like(grid)
-    axes = np.array([])
+# Variable inversion using the conversion of the grid (base) and the Taylor expansion terms (expansion) through a Laplacian (2nd-deriv, 2nd-order) approx. for each axis (up to 4th-order accurate)
+def inversion_per_axis(variable_form, grid, sim_variables, axis):
+    original_expansion = (sim_variables.ds[axis]**2)/24 * laplacian(grid, sim_variables, axis)
+    converted_avg = point_convert(variable_form, grid, sim_variables)
+    converted_expansion = (sim_variables.ds[axis]**2)/24 * laplacian(converted_avg, sim_variables, axis)
+    return original_expansion, converted_expansion
 
-    def inversion_per_axis(_variable_form, _grid, _sim_variables, _axis):
-        original_expansion = (_sim_variables.ds[_axis]**2)/24 * laplacian(_grid, _sim_variables, _axis)
-        converted_avg = point_convert(_variable_form, _grid, _sim_variables)
-        converted_expansion = (_sim_variables.ds[_axis]**2)/24 * laplacian(converted_avg, _sim_variables, _axis)
-        return original_expansion, converted_expansion
+
+# Converting cell-averaged conservative variables <q>_{i,j} <-> cell-averaged primitive variables <w>_{i,j}
+def high_order_convert(variable_form, grid, sim_variables):
+    base, expansion = np.copy(grid), np.zeros_like(grid)
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        # for computation at interfaces
-        if kwargs:
-            if sim_variables.higher_order and sim_variables.multidimensional:
-                axes = sim_variables.axes[sim_variables.axes != kwargs['axis']]
-        # for computation at centres
-        else:
-            axes = sim_variables.axes
+        jobs = executor.map(inversion_per_axis, repeat(variable_form), repeat(grid), repeat(sim_variables), sim_variables.axes)
 
-        jobs = executor.map(inversion_per_axis, repeat(variable_form), repeat(grid), repeat(sim_variables), axes)
+        for original_expansion, converted_expansion in jobs:
+            base -= original_expansion
+            expansion += converted_expansion
 
-        if axes.size != 0:
-            for _original_expansion, _converted_expansion in jobs:
-                base -= _original_expansion
-                expansion += _converted_expansion
+    return point_convert(variable_form, base, sim_variables) + expansion
+
+
+# Converting face-averaged conservative variables <q>_{i+1/2,j} <-> face-averaged primitive variables <w>_{i+1/2,j}
+def convert_intf(variable_form, grid, sim_variables, axis):
+    base, expansion = np.copy(grid), np.zeros_like(grid)
+
+    if sim_variables.higher_order and sim_variables.multidimensional:
+        ortho_axes = sim_variables.axes[sim_variables.axes != axis]
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            jobs = executor.map(inversion_per_axis, repeat(variable_form), repeat(grid), repeat(sim_variables), ortho_axes)
+
+            for original_expansion, converted_expansion in jobs:
+                base -= original_expansion
+                expansion += converted_expansion
 
     new_grid = point_convert(variable_form, base, sim_variables) + expansion
 
-    if kwargs and sim_variables.magnetic:
+    if sim_variables.magnetic:
         new_grid[...,5+sim_variables.axes] = grid[...,5+sim_variables.axes]
 
     return new_grid

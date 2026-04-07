@@ -138,7 +138,7 @@ def reconstruct(grid, sim_variables, axis, order=5):
 
 
 def run(grid, sim_variables, axis):
-    convert, subgrid, multidimensional, axes, magnetic, ds = sim_variables.convert, sim_variables.subgrid, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
+    subgrid, multidimensional, axes, magnetic, ds = sim_variables.subgrid, sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
     data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
@@ -163,7 +163,7 @@ def run(grid, sim_variables, axis):
     padded_intf_avg = fv.add_boundary(fv.slice_(intf_avg, axis, start=1), sim_variables, axis=axis)
 
     # Convert the primitive variables at the interface
-    cons_plus, cons_minus = convert("primitive", prim_plus, sim_variables, axis=axis, pos='intf'), convert("primitive", prim_minus, sim_variables, axis=axis, pos='intf')
+    cons_plus, cons_minus = fv.convert_intf("primitive", prim_plus, sim_variables, axis=axis), fv.convert_intf("primitive", prim_minus, sim_variables, axis=axis)
 
     # Compute the fluxes and the Jacobian
     flux_plus, flux_minus = constructor.make_flux(prim_plus, sim_variables, axis=axis), constructor.make_flux(prim_minus, sim_variables, axis=axis)
