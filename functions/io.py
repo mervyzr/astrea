@@ -8,7 +8,7 @@ import numpy as np
 from tinydb import TinyDB, Query
 
 from external import krome_funcs
-from functions import fv, generic
+from functions import generic
 from functions.generic import BColours
 from static import tests
 from static import constants as const
@@ -269,12 +269,9 @@ class SimulationVariables(object):
         self.subgrid_category = db.get(params.accepted.any([self.subgrid]))['category']
         self.solver_category = db.get(params.accepted.any([self.solver]))['category']
 
-        self.convert = fv.point_convert
-        self.higher_order = False
-
         # Higher-order method options
+        self.higher_order = False
         if self.subgrid_category in ["cweno", "weno", "ppm"]:
-            self.convert = fv.high_order_convert
             self.higher_order = True
 
             # PPM-specific options

@@ -84,7 +84,7 @@ def calculate_conservation(simulation, sim_variables):
     dV = np.prod(np.diff(list(axis_coord.values()), axis=1))
     for t in list(simulation.keys()):
         _grid = simulation[t][:]  # Needs the '[:]' to access the array
-        grid = sim_variables.convert("primitive", _grid, sim_variables)
+        grid = fv.convert("primitive", _grid, sim_variables)
         grid = np.sum(grid, axis=tuple(axes))
         conservation[float(t)] = grid * dV
     return conservation
@@ -103,7 +103,7 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
 
     for t in intervals:
         _grid = simulation[t][:]  # Needs the '[:]' to access the array
-        grid = sim_variables.convert("primitive", _grid, sim_variables)
+        grid = fv.convert("primitive", _grid, sim_variables)
         grid = np.sum(grid, axis=tuple(axes))
         conservation[t] = grid * dV
     return conservation
