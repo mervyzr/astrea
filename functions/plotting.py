@@ -263,14 +263,16 @@ def make_data(options, grid, sim_variables):
                 axis = axes(option)
                 quantity = grid[...,5+axis]
         elif 'div' in option or 'db' in option:
+            div_along_axis = lambda ax: fv.slice_(np.diff(fv.add_boundary(grid[...,5+ax], sim_variables, axis=ax), axis=ax), axis=ax, end=-1)/sim_variables.ds[ax]
             if option[-1] == 'b':
                 if sim_variables.multidimensional:
-                    quantity = fv.slice_(np.diff(grid[...,5], axis=0), axis=1, start=1) + fv.slice_(np.diff(grid[...,6], axis=1), axis=0, start=1)
+                    quantity = div_along_axis(0) + div_along_axis(1)
+                    if sim_variables.dimensions > 2:
+                        quantity += div_along_axis(2)
                 else:
                     quantity = np.zeros_like(grid[...,5])
             else:
-                axis = axes(option)
-                quantity = np.diff(grid[...,5+axis], axis=axis)
+                quantity = div_along_axis(axes(option))
         elif "mach" in option:
             quantity = np.sqrt(fv.divide(fv.norm(grid[...,vels])**2, fv.divide(sim_variables.gamma*grid[...,pressure], grid[...,rho])))
         else:

@@ -3,6 +3,7 @@ from itertools import repeat
 
 import numpy as np
 
+from functions import fv
 from num_methods import ct
 from schemes import pcm, plm, ppm, weno, cweno
 from functions.generic import verbose_timer
@@ -17,7 +18,7 @@ def evolve_space(grid, sim_variables, first_stage=False):
     multidimensional, subgrid_category, axes, magnetic = sim_variables.multidimensional, sim_variables.subgrid_category, sim_variables.axes, sim_variables.magnetic
 
     # Convert to primitive variables
-    primitive = ct.staggered_convert("conservative", grid, sim_variables)
+    primitive = ct.convert("conservative", grid, sim_variables) if sim_variables.magnetic else fv.convert("conservative", grid, sim_variables)
 
 
     # Hydrodynamics computation (with fluxes and eigmax)

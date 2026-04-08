@@ -216,8 +216,8 @@ def initialise(sim_variables, perturb=False):
 def krome_run(chem_grid, conserv_grid, dt, sim_variables):
     conversion_factor = (constants.mu * constants.m_p * constants.pc**3)/constants.m_sun
 
-    centred_grid = ct.inverse_reconstruct(conserv_grid, sim_variables) if sim_variables.magnetic else conserv_grid
-    primitive_grid = sim_variables.convert('conservative', centred_grid, sim_variables)
+    convert = ct.convert if sim_variables.magnetic else fv.convert
+    primitive_grid = convert("conservative", conserv_grid, sim_variables)
 
     Tgas = fv.divide(primitive_grid[...,sim_variables.pressure], primitive_grid[...,sim_variables.rho]).reshape(-1, order="F")
 

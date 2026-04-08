@@ -41,8 +41,10 @@ def core_run(sim_variables, **kwargs):
     else:
         primitive_grid, t, idx = constructor.initialise(sim_variables), 0., 1
 
+    convert = ct.convert if sim_variables.magnetic else fv.convert
+
     # Convert primitive grid to conservative variables <q>
-    grid = ct.staggered_convert("primitive", primitive_grid, sim_variables)
+    grid = convert("primitive", primitive_grid, sim_variables)
 
     ########################
 
@@ -71,8 +73,8 @@ def core_run(sim_variables, **kwargs):
     ########################
 
     while t <= sim_variables.t_end:
-        # Transform grid for visualisation (staggered grid)
-        grid_snapshot = ct.staggered_convert("conservative", grid, sim_variables)
+        # Transform grid for visualisation (in primitive variables)
+        grid_snapshot = convert("conservative", grid, sim_variables)
 
         ########################
 

@@ -241,7 +241,7 @@ def generate_test_conditions(config_variables):
         alpha = np.pi/6
         axis_coord = [0,1/np.cos(alpha)], [0,1/np.sin(alpha)]
         shock_pos = 0
-        t_end = 5
+        t_end = 2
         boundary = "wrap"
         init_cond = np.array([1,0,0,0,.1,0,0,0])
         ambient = np.array([1,0,0,0,.1,0,0,0])

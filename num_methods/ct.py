@@ -22,9 +22,9 @@ def reassign_mag_interfaces(interfaces, grid, sim_variables, axis):
 
 
 # For MHD simulations, special care is needed for the high-order conversion between primitive and conservative variables with a staggered grid
-def staggered_convert(variable, grid, sim_variables):
-    centred_grid = inverse_reconstruct(grid, sim_variables) if sim_variables.magnetic else grid
-    _grid = sim_variables.convert(variable, centred_grid, sim_variables)
+def convert(variable, grid, sim_variables):
+    centred_grid = inverse_reconstruct(grid, sim_variables)
+    _grid = fv.convert(variable, centred_grid, sim_variables)
     _grid[...,5+sim_variables.axes] = grid[...,5+sim_variables.axes]
     return _grid
 
@@ -67,12 +67,9 @@ def inverse_reconstruct(grid, sim_variables):
                 for idx, job in enumerate(jobs):
                     cell_avgd += (_sim_variables.ds[_sim_variables.axes[idx]]**2)/24 * job
 
-        elif _sim_variables.subgrid_category == 'plm':
-            padded_grid = fv.add_boundary(_grid, _sim_variables, axis=axis)
-            cell_avgd = fv.slice_(.5 * (fv.slice_(padded_grid, axis, start=1) + fv.slice_(padded_grid, axis, end=-1)), axis, start=1)
-
         else:
-            cell_avgd = _grid
+            padded_grid = fv.add_boundary(_grid, _sim_variables, axis=axis)
+            cell_avgd = .5 * (_grid + fv.slice_(padded_grid, axis, end=-2))
 
         return cell_avgd
 

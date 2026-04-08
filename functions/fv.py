@@ -85,10 +85,10 @@ def convert_variable(variable, grid, sim_variables):
     gamma, permeability = sim_variables.gamma, sim_variables.constants.mu_0
 
     if variable.lower().startswith('p'):
-        return grid[...,pressure]/(gamma-1) + .5 * (grid[...,rho]*norm(grid[...,vels])**2 + (norm(grid[...,Bfields])**2)/permeability)
+        return grid[...,pressure]/(gamma-1) + .5*(grid[...,rho]*norm(grid[...,vels])**2) + .5*(norm(grid[...,Bfields])**2)/permeability
     elif variable.lower().startswith('e') or 'energy' in variable.lower():
         return (gamma-1) * (grid[...,energy] - .5 * (grid[...,rho]*norm(divide(grid[...,momentums], grid[...,rho][...,None]))**2 + (norm(grid[...,Bfields])**2)/permeability))
-    
+
 
 # Handler for conversion
 def convert(variable_form, grid, sim_variables):
