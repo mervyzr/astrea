@@ -55,6 +55,7 @@ docs/_build/
 # custom files
 .venv
 .vidplots
+.vscode
 saved_data
 krome
 parameters.yml
