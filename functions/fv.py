@@ -11,8 +11,8 @@ EPSILON = np.finfo('float64').eps
 
 
 # Magic function to make errors disappear (!! physics would most likely be messed up so be very careful using this function !!)
-def nan_to_num(arr):
-    return np.nan_to_num(arr, copy=True, nan=0., posinf=1e16, neginf=-1e16)
+def nan_to_num(arr, eps=EPSILON):
+    return np.nan_to_num(arr, copy=True, nan=0., posinf=eps, neginf=-eps)
 
 
 # For handling division-by-zero warnings during array divisions
