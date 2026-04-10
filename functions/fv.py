@@ -7,24 +7,21 @@ import numpy as np
 # Generic functions used throughout the finite volume code
 ##############################################################################
 
-EPSILON = np.finfo('float64').eps
-
 
 # Magic function to make errors disappear (!! physics would most likely be messed up so be very careful using this function !!)
-def nan_to_num(arr, eps=EPSILON):
+def nan_to_num(arr, eps=1e-16):
     return np.nan_to_num(arr, copy=True, nan=0., posinf=eps, neginf=-eps)
 
 
 # For handling division-by-zero warnings during array divisions
 # !! MONITOR THE PHYSICS WHEN USING THIS; ZEROS IN DIVISOR MIGHT MEAN YOUR CODE IS INCORRECT !!
-def divide(dividend, divisor, eps=EPSILON):
-    #return np.divide(np.real(dividend), np.real(divisor+eps))
-    return np.divide(np.real(dividend), np.real(divisor), out=np.full_like(dividend, 1/eps), where=divisor!=0)
+def divide(dividend, divisor, eps=1e-16):
+    return np.divide(np.real(dividend), np.real(divisor), out=np.full_like(dividend, 1/eps), where=np.real(divisor)!=0)
 
 
 # For handling log zero and log negative values
 # !! MONITOR THE PHYSICS WHEN USING THIS; NEGATIVE OR ZERO VALUES MIGHT MEAN YOUR CODE IS INCORRECT INSTEAD !!
-def log(arr, eps=EPSILON):
+def log(arr, eps=1e-16):
     positive = np.log(np.full(arr.shape, eps))
     return np.log(arr, out=positive, where=arr>0)
 

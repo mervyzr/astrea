@@ -12,7 +12,7 @@ from static import constants
 def make_physical_grid(axis_coord, cells):
     start_pos, end_pos = axis_coord
     dh = np.abs(np.diff(axis_coord)[0])/cells
-    half_cell = dh/2
+    half_cell = .5 * dh
     return np.linspace(start_pos-half_cell, end_pos+half_cell, cells+2)[1:-1]
 
 
