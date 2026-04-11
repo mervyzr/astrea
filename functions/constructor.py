@@ -297,7 +297,7 @@ def make_flux(grid, sim_variables, axis):
     arr[...,1+abscissa] = rhos*vels[...,abscissa]**2 + pressures + .5*fv.norm(Bfields)**2 - (Bfields[...,abscissa]**2)/permeability
     arr[...,1+ordinate] = rhos*vels[...,abscissa]*vels[...,ordinate] - (Bfields[...,abscissa]*Bfields[...,ordinate])/permeability
     arr[...,1+applicate] = rhos*vels[...,abscissa]*vels[...,applicate] - (Bfields[...,abscissa]*Bfields[...,applicate])/permeability
-    arr[...,4] = vels[...,abscissa]*(.5*rhos*fv.norm(vels)**2 + (gamma*pressures)/(gamma-1) + fv.norm(Bfields)**2) - (Bfields[...,abscissa]*np.sum(vels*Bfields, axis=-1))/permeability
+    arr[...,4] = vels[...,abscissa]*(.5*rhos*fv.norm(vels)**2 + (gamma*pressures)/(gamma-1) + fv.norm(Bfields)**2) - (Bfields[...,abscissa]*np.einsum('...i,...i->...', vels, Bfields))/permeability
     arr[...,5+ordinate] = Bfields[...,ordinate]*vels[...,abscissa] - Bfields[...,abscissa]*vels[...,ordinate]
     arr[...,5+applicate] = Bfields[...,applicate]*vels[...,abscissa] - Bfields[...,abscissa]*vels[...,applicate]
 

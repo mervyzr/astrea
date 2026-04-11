@@ -42,19 +42,20 @@ def inverse_reconstruct(grid, sim_variables):
     axes = sim_variables.axes
     new_grid = np.copy(grid)
 
-    def per_axis(_grid, _sim_variables, axis):
+    def inversion_per_axis(_Bfields, _sim_variables, axis):
+        face_cntrd = np.copy(_Bfields)
+
         if _sim_variables.higher_order:
-            ortho_axes = _sim_variables.axes[_sim_variables.axes != axis]
-            face_cntrd = np.copy(_grid)
-
+            # Approximate the face-averaged values to face-centred values with orthogonal axes (eq. 38)
             if _sim_variables.multidimensional:
-                # Approximate the face-averaged values to face-centred values (eq. 38)
+                ortho_axes = _sim_variables.axes[_sim_variables.axes != axis]
                 with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-                    jobs = inner_executor.map(fv.laplacian, repeat(_grid), repeat(_sim_variables), ortho_axes)
-                    for idx, job in enumerate(jobs):
-                        face_cntrd -= (sim_variables.ds[ortho_axes[idx]]**2)/24 * job
+                    jobs = inner_executor.map(fv.laplacian, repeat(_Bfields), repeat(_sim_variables), ortho_axes)
+                    for idx, ortho_Bfield in enumerate(jobs):
+                        ortho_dh = _sim_variables.ds[ortho_axes[idx]]
+                        face_cntrd -= (ortho_dh**2)/24 * ortho_Bfield
 
-            # Interpolate the face-centred values to cell-centred values (eq. 39)
+            # Interpolate the face-centred values to cell-centred values with axis (eq. 39)
             face_cntrd_padded_2 = fv.add_boundary(face_cntrd, _sim_variables, stencil=2, axis=axis)
             face_cntrd_padded = fv.slice_(face_cntrd_padded_2, axis, *[1,-1])
             cell_cntrd = -1/16 * (fv.slice_(face_cntrd_padded, axis, end=-2) + fv.slice_(face_cntrd_padded_2, axis, start=4)) \
@@ -62,22 +63,25 @@ def inverse_reconstruct(grid, sim_variables):
 
             # Apply Laplacian operator to convert cell-centred values to cell-averaged values (eq. 40)
             cell_avgd = np.copy(cell_cntrd)
+            _axes = _sim_variables.axes
             with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-                jobs = inner_executor.map(fv.laplacian, repeat(cell_cntrd), repeat(_sim_variables), _sim_variables.axes)
-                for idx, job in enumerate(jobs):
-                    cell_avgd += (_sim_variables.ds[_sim_variables.axes[idx]]**2)/24 * job
+                jobs = inner_executor.map(fv.laplacian, repeat(cell_cntrd), repeat(_sim_variables), _axes)
+                for idx, _Bfield in enumerate(jobs):
+                    dh = _sim_variables.ds[_axes[idx]]
+                    cell_avgd += (dh**2)/24 * _Bfield
 
         else:
-            padded_grid = fv.add_boundary(_grid, _sim_variables, axis=axis)
-            cell_avgd = .5 * (_grid + fv.slice_(padded_grid, axis, end=-2))
+            # Arithmetic averaging for lower-order schemes
+            padded_grid = fv.add_boundary(face_cntrd, _sim_variables, axis=axis)
+            cell_avgd = .5 * (face_cntrd + fv.slice_(padded_grid, axis, end=-2))
 
-        return cell_avgd
+        return fv.slice_(fv.add_boundary(cell_avgd, _sim_variables, axis=axis), axis, end=-2)
 
     # Update the grid values with the updated B-field values
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        jobs = executor.map(per_axis, repeat(grid), repeat(sim_variables), axes)
-        for axis, Bfield in enumerate(jobs):
-            new_grid[...,5+axes[axis]] = Bfield[...,5+axes[axis]]
+        jobs = executor.map(inversion_per_axis, repeat(grid[...,sim_variables.Bfields]), repeat(sim_variables), axes)
+        for idx, Bfield in enumerate(jobs):
+            new_grid[...,5+axes[idx]] = Bfield[...,axes[idx]]
 
     return new_grid
 
@@ -161,7 +165,7 @@ def reconstruct_transverse(data, sim_variables, axis, method=None, eta=None):
             with concurrent.futures.ThreadPoolExecutor() as inner_executor:
                 jobs = inner_executor.map(reconstruct, interface_pair, repeat(_sim_variables), repeat(normal_axis))
 
-                for [wD, wU] in jobs:
+                for [wU, wD] in jobs:
                     # Re-align the interfaces so that cell wall is in between interfaces
                     prim_plus, prim_minus = fv.slice_(fv.add_boundary(wD, sim_variables, axis=normal_axis), normal_axis, start=1), fv.slice_(fv.add_boundary(wU, sim_variables, axis=normal_axis), normal_axis, end=-1)
 
