@@ -92,25 +92,25 @@ def run(grid, sim_variables, axis, eta=None):
     if magnetic:
         prim_plus, prim_minus = ct.reassign_mag_interfaces((prim_plus, prim_minus), grid, sim_variables, axis)
 
-    # Get the average solution between the interfaces at the boundaries
-    intf_avg = fv.compute_Roe_average((prim_plus, prim_minus), sim_variables)
-    padded_intf_avg = fv.slice_(fv.add_boundary(intf_avg, sim_variables, axis=axis), axis, start=1)
+    # Get the Roe average solution in each cell
+    cell_avg = fv.compute_Roe_average((wL, wR), sim_variables)
+    padded_cell_avg = fv.add_boundary(cell_avg, sim_variables, axis=axis)
 
     # Convert the primitive variables at the interface
     cons_plus, cons_minus = fv.convert_intf("primitive", prim_plus, sim_variables, axis=axis), fv.convert_intf("primitive", prim_minus, sim_variables, axis=axis)
 
     # Compute the fluxes and the Jacobian
     flux_plus, flux_minus = constructor.make_flux(prim_plus, sim_variables, axis=axis), constructor.make_flux(prim_minus, sim_variables, axis=axis)
-    jacobian = constructor.make_Jacobian(padded_intf_avg, sim_variables, axis=axis)
+    jacobian = constructor.make_Jacobian(padded_cell_avg, sim_variables, axis=axis)
 
     # Resolve characteristics at interfaces
     try:
         characteristics = np.linalg.eigvals(jacobian)
     except np.linalg.LinAlgError:
         try:
-            characteristics = constructor.make_characteristics(padded_intf_avg, sim_variables, axis=axis)
+            characteristics = constructor.make_characteristics(padded_cell_avg, sim_variables, axis=axis)
         except np.linalg.LinAlgError:
-            characteristics = np.full_like(padded_intf_avg, .1)
+            characteristics = np.full_like(padded_cell_avg, .1)
 
     # Compute eigmax for time stepping limits
     data['eigmax'] = ds[axis]/fv.compute_eigmax(characteristics, axis=axis)
