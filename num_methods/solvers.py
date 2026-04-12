@@ -41,7 +41,7 @@ def calculate_LaxFriedrich_flux(axis, sim_variables, **kwargs):
 
     local_max_eigvals = np.max(np.abs(np.real(characteristics)), axis=-1)  # Get maximum eigenvalues in each (localised) cell
     max_eigvals = np.maximum(fv.slice_(local_max_eigvals, axis, end=-1), fv.slice_(local_max_eigvals, axis, start=1))  # Get the maximum eigenvalue between each consecutive pair of cells
-    return .5*(flux_minus+flux_plus) - .5*((cons_plus-cons_minus) * max_eigvals[...,None])
+    return .5*(flux_minus+flux_plus) - .5*max_eigvals[...,None]*(cons_plus-cons_minus)
 
 
 # Lax-Wendroff (Richtmyer) solver (2nd-order, Jacobian method; contains overshoots) [Lax & Wendroff, 1960; Mignone & Del Zanna, 2021]

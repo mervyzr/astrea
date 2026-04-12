@@ -46,13 +46,9 @@ def slice_(grid, axis, start=0, end=None, step=1, *args):
         try:
             start, end, step = args
         except ValueError:
-            try:
-                start, end = args
-                step = 1
-            except ValueError:
-                start, end, step = 0, grid.shape[axis], 1
+            start, end = args
 
-    if not end:
+    if end == None:
         end = grid.shape[axis]
 
     slc[axis] = slice(start, end, step)
