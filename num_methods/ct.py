@@ -52,8 +52,7 @@ def inverse_reconstruct(grid, sim_variables):
                 with concurrent.futures.ThreadPoolExecutor() as inner_executor:
                     jobs = inner_executor.map(fv.laplacian, repeat(_Bfields), repeat(_sim_variables), ortho_axes)
                     for idx, ortho_Bfield in enumerate(jobs):
-                        ortho_dh = _sim_variables.ds[ortho_axes[idx]]
-                        face_cntrd -= (ortho_dh**2)/24 * ortho_Bfield
+                        face_cntrd -= (_sim_variables.ds[ortho_axes[idx]]**2)/24 * ortho_Bfield
 
             # Interpolate the face-centred values to cell-centred values with axis (eq. 39)
             face_cntrd_padded_2 = fv.add_boundary(face_cntrd, _sim_variables, stencil=2, axis=axis)
@@ -67,8 +66,7 @@ def inverse_reconstruct(grid, sim_variables):
             with concurrent.futures.ThreadPoolExecutor() as inner_executor:
                 jobs = inner_executor.map(fv.laplacian, repeat(cell_cntrd), repeat(_sim_variables), _axes)
                 for idx, _Bfield in enumerate(jobs):
-                    dh = _sim_variables.ds[_axes[idx]]
-                    cell_avgd += (dh**2)/24 * _Bfield
+                    cell_avgd += (_sim_variables.ds[_axes[idx]]**2)/24 * _Bfield
 
         else:
             # Arithmetic averaging for lower-order schemes

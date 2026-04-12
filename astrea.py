@@ -301,7 +301,7 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
             with h5py.File(file_name, "r") as f:
                 vidpath = save_path/".vidplots"
                 Path(vidpath).mkdir(parents=True, exist_ok=True)
-                plotting.make_video(f, sim_variables, vidpath)
+                plotting.make_video(f, sim_variables, vidpath, variable=['density'])
 
     # Exception handling; deletes the temporary HDF5 database to prevent clutter
     except Exception as e:

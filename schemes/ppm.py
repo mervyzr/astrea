@@ -94,7 +94,7 @@ def run(grid, sim_variables, axis, eta=None):
 
     # Get the average solution between the interfaces at the boundaries
     intf_avg = fv.compute_Roe_average((prim_plus, prim_minus), sim_variables)
-    padded_intf_avg = fv.add_boundary(fv.slice_(intf_avg, axis, start=1), sim_variables, axis=axis)
+    padded_intf_avg = fv.slice_(fv.add_boundary(intf_avg, sim_variables, axis=axis), axis, start=1)
 
     # Convert the primitive variables at the interface
     cons_plus, cons_minus = fv.convert_intf("primitive", prim_plus, sim_variables, axis=axis), fv.convert_intf("primitive", prim_minus, sim_variables, axis=axis)

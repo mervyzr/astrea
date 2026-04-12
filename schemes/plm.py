@@ -40,7 +40,7 @@ def run(grid, sim_variables, axis):
 
     # Get the average solution between the interfaces at the boundaries
     intf_avg = .5 * (prim_plus + prim_minus)
-    padded_intf_avg = fv.add_boundary(fv.slice_(intf_avg, axis, start=1), sim_variables, axis=axis)
+    padded_intf_avg = fv.slice_(fv.add_boundary(intf_avg, sim_variables, axis=axis), axis, end=-1)
 
     # Convert the primitive variables at the interface
     cons_plus, cons_minus = fv.convert_intf("primitive", prim_plus, sim_variables, axis=axis), fv.convert_intf("primitive", prim_minus, sim_variables, axis=axis)

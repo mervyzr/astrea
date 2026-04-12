@@ -44,7 +44,7 @@ def run(grid, sim_variables, axis):
     # Compute alphas and save the reconstructed interfaces for CT computation (interface = centre for PCM)
     if magnetic and multidimensional:
         data['alphas'] = ct.compute_alphas(characteristics, axis=axis)
-        data['interfaces'] = np.copy(grid), np.copy(grid)
+        data['interfaces'] = fv.slice_(prim_plus, axis, end=-1), fv.slice_(prim_minus, axis, start=1)
 
     # Calculate the interface-averaged fluxes (pointwise & averaged values are the same for lower-order schemes)
     intf_fluxes_avgd = intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
