@@ -66,7 +66,7 @@ def evolve_space(grid, sim_variables, first_stage=False):
 
             # The proper assignment of the corners is important for directional updates, so the dict keys are used for this assignment
             compute_emf = ct.compute_emf
-            if sim_variables.higher_order:
+            if sim_variables.ct_dissipative:
                 compute_emf = lambda _ortho_interfaces, _alphas, _axis: ct.compute_emf(_ortho_interfaces, _alphas, _axis, dissipative=True)
             emfs = dict(enumerate(executor.map(compute_emf, repeat(ortho_interfaces), repeat(alphas), range(3))))
 

@@ -276,8 +276,11 @@ class SimulationVariables(object):
 
             # PPM-specific options
             if self.subgrid_category == "ppm":
-                self.ppm_author = "MC:2011"  # [McCorquodale & Colella, 2011 (MC:2011); Colella et al., 2011 (C+:2011); Peterson & Hammett, 2008 (PH:2008)]
-                self.ppm_dissipate = False
+                self.ppm_author = os.getenv("PPM_AUTHOR", "MC:2011")  # [McCorquodale & Colella, 2011 (MC:2011); Colella et al., 2011 (C+:2011); Peterson & Hammett, 2008 (PH:2008)]
+                self.ppm_dissipate = os.getenv("PPM_DISSIPATE", False)
+
+        # CT-specific options
+        self.ct_dissipative = os.getenv("CT_DISSIPATIVE", False)
 
         # Permutations for axes
         self.multidimensional = self.dimensions >= 2
@@ -314,12 +317,6 @@ class SimulationVariables(object):
         else:
             self.print_status = generic.print_simple
 
-        # Exclusion cases
-        if self.solver in db.get(params.type == 'solver' and params.category == 'hll')['accepted']:
-            if (self.solver_category == "hll" and self.solver.endswith('c')) and self.config_category == "magnetic":
-                print(f"{BColours.WARNING}HLLC solver does not work with magnetic fields present..{BColours.ENDC}")
-                self.solver = db.get(params.type == 'default')['solver']
-
         # Media options
         if self.test:
             self.save_plots = True
@@ -339,7 +336,6 @@ class SimulationVariables(object):
 
         self.full_set_required = True if (self.save_plots or self.save_video or self.save_file) else False
 
-        # Environment options
         self.beautify_1d_plots = os.getenv("BEAUTIFY_1D_PLOTS", False)
         self.save_as_pdf = os.getenv("SAVE_AS_PDF", False)
 

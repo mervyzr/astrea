@@ -226,8 +226,7 @@ def compute_emf(ortho_interfaces, alphas, axis, dissipative=False):
 
         # Averaging procedure for the 4-fold values at each corner/line
         if dissipative:
-            # Higher-order methods generate more 'ripples' or spurious oscillations that grow in the simulation with a more accurate EMF solver
-            # This is a switch to use a more diffusive/dissipative solver that uses simple averaging [Balsara, 2010]
+            # More diffusive/dissipative solver that uses simple averaging [Balsara, 2010]
             S = np.maximum(
                 np.maximum(np.abs(ap_x), np.abs(am_x)), 
                 np.maximum(np.abs(ap_y), np.abs(am_y))
