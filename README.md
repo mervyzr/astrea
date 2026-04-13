@@ -24,6 +24,7 @@
   - [Riemann solver](#riemann-solver-and-flux-update)
   - [Time discretisation](#time-discretisation)
   - [Constrained transport](#constrained-transport)
+  - [Self gravity](#self-gravity)
   - [Chemical network](#chemical-network)
   - [Simulation benchmarks](#simulation-benchmarks)
 - [Installation](#installation)
@@ -104,11 +105,22 @@ For a _j_-order reconstruction scheme, _j_ > 4, the Dormand-Prince 8(7) (Dormand
 
 ### Constrained transport
 
-With the presence of magnetic fields, it is crucial for the divergence-free condition to be maintained; no monopoles should be created in the simulation. A fourth equation, in addition to the other conservation equations for ideal hydrodynamics, is included into the model. This fourth equation is the induction equation, which governs the fluxes of the magnetic fields. For ideal MHD, the electromotive forces are equivalent to the cross product between the velocities and magnetic fields. The magnetic permeability is also set to one for simplicity.
+With the presence of magnetic fields, it is crucial for the divergence-free condition to be maintained; no monopoles should be created in the simulation. The induction equation, which governs the fluxes of the magnetic fields, must be solved along with the other conservation equations for ideal magnetohydrodynamics. For ideal MHD, the electromotive forces (emfs) are equivalent to the cross product between the velocities and magnetic fields. The magnetic permeability is also set to one for simplicity.
 
-In order to compute the magnetic fluxes and maintain the divergence-free condition, the constrained transport (CT) approach is commonly used (Evans & Hawley, 1988). Other methods include divergence cleaning (e.g., Dedner et al., 2002) and Powell's eight-wave formulation (Powell, 1994). The main benefit of the CT approach is that the numerical errors can be kept to machine precision, however, the complexity of the implementation is much higher; one has to keep in mind the use of staggered grids, especially when adaptive meshes or unstructured grids are used. It might be possible to avoid staggered grids altogether too (Helzel et al., 2011), but this is not included in this code.
+In order to compute the magnetic fluxes and maintain the divergence-free condition, the constrained transport (CT) approach is commonly used (Evans & Hawley, 1988). In the constrained transport method, the emfs are computed at the corners or edges of each cell for 2D and 3D grid configurations respectively. This ensures that the magnetic field lines are 'connected' essentially and thus the numerical errors can be kept close to machine precision. However, the complexity of this implementation is much higher; one has to consider the use of staggered grids and the 'location' of the quantities within the cells. Wrong allocation of cell-interface values to cell-centred values might lead to wrong computation of the physical quantities. This is especially complex when adaptive meshes or unstructured grids are used. It might be possible to avoid staggered grids altogether too (Helzel et al., 2011), but this is not included in this code.
 
-In this code, the higher-order CT implementation by Felker & Stone (2018) is implemented. This implementation follows closely to the works of Verma et al. (2018) and Mignone & Del Zanna (2021).
+Other methods include divergence cleaning (e.g., Dedner et al., 2002) and Powell's eight-wave formulation (Powell, 1994).
+
+The higher-order CT implementation in this code mainly follows the works of Felker & Stone (2018). The implementation also follows closely to the works of Verma et al. (2018) and Mignone & Del Zanna (2021).
+
+
+<a name="self-gravity"></a>
+
+### Self-gravity
+
+Self-gravity is an important physical field that affects astrophysical simulations. Including self-gravity into the code would thus be beneficial; a simple Poisson solver is included into the code. While solving the Poisson equation is relatively trivial, one has to take note of several factors and methods of solving the equation. Due to the use of a uniform grid (for now), one can thus make use of a fast Fourier transform (FFT) methodology to solve the Poisson equation on the whole grid at once, which would provide the gravitational potential field.
+
+The gravitational acceleration can then be computed as a simple cell-centred difference of the potential field, and this force would enter into the conservation of momentum equation where it would drive the gas and particles in the cells. A 'higher-order' centred difference can be used to compute the gravitational acceleration more accurately, similar to the higher-order spatial reconstruction methods above.
 
 
 <a name="chemical-network"></a>
