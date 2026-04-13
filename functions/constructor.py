@@ -393,9 +393,8 @@ def make_eigenvectors(grids, sim_variables, axis, vectors="both"):
     abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
 
     # In code units
-    rhos, vels, pressures, Bfields = grids[...,sim_variables.rho], grids[...,sim_variables.vels], grids[...,sim_variables.pressure], grids[...,sim_variables.Bfields]
+    rhos, Bfields = grids[...,sim_variables.rho], grids[...,sim_variables.Bfields]
     Bx, By, Bz = Bfields[...,abscissa], Bfields[...,ordinate], Bfields[...,applicate]
-    vx, vy, vz = vels[...,abscissa], vels[...,ordinate], vels[...,applicate]
 
     if sim_variables.magnetic:
         # Compute wavespeeds
@@ -433,10 +432,9 @@ def make_eigenvectors(grids, sim_variables, axis, vectors="both"):
         # Pop the magnetic field components
         _ = len(sim_variables.ambient) - 3
 
-
     # Compute characteristics and generate the RIGHT eigenvectors; the coordinate rotation is already done by permuting the input variables
     if vectors.casefold().startswith(("b", "r")):
-        right_eigenvectors = np.zeros(sim_variables.cells + [_,_])
+        right_eigenvectors = np.repeat(np.zeros_like(grids)[...,None], grids.shape[-1], axis=-1)
 
         if sim_variables.magnetic:
             ralphaf, ralphas = rhos * alpha_f, rhos * alpha_s
@@ -513,7 +511,7 @@ def make_eigenvectors(grids, sim_variables, axis, vectors="both"):
 
     # Compute characteristics and generate the LEFT eigenvectors; the coordinate rotation is already done by permuting the input variables
     if vectors.casefold().startswith(("b", "l")):
-        left_eigenvectors = np.zeros(sim_variables.cells + [_,_])
+        left_eigenvectors = np.repeat(np.zeros_like(grids)[...,None], grids.shape[-1], axis=-1)
 
         if sim_variables.magnetic:
             Nf = Ns = 1/(2*cs**2)
