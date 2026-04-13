@@ -24,7 +24,7 @@
   - [Riemann solver](#riemann-solver-and-flux-update)
   - [Time discretisation](#time-discretisation)
   - [Constrained transport](#constrained-transport)
-  - [Self gravity](#self-gravity)
+  - [Self-gravity](#self-gravity)
   - [Chemical network](#chemical-network)
   - [Simulation benchmarks](#simulation-benchmarks)
 - [Installation](#installation)
