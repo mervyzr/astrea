@@ -212,10 +212,9 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
 
     # Auto-generate the resolutions/grid-sizes for run type
     if sim_variables.test:
+        _range = 2**np.arange(3,11)
         if sim_variables.multidimensional:
-            _range = 2**np.arange(2,8)
-        else:
-            _range = 2**np.arange(3,11)
+            _range = _range[:-3]
         grid_sizes = np.array([_range,] * sim_variables.dimensions).T
     else:
         grid_sizes = [sim_variables.cells]
@@ -301,7 +300,7 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
             with h5py.File(file_name, "r") as f:
                 vidpath = save_path/".vidplots"
                 Path(vidpath).mkdir(parents=True, exist_ok=True)
-                plotting.make_video(f, sim_variables, vidpath, variable=['density'])
+                plotting.make_video(f, sim_variables, vidpath, variable=['density','pressure'])
 
     # Exception handling; deletes the temporary HDF5 database to prevent clutter
     except Exception as e:

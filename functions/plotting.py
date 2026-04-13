@@ -215,6 +215,7 @@ def make_figure(options, sim_variables, variable="normal"):
 
             if "error" in variable:
                 ax[_i,_j].set_ylabel(errors[idx])
+                ax[_i,_j].grid(linestyle="--", linewidth=0.5)
             elif "tv" in variable:
                 ax[_i,_j].set_ylabel(tvs[idx])
             else:
@@ -477,10 +478,20 @@ def plot_quantities(hdf5, sim_variables, title=False):
             for idx, (_i,_j) in enumerate(plot_['indexes']):
                 y = y_data[idx]
 
+                # Multiple simulation runs in one HDF5 (only when --test option is used)
                 if len(hdf5) != 1:
                     if not multidimensional:
+                        # Plot all simulation runs
                         ax[_i,_j].plot(x, y, label=rf"$N = {str(cells).strip('[]').replace(' ','').replace(',','x')}$")
                         legends_on = True
+                    else:
+                        # Doesn't make sense to overplot simulation runs on each other; plot the last simulation run, usually the highest resolution
+                        if datetime == datetimes[-1]:
+                            graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
+                            divider = make_axes_locatable(ax[_i,_j])
+                            cax = divider.append_axes(position='right', size='5%', pad=0.05)
+                            fig.colorbar(graph, cax=cax, orientation='vertical')
+                # Single simulation run
                 else:
                     if multidimensional:
                         graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower")
@@ -563,7 +574,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
     show_eoc_max = False
 
     options = ["density"]
-    config, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
+    config, dimensions, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimensions, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
 
     if sim_variables.save_as_pdf:
         extension = backend = "pdf"
@@ -574,7 +585,9 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
     datetimes = [datetime for datetime in hdf5.keys()]
     datetimes.sort()
 
+    ##############################
     # Solution errors plot
+    ##############################
     fig, ax, plot_ = make_figure(options, sim_variables, "errors")
 
     array = np.full((1+len(options), len(datetimes)), 0., dtype=sim_variables.precision)
@@ -604,21 +617,17 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
                 _arr.append(solution_errors[0])
 
         array[...,idx] = np.asarray(_arr, dtype=sim_variables.precision)
-    x, y_data = array[:1].ravel(), array[1:]
+    x, y_data = array[:1].ravel()**(1/dimensions), array[1:]**dimensions
     x.sort()
 
     for idx, (_i,_j) in enumerate(plot_['indexes']):
         y = y_data[idx]
-
         eoc = np.diff(np.log(y))/np.diff(np.log(x))
-        _idx = np.argmin(np.abs(np.average(eoc)-eoc))
-        c = np.log10(y[_idx]) - eoc[_idx]*np.log10(x[_idx])
 
         for order in range(1,6):
-            alpha = 10**c
-            ytheo = alpha*x**(-order)
+            ytheo = y[0] * (x/x[0])**-order
             ax[_i,_j].loglog(x, ytheo, color=plot_['colours']['theo'], linestyle="--")
-            ax[_i,_j].annotate(rf"$O(N^{order})$", xy=(x[-1], ytheo[-1]), xytext=(5,-5), textcoords='offset points')
+            ax[_i,_j].annotate(rf"$O(\Delta x^{order})$", xy=(x[-1], ytheo[-1]), xytext=(5,-5), textcoords='offset points')
         ax[_i,_j].loglog(x, y, linestyle="-", marker="o", color=plot_['colours']['1d'][idx])
         ax[_i,_j].set_xlim([min(x)/1.5,max(x)*3.5])
 
@@ -640,17 +649,17 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
     plt.clf()
     plt.close()
 
+
+    ##############################
     # Order of convergence plot
+    ##############################
     fig, ax = plt.subplots()
 
     ax.set_ylabel("Order of convergence", rotation='vertical')
     ax.grid(linestyle="--", linewidth=0.5)
 
     x_diff = x[1:]
-    y_diff = np.log2(y_data[...,:-1]/y_data[...,1:])
-
-    if multidimensional:
-        y_diff /= np.log2(4)
+    y_diff = -np.diff(np.log2(y_data))
 
     for idx in range(len(plot_['indexes'])):
         ax.plot(x_diff, y_diff[idx], linestyle="--", marker="o", color=plot_['colours']['1d'][idx], label=plot_['labels'][idx])
