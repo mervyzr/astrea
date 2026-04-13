@@ -16,6 +16,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 # ```
 ##############################################################################
 
+SAVE_AS_PDF = False
+
 
 def plot(save=False, title=False):
     parser = argparse.ArgumentParser()
@@ -139,7 +141,11 @@ def plot(save=False, title=False):
                                 fig.subplots_adjust(left=0.1)
 
                         if save or save_plot:
-                            plt.savefig(f"{os.getcwd()}/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(time,3)}.pdf", bbox_inches='tight', backend='pdf')
+                            if SAVE_AS_PDF:
+                                extension = backend = "pdf"
+                            else:
+                                extension, backend = "png", "cairo"
+                            plt.savefig(f"{os.getcwd()}/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.3f' % round(time,3)}.{extension}", bbox_inches='tight', backend=backend)
                         else:
                             plt.show()
 
