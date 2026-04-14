@@ -887,7 +887,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
                     ax[idx,idx].set_title('')
 
-                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight', pad_inches=0, transparent=True, backend='cairo')
+                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight', pad_inches=0, backend='cairo')
 
                 plt.cla()
                 plt.clf()
@@ -928,7 +928,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
                     ax[idx,idx].set_title('')
 
-                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight', pad_inches=0, transparent=True, backend='cairo')
+                    plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight', pad_inches=0, backend='cairo')
 
                     plt.cla()
                     plt.clf()
