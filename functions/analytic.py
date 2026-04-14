@@ -40,8 +40,9 @@ def calculate_solution_error(grid, sim_variables, norm):
     grid_shape = w_num.shape[:-1]
 
     # Create theoretical array
-    normalising_factor = 1/(np.prod(grid_shape))
     sim_variables.cells = list(grid_shape)
+    sim_variables.ds = {ax: np.abs(np.diff(sim_variables.axis_coord[ax]))/sim_variables.cells[ax] for ax in range(len(sim_variables.cells))}
+    normalising_factor = np.prod(list(sim_variables.ds.values()))
     w_theo = constructor.initialise(sim_variables)
 
     E_tot_num, E_tot_theo = fv.divide(fv.convert_variable('pressure', w_num, sim_variables), w_num[...,rho]), fv.divide(fv.convert_variable('pressure', w_theo, sim_variables), w_theo[...,rho])

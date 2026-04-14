@@ -617,7 +617,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
                 _arr.append(solution_errors[0])
 
         array[...,idx] = np.asarray(_arr, dtype=sim_variables.precision)
-    x, y_data = array[:1].ravel()**(1/dimensions), array[1:]**dimensions
+    x, y_data = array[:1].ravel()**(1/dimensions), array[1:]
     x.sort()
 
     for idx, (_i,_j) in enumerate(plot_['indexes']):

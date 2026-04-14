@@ -76,6 +76,7 @@ def handle_CLI(db_path):
     parser.add_argument('--time_evo', metavar='', type=str.lower, default=argparse.SUPPRESS, help='time integration method used for temporal evolution', choices=accepted_values('time_evo'))
     parser.add_argument('--solver', metavar='', type=str.lower, default=argparse.SUPPRESS, help='solver method for the Riemann problem', choices=accepted_values('solver'))
 
+    parser.add_argument('--units', metavar='', type=str.lower, default=argparse.SUPPRESS, help='units for simulation variables', choices=['code', 'physical'])
     parser.add_argument('--checkpoints', metavar='', type=int, default=argparse.SUPPRESS, help='number of checkpoints in simulation')
 
     parser.add_argument('--live_plot', '--live', dest='live_plot', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
@@ -232,7 +233,7 @@ class SimulationVariables(object):
         'axes', 'magnetic', 'convert', 'roots', 'weights', 'ppm_dissipate', 'higher_order', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'eps', 'home', 'save_path', 'db_path', 'hdf5', 'timesteps', 'print_status',
         'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test',
-        'constants', 'chemistry', 'network', 'pykrome', 'species', 'abundances', 'gravity', 'tracers', 
+        'units', 'constants', 'chemistry', 'network', 'pykrome', 'species', 'abundances', 'gravity', 'tracers', 
     ]
 
     def __init__(self, seed, config_variables, test_variables):
@@ -288,6 +289,7 @@ class SimulationVariables(object):
 
         # Chemistry network set-up
         if self.chemistry:
+            self.units = 'physical'
             if not self.network:
                 krome_path = os.path.join(self.home, 'external')
             else:
