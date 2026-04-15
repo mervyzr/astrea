@@ -85,11 +85,12 @@ def plot(save=False, title=False):
                                 _const[name.split('constants-')[-1]] = value
                         constants = Constants(_const)
 
-                        axis_coord = {axis:coord for axis, coord in enumerate(f.attrs['axis_coord'])}
+                        coordinates = {axis:coord for axis, coord in enumerate(f.attrs['axis_coord'])}
                         permeability = constants.mu_0
+                        ds = {ax: np.abs(np.diff(coordinates[ax]))/cells[ax] for ax in range(len(cells))}
 
-                        fig, ax, plot_ = make_figure(plot_options, dimensions, axis_coord)
-                        data = make_data(plot_options, grid, dimensions, gamma, permeability)
+                        fig, ax, plot_ = make_figure(plot_options, dimensions, coordinates)
+                        data = make_data(plot_options, grid, dimensions, gamma, permeability, ds)
 
                         for idx, (_i,_j) in enumerate(plot_['indexes']):
                             y = data[idx]
@@ -97,9 +98,9 @@ def plot(save=False, title=False):
                             if dimensions > 1:
                                 if dimensions > 2:
                                     X, Y, Z = np.meshgrid(
-                                        np.linspace(axis_coord[0][0], axis_coord[0][1], y.shape[0]), 
-                                        np.linspace(axis_coord[1][0], axis_coord[1][1], y.shape[1]), 
-                                        np.linspace(axis_coord[2][0], axis_coord[2][1], y.shape[2])
+                                        np.linspace(coordinates[0][0], coordinates[0][1], y.shape[0]), 
+                                        np.linspace(coordinates[1][0], coordinates[1][1], y.shape[1]), 
+                                        np.linspace(coordinates[2][0], coordinates[2][1], y.shape[2])
                                         )
 
                                     plot_3d = np.full_like(y, np.nan)
@@ -119,7 +120,7 @@ def plot(save=False, title=False):
                                     cax = divider.append_axes(position='right', size='5%', pad=0.05)
                                     fig.colorbar(graph, cax=cax, orientation='vertical')
                             else:
-                                x = np.linspace(axis_coord[0][0], axis_coord[0][1], cells[0])
+                                x = np.linspace(coordinates[0][0], coordinates[0][1], cells[0])
                                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
 
                         if title:
@@ -184,6 +185,12 @@ def slice_(grid, axis, start=0, end=None, step=1, *args):
 
     slc[axis] = slice(start, end, step)
     return grid[tuple(slc)]
+
+def add_boundary(grid, stencil=1, axis=0):
+    arr = np.copy(grid)
+    padding = [(0,0)] * grid.ndim
+    padding[axis] = (stencil,stencil)
+    return np.pad(arr, padding, mode='wrap')
 
 def convert_variable(grid, gamma, permeability):
     rho, pressure, vels, Bfields = 0, 4, slice(1,4), slice(5,8)
@@ -421,8 +428,9 @@ def make_figure(options, dimensions, axis_coord):
 
 
 # Create list of data plots; accepts primitive grid
-def make_data(options, grid, dimensions, gamma, permeability):
+def make_data(options, grid, dimensions, gamma, permeability, ds):
     rho, pressure, vels, Bfields = 0, 4, slice(1,4), slice(5,8)
+    axes = lambda op: {"x":0, "y":1, "z":2}[op[-1]]
     quantities = []
 
     for option in options:
@@ -438,7 +446,7 @@ def make_data(options, grid, dimensions, gamma, permeability):
         elif option.startswith("p"):
             quantity = grid[...,pressure]
         elif option.startswith("v") or "mom" in option:
-            axis = {"x":0, "y":1, "z":2}[option[-1]]
+            axis = axes(option)
             quantity = grid[...,1+axis]
             if "mom" in option:
                 quantity *= grid[...,rho]
@@ -446,17 +454,19 @@ def make_data(options, grid, dimensions, gamma, permeability):
             if "p" in option:
                 quantity = .5 * norm(grid[...,Bfields])**2
             else:
-                axis = {"x":0, "y":1, "z":2}[option[-1]]
+                axis = axes(option)
                 quantity = grid[...,5+axis]
         elif 'div' in option or 'db' in option:
+            div_along_axis = lambda ax: slice_(np.diff(add_boundary(grid[...,5+ax], axis=ax), axis=ax), axis=ax, end=-1)/ds[ax]
             if option[-1] == 'b':
                 if dimensions > 1:
-                    quantity = slice_(np.diff(grid[...,5], axis=0), axis=1, start=1) + slice_(np.diff(grid[...,6], axis=1), axis=0, start=1)
+                    quantity = div_along_axis(0) + div_along_axis(1)
+                    if dimensions > 2:
+                        quantity += div_along_axis(2)
                 else:
                     quantity = np.zeros_like(grid[...,5])
             else:
-                axis = {"x":0, "y":1, "z":2}[option[-1]]
-                quantity = np.diff(grid[...,5+axis], axis=axis)
+                quantity = div_along_axis(axes(option))
         elif "mach" in option:
             quantity = np.sqrt(divide(norm(grid[...,vels])**2, divide(gamma*grid[...,pressure], grid[...,rho])))
         else:
