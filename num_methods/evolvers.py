@@ -5,7 +5,7 @@ import numpy as np
 
 from functions import fv
 from num_methods import ct
-from schemes import pcm, plm, ppm, weno, cweno
+from schemes import pcm, plm, ppm, weno, cweno, wenoz
 from functions.generic import verbose_timer
 
 ##############################################################################
@@ -28,6 +28,9 @@ def evolve_space(grid, sim_variables, first_stage=False):
 
         elif subgrid_category == "weno":
             jobs = executor.map(weno.run, repeat(primitive), repeat(sim_variables), axes)
+
+        elif subgrid_category == "wenoz":
+            jobs = executor.map(wenoz.run, repeat(primitive), repeat(sim_variables), axes)
 
         elif subgrid_category == "ppm":
             # Compute additional dissipation for PPM, if active

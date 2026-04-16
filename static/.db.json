@@ -338,6 +338,15 @@
       ]
     },
     "14": {
+      "type": "subgrid",
+      "category": "wenoz",
+      "accepted": [
+        "z",
+        "wenoz",
+        "weno-z"
+      ]
+    },
+    "15": {
       "type": "time_evo",
       "category": "euler",
       "accepted": [
@@ -345,7 +354,7 @@
         "forward-euler"
       ]
     },
-    "15": {
+    "16": {
       "type": "time_evo",
       "category": "rk",
       "accepted": [
@@ -354,7 +363,7 @@
         "runge-kutta4"
       ]
     },
-    "16": {
+    "17": {
       "type": "time_evo",
       "category": "ssprk",
       "accepted": [
@@ -381,7 +390,7 @@
         "ssprk65"
       ]
     },
-    "17": {
+    "18": {
       "type": "solver",
       "category": "lax",
       "accepted": [
@@ -398,7 +407,7 @@
         "g-force"
       ]
     },
-    "18": {
+    "19": {
       "type": "solver",
       "category": "hll",
       "accepted": [
@@ -409,7 +418,7 @@
         "d"
       ]
     },
-    "19": {
+    "20": {
       "type": "solver",
       "category": "complete",
       "accepted": [
@@ -422,7 +431,7 @@
         "entropy-stable"
       ]
     },
-    "20": {
+    "21": {
       "type": "default",
       "config": "sedov",
       "precision": "float64",
@@ -436,7 +445,7 @@
         "total energy"
       ]
     },
-    "21": {
+    "22": {
       "type": "plot_options",
       "category": "plotting",
       "accepted": [
@@ -490,7 +499,7 @@
         "machnumber"
       ]
     },
-    "22": {
+    "23": {
       "type": "quotes",
       "name": [
         "It's not a bug; it's an undocumented feature.",

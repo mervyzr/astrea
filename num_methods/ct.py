@@ -4,7 +4,7 @@ from itertools import repeat
 import numpy as np
 
 from functions import fv
-from schemes import pcm, plm, ppm, weno, cweno
+from schemes import pcm, plm, ppm, weno, cweno, wenoz
 
 ##############################################################################
 # Fourth-order upwind constrained transport algorithm for MHD [Felker & Stone, 2018]
@@ -144,6 +144,8 @@ def reconstruct_transverse(data, sim_variables, axis, method=None, eta=None):
             reconstruct = lambda _grid, _sim_variables, _axis: weno.reconstruct(_grid, _sim_variables, _axis, order=5)
         elif method == "cweno":
             reconstruct = cweno.reconstruct
+        elif method == "wenoz":
+            reconstruct = wenoz.reconstruct
         elif method == "ppm":
             if sim_variables.ppm_dissipate:
                 reconstruct = lambda _grid, _sim_variables, _axis: ppm.reconstruct(_grid, _sim_variables, _axis, eta=eta)

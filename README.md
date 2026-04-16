@@ -64,7 +64,7 @@ Some experimentation was done to parallelise the code with `Open MPI` and `MPICH
 
 The space in the simulation is discretised into a uniform Cartesian grid, and thus the computational domain is assumed to be identically mapped to the physical domain.
 
-The code employs various reconstruction methods with _primitive variables_ as part of the subgrid modelling: the piecewise constant method (PCM) (Godunov, 1959), the piecewise linear method (PLM) (Derigs et al., 2018), the piecewise parabolic method (PPM) (Felker & Stone, 2018), the WENO method (Shu, 2009; San & Kara, 2015), and the CWENO method (Levy et. al., 1999, 2000).
+The code employs various reconstruction methods with _primitive variables_ as part of the subgrid modelling: the piecewise constant method (PCM) (Godunov, 1959), the piecewise linear method (PLM) (Derigs et al., 2018), the piecewise parabolic method (PPM) (Felker & Stone, 2018), the WENO method (Shu, 2009; San & Kara, 2015), the CWENO method (Levy et al., 1999, 2000), and the WENO-Z method (Borges et al., 2008).
 
 Godunov's theorem states that for a linear scheme that is monotonicity-preserving (i.e. do not produce spurrious oscillations), the scheme can be at most first-order accurate (Godunov, 1954). This has led to the development of several subgrid models that reduce these spurious oscillations while still maintaining a high-order accuracy. These models are known as Total Variation Diminishing (TVD) schemes (Harten, 1983). In order to fulfil the TVD condition, limiters have to be used after the spatial reconstructions. The PCM does not require any limiters. The PLM employs the "minmod" slope limiter (Derigs et al., 2018). The PPM employs several limiters: when _interpolating_ from the cell centres to the interfaces (Colella et al., 2011) and when _extrapolating_ to the left and right of each cell interface (Colella et al., 2011; McCorquodale & Colella, 2011). The WENO method currently does not employ any limiters. There are other TVD slope limiters available in the code too (e.g., superbee).
 
@@ -83,7 +83,7 @@ The fluxes are calculated from the interpolated interfaces, and the Jacobian mat
 
 Non-linear approximate Riemann solvers may also be used instead of linear solvers. Non-linear solvers tackle the non-linear form of the compressible Euler equations directly, instead of linearising the equations first. These solvers attempt to restore some form of the eigenstructure of the characteristic waves, and they are useful as they contain all the information. Since the main focus of this project is simulating shockwaves, where large discontinuities and possible spurrious oscillations are present (similar to Gibbs phenomenon), non-linear approximate Riemann solvers are therefore implemented into the code too.
 
-The Harten-Lax-van Leer (HLL) Riemann solver (Harten et al., 1983) forms the basis of the so-called 'HLL-family' of approximate non-linear solvers. Most variations of the HLL-family of solvers build upon this initial solver. The Harten-Lax-van Leer-Contact (HLLC) Riemann solver (Toro et al., 1994; Fleischmann et. al., 2020) attempts to restore the contact discontinuity wave while tracing the rarefaction and shockwave (Riemann invariants), thus it provides a better resolution albeit with some dissipation. The HLLC Riemann solver crashes when magnetic fields are present. For that, the Harten-Lax-van Leer-discontinuities (HLLD) solver (Miyoshi & Kusano, 2005) should be used. The HLLD Riemann solver restores the magnetosonic and Alfvén waves, although this is not a complete Riemann solver; this implementation of the Riemann solver ignores the slow magnetosonic wave.
+The Harten-Lax-van Leer (HLL) Riemann solver (Harten et al., 1983) forms the basis of the so-called 'HLL-family' of approximate non-linear solvers. Most variations of the HLL-family of solvers build upon this initial solver. The Harten-Lax-van Leer-Contact (HLLC) Riemann solver (Toro et al., 1994; Fleischmann et al., 2020) attempts to restore the contact discontinuity wave while tracing the rarefaction and shockwave (Riemann invariants), thus it provides a better resolution albeit with some dissipation. The HLLC Riemann solver crashes when magnetic fields are present. For that, the Harten-Lax-van Leer-discontinuities (HLLD) solver (Miyoshi & Kusano, 2005) should be used. The HLLD Riemann solver restores the magnetosonic and Alfvén waves, although this is not a complete Riemann solver; this implementation of the Riemann solver ignores the slow magnetosonic wave.
 
 Riemann solvers that attempt to derive the flux from the full (_but not exact_) eigenstructure are also included in the code, such as the entropy-stable flux (Derigs et al., 2018) and the modified Osher-Solomon flux (Dumbser & Toro, 2011). However, these solvers are not as robust and stable, and run into errors frequently.
 
@@ -237,6 +237,7 @@ Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussi
   <ol>
     <li>Balsara, D. S., & Spicer, D. S. (1999). A Staggered Mesh Algorithm Using High Order Godunov Fluxes to Ensure Solenoidal Magnetic Fields in Magnetohydrodynamic Simulations. Journal of Computational Physics, 149, 270–292.</li>
     <li>Beam, R. M., & Warming, R. F. (1976). An implicit finite-difference algorithm for hyperbolic systems in conservation-law form. Journal of Computational Physics, 22(1), 87-110.</li>
+    <li>Borges, R., Carmona, M., Costa, B., & Don, W. S. (2008). An improved weighted essentially non-oscillatory scheme for hyperbolic conservation laws. Journal of Computational Physics, 227, 3191-3211.</li>
     <li>Brio, M., & Wu, C. C. (1988). An upwind diﬀerencing scheme for the equations of ideal magnetohydrodynamics. Journal of Computational Physics, 75(2), 400–422.</li>
     <li>Butcher, J. C. (1975). A stability property of implicit Runge-Kutta methods. BIT, 15(4), 358–361.</li>
     <li>Cargo, P., & Gallice, G. (1997). Roe Matrices for Ideal MHD and Systematic Construction of Roe Matrices for Systems of Conservation Laws. Journal of Computational Physics, 136(2), 446–466.</li>
@@ -377,11 +378,12 @@ astrea/
 │   ├── tracers.py       : Functions for tracer particles
 ├── schemes
 │   ├── __init__.py
-│   ├── cweno.py         : Central weighted essentially non-oscillatory method [Levy et al., 1999]
-│   ├── pcm.py           : Piecewise constant method [Godunov, 1959]
-│   ├── plm.py           : Piecewise linear method [Derigs et al., 2018]
-│   ├── ppm.py           : Piecewise parabolic method [McCorquodale & Colella, 2011; Felker & Stone, 2018]
-│   ├── weno.py          : Weighted essentially non-oscillatory method [Shu, 2009]
+│   ├── cweno.py         : Central weighted essentially non-oscillatory method (CWENO) [Levy et al., 1999]
+│   ├── pcm.py           : Piecewise constant method (PCM) [Godunov, 1959]
+│   ├── plm.py           : Piecewise linear method (PLM) [Derigs et al., 2018]
+│   ├── ppm.py           : Piecewise parabolic method (PPM) [McCorquodale & Colella, 2011; Felker & Stone, 2018]
+│   ├── weno.py          : Weighted essentially non-oscillatory method (WENO) [Shu, 2009]
+│   ├── wenoz.py         : WENO method with higher-order smoothness indicators (WENO-Z) [Borges et al., 2008]
 ├── static
 │   ├── __init__.py
 │   ├── .db.json         : Database for parameters
