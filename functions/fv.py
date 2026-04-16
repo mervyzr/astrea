@@ -193,6 +193,13 @@ def compute_eigmax(characteristics, axis):
     return np.max(max_eigvals)
 
 
+# Re-align the interfaces so that cell wall is in between interfaces
+def assign_interfaces(interfaces, grid, sim_variables, axis):
+    wL, wR = interfaces
+    prim_plus, prim_minus = slice_(add_boundary(wL, sim_variables, axis=axis), axis, start=1), slice_(add_boundary(wR, sim_variables, axis=axis), axis, end=-1)
+    return prim_plus, prim_minus
+
+
 # Calculate the Roe-averaged primitive variables at the interface from the minus- & plus-interface states for use in Roe solver in order to better capture shocks [Roe & Pike, 1984; Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
 def compute_Roe_average(interfaces, sim_variables):
     rho, pressure, vels, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields

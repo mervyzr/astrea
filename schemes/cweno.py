@@ -75,9 +75,8 @@ def run(grid, sim_variables, axis):
     wL, wR = reconstruct(grid, sim_variables, axis=axis)
 
     # Re-align the interfaces so that cell wall is in between interfaces
-    prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, sim_variables, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, sim_variables, axis=axis), axis, end=-1)
-    if magnetic:
-        prim_plus, prim_minus = ct.reassign_mag_interfaces((prim_plus, prim_minus), grid, sim_variables, axis)
+    assign_interfaces = ct.assign_interfaces if magnetic else fv.assign_interfaces
+    prim_plus, prim_minus = assign_interfaces((wL, wR), grid, sim_variables, axis)
 
     # Get the Roe average solution in each cell
     cell_avg = fv.compute_Roe_average((wL, wR), sim_variables)
@@ -105,7 +104,7 @@ def run(grid, sim_variables, axis):
     # Compute alphas and save the reconstructed interfaces for CT computation
     if magnetic and multidimensional:
         data['alphas'] = ct.compute_alphas(characteristics, axis=axis)
-        data['interfaces'] = fv.slice_(prim_plus, axis, end=-1), fv.slice_(prim_minus, axis, start=1)
+        data['interfaces'] = fv.slice_(prim_plus, axis, start=1), fv.slice_(prim_minus, axis, end=-1)
 
     # Calculate the interface-averaged fluxes
     intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **{

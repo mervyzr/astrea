@@ -10,13 +10,14 @@ from schemes import pcm, plm, ppm, weno, cweno, wenoz
 # Fourth-order upwind constrained transport algorithm for MHD [Felker & Stone, 2018]
 ##############################################################################
 
-# Re-assign the staggered magnetic field interfaces (these are never reconstructed) back onto the longitudinally reconstructed grid interfaces
-def reassign_mag_interfaces(interfaces, grid, sim_variables, axis):
-    padded_grid = fv.add_boundary(grid, sim_variables, axis=axis)
+# Re-align the interfaces so that cell wall is in between interfaces and re-assign the staggered magnetic field interfaces (these are never reconstructed) back onto the longitudinally reconstructed grid interfaces
+def assign_interfaces(interfaces, grid, sim_variables, axis):
+    wL, wR = interfaces
+    prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, sim_variables, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, sim_variables, axis=axis), axis, end=-1)
 
-    prim_plus, prim_minus = interfaces
-    prim_plus[...,5+axis] = fv.slice_(padded_grid, axis, start=1)[...,5+axis]
-    prim_minus[...,5+axis] = fv.slice_(padded_grid, axis, end=-1)[...,5+axis]
+    padded_grid = fv.add_boundary(grid, sim_variables, axis=axis)
+    prim_plus[...,5+axis] = fv.slice_(padded_grid, axis, end=-1)[...,5+axis]
+    prim_minus[...,5+axis] = fv.slice_(padded_grid, axis, start=1)[...,5+axis]
 
     return prim_plus, prim_minus
 
