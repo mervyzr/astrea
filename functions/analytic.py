@@ -56,7 +56,7 @@ def calculate_solution_error(grid, sim_variables, norm):
     elif norm <= 0:
         return normalising_factor * np.sum(np.abs(w_num-w_theo), axis=tuple(axes))
     else:
-        return (normalising_factor * np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(axes)))**(1/norm)
+        return normalising_factor * (np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(axes)))**(1/norm)
 
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
