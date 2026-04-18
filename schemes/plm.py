@@ -37,25 +37,25 @@ def run(grid, sim_variables, axis):
     assign_interfaces = ct.assign_interfaces if magnetic else fv.assign_interfaces
     prim_plus, prim_minus = assign_interfaces((wL, wR), grid, sim_variables, axis)
 
-    # Get the average solution in each cell
-    cell_avg = .5 * (wL + wR)
-    padded_cell_avg = fv.add_boundary(cell_avg, sim_variables, axis=axis)
+    # Get the average solution between the interfaces at the boundaries
+    intf_avg = .5 * (prim_plus + prim_minus)
+    padded_intf_avg = fv.slice_(fv.add_boundary(intf_avg, sim_variables, axis=axis), axis, end=-1)
 
     # Convert the primitive variables at the interface
-    cons_plus, cons_minus = fv.convert_intf("primitive", prim_plus, sim_variables, axis=axis), fv.convert_intf("primitive", prim_minus, sim_variables, axis=axis)
+    cons_plus, cons_minus = fv.variable_convert_intf("primitive", prim_plus, sim_variables, axis=axis), fv.variable_convert_intf("primitive", prim_minus, sim_variables, axis=axis)
 
     # Compute the fluxes and the Jacobian
     flux_plus, flux_minus = constructor.make_flux(prim_plus, sim_variables, axis=axis), constructor.make_flux(prim_minus, sim_variables, axis=axis)
-    jacobian = constructor.make_Jacobian(padded_cell_avg, sim_variables, axis=axis)
+    jacobian = constructor.make_Jacobian(padded_intf_avg, sim_variables, axis=axis)
 
     # Resolve characteristics at interfaces
     try:
         characteristics = np.linalg.eigvals(jacobian)
     except np.linalg.LinAlgError:
         try:
-            characteristics = constructor.make_characteristics(padded_cell_avg, sim_variables, axis=axis)
+            characteristics = constructor.make_characteristics(padded_intf_avg, sim_variables, axis=axis)
         except np.linalg.LinAlgError:
-            characteristics = np.full_like(padded_cell_avg, .1)
+            characteristics = np.full_like(padded_intf_avg, .01)
 
     # Compute eigmax for time stepping limits
     data['eigmax'] = ds[axis]/fv.compute_eigmax(characteristics, axis=axis)
@@ -71,7 +71,7 @@ def run(grid, sim_variables, axis):
         'cons_interfaces': (cons_plus, cons_minus),
         'flux_interfaces': (flux_plus, flux_minus),
         'characteristics': characteristics,
-        'jacobian': fv.slice_(jacobian, axis, end=-1),
+        'jacobian': fv.slice_(jacobian, axis, start=1),
     })
 
     # Compute flux difference for hydrodynamic components

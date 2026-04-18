@@ -42,21 +42,22 @@ def calculate_solution_error(grid, sim_variables, norm):
     # Create theoretical array
     sim_variables.cells = list(grid_shape)
     sim_variables.ds = {ax: np.abs(np.diff(sim_variables.axis_coord[ax]))/sim_variables.cells[ax] for ax in range(len(sim_variables.cells))}
-    normalising_factor = np.prod(list(sim_variables.ds.values()))
     w_theo = constructor.initialise(sim_variables)
 
-    E_tot_num, E_tot_theo = fv.divide(fv.convert_variable('pressure', w_num, sim_variables), w_num[...,rho]), fv.divide(fv.convert_variable('pressure', w_theo, sim_variables), w_theo[...,rho])
+    E_tot_num, E_tot_theo = fv.divide(fv.convert_thermo_variable('pressure', w_num, sim_variables), w_num[...,rho]), fv.divide(fv.convert_thermo_variable('pressure', w_theo, sim_variables), w_theo[...,rho])
     E_int_num, E_int_theo = fv.divide(w_num[...,pressure], w_num[...,rho]*(gamma-1)), fv.divide(w_theo[...,pressure], w_theo[...,rho]*(gamma-1))
 
     w_num, w_theo = np.concatenate((w_num, E_tot_num[...,None]), axis=-1), np.concatenate((w_theo, E_tot_theo[...,None]), axis=-1)
     w_num, w_theo = np.concatenate((w_num, E_int_num[...,None]), axis=-1), np.concatenate((w_theo, E_int_theo[...,None]), axis=-1)
 
-    if norm > 10:
+    if norm > 5:
         return np.max(np.abs(w_num-w_theo), axis=tuple(axes))
-    elif norm <= 0:
-        return normalising_factor * np.sum(np.abs(w_num-w_theo), axis=tuple(axes))
     else:
-        return normalising_factor * (np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(axes)))**(1/norm)
+        normalising_factor = np.prod(list(sim_variables.ds.values()))
+        if norm <= 0:
+            return normalising_factor * np.sum(np.abs(w_num-w_theo), axis=tuple(axes))
+        else:
+            return normalising_factor * (np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(axes)))**(1/norm)
 
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
@@ -66,7 +67,7 @@ def calculate_TV(simulation, sim_variables):
 
     for t in list(simulation.keys()):
         grid = simulation[t]
-        E_tot = fv.divide(fv.convert_variable('pressure', grid, sim_variables), grid[...,rho])
+        E_tot = fv.divide(fv.convert_thermo_variable('pressure', grid, sim_variables), grid[...,rho])
         E_int = fv.divide(grid[...,pressure], grid[...,rho]*(gamma-1))
         for i in range(dimensions):
             grid = np.diff(grid, axis=i)

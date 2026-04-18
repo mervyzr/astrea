@@ -72,7 +72,7 @@ def add_boundary(grid, sim_variables, stencil=1, axis=0):
 
 # Convert between pressure P and total energy density e_tot; P is also related to the internal energy density e_int: P = (gamma-1) * e_int
 # Do note that the energy densities e are related to the energies E: e_tot = rho * E_tot, e_int = rho * E_int
-def convert_variable(variable, grid, sim_variables):
+def convert_thermo_variable(variable, grid, sim_variables):
     rho, pressure, vels, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields
     energy, momentums = pressure, vels
     gamma, permeability = sim_variables.gamma, sim_variables.constants.mu_0
@@ -85,61 +85,61 @@ def convert_variable(variable, grid, sim_variables):
 
 # Handler for conversion
 def convert(variable_form, grid, sim_variables):
-    converter = high_order_convert if sim_variables.higher_order else point_convert
+    converter = variable_convert if sim_variables.higher_order else variable_point_convert
     return converter(variable_form, grid, sim_variables)
 
 
 # Pointwise (exact) conversion of conservative variables q <-> primitive variables w (up to 2nd-order accurate)
-def point_convert(variable_form, grid, sim_variables):
+def variable_point_convert(variable_form, grid, sim_variables):
     rho, pressure, energy, vels, momentums = sim_variables.rho, sim_variables.pressure, sim_variables.energy, sim_variables.vels, sim_variables.momentums
     arr = np.copy(grid)
 
     if variable_form.lower().startswith("p"):
-        arr[...,energy] = convert_variable('pressure', grid, sim_variables)
+        arr[...,energy] = convert_thermo_variable('pressure', grid, sim_variables)
         arr[...,momentums] = grid[...,vels] * grid[...,rho][...,None]
     elif variable_form.lower().startswith("c"):
-        arr[...,pressure] = convert_variable('energy', grid, sim_variables)
+        arr[...,pressure] = convert_thermo_variable('energy', grid, sim_variables)
         arr[...,vels] = divide(grid[...,momentums], grid[...,rho][...,None])
     return arr
 
 
 # Variable inversion using the conversion of the grid (base) and the Taylor expansion terms (expansion) through a Laplacian (2nd-deriv, 2nd-order) approx. for each axis (up to 4th-order accurate)
-def inversion_per_axis(variable_form, grid, sim_variables, axis):
+def variable_inversion_per_axis(variable_form, grid, sim_variables, axis):
     original_expansion = (sim_variables.ds[axis]**2)/24 * laplacian(grid, sim_variables, axis)
-    converted_avg = point_convert(variable_form, grid, sim_variables)
+    converted_avg = variable_point_convert(variable_form, grid, sim_variables)
     converted_expansion = (sim_variables.ds[axis]**2)/24 * laplacian(converted_avg, sim_variables, axis)
     return original_expansion, converted_expansion
 
 
-# Converting cell-averaged conservative variables <q>_{i,j} <-> cell-averaged primitive variables <w>_{i,j}
-def high_order_convert(variable_form, grid, sim_variables):
+# Converting cell-averaged conservative variables <q>_{i,j} <-> cell-averaged primitive variables <w>_{i,j} at higher-order accuracy
+def variable_convert(variable_form, grid, sim_variables):
     base, expansion = np.copy(grid), np.zeros_like(grid)
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        jobs = executor.map(inversion_per_axis, repeat(variable_form), repeat(grid), repeat(sim_variables), sim_variables.axes)
+        jobs = executor.map(variable_inversion_per_axis, repeat(variable_form), repeat(grid), repeat(sim_variables), sim_variables.axes)
 
         for original_expansion, converted_expansion in jobs:
             base -= original_expansion
             expansion += converted_expansion
 
-    return point_convert(variable_form, base, sim_variables) + expansion
+    return variable_point_convert(variable_form, base, sim_variables) + expansion
 
 
 # Converting face-averaged conservative variables <q>_{i+1/2,j} <-> face-averaged primitive variables <w>_{i+1/2,j}
-def convert_intf(variable_form, grid, sim_variables, axis):
+def variable_convert_intf(variable_form, grid, sim_variables, axis):
     base, expansion = np.copy(grid), np.zeros_like(grid)
 
     if sim_variables.higher_order and sim_variables.multidimensional:
         ortho_axes = sim_variables.axes[sim_variables.axes != axis]
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            jobs = executor.map(inversion_per_axis, repeat(variable_form), repeat(grid), repeat(sim_variables), ortho_axes)
+            jobs = executor.map(variable_inversion_per_axis, repeat(variable_form), repeat(grid), repeat(sim_variables), ortho_axes)
 
             for original_expansion, converted_expansion in jobs:
                 base -= original_expansion
                 expansion += converted_expansion
 
-    new_grid = point_convert(variable_form, base, sim_variables) + expansion
+    new_grid = variable_point_convert(variable_form, base, sim_variables) + expansion
 
     if sim_variables.magnetic:
         new_grid[...,5+sim_variables.axes] = grid[...,5+sim_variables.axes]
@@ -147,38 +147,60 @@ def convert_intf(variable_form, grid, sim_variables, axis):
     return new_grid
 
 
-# Converting cell-centred variables q_{i,j}     <-> cell-averaged variables <q>_{i,j} through a Laplacian (2nd-deriv, 2nd-order) approx. (up to 4th-order accurate), OR
-# converting face-centred variables q_{i+1/2,j} <-> face-averaged variables <q>_{i+1/2,j}
-def avg_cntr_convert(grid_form, grid, sim_variables, **kwargs):
+# Method convert between point-representation (finite difference) and averaged-representation (finite volume) [ALL AXES]
+# Converting cell-centred variables q_{i,j} <-> cell-averaged variables <q>_{i,j} through a Laplacian (2nd-deriv, 2nd-order) approx. for each axis (up to 4th-order accurate)
+def method_convert_cell(grid_form, grid, sim_variables, axis=None):
     base = np.copy(grid)
-    axes = np.array([])
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        # for computation at interfaces
-        if kwargs:
-            if sim_variables.higher_order and sim_variables.multidimensional:
-                axes = sim_variables.axes[sim_variables.axes != kwargs['axis']]
-        # for computation at centres
-        else:
-            axes = sim_variables.axes
+    if sim_variables.higher_order:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            jobs = executor.map(laplacian, repeat(grid), repeat(sim_variables), sim_variables.axes)
 
-        if axes.size != 0:
-            jobs = executor.map(laplacian, repeat(grid), repeat(sim_variables), axes)
-
-            for job_idx, expansion in enumerate(jobs):
+            for idx, expansion in enumerate(jobs):
                 if grid_form.lower().startswith('a'):
-                    base -= (sim_variables.ds[axes[job_idx]]**2)/24 * expansion
-                elif grid_form.lower().startswith('c'):
-                    base += (sim_variables.ds[axes[job_idx]]**2)/24 * expansion
-
+                    # averaged -> point
+                    base -= (sim_variables.ds[sim_variables.axes[idx]]**2)/24 * expansion
+                elif grid_form.lower().startswith('p'):
+                    # point -> averaged
+                    base += (sim_variables.ds[sim_variables.axes[idx]]**2)/24 * expansion
     return base
 
 
-# Higher-order approximations at the interfaces for multi-dimensional higher-order schemes
+# Method convert between point-representation (finite difference) and averaged-representation (finite volume) for interfaces [ORTHOGONAL AXES]
+# Converting face-centred variables q_{i+1/2,j} <-> face-averaged variables <q>_{i+1/2,j} through a Laplacian (2nd-deriv, 2nd-order) approx. (up to 4th-order accurate)
+def method_convert_intf(grid_form, grid, sim_variables, axis):
+    base = np.copy(grid)
+
+    if sim_variables.higher_order and sim_variables.multidimensional:
+        ortho_axes = sim_variables.axes[sim_variables.axes != axis]
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            jobs = executor.map(laplacian, repeat(grid), repeat(sim_variables), ortho_axes)
+
+            for idx, expansion in enumerate(jobs):
+                if grid_form.lower().startswith('a'):
+                    # averaged -> point
+                    base -= (sim_variables.ds[ortho_axes[idx]]**2)/24 * expansion
+                elif grid_form.lower().startswith('p'):
+                    # point -> averaged
+                    base += (sim_variables.ds[ortho_axes[idx]]**2)/24 * expansion
+    return base
+
+
+# Handler for converting (at higher-order) each +/- interface in each axis from averaged interfaces to point/centred interfaces in the multi-dimensional higher-order schemes
 def approx_face_avg(interfaces, sim_variables, axis):
-    inner_func = lambda func, _grid_form, _grid, _sim_variables, _kwargs: func(_grid_form, _grid, _sim_variables, **_kwargs)
-    with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-        return list(inner_executor.map(inner_func, repeat(avg_cntr_convert), repeat('avg'), interfaces, repeat(sim_variables), repeat({'axis':axis, 'pos':'intf'})))
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        return list(executor.map(method_convert_intf, repeat('avg'), interfaces, repeat(sim_variables), repeat(axis)))
+    
+
+# Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation for each orthogonal axis
+def approx_flux_avg(cntrd_fluxes, avgd_fluxes, sim_variables, axis):
+    ortho_axes = sim_variables.axes[sim_variables.axes != axis]
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        jobs = executor.map(laplacian, repeat(avgd_fluxes), repeat(sim_variables), ortho_axes)
+        for idx, job in enumerate(jobs):
+            cntrd_fluxes -= (sim_variables.ds[ortho_axes[idx]]**2)/24 * job
+    return cntrd_fluxes
 
 
 # Compute the max eigenvalues for calculating the time evolution
@@ -196,8 +218,7 @@ def compute_eigmax(characteristics, axis):
 # Re-align the interfaces so that cell wall is in between interfaces
 def assign_interfaces(interfaces, grid, sim_variables, axis):
     wL, wR = interfaces
-    prim_plus, prim_minus = slice_(add_boundary(wL, sim_variables, axis=axis), axis, start=1), slice_(add_boundary(wR, sim_variables, axis=axis), axis, end=-1)
-    return prim_plus, prim_minus
+    return slice_(add_boundary(wL, sim_variables, axis=axis), axis, start=1), slice_(add_boundary(wR, sim_variables, axis=axis), axis, end=-1)
 
 
 # Calculate the Roe-averaged primitive variables at the interface from the minus- & plus-interface states for use in Roe solver in order to better capture shocks [Roe & Pike, 1984; Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]

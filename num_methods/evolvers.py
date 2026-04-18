@@ -15,7 +15,7 @@ from functions.generic import verbose_timer
 # Evolve the system in space by a standardised workflow
 @verbose_timer
 def evolve_space(grid, sim_variables, first_stage=False):
-    multidimensional, subgrid_category, axes, magnetic = sim_variables.multidimensional, sim_variables.subgrid_category, sim_variables.axes, sim_variables.magnetic
+    multidimensional, subgrid, subgrid_category, axes, magnetic = sim_variables.multidimensional, sim_variables.subgrid, sim_variables.subgrid_category, sim_variables.axes, sim_variables.magnetic
 
     # Convert to primitive variables
     primitive = ct.convert("conservative", grid, sim_variables) if sim_variables.magnetic else fv.convert("conservative", grid, sim_variables)
@@ -23,14 +23,13 @@ def evolve_space(grid, sim_variables, first_stage=False):
 
     # Hydrodynamics computation (with fluxes and eigmax)
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        if subgrid_category == "cweno":
-            jobs = executor.map(cweno.run, repeat(primitive), repeat(sim_variables), axes)
-
-        elif subgrid_category == "weno":
-            jobs = executor.map(weno.run, repeat(primitive), repeat(sim_variables), axes)
-
-        elif subgrid_category == "wenoz":
-            jobs = executor.map(wenoz.run, repeat(primitive), repeat(sim_variables), axes)
+        if subgrid_category == "weno":
+            if "c" in subgrid:
+                jobs = executor.map(cweno.run, repeat(primitive), repeat(sim_variables), axes)
+            elif "z" in subgrid:
+                jobs = executor.map(weno.run, repeat(primitive), repeat(sim_variables), axes)
+            else:
+                jobs = executor.map(weno.run, repeat(primitive), repeat(sim_variables), axes)
 
         elif subgrid_category == "ppm":
             # Compute additional dissipation for PPM, if active

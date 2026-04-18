@@ -272,7 +272,7 @@ class SimulationVariables(object):
 
         # Higher-order method options
         self.higher_order = False
-        if self.subgrid_category in ["ppm", "cweno", "weno", "wenoz"]:
+        if self.subgrid_category in ["ppm", "weno"]:
             self.higher_order = True
 
             # PPM-specific options

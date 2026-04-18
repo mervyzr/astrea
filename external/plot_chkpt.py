@@ -192,7 +192,7 @@ def add_boundary(grid, stencil=1, axis=0):
     padding[axis] = (stencil,stencil)
     return np.pad(arr, padding, mode='wrap')
 
-def convert_variable(grid, gamma, permeability):
+def convert_thermo_variable(grid, gamma, permeability):
     rho, pressure, vels, Bfields = 0, 4, slice(1,4), slice(5,8)
     return grid[...,pressure]/(gamma-1) + .5 * (grid[...,rho]*norm(grid[...,vels])**2 + (norm(grid[...,Bfields])**2)/permeability)
 
@@ -440,7 +440,7 @@ def make_data(options, grid, dimensions, gamma, permeability, ds):
             if "int" in option:
                 quantity = divide(grid[...,pressure], grid[...,rho] * (gamma-1))
             else:
-                quantity = divide(convert_variable(grid, gamma, permeability), grid[...,rho])
+                quantity = divide(convert_thermo_variable(grid, gamma, permeability), grid[...,rho])
             if "density" in option:
                 quantity *= grid[...,rho]
         elif option.startswith("p"):

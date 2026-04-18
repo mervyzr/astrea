@@ -12,8 +12,7 @@ from schemes import pcm, plm, ppm, weno, cweno, wenoz
 
 # Re-align the interfaces so that cell wall is in between interfaces and re-assign the staggered magnetic field interfaces (these are never reconstructed) back onto the longitudinally reconstructed grid interfaces
 def assign_interfaces(interfaces, grid, sim_variables, axis):
-    wL, wR = interfaces
-    prim_plus, prim_minus = fv.slice_(fv.add_boundary(wL, sim_variables, axis=axis), axis, start=1), fv.slice_(fv.add_boundary(wR, sim_variables, axis=axis), axis, end=-1)
+    prim_plus, prim_minus = fv.assign_interfaces(interfaces, grid, sim_variables, axis)
 
     padded_grid = fv.add_boundary(grid, sim_variables, axis=axis)
     prim_plus[...,5+axis] = fv.slice_(padded_grid, axis, end=-1)[...,5+axis]
@@ -58,8 +57,8 @@ def inverse_reconstruct(grid, sim_variables):
             # Interpolate the face-centred values to cell-centred values with axis (eq. 39)
             face_cntrd_padded_2 = fv.add_boundary(face_cntrd, _sim_variables, stencil=2, axis=axis)
             face_cntrd_padded = fv.slice_(face_cntrd_padded_2, axis, *[1,-1])
-            cell_cntrd = -1/16 * (fv.slice_(face_cntrd_padded, axis, end=-2) + fv.slice_(face_cntrd_padded_2, axis, start=4)) \
-                        + 9/16 * (face_cntrd + fv.slice_(face_cntrd_padded, axis, start=2))
+            cell_cntrd = -1/16 * (fv.slice_(face_cntrd_padded, axis, start=2) + fv.slice_(face_cntrd_padded_2, axis, end=-4)) \
+                        + 9/16 * (np.copy(face_cntrd) + fv.slice_(face_cntrd_padded, axis, end=-2))
 
             # Apply Laplacian operator to convert cell-centred values to cell-averaged values (eq. 40)
             cell_avgd = np.copy(cell_cntrd)
@@ -74,7 +73,7 @@ def inverse_reconstruct(grid, sim_variables):
             padded_grid = fv.add_boundary(face_cntrd, _sim_variables, axis=axis)
             cell_avgd = .5 * (face_cntrd + fv.slice_(padded_grid, axis, end=-2))
 
-        return fv.slice_(fv.add_boundary(cell_avgd, _sim_variables, axis=axis), axis, end=-2)
+        return cell_avgd
 
     # Update the grid values with the updated B-field values
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -142,11 +141,12 @@ def reconstruct_transverse(data, sim_variables, axis, method=None, eta=None):
         |            o (i-1,j)            w- <-|-> w+           o (i,j)          w- <-|-> w+         o (i+1,j)          w- <-|
         """
         if method == "weno":
-            reconstruct = lambda _grid, _sim_variables, _axis: weno.reconstruct(_grid, _sim_variables, _axis, order=5)
-        elif method == "cweno":
-            reconstruct = cweno.reconstruct
-        elif method == "wenoz":
-            reconstruct = wenoz.reconstruct
+            if "c" in sim_variables.subgrid:
+                reconstruct = cweno.reconstruct
+            elif "z" in sim_variables.subgrid:
+                reconstruct = wenoz.reconstruct
+            else:
+                reconstruct = lambda _grid, _sim_variables, _axis: weno.reconstruct(_grid, _sim_variables, _axis, order=5)
         elif method == "ppm":
             if sim_variables.ppm_dissipate:
                 reconstruct = lambda _grid, _sim_variables, _axis: ppm.reconstruct(_grid, _sim_variables, _axis, eta=eta)

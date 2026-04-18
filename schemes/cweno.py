@@ -1,6 +1,3 @@
-import concurrent.futures
-from itertools import repeat
-
 import numpy as np
 
 from functions import constructor, fv
@@ -50,26 +47,25 @@ def reconstruct(grid, sim_variables, axis):
     wj_zero = fv.divide(alpha(dC_zero, IS_zero((minus_one, zeroth, plus_one))), denominator)
     wj_plus = fv.divide(alpha(dC_plus, IS_plus((zeroth, plus_one, plus_two))), denominator)
 
+    wR = 1/6 * (
+        wj_minus * (2*minus_two - 7*minus_one + 11*zeroth)
+        + wj_zero * (-minus_one + 5*zeroth + 2*plus_one)
+        + wj_plus * (2*zeroth + 5*plus_one - plus_two)
+    )
     wL = 1/6 * (
         wj_minus * (2*zeroth + 5*minus_one - minus_two)
-        + wj_zero * (2*minus_one + 5*zeroth - plus_one)
+        + wj_zero * (-plus_one + 5*zeroth + 2*minus_one)
         + wj_plus * (2*plus_two - 7*plus_one + 11*zeroth)
-    )
-    wR = 1/6 * (
-        wj_minus * (11*zeroth - 7*minus_one + 2*minus_two)
-        + wj_zero * (2*plus_one + 5*zeroth - minus_one)
-        + wj_plus * (2*zeroth + 5*plus_one - plus_two)
     )
 
     return wL, wR
 
 
 def run(grid, sim_variables, axis):
-    multidimensional, axes, magnetic, ds = sim_variables.multidimensional, sim_variables.axes, sim_variables.magnetic, sim_variables.ds
+    multidimensional, magnetic, ds = sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds
     data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
-    ortho_axes = axes[axes != axis] if (magnetic or multidimensional) else None
 
     # CWENO reconstruction [Levy et al., 1999; Verma et al., 2018]
     wL, wR = reconstruct(grid, sim_variables, axis=axis)
@@ -78,25 +74,25 @@ def run(grid, sim_variables, axis):
     assign_interfaces = ct.assign_interfaces if magnetic else fv.assign_interfaces
     prim_plus, prim_minus = assign_interfaces((wL, wR), grid, sim_variables, axis)
 
-    # Get the Roe average solution in each cell
-    cell_avg = fv.compute_Roe_average((wL, wR), sim_variables)
-    padded_cell_avg = fv.add_boundary(cell_avg, sim_variables, axis=axis)
+    # Get the average solution between the interfaces at the boundaries
+    intf_avg = fv.compute_Roe_average((prim_plus, prim_minus), sim_variables)
+    padded_intf_avg = fv.slice_(fv.add_boundary(intf_avg, sim_variables, axis=axis), axis, end=-1)
 
     # Convert the primitive variables at the interface
-    cons_plus, cons_minus = fv.convert_intf("primitive", prim_plus, sim_variables, axis=axis), fv.convert_intf("primitive", prim_minus, sim_variables, axis=axis)
+    cons_plus, cons_minus = fv.variable_convert_intf("primitive", prim_plus, sim_variables, axis=axis), fv.variable_convert_intf("primitive", prim_minus, sim_variables, axis=axis)
 
     # Compute the fluxes and the Jacobian
     flux_plus, flux_minus = constructor.make_flux(prim_plus, sim_variables, axis=axis), constructor.make_flux(prim_minus, sim_variables, axis=axis)
-    jacobian = constructor.make_Jacobian(padded_cell_avg, sim_variables, axis=axis)
+    jacobian = constructor.make_Jacobian(padded_intf_avg, sim_variables, axis=axis)
 
     # Resolve characteristics at interfaces
     try:
         characteristics = np.linalg.eigvals(jacobian)
     except np.linalg.LinAlgError:
         try:
-            characteristics = constructor.make_characteristics(padded_cell_avg, sim_variables, axis=axis)
+            characteristics = constructor.make_characteristics(padded_intf_avg, sim_variables, axis=axis)
         except np.linalg.LinAlgError:
-            characteristics = np.full_like(padded_cell_avg, .1)
+            characteristics = np.full_like(padded_intf_avg, .01)
 
     # Compute eigmax for time stepping limits
     data['eigmax'] = ds[axis]/fv.compute_eigmax(characteristics, axis=axis)
@@ -112,7 +108,7 @@ def run(grid, sim_variables, axis):
         'cons_interfaces': (cons_plus, cons_minus),
         'flux_interfaces': (flux_plus, flux_minus),
         'characteristics': characteristics,
-        'jacobian': fv.slice_(jacobian, axis, end=-1),
+        'jacobian': fv.slice_(jacobian, axis, start=1),
     })
 
     # Compute the orthogonal L/R Riemann states and fluxes at higher-order accuracy
@@ -123,14 +119,11 @@ def run(grid, sim_variables, axis):
             'cons_interfaces': fv.approx_face_avg((cons_plus, cons_minus), sim_variables, axis),
             'flux_interfaces': fv.approx_face_avg((flux_plus, flux_minus), sim_variables, axis),
             'characteristics': characteristics,
-            'jacobian': fv.slice_(jacobian, axis, end=-1),
+            'jacobian': fv.slice_(jacobian, axis, start=1),
         })
 
-        # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation for each orthogonal axis
-        with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-            jobs = inner_executor.map(fv.laplacian, repeat(intf_fluxes_avgd), repeat(sim_variables), ortho_axes)
-            for idx, job in enumerate(jobs):
-                intf_fluxes_cntrd -= (sim_variables.ds[ortho_axes[idx]]**2)/24 * job
+        # Compute the higher-order fluxes
+        intf_fluxes_cntrd = fv.approx_flux_avg(intf_fluxes_cntrd, intf_fluxes_avgd, sim_variables, axis)
     else:
         # Orthogonal Laplacian in 1d is zero
         intf_fluxes_cntrd = intf_fluxes_avgd

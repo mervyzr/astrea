@@ -247,7 +247,7 @@ def make_data(options, grid, sim_variables):
             if "int" in option:
                 quantity = fv.divide(grid[...,pressure], grid[...,rho] * (sim_variables.gamma-1))
             else:
-                quantity = fv.divide(fv.convert_variable('pressure', grid, sim_variables), grid[...,rho])
+                quantity = fv.divide(fv.convert_thermo_variable('pressure', grid, sim_variables), grid[...,rho])
             if "density" in option:
                 quantity *= grid[...,rho]
         elif option.startswith("p"):

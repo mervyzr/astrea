@@ -20,7 +20,7 @@ def run(grid, sim_variables, axis):
 
     # Pad array with boundaries
     padded_primitive = fv.add_boundary(grid, sim_variables, axis=axis)
-    padded_conservative = fv.point_convert("primitive", padded_primitive, sim_variables)
+    padded_conservative = fv.variable_point_convert("primitive", padded_primitive, sim_variables)
 
     # Compute the fluxes and the Jacobian
     padded_flux = constructor.make_flux(padded_primitive, sim_variables, axis=axis)
@@ -49,7 +49,7 @@ def run(grid, sim_variables, axis):
         'cons_interfaces': (fv.slice_(padded_conservative, axis, start=1), fv.slice_(padded_conservative, axis, end=-1)),
         'flux_interfaces': (fv.slice_(padded_flux, axis, start=1), fv.slice_(padded_flux, axis, end=-1)),
         'characteristics': characteristics,
-        'jacobian': fv.slice_(jacobian, axis, end=-1),
+        'jacobian': fv.slice_(jacobian, axis, start=1),
     })
 
     # Compute flux difference for hydrodynamic components
