@@ -47,7 +47,7 @@ def inverse_reconstruct(grid, sim_variables):
 
         if _sim_variables.higher_order:
             # Approximate the face-averaged values to face-centred values with orthogonal axes (eq. 38)
-            if _sim_variables.multidimensional:
+            if _sim_variables.grid_interpolate and _sim_variables.multidimensional:
                 ortho_axes = _sim_variables.axes[_sim_variables.axes != axis]
                 with concurrent.futures.ThreadPoolExecutor() as inner_executor:
                     jobs = inner_executor.map(fv.laplacian, repeat(_Bfields), repeat(_sim_variables), ortho_axes)

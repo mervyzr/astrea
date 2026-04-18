@@ -85,7 +85,7 @@ def convert_thermo_variable(variable, grid, sim_variables):
 
 # Handler for conversion
 def convert(variable_form, grid, sim_variables):
-    converter = variable_convert if sim_variables.higher_order else variable_point_convert
+    converter = variable_convert if sim_variables.grid_interpolate else variable_point_convert
     return converter(variable_form, grid, sim_variables)
 
 
@@ -129,7 +129,7 @@ def variable_convert(variable_form, grid, sim_variables):
 def variable_convert_intf(variable_form, grid, sim_variables, axis):
     base, expansion = np.copy(grid), np.zeros_like(grid)
 
-    if sim_variables.higher_order and sim_variables.multidimensional:
+    if sim_variables.grid_interpolate and sim_variables.multidimensional:
         ortho_axes = sim_variables.axes[sim_variables.axes != axis]
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -152,7 +152,7 @@ def variable_convert_intf(variable_form, grid, sim_variables, axis):
 def method_convert_cell(grid_form, grid, sim_variables, axis=None):
     base = np.copy(grid)
 
-    if sim_variables.higher_order:
+    if sim_variables.grid_interpolate:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             jobs = executor.map(laplacian, repeat(grid), repeat(sim_variables), sim_variables.axes)
 
@@ -171,7 +171,7 @@ def method_convert_cell(grid_form, grid, sim_variables, axis=None):
 def method_convert_intf(grid_form, grid, sim_variables, axis):
     base = np.copy(grid)
 
-    if sim_variables.higher_order and sim_variables.multidimensional:
+    if sim_variables.grid_interpolate and sim_variables.multidimensional:
         ortho_axes = sim_variables.axes[sim_variables.axes != axis]
 
         with concurrent.futures.ThreadPoolExecutor() as executor:

@@ -103,30 +103,13 @@ def run(grid, sim_variables, axis):
         data['interfaces'] = fv.slice_(prim_plus, axis, start=1), fv.slice_(prim_minus, axis, end=-1)
 
     # Calculate the interface-averaged fluxes
-    intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **{
+    intf_fluxes_avgd = intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
         'prim_interfaces': (prim_plus, prim_minus),
         'cons_interfaces': (cons_plus, cons_minus),
         'flux_interfaces': (flux_plus, flux_minus),
         'characteristics': characteristics,
         'jacobian': fv.slice_(jacobian, axis, start=1),
     })
-
-    # Compute the orthogonal L/R Riemann states and fluxes at higher-order accuracy
-    if multidimensional:
-        # Calculate the interface-centred fluxes
-        intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
-            'prim_interfaces': fv.approx_face_avg((prim_plus, prim_minus), sim_variables, axis),
-            'cons_interfaces': fv.approx_face_avg((cons_plus, cons_minus), sim_variables, axis),
-            'flux_interfaces': fv.approx_face_avg((flux_plus, flux_minus), sim_variables, axis),
-            'characteristics': characteristics,
-            'jacobian': fv.slice_(jacobian, axis, start=1),
-        })
-
-        # Compute the higher-order fluxes
-        intf_fluxes_cntrd = fv.approx_flux_avg(intf_fluxes_cntrd, intf_fluxes_avgd, sim_variables, axis)
-    else:
-        # Orthogonal Laplacian in 1d is zero
-        intf_fluxes_cntrd = intf_fluxes_avgd
 
     # Compute flux difference for hydrodynamic components
     data['fluxes'] = np.diff(intf_fluxes_cntrd, axis=axis)/ds[axis]

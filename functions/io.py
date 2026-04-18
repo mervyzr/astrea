@@ -230,7 +230,7 @@ class SimulationVariables(object):
         'config', 'cells', 'cfl', 'gamma', 'dimensions', 'precision', 'subgrid', 'time_evo', 'solver',
         'axis_coord', 'shock_pos', 't_end', 'boundary', 'misc', 'init_cond', 'ambient', 'ds',
         'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
-        'axes', 'magnetic', 'convert', 'roots', 'weights', 'ppm_dissipate', 'higher_order', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
+        'axes', 'magnetic', 'convert', 'roots', 'weights', 'ppm_dissipate', 'higher_order', 'grid_interpolate', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'eps', 'home', 'save_path', 'db_path', 'hdf5', 'timesteps', 'print_status',
         'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test',
         'units', 'constants', 'chemistry', 'network', 'pykrome', 'species', 'abundances', 'gravity', 'tracers', 
@@ -271,9 +271,14 @@ class SimulationVariables(object):
         self.solver_category = db.get(params.accepted.any([self.solver]))['category']
 
         # Higher-order method options
-        self.higher_order = False
+        self.higher_order = self.grid_interpolate = False
         if self.subgrid_category in ["ppm", "weno"]:
-            self.higher_order = True
+            self.higher_order = self.grid_interpolate = True
+
+            # WENO-Z can use point representation
+            if "z" in self.subgrid:
+                self.higher_order = True
+                self.grid_interpolate = False
 
             # PPM-specific options
             if self.subgrid_category == "ppm":

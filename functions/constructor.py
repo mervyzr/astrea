@@ -281,7 +281,10 @@ def initialise(sim_variables):
 
     sim_variables.magnetic = computational_grid[...,sim_variables.Bfields].any()
 
-    return fv.method_convert_cell('point', computational_grid, sim_variables)
+    if sim_variables.higher_order:
+        return fv.method_convert_cell('point', computational_grid, sim_variables)
+    else:
+        return computational_grid
 
 
 # Make flux as a function of cell-averaged (primitive) variables
