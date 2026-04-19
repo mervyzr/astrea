@@ -106,12 +106,12 @@ def generate_test_conditions(config_variables):
 
     elif match(any, ["kelvin", "helmholtz", "khi"]):
         axis_coord = [-1,1]
-        shock_pos = .4
-        t_end = 5
+        shock_pos = .5
+        t_end = 2
         boundary = "wrap"
         init_cond = np.array([2,.5,0,0,2.5,0,0,0])
         ambient = np.array([1,-.5,0,0,2.5,0,0,0])
-        misc = {'perturb':True, 'perturb_ampl':.05, 'ampl':.25, 'freq':4, 'Bx':np.sqrt(np.pi)}
+        misc = {'perturb':True, 'ampl':.5, 'freq':4, 'Bx':np.sqrt(np.pi)/2}
 
     elif "turb" in config:
         axis_coord = [-.5,.5]
@@ -194,7 +194,7 @@ def generate_test_conditions(config_variables):
         shock_pos = 0
         init_cond = np.array([1,0,0,0,1/gamma,0,0,.01])
         ambient = np.array([1,0,0,0,1/gamma,0,0,.01])
-        misc = {'perturb_ampl':.01}
+        misc = {'perturb_ampl':.1}
 
     # [Felker & Stone, 2018]
     elif match(all, ["mhd", "blast"]):
