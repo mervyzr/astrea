@@ -214,7 +214,7 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
     if sim_variables.test:
         _range = 2**np.arange(3,11)
         if sim_variables.multidimensional:
-            _range = _range[:-3]
+            _range = _range[:-2]
         grid_sizes = np.array([_range,] * sim_variables.dimensions).T
     else:
         grid_sizes = [sim_variables.cells]
