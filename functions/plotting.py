@@ -622,7 +622,6 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
 
     for idx, (_i,_j) in enumerate(plot_['indexes']):
         y = y_data[idx]
-        eoc = np.diff(np.log(y))/np.diff(np.log(x))
 
         for order in range(1,6):
             ytheo = y[0] * (x/x[0])**-order
@@ -632,6 +631,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
         ax[_i,_j].set_xlim([min(x)/1.5,max(x)*3.5])
 
         if show_eoc_max:
+            eoc = np.diff(np.log(y))/np.diff(np.log(x))
             ax[_i,_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|$EOC$_{{max}}|$ = {round(max(np.abs(eoc)), 4)}")
             ax[_i,_j].legend()
 
