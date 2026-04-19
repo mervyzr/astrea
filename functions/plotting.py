@@ -625,7 +625,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
         eoc = np.diff(np.log(y))/np.diff(np.log(x))
 
         for order in range(1,6):
-            ytheo = y[0] * (x/x[0])**-order
+            ytheo = y[-1] * (x/x[-1])**-order
             ax[_i,_j].loglog(x, ytheo, color=plot_['colours']['theo'], linestyle="--")
             ax[_i,_j].annotate(rf"$O(\Delta x^{order})$", xy=(x[-1], ytheo[-1]), xytext=(5,-5), textcoords='offset points')
         ax[_i,_j].loglog(x, y, linestyle="-", marker="o", color=plot_['colours']['1d'][idx])
