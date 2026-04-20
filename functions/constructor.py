@@ -135,20 +135,17 @@ def initialise(sim_variables):
 
             elif "gresho" in config:
                 core, ring = np.where((0 <= r) & (r < .2)), np.where((.2 <= r) & (r < .4))
-                rx, ry = -np.sin(np.arctan2(y-y_centre,x-x_centre)), np.cos(np.arctan2(y-y_centre,x-x_centre))
                 p0 = init_cond[...,rho]/(gamma*params['mach']**2)
 
                 computational_grid[...,pressure] = p0 - 2 + 4*np.log(2)
 
-                v_phi = 5 * r
-                computational_grid[...,vx][core] = (v_phi * rx)[core]
-                computational_grid[...,vy][core] = (v_phi * ry)[core]
-                computational_grid[...,pressure][core] = (p0 + (25/2)*r**2)[core]
-
-                v_phi = 2 - 5*r
-                computational_grid[...,vx][ring] = (v_phi * rx)[ring]
-                computational_grid[...,vy][ring] = (v_phi * ry)[ring]
+                computational_grid[...,vx][ring] = (5 - 2*r)[ring]
+                computational_grid[...,vy][ring] = (2*r - 5)[ring]
                 computational_grid[...,pressure][ring] = (p0 + (25/2)*r**2 + 4*(1 - 5*r + np.log(5*r)))[ring]
+
+                computational_grid[...,vx][core] = -5
+                computational_grid[...,vy][core] = 5
+                computational_grid[...,pressure][core] = (p0 + (25/2)*r**2)[core]
 
             elif match(any, ["lax", "liu", "ll"]):
                 computational_grid[np.where(x < shock_pos)] = init_cond

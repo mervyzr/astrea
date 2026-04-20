@@ -134,8 +134,8 @@ def generate_test_conditions(config_variables):
 
     # [Gresho & Chan, 1990]
     elif "gresho" in config:
-        axis_coord = [0,1]
-        shock_pos = .5
+        axis_coord = [-.5,.5]
+        shock_pos = 0
         t_end = 1
         boundary = "wrap"
         init_cond = np.array([1,0,0,0,0,0,0,0])
