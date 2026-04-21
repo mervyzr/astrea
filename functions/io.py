@@ -171,8 +171,6 @@ def filter_variables(config_variables):
             if k == "cfl":
                 if v <= 0:
                     v = eps
-                elif v > 1:
-                    v = 1
         elif k == "plot_options":
             accepted_plot_options, valid, invalid = db.get(params.type == k)['accepted'], [], []
             try:
