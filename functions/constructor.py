@@ -22,7 +22,7 @@ def make_physical_grid(axis_coord, cells):
 def initialise(sim_variables):
     config, cells, gamma, dimensions, multidimensional, precision = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.precision
     rho, vx, vy, vz, pressure, Bx, By, Bz = sim_variables.rho, sim_variables.vx, sim_variables.vy, sim_variables.vz, sim_variables.pressure, sim_variables.Bx, sim_variables.By, sim_variables.Bz
-    ds, axis_coord, shock_pos, params = sim_variables.ds, sim_variables.axis_coord, sim_variables.shock_pos, sim_variables.misc
+    ds, coordinates, shock_pos, params = sim_variables.ds, sim_variables.coordinates, sim_variables.shock_pos, sim_variables.misc
     init_cond, ambient = sim_variables.init_cond, sim_variables.ambient
     axes = sim_variables.axes
 
@@ -32,21 +32,25 @@ def initialise(sim_variables):
     computational_grid = np.zeros(list(cells)+[len(ambient),], dtype=precision, order='C')
     computational_grid[:] = ambient
 
-    x_centre = np.average(axis_coord[0])
-    physical_grid_x = make_physical_grid(axis_coord[0], cells[0])
+    x_centre = np.average(coordinates[0])
+    physical_grid_x = make_physical_grid(coordinates[0], cells[0])
 
     if multidimensional:
-        y_centre = np.average(axis_coord[1])
-        physical_grid_y = make_physical_grid(axis_coord[1], cells[1])
+        y_centre = np.average(coordinates[1])
+        physical_grid_y = make_physical_grid(coordinates[1], cells[1])
 
         if dimensions > 2:
-            z_centre = np.average(axis_coord[2])
-            physical_grid_z = make_physical_grid(axis_coord[2], cells[2])
+            z_centre = np.average(coordinates[2])
+            physical_grid_z = make_physical_grid(coordinates[2], cells[2])
 
             x, y, z = np.meshgrid(physical_grid_x, physical_grid_y, physical_grid_z, indexing='ij')
             r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2 + (z-z_centre)**2)
 
             if match(any, ["sedov", "blast"]):
+                if params['mode'].lower().startswith('q'):
+                    x_centre, y_centre, z_centre = (axis_coord[0] for axis_coord in coordinates.values())
+                    r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2 + (z-z_centre)**2)
+
                 mask = np.where((r <= (shock_pos-x_centre)) & (r <= (shock_pos-y_centre)) & (r <= (shock_pos-z_centre)))
                 computational_grid[mask] = init_cond
                 computational_grid = analytic.resample_blast(computational_grid, sim_variables)
@@ -98,6 +102,10 @@ def initialise(sim_variables):
             r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
 
             if match(any, ["sedov", "blast"]):
+                if params['mode'].lower().startswith('q'):
+                    x_centre, y_centre = (axis_coord[0] for axis_coord in coordinates.values())
+                    r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
+
                 mask = np.where((r <= (shock_pos-x_centre)) & (r <= (shock_pos-y_centre)))
                 computational_grid[mask] = init_cond
                 computational_grid = analytic.resample_blast(computational_grid, sim_variables)
@@ -113,7 +121,7 @@ def initialise(sim_variables):
             elif match(any, ["kelvin", "helmholtz", "khi"]):
                 layer = np.where(np.abs(y) <= shock_pos)
                 computational_grid[layer] = init_cond
-                computational_grid[...,vy] = params['ampl'] * np.sin(params['freq']*np.pi*x/np.diff(axis_coord[0]))
+                computational_grid[...,vy] = params['ampl'] * np.sin(params['freq']*np.pi*x/np.diff(coordinates[0]))
                 if params['perturb']:
                     computational_grid[...,(vx,vy)] += np.random.uniform(-params['ampl']/2, params['ampl']/2, size=computational_grid.shape)[...,(vx,vy)]
                 if config.startswith('m') or "mhd" in config:
@@ -208,7 +216,7 @@ def initialise(sim_variables):
                 computational_grid[...,By][mask] = -computational_grid[...,By][mask]
 
             elif "noh" in config:
-                mask = np.where(((x-axis_coord[0][0])**2 + (y-axis_coord[1][0])**2) > (shock_pos-axis_coord[0][0])**2)
+                mask = np.where(((x-coordinates[0][0])**2 + (y-coordinates[1][0])**2) > (shock_pos-coordinates[0][0])**2)
                 computational_grid[...,vx][mask] = -np.sin(x-shock_pos)[mask]
                 computational_grid[...,vy][mask] = -np.cos(x-shock_pos)[mask]
 
@@ -218,7 +226,7 @@ def initialise(sim_variables):
                 computational_grid[...,rho][mask] = params['cloud_mass']
 
             elif "jet" in config:
-                nozzle = np.where((np.abs(x) < shock_pos) & (y <= (axis_coord[1][0] + ds[1])))
+                nozzle = np.where((np.abs(x) < shock_pos) & (y <= (coordinates[1][0] + ds[1])))
                 sim_variables.mask = nozzle
                 computational_grid[...,rho][nozzle] = gamma
                 computational_grid[...,vy][nozzle] = params['velocity']

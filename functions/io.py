@@ -226,7 +226,7 @@ class SimulationVariables(object):
         '__dict__',
         'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'energy', 'vels', 'Bfields', 'momentums',
         'config', 'cells', 'cfl', 'gamma', 'dimensions', 'precision', 'subgrid', 'time_evo', 'solver',
-        'axis_coord', 'shock_pos', 't_end', 'boundary', 'misc', 'init_cond', 'ambient', 'ds',
+        'coordinates', 'shock_pos', 't_end', 'boundary', 'misc', 'init_cond', 'ambient', 'ds',
         'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
         'axes', 'magnetic', 'convert', 'roots', 'weights', 'ppm_dissipate', 'higher_order', 'grid_interpolate', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'eps', 'home', 'save_path', 'db_path', 'hdf5', 'timesteps', 'print_status',
@@ -369,7 +369,7 @@ def write_chkpt_file(grid, t, idx, sim_variables):
         f.attrs['time_evo'] = sim_variables.time_evo
         f.attrs['solver'] = sim_variables.solver
         f.attrs['magnetic'] = sim_variables.magnetic
-        f.attrs['axis_coord'] = tuple(sim_variables.axis_coord.values())
+        f.attrs['coordinates'] = tuple(sim_variables.coordinates.values())
 
         for name, value in sim_variables.constants.__dict__.items():
             f.attrs[f'constants-{name}'] = float(value)

@@ -41,7 +41,7 @@ def calculate_solution_error(grid, sim_variables, norm):
 
     # Create theoretical array
     sim_variables.cells = list(grid_shape)
-    sim_variables.ds = {ax: np.abs(np.diff(sim_variables.axis_coord[ax]))/sim_variables.cells[ax] for ax in range(len(sim_variables.cells))}
+    sim_variables.ds = {ax: np.abs(np.diff(sim_variables.coordinates[ax]))/sim_variables.cells[ax] for ax in range(len(sim_variables.cells))}
     w_theo = constructor.initialise(sim_variables)
 
     E_tot_num, E_tot_theo = fv.divide(fv.convert_thermo_variable('pressure', w_num, sim_variables), w_num[...,rho]), fv.divide(fv.convert_thermo_variable('pressure', w_theo, sim_variables), w_theo[...,rho])
@@ -81,9 +81,9 @@ def calculate_TV(simulation, sim_variables):
 
 # Function for checking the conservation equations; works with primitive variables but needs to be converted
 def calculate_conservation(simulation, sim_variables):
-    axes, axis_coord, conservation = sim_variables.axes, sim_variables.axis_coord, {}
+    axes, coordinates, conservation = sim_variables.axes, sim_variables.coordinates, {}
 
-    dV = np.prod(np.diff(list(axis_coord.values()), axis=1))
+    dV = np.prod(np.diff(list(coordinates.values()), axis=1))
     for t in list(simulation.keys()):
         _grid = simulation[t][:]  # Needs the '[:]' to access the array
         grid = fv.convert("primitive", _grid, sim_variables)
@@ -96,9 +96,9 @@ def calculate_conservation(simulation, sim_variables):
 # The reason is because at the boundaries, some values are lost to the ghost cells and not counted into the conservation plots
 # This is the reason why there is a dip at exactly the halfway mark of the periodic smooth tests
 def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
-    axes, axis_coord, conservation = sim_variables.axes, sim_variables.axis_coord, {}
+    axes, coordinates, conservation = sim_variables.axes, sim_variables.coordinates, {}
 
-    dV = np.prod(np.diff(list(axis_coord.values()), axis=1))
+    dV = np.prod(np.diff(list(coordinates.values()), axis=1))
     simulation_timings = list(simulation.keys())
     simulation_timings.sort()
     intervals = [timing[-1] for timing in np.array_split(simulation_timings, abs(interval))]
@@ -113,7 +113,7 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
 
 # Determine the analytical solution for a Sod shock test (only in 1d)
 def calculate_Sod_analytical(grid, t, sim_variables):
-    gamma, axis_coord, shock_pos = sim_variables.gamma, sim_variables.axis_coord[0], sim_variables.shock_pos
+    gamma, axis_coord, shock_pos = sim_variables.gamma, sim_variables.coordinates[0], sim_variables.shock_pos
     start_pos, end_pos = axis_coord
 
     # Define array to be updated and returned
@@ -174,12 +174,17 @@ def calculate_Sod_analytical(grid, t, sim_variables):
 # Resample grid for circular blast injection to populate cell variables with a circle/sphere; value in grid cell is weighted by area/volume covered
 def resample_blast(grid, sim_variables, resample_size=50):
     print(f"{generic.BColours.WARNING}Blast config. used; supersampling initialised grid before starting simulation for better resolution..{generic.BColours.ENDC}")
-    cells, dimensions, multidimensional, axis_coord, shock_pos = sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.axis_coord, sim_variables.shock_pos
+    cells, dimensions, multidimensional, coordinates, shock_pos = sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.coordinates, sim_variables.shock_pos
+
+    quarter = sim_variables.misc['mode'].lower().startswith('q')
 
     fine_grid = np.resize(np.zeros_like(grid), np.asarray(cells)*resample_size)
-    physical_grid = lambda axis: constructor.make_physical_grid(axis_coord[axis], cells[axis]*resample_size)
+    physical_grid = lambda axis: constructor.make_physical_grid(coordinates[axis], cells[axis]*resample_size)
 
-    x_centre = np.average(axis_coord[0])
+    if quarter:
+        x_centre = coordinates[0][0]
+    else:
+        x_centre = np.average(coordinates[0])
     fine_physical_grid_x = physical_grid(0)
     fine_x = fine_physical_grid_x - x_centre
 
@@ -187,13 +192,19 @@ def resample_blast(grid, sim_variables, resample_size=50):
     y_centre = z_centre = 0
 
     if multidimensional:
-        y_centre = np.average(axis_coord[1])
+        if quarter:
+            y_centre = coordinates[1][0]
+        else:
+            y_centre = np.average(coordinates[1])
         fine_physical_grid_y = physical_grid(1)
         fine_x, fine_y = np.meshgrid(fine_physical_grid_x, fine_physical_grid_y, indexing='ij')
         fine_z = np.zeros_like(fine_x)
 
         if dimensions == 3:
-            z_centre = np.average(axis_coord[2])
+            if quarter:
+                z_centre = coordinates[2][0]
+            else:
+                z_centre = np.average(coordinates[2])
             fine_physical_grid_z = physical_grid(2)
             fine_x, fine_y, fine_z = np.meshgrid(fine_physical_grid_x, fine_physical_grid_y, fine_physical_grid_z, indexing='ij')
 
@@ -213,7 +224,7 @@ def resample_blast(grid, sim_variables, resample_size=50):
 # Determine the analytical solution for a Sedov blast wave [Dullemond, Numerical Methods, Chpt. 10]
 def calculate_Sedov_analytical(grid, t, sim_variables):
     # Initialise initial conditions and variables
-    cells, gamma, dimensions, multidimensional, axis_coord = sim_variables.cells, sim_variables.gamma, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.axis_coord
+    cells, gamma, dimensions, multidimensional, coordinates = sim_variables.cells, sim_variables.gamma, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.coordinates
     rho0, vx0, vy0, vz0, P0, Bx0, By0, Bz0 = sim_variables.init_cond
     shock_pos = sim_variables.shock_pos
 
@@ -223,19 +234,19 @@ def calculate_Sedov_analytical(grid, t, sim_variables):
         half_cell = dh/2
         return np.linspace(_axis[0]-half_cell, _axis[1]+half_cell, _cells+2)[1+int(_cells/2):-1]
 
-    x_centre = np.average(axis_coord[0])
-    physical_halfgrid_x = make_half_grid(axis_coord[0], cells[0])
+    x_centre = np.average(coordinates[0])
+    physical_halfgrid_x = make_half_grid(coordinates[0], cells[0])
     X, Y, Z = np.array(physical_halfgrid_x), np.zeros_like(physical_halfgrid_x), np.zeros_like(physical_halfgrid_x)
 
     if multidimensional:
-        y_centre = np.average(axis_coord[1])
-        physical_halfgrid_y = make_half_grid(axis_coord[1], cells[1])
+        y_centre = np.average(coordinates[1])
+        physical_halfgrid_y = make_half_grid(coordinates[1], cells[1])
         X, Y = np.meshgrid(physical_halfgrid_x, physical_halfgrid_y, indexing='ij')
         Z = np.zeros_like(X)
 
         if dimensions == 3:
-            z_centre = np.average(axis_coord[2])
-            physical_halfgrid_z = make_half_grid(axis_coord[2], cells[2])
+            z_centre = np.average(coordinates[2])
+            physical_halfgrid_z = make_half_grid(coordinates[2], cells[2])
             X, Y, Z = np.meshgrid(physical_halfgrid_x, physical_halfgrid_y, physical_halfgrid_z, indexing='ij')
 
     rx, ry, rz = X - x_centre, Y - y_centre, Z - z_centre
@@ -438,7 +449,7 @@ def calculate_Sedov_analytical(grid, t, sim_variables, w=0):
         return np.linspace(_axis[0]-half_cell, _axis[1]+half_cell, _cells+2)[1:-1]
 
     # Initialise initial conditions and variables
-    cells, gamma, j, axis_coord = sim_variables.cells, sim_variables.gamma, sim_variables.dimensions, sim_variables.axis_coord
+    cells, gamma, j, coordinates = sim_variables.cells, sim_variables.gamma, sim_variables.dimensions, sim_variables.coordinates
     rho0, vx0, vy0, vz0, P0, Bx0, By0, Bz0 = sim_variables.ambient
     rho, vx, pressure = sim_variables.rho, sim_variables.vx, sim_variables.pressure
     eps = 1e-4
@@ -563,8 +574,8 @@ def calculate_Sedov_analytical(grid, t, sim_variables, w=0):
     arr = np.zeros_like(grid)
 
     # Generate the array of radii
-    x_centre = np.average(axis_coord)
-    physical_grid_x = make_physical_grid(axis_coord, cells[0])
+    x_centre = np.average(coordinates[0])
+    physical_grid_x = make_physical_grid(coordinates[0], cells[0])
     radii = physical_grid_x[(x_centre <= physical_grid_x) & (physical_grid_x <= r2)]
 
     density = np.zeros_like(radii)

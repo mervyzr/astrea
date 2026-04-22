@@ -14,20 +14,26 @@ def generate_test_conditions(config_variables):
         axis_coord = [0,1]
         shock_pos = .5
         t_end = .2
-        boundary = "edge"  # outflow
+        boundary = "edge"
         init_cond = np.array([1,0,0,0,1,0,0,0])
         ambient = np.array([.125,0,0,0,.1,0,0,0])
         misc = None
 
     # [Sedov, 1959]
     elif "sedov" in config:
-        axis_coord = [-10,10]
+        mode = 'full'
         shock_pos = .5
         t_end = 2
-        boundary = "wrap"  # periodic
         init_cond = np.array([1,0,0,0,100,0,0,0])
         ambient = np.array([1,0,0,0,1e-12,0,0,0])
-        misc = {'ampl':1}
+        misc = {'ampl':1, 'mode':mode}
+
+        if mode.lower().startswith('q'):
+            axis_coord = [0,10]
+            boundary = "edge"
+        else:
+            axis_coord = [-10,10]
+            boundary = "wrap"
 
     # [Shu & Osher, 1989]
     elif match(any, ["shu", "osher"]) or config == "so":
@@ -198,13 +204,19 @@ def generate_test_conditions(config_variables):
 
     # [Felker & Stone, 2018]
     elif match(all, ["mhd", "blast"]):
-        axis_coord = [-.5,.5]
+        mode = 'full'
         shock_pos = .1
         t_end = .2
-        boundary = "wrap"
         init_cond = np.array([1,0,0,0,10,0,0,0])
         ambient = np.array([1,0,0,0,.1,0,0,0])
-        misc = {'ampl':1/np.sqrt(2)}
+        misc = {'ampl':1/np.sqrt(2), 'mode':mode}
+
+        if mode.lower().startswith('q'):
+            axis_coord = [0,.5]
+            boundary = "edge"
+        else:
+            axis_coord = [-.5,.5]
+            boundary = "wrap"
 
     # [Gardiner & Stone, 2005]
     elif match(any, ["current", "sheet"]):
@@ -401,7 +413,7 @@ def generate_test_conditions(config_variables):
         ds = {ax: np.abs(np.diff(coordinates[ax]))/cells[ax] for ax in range(len(cells))}
 
     return {
-        'axis_coord':coordinates,
+        'coordinates':coordinates,
         'shock_pos':shock_pos,
         't_end':t_end,
         'boundary':boundary.lower(),

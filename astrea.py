@@ -250,7 +250,7 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
             sim_variables.access_key = now.strftime('%Y%m%d%H%M%S')+str(now.microsecond)
             sim_variables.now = now
             sim_variables.cells = grid_size
-            sim_variables.ds = {ax: np.abs(np.diff(sim_variables.axis_coord[ax]))/grid_size[ax] for ax in range(len(grid_size))}
+            sim_variables.ds = {ax: np.abs(np.diff(sim_variables.coordinates[ax]))/grid_size[ax] for ax in range(len(grid_size))}
 
             # Save simulation variables into HDF5 file
             if sim_variables.full_set_required:

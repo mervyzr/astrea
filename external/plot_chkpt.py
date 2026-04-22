@@ -85,7 +85,7 @@ def plot(save=False, title=False):
                                 _const[name.split('constants-')[-1]] = value
                         constants = Constants(_const)
 
-                        coordinates = {axis:coord for axis, coord in enumerate(f.attrs['axis_coord'])}
+                        coordinates = {axis:coord for axis, coord in enumerate(f.attrs['coordinates'])}
                         permeability = constants.mu_0
                         ds = {ax: np.abs(np.diff(coordinates[ax]))/cells[ax] for ax in range(len(cells))}
 
@@ -263,7 +263,7 @@ ACCEPTED_PLOT_OPTIONS = [
 
 
 # Make figures and axes for plotting
-def make_figure(options, dimensions, axis_coord):
+def make_figure(options, dimensions, coordinates):
     if 0 < len(options) < 13:
         # Set up colours
         colours = plt.rcParams['axes.prop_cycle'].by_key()['color'] * 2
@@ -419,7 +419,7 @@ def make_figure(options, dimensions, axis_coord):
                 ax[_i,_j].set_ylabel(labels[idx])
 
             if dimensions < 2:
-                ax[_i,_j].set_xlim(axis_coord[0])
+                ax[_i,_j].set_xlim(coordinates[0])
                 ax[_i,_j].grid(linestyle="--", linewidth=0.5)
 
         return fig, ax, {'indexes':indexes, 'names':names, 'labels':labels, 'colours': {'theo':'black', '1d':colours, '2d':twod_colours}}
