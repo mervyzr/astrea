@@ -97,18 +97,19 @@ def get_gpu_info():
 
 def verbose_timer(func):
     def wrapper(*args, **kwargs):
-        for arg in args:
-            try:
-                verbose = arg.verbose
-            except Exception:
-                verbose = False
-            else:
-                break
-        start = perf_counter()
-        result = func(*args, **kwargs)
+        sim_variables = next(
+            (arg for arg in args if arg.__class__.__name__ == "SimulationVariables"),
+            None
+        )
+        verbose = getattr(sim_variables, "verbose", False)
+
         if verbose:
+            start = perf_counter()
+            result = func(*args, **kwargs)
             print(f'    {func.__name__!r:>20} :     {perf_counter() - start:<10.5f} s')
-        return result
+            return result
+        else:
+            return func(*args, **kwargs)
     return wrapper
 
 
