@@ -27,7 +27,7 @@ def evolve_space(grid, sim_variables, first_stage=False):
             if "c" in subgrid:
                 jobs = executor.map(cweno.run, repeat(primitive), repeat(sim_variables), axes)
             elif "z" in subgrid:
-                jobs = executor.map(weno.run, repeat(primitive), repeat(sim_variables), axes)
+                jobs = executor.map(wenoz.run, repeat(primitive), repeat(sim_variables), axes)
             else:
                 jobs = executor.map(weno.run, repeat(primitive), repeat(sim_variables), axes)
 
@@ -142,29 +142,19 @@ def evolve_time(grid, fluxes, dt, sim_variables):
                 fluxes1 = evolve_space(k1, sim_variables)
 
                 # Computation of 2nd register
-                k2 = .444370493651235*grid \
-                    + .555629506348765*k1 \
-                    + .368410593050371*dt*fluxes1
+                k2 = .444370493651235*grid + .555629506348765*k1 + .368410593050371*dt*fluxes1
                 fluxes2 = evolve_space(k2, sim_variables)
 
                 # Computation of 3rd register
-                k3 = .620101851488403*grid \
-                    + .379898148511597*k2 \
-                    + .251891774271694*dt*fluxes2
+                k3 = .620101851488403*grid + .379898148511597*k2 + .251891774271694*dt*fluxes2
                 fluxes3 = evolve_space(k3, sim_variables)
 
                 # Computation of 4th register
-                k4 = .178079954393132*grid \
-                    + .821920045606868*k3 \
-                    + .544974750228521*dt*fluxes3
+                k4 = .178079954393132*grid + .821920045606868*k3 + .544974750228521*dt*fluxes3
                 fluxes4 = evolve_space(k4, sim_variables)
 
                 # Computation of 5th register
-                return .517231671970585*k2 \
-                    + .096059710526147*k3 \
-                    + .06369246866629*dt*fluxes3 \
-                    + .386708617503269*k4 \
-                    + .226007483236906*dt*fluxes4
+                return .517231671970585*k2 + .096059710526147*k3 + .06369246866629*dt*fluxes3 + .386708617503269*k4 + .226007483236906*dt*fluxes4
 
         elif order == 3:
             if register == 5:
@@ -178,29 +168,16 @@ def evolve_time(grid, fluxes, dt, sim_variables):
                 fluxes2 = evolve_space(k2, sim_variables)
 
                 # Computation of 3rd register
-                k3 = .56656131914033*grid \
-                    + .43343868085967*k2 \
-                    + .16352294089771*dt*fluxes2
+                k3 = .56656131914033*grid + .43343868085967*k2 + .16352294089771*dt*fluxes2
                 fluxes3 = evolve_space(k3, sim_variables)
 
                 # Computation of 4th register
-                k4 = .09299483444413*grid \
-                    + .0000209036962*k1 \
-                    + .90698426185967*k3 \
-                    + .00071997378654*dt*fluxes \
-                    + .34217696850008*dt*fluxes3
+                k4 = .09299483444413*grid + .0000209036962*k1 + .90698426185967*k3 + .00071997378654*dt*fluxes + .34217696850008*dt*fluxes3
                 fluxes4 = evolve_space(k4, sim_variables)
 
                 # Computation of 5th register
-                return .0073613226092*grid \
-                    + .20127980325145*k1 \
-                    + .00182955389682*k2 \
-                    + .78952932024253*k4 \
-                    + (dt * (
-                        .0027771981946*fluxes \
-                        + .00001567934613*fluxes1 \
-                        + .29786487010104*fluxes4
-                        ))
+                return .0073613226092*grid + .20127980325145*k1 + .00182955389682*k2 + .78952932024253*k4 + dt*(
+                    .0027771981946*fluxes + .00001567934613*fluxes1 + .29786487010104*fluxes4)
 
             elif register == 4:
                 # Evolve system by SSP-RK (4,3) method (3rd-order); effective SSP coeff = 0.5 [Spiteri & Ruuth, 2002; Gottlieb et al., 2008]

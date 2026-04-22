@@ -66,7 +66,7 @@ def reconstruct(grid, sim_variables, axis, order=5):
                 minus_one * (547*minus_one - 2522*zeroth + 1922*plus_one - 494*plus_two)
                 + zeroth * (3443*zeroth - 5966*plus_one + 1602*plus_two)
                 + plus_one * (2843*plus_one - 1642*plus_two)
-                + plus_two * (267* plus_two)
+                + plus_two * (267*plus_two)
             )
             b3 = (
                 zeroth * (2107*zeroth - 9402*plus_one + 7042*plus_two - 1854*plus_three)

@@ -146,7 +146,7 @@ def reconstruct_transverse(data, sim_variables, axis, method=None, eta=None):
             elif "z" in sim_variables.subgrid:
                 reconstruct = wenoz.reconstruct
             else:
-                reconstruct = lambda _grid, _sim_variables, _axis: weno.reconstruct(_grid, _sim_variables, _axis, order=5)
+                reconstruct = weno.reconstruct
         elif method == "ppm":
             if sim_variables.ppm_dissipate:
                 reconstruct = lambda _grid, _sim_variables, _axis: ppm.reconstruct(_grid, _sim_variables, _axis, eta=eta)
