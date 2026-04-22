@@ -7,7 +7,7 @@ from num_methods import ct, solvers
 # WENO-Z reconstruction method [Borges et al., 2008]
 ##############################################################################
 
-def reconstruct(grid, sim_variables, axis):
+def reconstruct(grid, sim_variables, axis, power=1):
     eps = 1e-40
 
     # Define frequently used terms
@@ -24,9 +24,6 @@ def reconstruct(grid, sim_variables, axis):
     |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
     |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |   w+(i+1/2)   w-(i+3/2)   |
     """
-    # Define the linear weights
-    g0, g1, g2 = 1/16, 5/8, 5/16
-
     # Determine the smoothness indicators
     b0 = (
         13/12 * (minus_two - 2*minus_one + zeroth)**2
@@ -40,22 +37,29 @@ def reconstruct(grid, sim_variables, axis):
         13/12 * (zeroth - 2*plus_one + plus_two)**2
         + 1/4 * (3*zeroth - 4*plus_one + plus_two)**2
     )
+    b_k = b0, b1, b2
 
-    # Define the non-linear weights
-    a0 = lambda d0: d0 * (1 + np.abs(b0-b2)/(b0 + eps))
-    a1 = lambda d1: d1 * (1 + np.abs(b0-b2)/(b1 + eps))
-    a2 = lambda d2: d2 * (1 + np.abs(b0-b2)/(b2 + eps))
+    # Define the linear weights
+    g_k = 1/16, 5/8, 5/16
+    inv_g_k = g_k[::-1]
+
+    # Compute the alpha values
+    alpha = lambda gk, k: gk[k] * (1 + (np.abs(b0-b2)/(b_k[k]+eps))**power)
+
+    # Compute the non-linear weights
+    omega = lambda k: fv.divide(alpha(g_k, k), alpha(g_k, 0)+alpha(g_k, 1)+alpha(g_k, 2))
+    inv_omega = lambda k: fv.divide(alpha(inv_g_k, k), alpha(inv_g_k, 0)+alpha(inv_g_k, 1)+alpha(inv_g_k, 2))
 
     # Define the stencils
     wR = .125 * (
-        (a0(g0)/(a0(g0)+a1(g1)+a2(g2))) * (3*minus_two - 10*minus_one + 15*zeroth)
-        + (a1(g1)/(a0(g0)+a1(g1)+a2(g2))) * (-minus_one + 6*zeroth + 3*plus_one)
-        + (a2(g2)/(a0(g0)+a1(g1)+a2(g2))) * (3*zeroth + 6*plus_one - plus_two)
+        omega(0) * (3*minus_two - 10*minus_one + 15*zeroth)
+        + omega(1) * (-minus_one + 6*zeroth + 3*plus_one)
+        + omega(2) * (3*zeroth + 6*plus_one - plus_two)
     )
     wL = .125 * (
-        (a0(g2)/(a0(g2)+a1(g1)+a2(g0))) * (3*zeroth + 6*minus_one - minus_two)
-        + (a1(g1)/(a0(g2)+a1(g1)+a2(g0))) * (-plus_one + 6*zeroth + 3*minus_one)
-        + (a2(g0)/(a0(g2)+a1(g1)+a2(g0))) * (3*plus_two - 10*plus_one + 15*zeroth)
+        inv_omega(0) * (3*zeroth + 6*minus_one - minus_two)
+        + inv_omega(1) * (-plus_one + 6*zeroth + 3*minus_one)
+        + inv_omega(2) * (3*plus_two - 10*plus_one + 15*zeroth)
     )
 
     return wL, wR

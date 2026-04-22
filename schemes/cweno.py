@@ -7,7 +7,7 @@ from num_methods import ct, solvers
 # CWENO reconstruction method [Levy et al., 1999, 2000; Verma et al., 2018]
 ##############################################################################
 
-def reconstruct(grid, sim_variables, axis):
+def reconstruct(grid, sim_variables, axis, power=2):
     # Define the frequently used terms
     padded_grid_2 = fv.add_boundary(grid, sim_variables, stencil=2, axis=axis)
     padded_grid = fv.slice_(padded_grid_2, axis, *[1,-1])
@@ -17,7 +17,7 @@ def reconstruct(grid, sim_variables, axis):
     plus_one, plus_two = fv.slice_(padded_grid, axis, start=2), fv.slice_(padded_grid_2, axis, start=4)
 
     # Define the empirical parameters for Eq. 3.12
-    eps, power = sim_variables.eps, 2
+    eps = sim_variables.eps
 
     """CWENO reconstruction from cell averages to face averages (both sides) [Verma et al., 2018]
     |                        w(i-1/2)                    w(i+1/2)                       |
@@ -26,36 +26,40 @@ def reconstruct(grid, sim_variables, axis):
     |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |   w+(i+1/2)   w-(i+3/2)   |
     """
     # Define the linear weights C_k (5th-order & 4th-order accurate) [tbl. 3.1]
-    C_minus, C_zero, C_plus = 3/16, 5/8, 3/16
-    dC_minus, dC_zero, dC_plus = 1/6, 2/3, 1/6
+    C_k = 3/16, 5/8, 3/16
+    dC_k = 1/6, 2/3, 1/6
 
     # Determine the smoothness indicators (O(dx^4) at critical points but O(1) at discontinuities) [eq. 3.14]
-    IS_minus = lambda stencils: 13/12 * (stencils[0] - 2*stencils[1] + stencils[2])**2 + 1/4 * (stencils[0] - 4*stencils[1] + 3*stencils[2])**2
-    IS_zero = lambda stencils: 13/12 * (stencils[0] - 2*stencils[1] + stencils[2])**2 + 1/4 * (stencils[0] - stencils[2])**2
-    IS_plus = lambda stencils: 13/12 * (stencils[0] - 2*stencils[1] + stencils[2])**2 + 1/4 * (3*stencils[0] - 4*stencils[1] + stencils[2])**2
+    SI_minus = (
+        13/12 * (minus_two - 2*minus_one + zeroth)**2
+        + 1/4 * (minus_two - 4*minus_one + 3*zeroth)**2
+    )
+    SI_zero = (
+        13/12 * (minus_one - 2*zeroth + plus_one)**2
+        + 1/4 * (minus_one - plus_one)**2
+    )
+    SI_plus = (
+        13/12 * (zeroth - 2*plus_one + plus_two)**2
+        + 1/4 * (3*zeroth - 4*plus_one + plus_two)**2
+    )
+    SI_k = SI_minus, SI_zero, SI_plus
 
     # Compute the alpha values [Levy et al., 1999, eq. 3.12]
-    alpha = lambda C_k, IS_k: C_k/(eps + IS_k)**power
+    alpha = lambda k: dC_k[k]/(SI_k[k] + eps)**power
 
     # Compute the non-linear weights [Levy et al., 1999, eq. 3.11]
-    denominator = (
-        alpha(dC_minus, IS_minus((minus_two, minus_one, zeroth)))
-        + alpha(dC_zero, IS_zero((minus_one, zeroth, plus_one)))
-        + alpha(dC_plus, IS_plus((zeroth, plus_one, plus_two)))
-    )
-    wj_minus = fv.divide(alpha(dC_minus, IS_minus((minus_two, minus_one, zeroth))), denominator)
-    wj_zero = fv.divide(alpha(dC_zero, IS_zero((minus_one, zeroth, plus_one))), denominator)
-    wj_plus = fv.divide(alpha(dC_plus, IS_plus((zeroth, plus_one, plus_two))), denominator)
+    omega = lambda k: fv.divide(alpha(k), alpha(0)+alpha(1)+alpha(2))
 
+    # Define the stencils (no need to flip linear weights in non-linear weights since C_k and dC_k are symmetrical)
     wR = 1/6 * (
-        wj_minus * (2*minus_two - 7*minus_one + 11*zeroth)
-        + wj_zero * (-minus_one + 5*zeroth + 2*plus_one)
-        + wj_plus * (2*zeroth + 5*plus_one - plus_two)
+        omega(0) * (2*minus_two - 7*minus_one + 11*zeroth)
+        + omega(1) * (-minus_one + 5*zeroth + 2*plus_one)
+        + omega(2) * (2*zeroth + 5*plus_one - plus_two)
     )
     wL = 1/6 * (
-        wj_minus * (2*zeroth + 5*minus_one - minus_two)
-        + wj_zero * (-plus_one + 5*zeroth + 2*minus_one)
-        + wj_plus * (2*plus_two - 7*plus_one + 11*zeroth)
+        omega(0) * (2*zeroth + 5*minus_one - minus_two)
+        + omega(1) * (-plus_one + 5*zeroth + 2*minus_one)
+        + omega(2) * (2*plus_two - 7*plus_one + 11*zeroth)
     )
 
     return wL, wR

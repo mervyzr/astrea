@@ -24,19 +24,28 @@ def reconstruct(grid, sim_variables, axis, order=5):
     """
     if 0 < order <= 3:
         # Define the linear weights
-        g0, g1 = 1/3, 2/3
+        g_k = 1/3, 2/3
+        inv_g_k = g_k[::-1]
 
         # Determine the smoothness indicators
-        b0 = (zeroth - minus_one)**2
-        b1 = (plus_one - zeroth)**2
+        b_k = (zeroth - minus_one)**2, (plus_one - zeroth)**2
+
+        # Compute the alpha
+        alpha = lambda gk, k: gk[k]/(b_k[k] + eps)**2
 
         # Define the non-linear weights
-        a0 = lambda d0: d0/(b0 + eps)**2
-        a1 = lambda d1: d1/(b1 + eps)**2
+        omega = lambda k: fv.divide(alpha(g_k, k), alpha(g_k, 0)+alpha(g_k, 1))
+        inv_omega = lambda k: fv.divide(alpha(inv_g_k, k), alpha(inv_g_k, 0)+alpha(inv_g_k, 1))
 
         # Define the stencils
-        wR = (a0(g0)/(a0(g0) + a1(g1)))*(1.5*zeroth - .5*minus_one) + (a1(g1)/(a0(g0) + a1(g1)))*(.5*zeroth + .5*plus_one)
-        wL = (a1(g0)/(a0(g1) + a1(g0)))*(1.5*zeroth - .5*plus_one) + (a0(g1)/(a0(g1) + a1(g0)))*(.5*zeroth + .5*minus_one)
+        wR = (
+            omega(0) * (1.5*zeroth - .5*minus_one)
+            + omega(1) * (.5*zeroth + .5*plus_one)
+        )
+        wL = (
+            inv_omega(0) * (1.5*zeroth - .5*plus_one)
+            + inv_omega(1) * (.5*zeroth + .5*minus_one)
+        )
 
     else:
         padded_grid_2 = fv.add_boundary(grid, sim_variables, stencil=2, axis=axis)
@@ -46,10 +55,9 @@ def reconstruct(grid, sim_variables, axis, order=5):
             padded_grid_3 = fv.add_boundary(grid, sim_variables, stencil=3, axis=axis)
             minus_three, plus_three = fv.slice_(padded_grid_3, axis, end=-6), fv.slice_(padded_grid_3, axis, start=6)
 
-            # Define the linear weights
-            g0, g1, g2, g3 = 1/35, 12/35, 18/35, 4/35
+            g_k = 1/35, 12/35, 18/35, 4/35
+            inv_g_k = g_k[::-1]
 
-            # Determine the smoothness indicators
             b0 = (
                 minus_three * (547*minus_three - 3882*minus_two + 4642*minus_one - 1854*zeroth)
                 + minus_two * (7043*minus_two - 17246*minus_one + 7042*zeroth)
@@ -74,32 +82,30 @@ def reconstruct(grid, sim_variables, axis, order=5):
                 + plus_two * (7043*plus_two - 3882*plus_three)
                 + plus_three * (547*plus_three)
             )
+            b_k = b0, b1, b2, b3
 
-            # Define the non-linear weights
-            a0 = lambda d0: d0/(b0 + eps)**2
-            a1 = lambda d1: d1/(b1 + eps)**2
-            a2 = lambda d2: d2/(b2 + eps)**2
-            a3 = lambda d3: d3/(b3 + eps)**2
+            alpha = lambda gk, k: gk[k]/(b_k[k] + eps)**2
 
-            # Define the stencils
+            omega = lambda k: fv.divide(alpha(g_k, k), alpha(g_k, 0)+alpha(g_k, 1)+alpha(g_k, 2)+alpha(g_k, 3))
+            inv_omega = lambda k: fv.divide(alpha(inv_g_k, k), alpha(inv_g_k, 0)+alpha(inv_g_k, 1)+alpha(inv_g_k, 2)+alpha(inv_g_k, 3))
+
             wR = (
-                (a0(g0)/(a0(g0)+a1(g1)+a2(g2)+a3(g3))) * (-1/4*minus_three + 13/12*minus_two - 23/12*minus_one + 25/12*zeroth)
-                + (a1(g1)/(a0(g0)+a1(g1)+a2(g2)+a3(g3))) * (1/12*minus_two - 5/12*minus_one + 13/12*zeroth + 1/4*plus_one)
-                + (a2(g2)/(a0(g0)+a1(g1)+a2(g2)+a3(g3))) * (-1/12*minus_one + 7/12*zeroth + 7/12*plus_one - 1/12*plus_two)
-                + (a3(g3)/(a0(g0)+a1(g1)+a2(g2)+a3(g3))) * (1/4*zeroth + 13/12*plus_one - 5/12*plus_two + 1/12*plus_three)
+                omega(0) * (-1/4*minus_three + 13/12*minus_two - 23/12*minus_one + 25/12*zeroth)
+                + omega(1) * (1/12*minus_two - 5/12*minus_one + 13/12*zeroth + 1/4*plus_one)
+                + omega(2) * (-1/12*minus_one + 7/12*zeroth + 7/12*plus_one - 1/12*plus_two)
+                + omega(3) * (1/4*zeroth + 13/12*plus_one - 5/12*plus_two + 1/12*plus_three)
             )
             wL = (
-                (a0(g3)/(a0(g3)+a1(g2)+a2(g1)+a3(g0))) * (1/4*zeroth + 13/12*minus_one - 5/12*minus_two + 1/12*minus_three)
-                + (a1(g2)/(a0(g3)+a1(g2)+a2(g1)+a3(g0))) * (-1/12*plus_one + 7/12*zeroth + 7/12*minus_one - 1/12*minus_two)
-                + (a2(g1)/(a0(g3)+a1(g2)+a2(g1)+a3(g0))) * (1/12*plus_two - 5/12*plus_one + 13/12*zeroth + 1/4*minus_one)
-                + (a3(g0)/(a0(g3)+a1(g2)+a2(g1)+a3(g0))) * (-1/4*plus_three + 13/12*plus_two - 23/12*plus_one + 25/12*zeroth)
+                inv_omega(0) * (1/4*zeroth + 13/12*minus_one - 5/12*minus_two + 1/12*minus_three)
+                + inv_omega(1) * (-1/12*plus_one + 7/12*zeroth + 7/12*minus_one - 1/12*minus_two)
+                + inv_omega(2) * (1/12*plus_two - 5/12*plus_one + 13/12*zeroth + 1/4*minus_one)
+                + inv_omega(3) * (-1/4*plus_three + 13/12*plus_two - 23/12*plus_one + 25/12*zeroth)
             )
 
         else:
-            # Define the linear weights
-            g0, g1, g2 = 1/10, 3/5, 3/10
+            g_k = 1/10, 3/5, 3/10
+            inv_g_k = g_k[::-1]
 
-            # Determine the smoothness indicators
             b0 = (
                 13/12 * (minus_two - 2*minus_one + zeroth)**2
                 + 1/4 * (minus_two - 4*minus_one + 3*zeroth)**2
@@ -112,22 +118,22 @@ def reconstruct(grid, sim_variables, axis, order=5):
                 13/12 * (zeroth - 2*plus_one + plus_two)**2
                 + 1/4 * (3*zeroth - 4*plus_one + plus_two)**2
             )
+            b_k = b0, b1, b2
 
-            # Define the non-linear weights
-            a0 = lambda d0: d0/(b0 + eps)**2
-            a1 = lambda d1: d1/(b1 + eps)**2
-            a2 = lambda d2: d2/(b2 + eps)**2
+            alpha = lambda gk, k: gk[k]/(b_k[k] + eps)**2
 
-            # Define the stencils
+            omega = lambda k: fv.divide(alpha(g_k, k), alpha(g_k, 0)+alpha(g_k, 1)+alpha(g_k, 2))
+            inv_omega = lambda k: fv.divide(alpha(inv_g_k, k), alpha(inv_g_k, 0)+alpha(inv_g_k, 1)+alpha(inv_g_k, 2))
+
             wR = (
-                (a0(g0)/(a0(g0)+a1(g1)+a2(g2))) * (1/3*minus_two - 7/6*minus_one + 11/6*zeroth)
-                + (a1(g1)/(a0(g0)+a1(g1)+a2(g2))) * (-1/6*minus_one + 5/6*zeroth + 1/3*plus_one)
-                + (a2(g2)/(a0(g0)+a1(g1)+a2(g2))) * (1/3*zeroth + 5/6*plus_one - 1/6*plus_two)
+                omega(0) * (1/3*minus_two - 7/6*minus_one + 11/6*zeroth)
+                + omega(1) * (-1/6*minus_one + 5/6*zeroth + 1/3*plus_one)
+                + omega(2) * (1/3*zeroth + 5/6*plus_one - 1/6*plus_two)
             )
             wL = (
-                (a0(g2)/(a0(g2)+a1(g1)+a2(g0))) * (1/3*zeroth + 5/6*minus_one - 1/6*minus_two)
-                + (a1(g1)/(a0(g2)+a1(g1)+a2(g0))) * (-1/6*plus_one + 5/6*zeroth + 1/3*minus_one)
-                + (a2(g0)/(a0(g2)+a1(g1)+a2(g0))) * (1/3*plus_two - 7/6*plus_one + 11/6*zeroth)
+                inv_omega(0) * (1/3*zeroth + 5/6*minus_one - 1/6*minus_two)
+                + inv_omega(1) * (-1/6*plus_one + 5/6*zeroth + 1/3*minus_one)
+                + inv_omega(2) * (1/3*plus_two - 7/6*plus_one + 11/6*zeroth)
             )
 
     return wL, wR
