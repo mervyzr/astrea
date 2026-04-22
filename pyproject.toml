@@ -4,9 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "astrea"
-version = "3.8.1"
 description = "Astrophysical Shockwave and Turbulence REsearch for interstellar Applications: Multidimensional magnetohydrodynamics code for modelling shockwaves & turbulence in the interstellar medium"
-readme = "README.md"
 requires-python = ">=3.10"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
@@ -70,3 +68,7 @@ astrea = [
     "*.txt",
     "*.dat"
 ]
+
+[tool.setuptools.dynamic]
+version = {attr = "astrea.__version__"}
+readme = {file = "README.md"}
