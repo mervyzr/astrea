@@ -170,6 +170,7 @@ Several (magneto)hydrodynamics tests are in place:
   <ul>
     <li>Sedov blast wave (Sedov, 1946)</li>
     <li>Kelvin-Helmholtz instability</li>
+    <li>Rayleigh-Taylor instability</li>
     <li>Noh problem (Noh, 1987)</li>
     <li>Gresho vortex (Gresho & Chan, 1990)</li>
     <li>"Lax-Liu tests" (Lax & Liu, 1998)</li>
@@ -210,9 +211,11 @@ Several (magneto)hydrodynamics tests are in place:
     <li>Blank field with perturbations</li>
     <li>Circular polarised Alfvén wave (Tóth, 2000)</li>
     <li>Magnetised Kelvin-Helmholtz instability</li>
+    <li>Magnetised Rayleigh-Taylor instability</li>
     <li>Orszag-Tang vortex (Orszag & Tang, 1998)</li>
     <li>MHD vortex (Balsara, 2004)</li>
     <li>MHD rotor (Balsara & Spicer, 1999)</li>
+    <li>MHD torus (Machida et al., 1999)</li>
     <li>MHD blast wave (Londrillo & Del Zanna, 2000)</li>
     <li>MHD current sheet (Gardiner & Stone, 2005)</li>
     <li>Shock cloud (Dai & Woodward, 1998)</li>
@@ -225,6 +228,7 @@ Several (magneto)hydrodynamics tests are in place:
     <li>Blank field with perturbations</li>
     <li>Orszag-Tang vortex (Orszag & Tang, 1998)</li>
     <li>MHD vortex (Mignone et al., 2010)</li>
+    <li>MHD torus (Machida et al., 1999)</li>
     <li>MHD blast wave (Londrillo & Del Zanna, 2000)</li>
   </ul>
   </details>
@@ -263,6 +267,7 @@ Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussi
     <li>LeVeque, R. J. (1992). Numerical Methods for Conservation Laws (2nd ed.). Birkhäuser Basel.</li>
     <li>Levy, D., Puppo, G., & Russo, G. (1999). Central WENO Schemes for Hyperbolic Systems of Conservation Laws. Mathematical Modelling and Numerical Analysis, 33(3), 547-571.</li>
     <li>Levy, D., Puppo, G., & Russo, G. (2000). Compact Central WENO Schemes for Multidimensional Conservation Laws. SIAM Journal on Scientific Computing, 22(2), 656-672.</li>
+    <li>Machida, M., Hayashi, M. R., & Matsumoto, R. (1999). Global Simulations of Differentially Rotating Magnetized Disks: Formation of Low-β Filaments and Structured Coronae. The Astrophysical Journal, 532, L67-L70.</li>
     <li>McCorquodale, P., & Colella, P. (2011). A high-order finite-volume method for conservation laws on locally refined grids. Communications in Applied Mathematics and Computational Science, 6(1), 1–25.</li>
     <li>Mignone, A. & Del Zanna, L. (2021). Systematic construction of upwind constrained transport schemes for MHD. Journal of Computational Physics, 424, 109748.</li>
     <li>Miyoshi, T., & Kusano, K. (2005). A multi-state HLL approximate Riemann solver for ideal magnetohydrodynamics. Journal of Computational Physics, 208(1), 315–344.</li>

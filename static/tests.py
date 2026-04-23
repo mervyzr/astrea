@@ -176,6 +176,16 @@ def generate_test_conditions(config_variables):
             ambient = np.array([1,0,0,2,1,0,0,0])
             misc = {'kappa':1/np.sqrt(2*np.pi), 'mu':1/np.sqrt(2*np.pi), 'q':1}
 
+    # [Machida et al., 1999]
+    elif "torus" in config:
+        axis_coord = [-7,7]
+        shock_pos = 0
+        t_end = 5
+        boundary = "edge"
+        init_cond = np.array([1e-3,0,0,0,0,0,0,0])
+        ambient = np.array([1e-5,0,0,0,0,0,0,0])
+        misc = {'K':.05, 'B_phi':1, 'GM':1, 'L':1, 'r0':1, 'beta0':1}
+
     # [Balsara & Spicer, 1999; Pang & Wu, 2025]
     elif match(any, ["rotor", "blob"]):
         axis_coord = [-.5,.5]

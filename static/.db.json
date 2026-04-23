@@ -2,17 +2,6 @@
   "_default": {
     "1": {
       "type": "config",
-      "category": "shock",
-      "accepted": [
-        "sod",
-        "sod-shock",
-        "sedov",
-        "sedov-mhd",
-        "mhd-sedov"
-      ]
-    },
-    "2": {
-      "type": "config",
       "category": "smooth",
       "accepted": [
         "sin",
@@ -20,6 +9,9 @@
         "sine-wave",
         "gaussian",
         "gauss",
+        "square",
+        "sq",
+        "square-wave",
         "cpaw",
         "circular",
         "polarised",
@@ -28,23 +20,12 @@
         "circular-polarised-alfven-wave"
       ]
     },
-    "3": {
+    "2": {
       "type": "config",
-      "category": "stationary",
+      "category": "shocktubes",
       "accepted": [
-        "square",
-        "sq",
-        "square-wave",
-        "gresho",
-        "gresho-vortex",
-        "isentropic-vortex",
-        "ivc"
-      ]
-    },
-    "4": {
-      "type": "config",
-      "category": "interacting",
-      "accepted": [
+        "sod",
+        "sod-shock",
         "slow",
         "slow-moving",
         "slow-moving-shock",
@@ -53,21 +34,14 @@
         "shu",
         "osher",
         "so",
-        "kelvin-helmholtz",
-        "kelvin-helmholtz-instability",
-        "khi",
-        "shock-cloud",
-        "cloud",
-        "astrophysical-jet",
-        "jet"
-      ]
-    },
-    "5": {
-      "type": "config",
-      "category": "special",
-      "accepted": [
-        "noh",
-        "noh-problem",
+        "ryu-jones",
+        "rj",
+        "ryu",
+        "jones",
+        "brio-wu",
+        "bw",
+        "brio",
+        "wu",
         "toro1",
         "toro2",
         "toro3",
@@ -77,7 +51,87 @@
         "toro-2",
         "toro-3",
         "toro-4",
-        "toro-5",
+        "toro-5"
+      ]
+    },
+    "3": {
+      "type": "config",
+      "category": "blastwaves",
+      "accepted": [
+        "sedov",
+        "sedov-mhd",
+        "mhd-sedov",
+        "mhd-blast",
+        "noh",
+        "noh-problem"
+      ]
+    },
+    "4": {
+      "type": "config",
+      "category": "vortices",
+      "accepted": [
+        "mhd-vortex",
+        "orszag-tang",
+        "orszag",
+        "tang",
+        "ot",
+        "gresho",
+        "gresho-vortex",
+        "isentropic-vortex",
+        "ivc"
+      ]
+    },
+    "5": {
+      "type": "config",
+      "category": "instabilities",
+      "accepted": [
+        "kelvin-helmholtz",
+        "kelvin-helmholtz-instability",
+        "khi",
+        "magnetised-kelvin-helmholtz",
+        "magnetised-kelvin-helmholtz-instability",
+        "mkhi",
+        "mhd-kelvin-helmholtz",
+        "mhd-kelvin-helmholtz-instability",
+        "mhdkhi",
+        "mhd-khi"
+      ]
+    },
+    "6": {
+      "type": "config",
+      "category": "non-linear-MHD",
+      "accepted": [
+        "rotor",
+        "mhd-rotor",
+        "sheet",
+        "mhd-sheet",
+        "current",
+        "mhd-current",
+        "rotor-blob",
+        "mhd-rotor-blob",
+        "blob",
+        "mhd-blob"
+      ]
+    },
+    "7": {
+      "type": "config",
+      "category": "astrophysical",
+      "accepted": [
+        "shock-cloud",
+        "cloud",
+        "astrophysical-jet",
+        "jet",
+        "torus",
+        "mhd-torus",
+        "sn",
+        "supernova",
+        "supernovae"
+      ]
+    },
+    "8": {
+      "type": "config",
+      "category": "2D-Riemann",
+      "accepted": [
         "ll1",
         "ll2",
         "ll3",
@@ -153,46 +207,7 @@
         "lax-liu-16",
         "lax-liu-17",
         "lax-liu-18",
-        "lax-liu-19"
-      ]
-    },
-    "6": {
-      "type": "config",
-      "category": "magnetic",
-      "accepted": [
-        "ryu-jones",
-        "rj",
-        "ryu",
-        "jones",
-        "brio-wu",
-        "bw",
-        "brio",
-        "wu",
-        "orszag-tang",
-        "orszag",
-        "tang",
-        "ot",
-        "magnetised-kelvin-helmholtz",
-        "magnetised-kelvin-helmholtz-instability",
-        "mkhi",
-        "mhd-kelvin-helmholtz",
-        "mhd-kelvin-helmholtz-instability",
-        "mhdkhi",
-        "mhd-khi",
-        "mhd-vortex",
-        "blank",
-        "blank-field",
-        "rotor",
-        "mhd-rotor",
-        "rotor-blob",
-        "mhd-rotor-blob",
-        "blob",
-        "mhd-blob",
-        "mhd-blast",
-        "sheet",
-        "mhd-sheet",
-        "current",
-        "mhd-current",
+        "lax-liu-19",
         "mhd-ll1",
         "mhd-ll2",
         "mhd-ll3",
@@ -271,7 +286,15 @@
         "mhd-lax-liu-19"
       ]
     },
-    "7": {
+    "9": {
+      "type": "config",
+      "category": "random-noise",
+      "accepted": [
+        "blank",
+        "blank-field"
+      ]
+    },
+    "10": {
       "type": "dimensions",
       "accepted": [
         1,
@@ -279,7 +302,7 @@
         3
       ]
     },
-    "8": {
+    "11": {
       "type": "units",
       "accepted": [
         "code",
@@ -288,7 +311,7 @@
         "galactic"
       ]
     },
-    "9": {
+    "12": {
       "type": "precision",
       "accepted": [
         "float",
@@ -297,7 +320,7 @@
         "float64"
       ]
     },
-    "10": {
+    "13": {
       "type": "subgrid",
       "category": "pcm",
       "accepted": [
@@ -306,7 +329,7 @@
         "c"
       ]
     },
-    "11": {
+    "14": {
       "type": "subgrid",
       "category": "plm",
       "accepted": [
@@ -315,7 +338,7 @@
         "l"
       ]
     },
-    "12": {
+    "15": {
       "type": "subgrid",
       "category": "ppm",
       "accepted": [
@@ -325,7 +348,7 @@
         "p"
       ]
     },
-    "13": {
+    "16": {
       "type": "subgrid",
       "category": "weno",
       "accepted": [
@@ -342,7 +365,7 @@
         "c-weno"
       ]
     },
-    "14": {
+    "17": {
       "type": "time_evo",
       "category": "euler",
       "accepted": [
@@ -350,7 +373,7 @@
         "forward-euler"
       ]
     },
-    "15": {
+    "18": {
       "type": "time_evo",
       "category": "rk",
       "accepted": [
@@ -359,7 +382,7 @@
         "runge-kutta4"
       ]
     },
-    "16": {
+    "19": {
       "type": "time_evo",
       "category": "ssprk",
       "accepted": [
@@ -386,7 +409,7 @@
         "ssprk65"
       ]
     },
-    "17": {
+    "20": {
       "type": "solver",
       "category": "lax",
       "accepted": [
@@ -403,7 +426,7 @@
         "g-force"
       ]
     },
-    "18": {
+    "21": {
       "type": "solver",
       "category": "hll",
       "accepted": [
@@ -414,7 +437,7 @@
         "d"
       ]
     },
-    "19": {
+    "22": {
       "type": "solver",
       "category": "complete",
       "accepted": [
@@ -427,7 +450,7 @@
         "entropy-stable"
       ]
     },
-    "20": {
+    "23": {
       "type": "default",
       "config": "sedov",
       "precision": "float64",
@@ -441,7 +464,7 @@
         "total energy"
       ]
     },
-    "21": {
+    "24": {
       "type": "plot_options",
       "category": "plotting",
       "accepted": [
@@ -495,7 +518,7 @@
         "machnumber"
       ]
     },
-    "22": {
+    "25": {
       "type": "quotes",
       "name": [
         "It's not a bug; it's an undocumented feature.",

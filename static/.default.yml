@@ -1,10 +1,16 @@
 ---
+# List of available configurations (spaces are hyphenated)
+#   Smooth: sine wave, Gaussian, circular polarised Alfvén wave (CPAW)
+#   Shocktubes: Sod shock, slow-moving shock, Shu-Osher (OS), Ryu-Jones (RJ), Brio-Wu (BW), Toro 1-5
+#   Blastwaves: (MHD) Sedov, MHD blast, Noh problem
+#   Vortices: MHD vortex, Orszag-Tang vortex, Gresho vortex, isentropic vortex (IVC)
+#   Instabilities:  (MHD) Rayleigh-Taylor instability (RTI), (MHD) Kelvin-Helmholtz instability (KHI)
+#   Non-linear MHD: MHD rotor, MHD current, MHD blob
+#   Astrophysical: Shock cloud, astrophysical jet, MHD torus, supernova (SN)
+#   2D Riemann: (MHD) Lax-Liu 1-19
+#   Random noise: blank field
+
 physics_parameters:
-  # List of available configurations to run (spaces are hyphenated)
-  # : Blank field, Sod, (MHD)-Sedov, Gaussian, sine wave, Shu-Osher (SO), Ryu-Jones (RJ), Brio-Wu (BW), slow-moving shock, Toro 1-5, 
-  # : isentropic vortex (IVC), (MHD) Lax-Liu (LL) 1-19, Gresho vortex, Noh problem, (MHD) Kelvin-Helmholtz instability (KHI), 
-  # : circular polarised Alfvén wave (CPAW), MHD-blast, MHD-rotor, MHD-blob, MHD-sheet, MHD-vortex, Orszag-Tang vortex, 
-  # : shock cloud, astrophysical jet
   config        : Sedov
   cells         : 128
   cfl           : .5

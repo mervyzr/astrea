@@ -83,6 +83,39 @@ def initialise(sim_variables):
                 computational_grid[...,Bx] = -(y-y_centre)*params['mu']*factor
                 computational_grid[...,By] = (x-x_centre)*params['mu']*factor
 
+            elif "torus" in config:
+                r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
+                cA2 = lambda _r: 2 * (params['polytropeK']/params['beta']) * (init_cond[rho] * _r**2)**(gamma-1)
+                cs2 = np.sqrt(gamma * init_cond[pressure]/init_cond[rho])
+                torus_phi = -params['GM']/params['r0'] + params['L']**2/(2*params['r0']**2) + (2*cs2 + gamma*cA2(params['r0']))/(2*(gamma-1))
+
+                computational_grid[...,rho] = (
+                    fv.divide(
+                        np.maximum(0, torus_phi + params['GM']/params['r0'] - params['L']**2/(2*r**2)),
+                        params['polytropeK'] * (gamma/(gamma-1)) * (1 + (r**(2*(gamma-1)))/params['beta'])
+                    )
+                )**(1/(gamma-1))
+                computational_grid[...,vx] = -np.sqrt(params['GM']) * (y/r**1.5)
+                computational_grid[...,vy] = np.sqrt(params['GM']) * (x/r**1.5)
+
+                _r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
+                _P = params['K'] * init_cond[rho]**gamma
+                cA2 = 2 * (params['K']/params['beta0']) * (init_cond[rho] * params['r0']**2)**(gamma-1)
+                cs2 = np.sqrt(gamma * _P/init_cond[rho])
+                torus_phi = -params['GM']/params['r0'] + params['L']**2/(2*params['r0']**2) + (2*cs2 + gamma*cA2)/(2*(gamma-1))
+
+                computational_grid[...,rho] = (
+                    fv.divide(
+                        np.maximum(0, torus_phi + params['GM']/r - params['L']**2/(2*_r**2)),
+                        params['K'] * (gamma/(gamma-1)) * (1 + (_r**(2*(gamma-1)))/params['beta0'])
+                    )
+                )**(1/(gamma-1))
+                computational_grid[...,pressure] = _P
+                computational_grid[...,vx] = -np.sqrt(params['GM'] * params['L']**2) * (y/_r**2)
+                computational_grid[...,vy] = np.sqrt(params['GM'] * params['L']**2) * (x/_r**2)
+                computational_grid[...,Bx] = -params['B_phi'] * y/_r
+                computational_grid[...,By] = params['B_phi'] * x/_r
+
             elif match(any, ["blob"]):
                 dr = np.sqrt(np.sum([dh**2 for dh in ds.values()]))
                 smoothing = 1 - np.tanh((r - shock_pos)/(5 * dr))
@@ -177,6 +210,24 @@ def initialise(sim_variables):
                 computational_grid[...,pressure] = 1 + (((1-r**2)*params['kappa']**2 - params['mu']**2)/(8*np.pi**2) * np.exp(1-r**2))
                 computational_grid[...,Bx] = (-(y-y_centre)*params['mu'])/(2*np.pi) * np.exp((1-r**2)/2)
                 computational_grid[...,By] = ((x-x_centre)*params['mu'])/(2*np.pi) * np.exp((1-r**2)/2)
+
+            elif "torus" in config:
+                _P = params['K'] * init_cond[rho]**gamma
+                cA2 = 2 * (params['K']/params['beta0']) * (init_cond[rho] * params['r0']**2)**(gamma-1)
+                cs2 = np.sqrt(gamma * _P/init_cond[rho])
+                torus_phi = -params['GM']/params['r0'] + params['L']**2/(2*params['r0']**2) + (2*cs2 + gamma*cA2)/(2*(gamma-1))
+
+                computational_grid[...,rho] = (
+                    fv.divide(
+                        np.maximum(0, torus_phi + params['GM']/r - params['L']**2/(2*r**2)),
+                        params['K'] * (gamma/(gamma-1)) * (1 + (r**(2*(gamma-1)))/params['beta0'])
+                    )
+                )**(1/(gamma-1))
+                computational_grid[...,pressure] = _P
+                computational_grid[...,vx] = -np.sqrt(params['GM'] * params['L']**2) * (y/r**2)
+                computational_grid[...,vy] = np.sqrt(params['GM'] * params['L']**2) * (x/r**2)
+                computational_grid[...,Bx] = -params['B_phi'] * y/r
+                computational_grid[...,By] = params['B_phi'] * x/r
 
             elif match(any, ["rotor", "blob"]):
                 if "blob" in config:
