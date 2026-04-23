@@ -119,6 +119,15 @@ def generate_test_conditions(config_variables):
         ambient = np.array([1,-.5,0,0,2.5,0,0,0])
         misc = {'perturb':True, 'ampl':.5, 'freq':4, 'Bx':np.sqrt(np.pi)/2}
 
+    elif match(any, ["rayleigh", "taylor", "rti"]):
+        axis_coord = [-.5,.5]
+        shock_pos = 0
+        t_end = 10
+        boundary = "wrap"
+        init_cond = np.array([2,.0,0,0,2.5,0,0,0])
+        ambient = np.array([1,0,0,0,2.5,0,0,0])
+        misc = {'perturb':False, 'ampl':.0025, 'grav_acc':.1, 'Bx':.025*np.sqrt(np.pi)}
+
     elif "turb" in config:
         axis_coord = [-.5,.5]
         shock_pos = 0

@@ -160,6 +160,17 @@ def initialise(sim_variables):
                 if config.startswith('m') or "mhd" in config:
                     computational_grid[...,Bx] = params['Bx']
 
+            elif match(any, ["rayleigh", "taylor", "rti"]):
+                layer = np.where(y > shock_pos)
+                computational_grid[layer] = init_cond
+                computational_grid[...,pressure] = init_cond[pressure] - .1*computational_grid[...,rho]*y
+                if params['perturb']:
+                    computational_grid[...,vy] += (.5 * np.random.uniform(-2*params['ampl'], 2*params['ampl'], size=computational_grid.shape) * (1 + np.cos(8*np.pi*y/3)))[...,vy]
+                else:
+                    computational_grid[...,vy] = params['ampl'] * (1 + np.cos(4*np.pi*x)) * (1 + np.cos(3*np.pi*y))
+                if config.startswith('m') or "mhd" in config:
+                    computational_grid[...,Bx] = params['Bx']
+
             elif match(any, ["ivc", "isentropic"]):
                 b, freq = params['vortex_str'], params['freq']
 
