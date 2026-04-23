@@ -71,6 +71,7 @@ def handle_CLI(db_path):
     parser.add_argument('--cfl', metavar='', type=float, default=argparse.SUPPRESS, help='Courant number in the Courant-Friedrichs-Lewy stability condition')
     parser.add_argument('--gamma', metavar='', type=float, default=argparse.SUPPRESS, help='adiabatic index')
     parser.add_argument('--dimensions', '--dims', dest='dimensions', type=int, metavar='', default=argparse.SUPPRESS, help='dimensionality of the simulation', choices=db.get(params.type == 'dimensions')['accepted'])
+    parser.add_argument('--units', metavar='', type=str.lower, default=argparse.SUPPRESS, help='set units/scale of the simulation', choices=db.get(params.type == 'units')['accepted'])
 
     parser.add_argument('--subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='subgrid model used for reconstruction within grid cells', choices=accepted_values('subgrid'))
     parser.add_argument('--time_evo', metavar='', type=str.lower, default=argparse.SUPPRESS, help='time integration method used for temporal evolution', choices=accepted_values('time_evo'))

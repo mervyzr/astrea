@@ -280,6 +280,15 @@
       ]
     },
     "8": {
+      "type": "units",
+      "accepted": [
+        "code",
+        "stellar",
+        "cluster",
+        "galactic"
+      ]
+    },
+    "9": {
       "type": "precision",
       "accepted": [
         "float",
@@ -288,7 +297,7 @@
         "float64"
       ]
     },
-    "9": {
+    "10": {
       "type": "subgrid",
       "category": "pcm",
       "accepted": [
@@ -297,7 +306,7 @@
         "c"
       ]
     },
-    "10": {
+    "11": {
       "type": "subgrid",
       "category": "plm",
       "accepted": [
@@ -306,7 +315,7 @@
         "l"
       ]
     },
-    "11": {
+    "12": {
       "type": "subgrid",
       "category": "ppm",
       "accepted": [
@@ -316,7 +325,7 @@
         "p"
       ]
     },
-    "12": {
+    "13": {
       "type": "subgrid",
       "category": "weno",
       "accepted": [
@@ -333,7 +342,7 @@
         "c-weno"
       ]
     },
-    "13": {
+    "14": {
       "type": "time_evo",
       "category": "euler",
       "accepted": [
@@ -341,7 +350,7 @@
         "forward-euler"
       ]
     },
-    "14": {
+    "15": {
       "type": "time_evo",
       "category": "rk",
       "accepted": [
@@ -350,7 +359,7 @@
         "runge-kutta4"
       ]
     },
-    "15": {
+    "16": {
       "type": "time_evo",
       "category": "ssprk",
       "accepted": [
@@ -377,7 +386,7 @@
         "ssprk65"
       ]
     },
-    "16": {
+    "17": {
       "type": "solver",
       "category": "lax",
       "accepted": [
@@ -394,7 +403,7 @@
         "g-force"
       ]
     },
-    "17": {
+    "18": {
       "type": "solver",
       "category": "hll",
       "accepted": [
@@ -405,7 +414,7 @@
         "d"
       ]
     },
-    "18": {
+    "19": {
       "type": "solver",
       "category": "complete",
       "accepted": [
@@ -418,7 +427,7 @@
         "entropy-stable"
       ]
     },
-    "19": {
+    "20": {
       "type": "default",
       "config": "sedov",
       "precision": "float64",
@@ -432,7 +441,7 @@
         "total energy"
       ]
     },
-    "20": {
+    "21": {
       "type": "plot_options",
       "category": "plotting",
       "accepted": [
@@ -486,7 +495,7 @@
         "machnumber"
       ]
     },
-    "21": {
+    "22": {
       "type": "quotes",
       "name": [
         "It's not a bug; it's an undocumented feature.",

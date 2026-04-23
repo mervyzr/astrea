@@ -35,3 +35,42 @@ sec_per_year = 3.154e+7     # seconds to years
 Myr = 3.156e+13             # seconds to Myr
 kms = 1e+5                  # centimeters per second
 sun_earths = 332980         # Sun in earth masses
+
+
+# characteristic scales
+scales = {
+    'code': {
+        'L': 1,
+        't': 1,
+        'rho': 1
+    },
+    'galactic': {
+        'L': 1e5,  # pc
+        't': 300,  # Myr
+        'rho': 1e-23  # g/cm3
+    },
+    'cluster': {
+        'L': 1,  # pc
+        't': 1,  # Myr
+        'rho': 1e-23  # g/cm3
+    },
+    'stellar': {
+        'L': .1,  # pc
+        't': .1,  # Myr
+        'rho': 1e-17  # g/cm3
+    }
+}
+
+"""x0 = pc  # cm
+rho0 = m_sun/x0**3  # g/cm3
+t0 = Myr  # s
+v0 = (x0/t0) # cm/s
+P0 = rho0 * (x0**2)/(t0**2) * .1  # Pa
+B0 = v0 * sqrt(rho0 * mu_0)  # Gauss
+
+x0 = 1  # pc
+rho0 = m_sun/pc**3  # g/cm3
+t0 = 1  # Myr
+v0 = (pc/kms)/Myr # km/s
+P0 = rho0 * (pc**2)/(Myr**2) * .1  # Pa
+B0 = v0 * sqrt(rho0) * 1e5 # Gauss"""
