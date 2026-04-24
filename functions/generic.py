@@ -146,7 +146,7 @@ def print_simple(sim_variables, t=None, status=''):
     elif status.lower() == 'init':
         pass
     else:
-        _instance = f"{BColours.WARNING}{t:.6f} / {sim_variables.t_end:.2f}{BColours.ENDC}"
+        _instance = f"{BColours.WARNING}{t:.6f} / {sim_variables.t_end:.3f}{BColours.ENDC}"
         print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SOLVER={_solver}, TIME_EVO={_time_evo} || {_instance}", end='\r')
         pass
 
