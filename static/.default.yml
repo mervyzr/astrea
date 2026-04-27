@@ -19,7 +19,6 @@ physics_parameters:
   units         : code
 
 numerical_parameters:
-  precision     : float64
   # Subgrid models for hydro and mag. components : PCM, PLM, PPM, CWENO, WENO-Z, WENO-3/5/7
   subgrid       : PCM
   # Iteration methods : EULER, RK4, SSPRK(2,2), SSPRK(3,3), SSPRK(4,3), SSPRK(5,3), SSPRK(5,4), SSPRK(10,4), SSPRK(6,5)

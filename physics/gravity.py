@@ -3,7 +3,7 @@ from itertools import repeat
 
 import numpy as np
 
-from functions import fv
+from functions import grid as gutils
 
 ##############################################################################
 # Self-gravity module
@@ -49,12 +49,12 @@ def get_acceleration(potentials, sim_variables):
 
     def axis_acc(phi, ax):
         if sim_variables.higher_order:
-            padded_phi_2 = fv.add_boundary(phi, sim_variables, stencil=2, axis=ax)
-            padded_phi = fv.slice_(padded_phi_2, ax, *[1,-1])
-            return -(fv.slice_(padded_phi_2, ax, start=4) + 8*fv.slice_(padded_phi, ax, start=2) - 8*fv.slice_(padded_phi, ax, end=-2) + fv.slice_(padded_phi_2, ax, end=-4))/(12 * ds[ax])
+            padded_phi_2 = gutils.add_boundary(phi, sim_variables, stencil=2, axis=ax)
+            padded_phi = gutils.slice_(padded_phi_2, ax, *[1,-1])
+            return -(gutils.slice_(padded_phi_2, ax, start=4) + 8*gutils.slice_(padded_phi, ax, start=2) - 8*gutils.slice_(padded_phi, ax, end=-2) + gutils.slice_(padded_phi_2, ax, end=-4))/(12 * ds[ax])
         else:
-            padded_phi = fv.add_boundary(phi, sim_variables, axis=ax)
-            return -(fv.slice_(padded_phi, axis=ax, start=2) - fv.slice_(padded_phi, axis=ax, end=-2))/(2 * ds[ax])
+            padded_phi = gutils.add_boundary(phi, sim_variables, axis=ax)
+            return -(gutils.slice_(padded_phi, axis=ax, start=2) - gutils.slice_(padded_phi, axis=ax, end=-2))/(2 * ds[ax])
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         jobs = executor.map(axis_acc, repeat(potentials), axes)

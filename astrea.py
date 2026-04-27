@@ -15,11 +15,14 @@ import yaml
 import dotenv
 import numpy as np
 
-from external import krome_funcs
-from functions import constructor, fv, generic, io, plotting
-from num_methods import ct, evolvers
-from physics import gravity, tracers
-from static import constants, tests
+from functions import generic, io, plotting
+from functions import grid as gutils
+from numkit import c_transport as ct
+from physics import constants, gravity, tracers
+from physics.krome import krome_funcs
+from static import tests
+from spatial.spatial import evolve as spatial_evolve
+from temporal.temporal import evolve as temporal_evolve
 
 ##############################################################################
 # Main script
@@ -39,9 +42,9 @@ def core_run(sim_variables, **kwargs):
     if sim_variables.chkpt_file:
         primitive_grid, t, idx = kwargs['grid'], kwargs['time'], kwargs['idx']
     else:
-        primitive_grid, t, idx = constructor.initialise(sim_variables), 0., 1
+        primitive_grid, t, idx = gutils.initialise(sim_variables), 0., 1
 
-    convert = ct.convert if sim_variables.magnetic else fv.convert
+    convert = ct.convert if sim_variables.magnetic else gutils.convert
 
     # Convert primitive grid to conservative variables <q>
     grid = convert("primitive", primitive_grid, sim_variables)
@@ -105,7 +108,7 @@ def core_run(sim_variables, **kwargs):
             break
         else:
             # Compute the numerical fluxes at each interface
-            fluxes, eigmax = evolvers.evolve_space(grid, sim_variables, first_stage=True)
+            fluxes, eigmax = spatial_evolve(grid, sim_variables, first_stage=True)
 
             # Compute the maximum eigenvalues for determining the full time step
             dt = sim_variables.cfl * eigmax
@@ -120,7 +123,7 @@ def core_run(sim_variables, **kwargs):
                 idx += 1
 
             # Update the solution with the numerical fluxes using iterative methods
-            grid = evolvers.evolve_time(grid, fluxes, dt, sim_variables)
+            grid = temporal_evolve(spatial_evolve, grid, fluxes, dt, sim_variables)
 
             ##############################
             # Post update steps (if any)
@@ -261,7 +264,6 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
                     grp.attrs['cfl'] = sim_variables.cfl
                     grp.attrs['gamma'] = sim_variables.gamma
                     grp.attrs['dimensions'] = sim_variables.dimensions
-                    grp.attrs['precision'] = sim_variables.precision
                     grp.attrs['eps'] = sim_variables.eps
                     grp.attrs['subgrid'] = sim_variables.subgrid
                     grp.attrs['time_evo'] = sim_variables.time_evo

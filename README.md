@@ -96,7 +96,7 @@ A method-of-lines approach is used for the temporal evolution of the simulation,
 
 Higher-order temporal discretisation methods can be employed to match the higher-order spatial components used. These higher-order methods also need to fulfil the TVD condition, which leads to the use of strong-stability preserving (SSP) variants of the Runge-Kutta (RK) methods, denoted here as SSPRK. Some of the SSPRK variants use the "Shu-Osher representation" (Shu & Osher, 1988) of Butcher's tableau of RK coefficients (Butcher, 1975).
 
-In the following, the (explicit) SSPRK methods are denoted as SSPRK (_i_,_j_), where _i_ and _j_ refers to _i_-stage and the _j_-th order iterative method respectively. Several SSPRK variants are included for this simulation, with the SSPRK (2,2) (Gottlieb et al., 2009), SSPRK (3,3) (Shu & Osher, 1988; Gottlieb et al., 2009), SSPRK(4,3), SSPRK (5,3) (Spiteri & Ruuth, 2002; Gottlieb et al., 2009), SSPRK (5,4) (Kraaijevanger, 1991; Ruuth & Spiteri, 2002), and low-storage (Williamson, 1980) SSPRK(10,4) (Ketcheson, 2008) methods. The ''classic'' RK4 or the Forward Euler method can also be used.
+In the following, the (explicit) SSPRK methods are denoted as SSPRK (_i_,_j_), where _i_ and _j_ refers to _i_-stage and the _j_-th order iterative method respectively. Several SSPRK variants are included for this simulation, with the SSPRK (2,2) (Gottlieb et al., 2009), SSPRK (3,3) (Shu & Osher, 1988; Gottlieb et al., 2009), SSPRK(4,3), SSPRK (5,3) (Spiteri & Ruuth, 2002; Gottlieb et al., 2009), SSPRK (5,4) (Kraaijevanger, 1991; Ruuth & Spiteri, 2002), SSPRK (6,5) (Gottlieb et al., 2009), and low-storage (Williamson, 1980) SSPRK(10,4) (Ketcheson, 2008) methods. The ''classic'' RK4 or the Forward Euler method can also be used.
 
 For a _j_-order reconstruction scheme, _j_ > 4, the Dormand-Prince 8(7) (Dormand & Prince, 1981) method can be considered. However, this method is not a SSP variant as no methods with order _j_ > 4 with positive SSP coefficients can exist (Kraaijevanger, 1991; Ruuth & Spiteri, 2002), and therefore might not be suitable for solutions with discontinuities.
 
@@ -355,45 +355,56 @@ astrea/
 ├── README.md
 ├── pyproject.toml
 ├── __init__.py
-├── astrea.py            : Core script for running the simulation
-├── external
-│   ├── build            : Build for default chemical network
-│   ├── __init__.py
-│   ├── abundances.yml   : Initial abundances for chemical species in default network
-│   ├── krome_funcs.py   : Functions for building and parsing krome routines
-│   ├── plot_chkpt.py    : Plotting function for checkpoint files
+├── astrea.py               : Core script for running the simulation
 ├── functions
 │   ├── __init__.py
-│   ├── analytic.py      : Analytical solutions to smooth advection wave tests
-│   ├── constructors.py  : Constructors for objects, such as eigenvectors and Jacobian matrices
-│   ├── fv.py            : Frequently used functions specific to FVM
-│   ├── generic.py       : Generic functions not specific to FVM
-│   ├── io.py            : Functions for I/O, e.g., simulation variables
-│   └── plotting.py      : Functions for media, e.g., (live-)plotting, saving videos
-├── num_methods
+│   ├── analytic.py   : Analytical solutions to smooth advection wave tests
+│   ├── generic.py    : Generic functions not specific to FVM
+│   ├── grid.py       : Grid functions used for padding, slicing, higher-order interpolations, etc.
+│   ├── io.py         : Functions for I/O, e.g., simulation variables
+│   ├── math.py       : Math functions, including specialised math functions
+│   ├── numeric.py    : Numerical functions for computing eigenvectors, Jacobian matrices, wavespeeds, etc.
+│   └── plotting.py   : Functions for media, e.g., (live-)plotting, saving videos
+├── numkit
 │   ├── __init__.py
-│   ├── ct.py            : Functions for the constrained transport implementation
-│   ├── evolvers.py      : Computation of space and time evolution
-│   ├── limiters.py      : Implements slope limiters for the reconstructed states
-│   ├── solvers.py       : Contains the various Riemann solvers
-├── parameters.yml       : Parameters for the simulation (not tracked by git)
+│   ├── c_transport.py  : Functions for the constrained transport implementation
+│   ├── limiters.py     : Implements slope limiters for the reconstructed states
+│   ├── solvers.py      : Contains the various Riemann solvers
+├── parameters.yml      : Parameters for the simulation (not tracked by git)
 ├── physics
 │   ├── __init__.py
-│   ├── gravity.py       : Functions for self-gravity (FFT Poisson solver)
-│   ├── tracers.py       : Functions for tracer particles
-├── schemes
+│   ├── krome
+│   │   ├── build           : Build for default chemical network
+│   │   ├── __init__.py
+│   │   ├── abundances.yml  : Initial abundances for chemical species in default network
+│   │   ├── krome_funcs.py  : Functions for building and parsing krome routines
+│   ├── constants.py        : Conversion between code units & CGS units
+│   ├── gravity.py          : Functions for self-gravity (FFT Poisson solver)
+│   ├── tracers.py          : Functions for tracer particles
+├── spatial
 │   ├── __init__.py
-│   ├── cweno.py         : Central weighted essentially non-oscillatory method (CWENO) [Levy et al., 1999]
-│   ├── pcm.py           : Piecewise constant method (PCM) [Godunov, 1959]
-│   ├── plm.py           : Piecewise linear method (PLM) [Derigs et al., 2018]
-│   ├── ppm.py           : Piecewise parabolic method (PPM) [McCorquodale & Colella, 2011; Felker & Stone, 2018]
-│   ├── weno.py          : Weighted essentially non-oscillatory method (WENO) [Shu, 2009]
-│   ├── wenoz.py         : WENO method with higher-order smoothness indicators (WENO-Z) [Borges et al., 2008]
+│   ├── cweno.py    : Central weighted essentially non-oscillatory method (CWENO) [Levy et al., 1999]
+│   ├── pcm.py      : Piecewise constant method (PCM) [Godunov, 1959]
+│   ├── plm.py      : Piecewise linear method (PLM) [Derigs et al., 2018]
+│   ├── ppm.py      : Piecewise parabolic method (PPM) [McCorquodale & Colella, 2011; Felker & Stone, 2018]
+│   ├── spatial.py  : Handler for spatial reconstruction schemes
+│   ├── weno.py     : Weighted essentially non-oscillatory method (WENO) [Shu, 2009]
+│   ├── wenoz.py    : WENO method with higher-order smoothness indicators (WENO-Z) [Borges et al., 2008]
 ├── static
 │   ├── __init__.py
-│   ├── .db.json         : Database for parameters
-│   ├── .default.yml     : Default parameters file
-│   ├── constants.py     : Conversion between code units & CGS units
-|   ├── *.gif            : .gif files for graphics in README.md
-│   ├── tests.py         : Initial conditions for (magneto)hydrodynamics tests
+│   ├── .db.json        : Database for parameters
+│   ├── .default.yml    : Default parameters file
+|   ├── *.gif           : .gif files for graphics in README.md
+│   ├── tests.py        : Initial conditions for (magneto)hydrodynamics tests
+├── temporal
+│   ├── __init__.py
+│   ├── euler.py      : Forward Euler (explicit) scheme
+│   ├── rk4.py        : (Standard) Runge-Kutta 3 scheme
+│   ├── ssprk2.py     : Second-order strong stability-preserving scheme [Gottlieb et al., 2009]
+│   ├── ssprk3.py     : Third-order strong stability-preserving schemes [Shu & Osher, 1988; Spiteri & Ruuth, 2002; Gottlieb et al., 2009]
+│   ├── ssprk4.py     : Fourth-order strong stability-preserving schemes [Kraaijevanger, 1991; Ruuth & Spiteri, 2002; Ketcheson, 2008]
+│   ├── ssprk5.py     : Fifth-order strong stability-preserving scheme [Gottlieb et al., 2009]
+│   ├── temporal.py   : Handler for time integration schemes
+├── utilities
+│   ├── plot_chkpt.py    : Plotting function for checkpoint files
 ```

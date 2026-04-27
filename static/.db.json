@@ -322,15 +322,6 @@
       ]
     },
     "12": {
-      "type": "precision",
-      "accepted": [
-        "float",
-        "float16",
-        "float32",
-        "float64"
-      ]
-    },
-    "13": {
       "type": "subgrid",
       "category": "pcm",
       "accepted": [
@@ -339,7 +330,7 @@
         "c"
       ]
     },
-    "14": {
+    "13": {
       "type": "subgrid",
       "category": "plm",
       "accepted": [
@@ -348,7 +339,7 @@
         "l"
       ]
     },
-    "15": {
+    "14": {
       "type": "subgrid",
       "category": "ppm",
       "accepted": [
@@ -358,7 +349,7 @@
         "p"
       ]
     },
-    "16": {
+    "15": {
       "type": "subgrid",
       "category": "weno",
       "accepted": [
@@ -375,7 +366,7 @@
         "c-weno"
       ]
     },
-    "17": {
+    "16": {
       "type": "time_evo",
       "category": "euler",
       "accepted": [
@@ -383,7 +374,7 @@
         "forward-euler"
       ]
     },
-    "18": {
+    "17": {
       "type": "time_evo",
       "category": "rk",
       "accepted": [
@@ -392,7 +383,7 @@
         "runge-kutta4"
       ]
     },
-    "19": {
+    "18": {
       "type": "time_evo",
       "category": "ssprk",
       "accepted": [
@@ -419,7 +410,7 @@
         "ssprk65"
       ]
     },
-    "20": {
+    "19": {
       "type": "solver",
       "category": "lax",
       "accepted": [
@@ -436,7 +427,7 @@
         "g-force"
       ]
     },
-    "21": {
+    "20": {
       "type": "solver",
       "category": "hll",
       "accepted": [
@@ -447,7 +438,7 @@
         "d"
       ]
     },
-    "22": {
+    "21": {
       "type": "solver",
       "category": "complete",
       "accepted": [
@@ -460,10 +451,9 @@
         "entropy-stable"
       ]
     },
-    "23": {
+    "22": {
       "type": "default",
       "config": "sedov",
-      "precision": "float64",
       "subgrid": "pcm",
       "time_evo": "euler",
       "solver": "lf",
@@ -474,7 +464,7 @@
         "total energy"
       ]
     },
-    "24": {
+    "23": {
       "type": "plot_options",
       "category": "plotting",
       "accepted": [
@@ -528,7 +518,7 @@
         "machnumber"
       ]
     },
-    "25": {
+    "24": {
       "type": "quotes",
       "name": [
         "It's not a bug; it's an undocumented feature.",

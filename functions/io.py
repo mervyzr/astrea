@@ -7,11 +7,11 @@ import h5py
 import numpy as np
 from tinydb import TinyDB, Query
 
-from external import krome_funcs
 from functions import generic
 from functions.generic import BColours
 from static import tests
-from static import constants as const
+from physics import constants as const
+from physics.krome import krome_funcs
 
 ##############################################################################
 # I/O functions for simulation
@@ -104,23 +104,8 @@ def handle_CLI(db_path):
 
 def filter_variables(config_variables):
     db, params = TinyDB(config_variables['db_path']), Query()
-
-    # Pre-process some variables that are needed for next section
-    try:
-        precision = config_variables['precision']
-    except KeyError:
-        precision = np.float64
-        config_variables['precision'] = precision
-    finally:
-        try:
-            eps = np.finfo(precision).eps
-        except ValueError:
-            eps = 1e-16     # 64 bit
-            #eps = 1e-7      # 32 bit
-        else:
-            if eps < 1e-14:
-                eps = 1e-29  # [Jiang & Shu, 1996]
-        config_variables['eps'] = eps
+    eps = np.finfo(float).eps
+    config_variables['eps'] = eps
 
     # Check validity of variables; revert to default values if not valid
     for k,v in config_variables.items():
@@ -191,7 +176,7 @@ def filter_variables(config_variables):
                 if invalid != []:
                     print(f"{BColours.WARNING}Invalid plot options: {invalid}{BColours.ENDC}")
         else:
-            if k in ['config', 'precision', 'subgrid', 'time_evo', 'solver']:
+            if k in ['config', 'subgrid', 'time_evo', 'solver']:
                 if isinstance(v, str):
                     v = v.lower()
 
@@ -225,7 +210,7 @@ class SimulationVariables(object):
     __slots__ = [
         '__dict__',
         'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'energy', 'vels', 'Bfields', 'momentums',
-        'config', 'cells', 'cfl', 'gamma', 'dimensions', 'precision', 'subgrid', 'time_evo', 'solver',
+        'config', 'cells', 'cfl', 'gamma', 'dimensions', 'subgrid', 'time_evo', 'solver',
         'coordinates', 'shock_pos', 't_end', 'boundary', 'misc', 'init_cond', 'ambient', 'ds',
         'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
         'axes', 'magnetic', 'convert', 'roots', 'weights', 'ppm_dissipate', 'higher_order', 'grid_interpolate', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
@@ -293,7 +278,7 @@ class SimulationVariables(object):
         if self.chemistry:
             self.units = 'physical'
             if not self.network:
-                krome_path = os.path.join(self.home, 'external')
+                krome_path = os.path.join(self.home, 'physics', 'krome')
             else:
                 try:
                     krome_path = [os.path.join(root, dirname) for root, dirs, _ in os.walk(self.home) for dirname in dirs if 'krome' in os.path.join(root, dirname)][0]
@@ -363,7 +348,6 @@ def write_chkpt_file(grid, t, idx, sim_variables):
         f.attrs['cfl'] = sim_variables.cfl
         f.attrs['gamma'] = sim_variables.gamma
         f.attrs['dimensions'] = sim_variables.dimensions
-        f.attrs['precision'] = sim_variables.precision
         f.attrs['eps'] = sim_variables.eps
         f.attrs['subgrid'] = sim_variables.subgrid
         f.attrs['time_evo'] = sim_variables.time_evo
@@ -400,7 +384,6 @@ def load_chkpt_file(config_variables, file):
                 config_variables['cfl'] = float(f.attrs['cfl'])
                 config_variables['gamma'] = float(f.attrs['gamma'])
                 config_variables['dimensions'] = int(f.attrs['dimensions'])
-                config_variables['precision'] = f.attrs['precision']
                 config_variables['eps'] = f.attrs['eps']
                 config_variables['subgrid'] = f.attrs['subgrid']
                 config_variables['time_evo'] = f.attrs['time_evo']

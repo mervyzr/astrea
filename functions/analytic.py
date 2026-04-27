@@ -1,30 +1,12 @@
 import scipy as sp
 import numpy as np
-from skimage.measure import block_reduce
 
-from functions import constructor, fv, generic
+from functions import grid as gutils
+from functions import math as mfuncs
 
 ##############################################################################
 # Functions for analytic solutions
 ##############################################################################
-
-# Generic Gaussian function
-def gauss_func(r, params):
-    return params['y_offset'] + params['ampl']*np.exp(-(r**2)/params['fwhm'])
-
-
-# Generic sin function
-def sine_func(r, params):
-    return params['y_offset'] + params['ampl']*np.sin(params['freq']*np.pi*r)
-
-
-# Customised rounding function
-def round_off(value):
-    if value%int(value) >= .5:
-        return int(value) + 1
-    else:
-        return int(value)
-
 
 # Calculate scaled entropy density for an array [Derigs et al., 2015]
 def calculate_entropy_density(grid, gamma):
@@ -42,10 +24,10 @@ def calculate_solution_error(grid, sim_variables, norm):
     # Create theoretical array
     sim_variables.cells = list(grid_shape)
     sim_variables.ds = {ax: np.abs(np.diff(sim_variables.coordinates[ax]))/sim_variables.cells[ax] for ax in range(len(sim_variables.cells))}
-    w_theo = constructor.initialise(sim_variables)
+    w_theo = gutils.initialise(sim_variables)
 
-    E_tot_num, E_tot_theo = fv.divide(fv.convert_thermo_variable('pressure', w_num, sim_variables), w_num[...,rho]), fv.divide(fv.convert_thermo_variable('pressure', w_theo, sim_variables), w_theo[...,rho])
-    E_int_num, E_int_theo = fv.divide(w_num[...,pressure], w_num[...,rho]*(gamma-1)), fv.divide(w_theo[...,pressure], w_theo[...,rho]*(gamma-1))
+    E_tot_num, E_tot_theo = mfuncs.divide(gutils.convert_thermo_variable('pressure', w_num, sim_variables), w_num[...,rho]), mfuncs.divide(gutils.convert_thermo_variable('pressure', w_theo, sim_variables), w_theo[...,rho])
+    E_int_num, E_int_theo = mfuncs.divide(w_num[...,pressure], w_num[...,rho]*(gamma-1)), mfuncs.divide(w_theo[...,pressure], w_theo[...,rho]*(gamma-1))
 
     w_num, w_theo = np.concatenate((w_num, E_tot_num[...,None]), axis=-1), np.concatenate((w_theo, E_tot_theo[...,None]), axis=-1)
     w_num, w_theo = np.concatenate((w_num, E_int_num[...,None]), axis=-1), np.concatenate((w_theo, E_int_theo[...,None]), axis=-1)
@@ -67,8 +49,8 @@ def calculate_TV(simulation, sim_variables):
 
     for t in list(simulation.keys()):
         grid = simulation[t]
-        E_tot = fv.divide(fv.convert_thermo_variable('pressure', grid, sim_variables), grid[...,rho])
-        E_int = fv.divide(grid[...,pressure], grid[...,rho]*(gamma-1))
+        E_tot = mfuncs.divide(gutils.convert_thermo_variable('pressure', grid, sim_variables), grid[...,rho])
+        E_int = mfuncs.divide(grid[...,pressure], grid[...,rho]*(gamma-1))
         for i in range(dimensions):
             grid = np.diff(grid, axis=i)
             E_tot = np.diff(E_tot, axis=i)
@@ -86,7 +68,7 @@ def calculate_conservation(simulation, sim_variables):
     dV = np.prod(np.diff(list(coordinates.values()), axis=1))
     for t in list(simulation.keys()):
         _grid = simulation[t][:]  # Needs the '[:]' to access the array
-        grid = fv.convert("primitive", _grid, sim_variables)
+        grid = gutils.convert("primitive", _grid, sim_variables)
         grid = np.sum(grid, axis=tuple(axes))
         conservation[float(t)] = grid * dV
     return conservation
@@ -105,7 +87,7 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
 
     for t in intervals:
         _grid = simulation[t][:]  # Needs the '[:]' to access the array
-        grid = fv.convert("primitive", _grid, sim_variables)
+        grid = gutils.convert("primitive", _grid, sim_variables)
         grid = np.sum(grid, axis=tuple(axes))
         conservation[t] = grid * dV
     return conservation
@@ -140,13 +122,13 @@ def calculate_Sod_analytical(grid, t, sim_variables):
     v_s = vx2/(1-(rho1/rho2))
 
     # Define boundary regions and number of cells within each region
-    boundary_54 = round_off(((shock_pos-(cs5*t)-start_pos)/np.diff(axis_coord)) * len(grid))
-    boundary_43 = round_off(((shock_pos-(v_t*t)-start_pos)/np.diff(axis_coord)) * len(grid))
-    boundary_32 = round_off(((shock_pos+(vx2*t)-start_pos)/np.diff(axis_coord)) * len(grid))
-    boundary_21 = round_off(((shock_pos+(v_s*t)-start_pos)/np.diff(axis_coord)) * len(grid))
+    boundary_54 = mfuncs.round_off(((shock_pos-(cs5*t)-start_pos)/np.diff(axis_coord)) * len(grid))
+    boundary_43 = mfuncs.round_off(((shock_pos-(v_t*t)-start_pos)/np.diff(axis_coord)) * len(grid))
+    boundary_32 = mfuncs.round_off(((shock_pos+(vx2*t)-start_pos)/np.diff(axis_coord)) * len(grid))
+    boundary_21 = mfuncs.round_off(((shock_pos+(v_s*t)-start_pos)/np.diff(axis_coord)) * len(grid))
 
     # Define number of cells in the rarefaction wave
-    rarefaction_cells = round_off(((cs5*t-v_t*t)/np.diff(axis_coord)) * len(grid))
+    rarefaction_cells = mfuncs.round_off(((cs5*t-v_t*t)/np.diff(axis_coord)) * len(grid))
     if rarefaction_cells - (boundary_43-boundary_54) < 0:
         rarefaction_cells += 1
     elif rarefaction_cells - (boundary_43-boundary_54) > 0:
@@ -169,56 +151,6 @@ def calculate_Sod_analytical(grid, t, sim_variables):
     arr[boundary_54:boundary_43, 1] = (1-mu) * (cs5+(rarefaction/t))
 
     return arr
-
-
-# Resample grid for circular blast injection to populate cell variables with a circle/sphere; value in grid cell is weighted by area/volume covered
-def resample_blast(grid, sim_variables, resample_size=50):
-    print(f"{generic.BColours.WARNING}Blast config. used; supersampling initialised grid before starting simulation for better resolution..{generic.BColours.ENDC}")
-    cells, dimensions, multidimensional, coordinates, shock_pos = sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.coordinates, sim_variables.shock_pos
-
-    quarter = sim_variables.misc['mode'].lower().startswith('q')
-
-    fine_grid = np.resize(np.zeros_like(grid), np.asarray(cells)*resample_size)
-    physical_grid = lambda axis: constructor.make_physical_grid(coordinates[axis], cells[axis]*resample_size)
-
-    if quarter:
-        x_centre = coordinates[0][0]
-    else:
-        x_centre = np.average(coordinates[0])
-    fine_physical_grid_x = physical_grid(0)
-    fine_x = fine_physical_grid_x - x_centre
-
-    fine_y = fine_z = np.zeros_like(fine_x)
-    y_centre = z_centre = 0
-
-    if multidimensional:
-        if quarter:
-            y_centre = coordinates[1][0]
-        else:
-            y_centre = np.average(coordinates[1])
-        fine_physical_grid_y = physical_grid(1)
-        fine_x, fine_y = np.meshgrid(fine_physical_grid_x, fine_physical_grid_y, indexing='ij')
-        fine_z = np.zeros_like(fine_x)
-
-        if dimensions == 3:
-            if quarter:
-                z_centre = coordinates[2][0]
-            else:
-                z_centre = np.average(coordinates[2])
-            fine_physical_grid_z = physical_grid(2)
-            fine_x, fine_y, fine_z = np.meshgrid(fine_physical_grid_x, fine_physical_grid_y, fine_physical_grid_z, indexing='ij')
-
-    fine_r = np.sqrt((fine_x-x_centre)**2 + (fine_y-y_centre)**2 + (fine_z-z_centre)**2)
-    fine_mask = np.where(fine_r**2 <= (shock_pos-x_centre)**2)
-    fine_grid[fine_mask] = 1
-
-    remapped_grid = block_reduce(fine_grid, block_size=tuple([resample_size,]*dimensions), func=np.sum)
-    mask = np.where(remapped_grid > 0)
-
-    _grid = np.copy(grid)
-    _grid[mask][...,sim_variables.pressure] *= (remapped_grid/np.max(remapped_grid))[mask]
-
-    return _grid
 
 
 # Determine the analytical solution for a Sedov blast wave [Dullemond, Numerical Methods, Chpt. 10]

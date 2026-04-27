@@ -10,9 +10,11 @@ import matplotlib.gridspec as gridspec
 from matplotlib.patches import Polygon
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from functions import analytic, constructor, fv
+from functions import grid as gutils
+from functions import analytic
+from functions import math as mfuncs
 from functions.generic import BColours
-from static import constants
+from physics import constants
 
 ##############################################################################
 # Plotting functions and media handling
@@ -245,9 +247,9 @@ def make_data(options, grid, sim_variables):
 
         if "energy" in option or "temp" in option or option.startswith("e"):
             if "int" in option:
-                quantity = fv.divide(grid[...,pressure], grid[...,rho] * (sim_variables.gamma-1))
+                quantity = mfuncs.divide(grid[...,pressure], grid[...,rho] * (sim_variables.gamma-1))
             else:
-                quantity = fv.divide(fv.convert_thermo_variable('pressure', grid, sim_variables), grid[...,rho])
+                quantity = mfuncs.divide(gutils.convert_thermo_variable('pressure', grid, sim_variables), grid[...,rho])
             if "density" in option:
                 quantity *= grid[...,rho]
         elif option.startswith("p"):
@@ -259,12 +261,12 @@ def make_data(options, grid, sim_variables):
                 quantity *= grid[...,rho]
         elif option.startswith("b") or option.startswith("mag"):
             if "p" in option:
-                quantity = .5 * fv.norm(grid[...,Bfields])**2
+                quantity = .5 * mfuncs.norm(grid[...,Bfields])**2
             else:
                 axis = axes(option)
                 quantity = grid[...,5+axis]
         elif 'div' in option or 'db' in option:
-            div_along_axis = lambda ax: fv.slice_(np.diff(fv.add_boundary(grid[...,5+ax], sim_variables, axis=ax), axis=ax), axis=ax, end=-1)/sim_variables.ds[ax]
+            div_along_axis = lambda ax: gutils.slice_(np.diff(gutils.add_boundary(grid[...,5+ax], sim_variables, axis=ax), axis=ax), axis=ax, end=-1)/sim_variables.ds[ax]
             if option[-1] == 'b':
                 if sim_variables.multidimensional:
                     quantity = div_along_axis(0) + div_along_axis(1)
@@ -275,7 +277,7 @@ def make_data(options, grid, sim_variables):
             else:
                 quantity = div_along_axis(axes(option))
         elif "mach" in option:
-            quantity = np.sqrt(fv.divide(fv.norm(grid[...,vels])**2, fv.divide(sim_variables.gamma*grid[...,pressure], grid[...,rho])))
+            quantity = np.sqrt(mfuncs.divide(mfuncs.norm(grid[...,vels])**2, mfuncs.divide(sim_variables.gamma*grid[...,pressure], grid[...,rho])))
         else:
             quantity = grid[...,rho]
 
@@ -434,7 +436,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
 # Generic plot of simulation variables
 def plot_quantities(hdf5, sim_variables, title=False):
     config, dimensions, multidimensional, coordinates, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.coordinates, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
-    precision, t_end, checkpoints = sim_variables.precision, sim_variables.t_end, sim_variables.checkpoints
+    t_end, checkpoints = sim_variables.t_end, sim_variables.checkpoints
     options = sim_variables.plot_options
 
     if sim_variables.save_as_pdf:
@@ -449,7 +451,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
     # Separate the timings based on the number of checkpoints; returns a dict of lists with the timing intervals for each grid set-up
     plot_timings_for_each_grp = {}
     for datetime in datetimes:
-        all_timings = np.fromiter(hdf5[datetime].keys(), dtype=precision)
+        all_timings = np.fromiter(hdf5[datetime].keys(), dtype=float)
         all_timings.sort()
         plot_timings_for_each_grp[datetime] = np.linspace(0, t_end, checkpoints+1)
 
@@ -528,7 +530,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
         if not multidimensional:
             # Add analytical solution for smooth functions, using the highest resolution and timing
             if sim_variables.config_category == "smooth":
-                analytical = constructor.initialise(sim_variables)
+                analytical = gutils.initialise(sim_variables)
 
                 y_theo = make_data(options, analytical, sim_variables)
                 for idx, (_i,_j) in enumerate(plot_['indexes']):
@@ -590,7 +592,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
     ##############################
     fig, ax, plot_ = make_figure(options, sim_variables, "errors")
 
-    array = np.full((1+len(options), len(datetimes)), 0., dtype=sim_variables.precision)
+    array = np.full((1+len(options), len(datetimes)), 0., dtype=float)
     for idx, datetime in enumerate(datetimes):
         _arr = [np.prod(hdf5[datetime].attrs['cells']),]
 
@@ -616,7 +618,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
             else:
                 _arr.append(solution_errors[0])
 
-        array[...,idx] = np.asarray(_arr, dtype=sim_variables.precision)
+        array[...,idx] = np.asarray(_arr, dtype=float)
     x, y_data = array[:1].ravel()**(1/dimensions), array[1:]
     x.sort()
 
@@ -708,7 +710,7 @@ def plot_total_variation(hdf5, sim_variables, title=False):
         x.sort()
         ys = np.asarray(list(total_variations.values()))
 
-        y_data = np.full((len(options), len(x)), 0., dtype=sim_variables.precision)
+        y_data = np.full((len(options), len(x)), 0., dtype=float)
         for idx, option in enumerate(options):
             option = option.lower()            
             if "energy" in option or "temp" in option or option.startswith("e"):
@@ -770,7 +772,7 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
         x.sort()
         ys = np.asarray(list(conservation.values()))
 
-        y_data = np.full((len(options), len(x)), 0., dtype=sim_variables.precision)
+        y_data = np.full((len(options), len(x)), 0., dtype=float)
         for idx, option in enumerate(options):
             option = option.lower()
             if "energy" in option or "temp" in option:
@@ -1055,7 +1057,7 @@ def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None
         vels = grid[...,sim_variables.vels]
 
         # Kinetic energy in real space
-        E_kin = .5 * density * fv.norm(vels)**2
+        E_kin = .5 * density * mfuncs.norm(vels)**2
 
         fft_field = np.fft.fft2(E_kin)  # Fourier transform the energy field
         fft_field = np.fft.fftshift(fft_field)  # Shift zero frequency to the center
