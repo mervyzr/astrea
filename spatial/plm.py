@@ -41,7 +41,7 @@ def run(grid, sim_variables, axis):
 
     # Get the average solution between the interfaces at the boundaries
     intf_avg = .5 * (prim_plus + prim_minus)
-    padded_intf_avg = gutils.slice_(gutils.add_boundary(intf_avg, sim_variables, axis=axis), axis, end=-1)
+    padded_intf_avg = gutils.add_boundary(intf_avg, sim_variables, axis=axis)
 
     # Convert the primitive variables at the interface
     cons_plus, cons_minus = gutils.variable_convert_intf("primitive", prim_plus, sim_variables, axis=axis), gutils.variable_convert_intf("primitive", prim_minus, sim_variables, axis=axis)
@@ -73,7 +73,7 @@ def run(grid, sim_variables, axis):
         'cons_interfaces': (cons_plus, cons_minus),
         'flux_interfaces': (flux_plus, flux_minus),
         'characteristics': characteristics,
-        'jacobian': gutils.slice_(jacobian, axis, start=1),
+        'jacobian': gutils.slice_(jacobian, axis, *[1,-1]),
     })
 
     # Compute flux difference for hydrodynamic components

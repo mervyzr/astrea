@@ -4,7 +4,7 @@ from itertools import repeat
 import numpy as np
 from skimage.measure import block_reduce
 
-from functions import generic, numeric
+from functions import generic
 from functions import math as mfuncs
 from functions.generic import verbose_timer
 
@@ -452,10 +452,9 @@ def laplacian(grid, sim_variables, axis):
 
 # Add boundary conditions
 def add_boundary(grid, sim_variables, stencil=1, axis=0):
-    arr = np.copy(grid)
     padding = [(0,0)] * grid.ndim
     padding[axis] = (stencil,stencil)
-    return np.pad(arr, padding, mode=sim_variables.boundary)
+    return np.pad(grid, padding, mode=sim_variables.boundary)
 
 
 # Convert between pressure P and total energy density e_tot; P is also related to the internal energy density e_int: P = (gamma-1) * e_int

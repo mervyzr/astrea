@@ -80,13 +80,8 @@ def compute_Roe_average(interfaces, sim_variables):
 
 # Compute the max eigenvalues for calculating the time evolution
 def compute_eigmax(characteristics, axis):
-    # Local max eigenvalue for each cell (1- or 3-Riemann invariant; shock wave or rarefaction wave)
     local_max_eigvals = np.max(np.abs(characteristics), axis=-1)
-
-    # Local max eigenvalue between consecutive pairs of cell
     max_eigvals = np.maximum(gutils.slice_(local_max_eigvals, axis, end=-1), gutils.slice_(local_max_eigvals, axis, start=1))
-
-    # Maximum wave speed (max eigenvalue) for time evolution
     return np.max(max_eigvals)
 
 

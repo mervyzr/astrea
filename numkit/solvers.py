@@ -40,8 +40,21 @@ def calculate_LaxFriedrich_flux(axis, sim_variables, **kwargs):
     flux_plus, flux_minus = kwargs["flux_interfaces"]
     characteristics = kwargs["characteristics"]
 
-    local_max_eigvals = np.max(np.abs(np.real(characteristics)), axis=-1)  # Get maximum eigenvalues in each (localised) cell
-    max_eigvals = np.maximum(gutils.slice_(local_max_eigvals, axis, end=-1), gutils.slice_(local_max_eigvals, axis, start=1))  # Get the maximum eigenvalue between each consecutive pair of cells
+    # Local max eigenvalue for each interface (1- or 3-Riemann invariant; shock wave or rarefaction wave)
+    local_max_eigvals = np.max(np.abs(characteristics), axis=-1)
+
+    # Local max eigenvalue between consecutive pairs of cells
+    plus = np.maximum(
+        gutils.slice_(local_max_eigvals, axis, start=2),
+        gutils.slice_(local_max_eigvals, axis, *[1,-1]),
+    )
+    minus = np.maximum(
+        gutils.slice_(local_max_eigvals, axis, *[1,-1]),
+        gutils.slice_(local_max_eigvals, axis, end=-2),
+    )
+
+    # Averaged maximum localised eigenvalue at each interface
+    max_eigvals = .5 * (plus + minus)
     return .5*(flux_minus+flux_plus) - .5*max_eigvals[...,None]*(cons_plus-cons_minus)
 
 
@@ -52,8 +65,17 @@ def calculate_LaxWendroff_flux(axis, sim_variables, **kwargs):
     characteristics = kwargs["characteristics"]
     jacobian = kwargs["jacobian"]
 
-    local_max_eigvals = np.max(np.abs(np.real(characteristics)), axis=-1)
-    max_eigvals = np.maximum(gutils.slice_(local_max_eigvals, axis, end=-1), gutils.slice_(local_max_eigvals, axis, start=1))
+    local_max_eigvals = np.max(np.abs(characteristics), axis=-1)
+    plus = np.maximum(
+        gutils.slice_(local_max_eigvals, axis, start=2),
+        gutils.slice_(local_max_eigvals, axis, *[1,-1]),
+    )
+    minus = np.maximum(
+        gutils.slice_(local_max_eigvals, axis, *[1,-1]),
+        gutils.slice_(local_max_eigvals, axis, end=-2),
+    )
+    max_eigvals = .5 * (plus + minus)
+
     return .5*(flux_minus+flux_plus) - .5*((cons_plus-cons_minus) * max_eigvals[...,None]) + .5*(jacobian * (cons_plus-cons_minus)[...,None])[...,0]
 
 
@@ -69,8 +91,8 @@ def calculate_HLL_flux(axis, sim_variables, **kwargs):
     flux_plus, flux_minus = kwargs["flux_interfaces"]
     characteristics = kwargs["characteristics"]
 
-    local_max_eigvals, local_min_eigvals = np.max(np.real(characteristics), axis=-1), np.min(np.real(characteristics), axis=-1)
-    max_eigvals, min_eigvals = gutils.slice_(local_max_eigvals, axis, end=-1), gutils.slice_(local_min_eigvals, axis, end=-1)
+    local_max_eigvals, local_min_eigvals = np.max(characteristics, axis=-1), np.min(characteristics, axis=-1)
+    max_eigvals, min_eigvals = gutils.slice_(local_max_eigvals, axis, *[1,-1]), gutils.slice_(local_min_eigvals, axis, *[1,-1])
     alpha_plus, alpha_minus = np.maximum(0, max_eigvals)[...,None], -np.minimum(0, min_eigvals)[...,None]
 
     return mfuncs.divide((flux_minus*alpha_plus + flux_plus*alpha_minus) - (alpha_plus*alpha_minus*(cons_plus-cons_minus)), alpha_plus+alpha_minus)

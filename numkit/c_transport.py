@@ -33,9 +33,23 @@ def convert(variable, grid, sim_variables):
 # Compute the maximum(+) & minimum(-) eigenvalues for alpha+ and alpha- respectively for each axis; used in the compute_emf function
 def compute_alphas(characteristics, axis):
     local_max, local_min = np.max(characteristics, axis=-1), np.min(characteristics, axis=-1)
-    max_eigvals = np.maximum(gutils.slice_(local_max, axis, end=-1), gutils.slice_(local_max, axis, start=1))
-    min_eigvals = np.minimum(gutils.slice_(local_min, axis, end=-1), gutils.slice_(local_min, axis, start=1))
-    return gutils.slice_(np.maximum(0, max_eigvals), axis, start=1), gutils.slice_(-np.minimum(0, min_eigvals), axis, start=1)
+
+    def compute_plus_minus(_axis, func, localised_eigenvalues):
+        plus = func(
+            gutils.slice_(localised_eigenvalues, _axis, start=2),
+            gutils.slice_(localised_eigenvalues, _axis, *[1,-1])
+        )
+        minus = func(
+            gutils.slice_(localised_eigenvalues, axis, *[1,-1]),
+            gutils.slice_(localised_eigenvalues, axis, end=-2)
+        )
+        return func(0, .5 * (plus + minus))
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        jobs = executor.map(compute_plus_minus, repeat(axis), (np.maximum, np.minimum), (local_max, local_min))
+        alpha_plus, alpha_minus = [job for job in jobs]
+
+    return gutils.slice_(alpha_plus, axis, start=1), gutils.slice_(-alpha_minus, axis, start=1)
 
 
 # 'Inverse reconstruct' the magnetic fields' cell-averaged values from the (staggered grid) face-averaged values [Felker & Stone, 2018]
