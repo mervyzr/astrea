@@ -70,7 +70,8 @@ def handle_CLI(db_path):
     parser.add_argument('--cells', '--grid', dest='cells', metavar='', default=argparse.SUPPRESS, help='number of cells in the grid')
     parser.add_argument('--cfl', metavar='', type=float, default=argparse.SUPPRESS, help='Courant number in the Courant-Friedrichs-Lewy stability condition')
     parser.add_argument('--gamma', metavar='', type=float, default=argparse.SUPPRESS, help='adiabatic index')
-    parser.add_argument('--dimensions', '--dims', dest='dimensions', type=int, metavar='', default=argparse.SUPPRESS, help='dimensionality of the simulation', choices=db.get(params.type == 'dimensions')['accepted'])
+    parser.add_argument('--dimensions', type=int, metavar='', default=argparse.SUPPRESS, help='dimensionality of the simulation', choices=db.get(params.type == 'dimensions')['accepted'])
+    parser.add_argument('--gravity', metavar='', type=str.lower, default=argparse.SUPPRESS, help='set gravity in the simulation', choices=db.get(params.type == 'gravity')['accepted'])
     parser.add_argument('--units', metavar='', type=str.lower, default=argparse.SUPPRESS, help='set units/scale of the simulation', choices=db.get(params.type == 'units')['accepted'])
 
     parser.add_argument('--subgrid', metavar='', type=str.lower, default=argparse.SUPPRESS, help='subgrid model used for reconstruction within grid cells', choices=accepted_values('subgrid'))
@@ -79,7 +80,7 @@ def handle_CLI(db_path):
 
     parser.add_argument('--checkpoints', metavar='', type=int, default=argparse.SUPPRESS, help='number of checkpoints in simulation')
 
-    parser.add_argument('--live_plot', '--live', dest='live_plot', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
+    parser.add_argument('--live_plot', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle the live plotting function', choices=bool_choices)
     parser.add_argument('--save_snaps', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving snapshots of the simulation', choices=bool_choices)
     parser.add_argument('--save_plots', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving quantitative plots of the simulation', choices=bool_choices)
     parser.add_argument('--save_video', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving a video of the simulation', choices=bool_choices)
@@ -89,7 +90,6 @@ def handle_CLI(db_path):
 
     parser.add_argument('--file', dest='chkpt_file', metavar='', type=str.lower, default='', help='(absolute) path to astrea checkpoint file')
     parser.add_argument('--tracers', help='switch on tracer particles in the simulation', action='store_true')
-    parser.add_argument('--gravity', help='switch on self-gravity in the simulation', action='store_true')
 
     parser.add_argument('--chemistry', help='switch on chemical network in simulation', action='store_true')
     parser.add_argument('--network', metavar='', type=str.lower, default='', help='(absolute) path to chemical network file')
@@ -156,6 +156,19 @@ def filter_variables(config_variables):
             if k == "cfl":
                 if v <= 0:
                     v = eps
+        elif k == "gravity":
+            if isinstance(v, str):
+                if v.lower() not in ['true', '1', 'self', 'ext', 'external']:
+                    v = False
+            else:
+                if not isinstance(v, bool):
+                    if isinstance(v, int):
+                        if v not in (0,1):
+                            v = False
+                        else:
+                            v = bool(v)
+                    else:
+                        v = False
         elif k == "plot_options":
             accepted_plot_options, valid, invalid = db.get(params.type == k)['accepted'], [], []
             try:
@@ -209,21 +222,22 @@ class Constants(object):
 class SimulationVariables(object):
     __slots__ = [
         '__dict__',
-        'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'energy', 'vels', 'Bfields', 'momentums',
-        'config', 'cells', 'cfl', 'gamma', 'dimensions', 'subgrid', 'time_evo', 'solver',
+        'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'gx', 'gy', 'gz', 'energy', 'vels', 'Bfields', 'momentums', 'gs',
+        'config', 'cells', 'cfl', 'gamma', 'gravity', 'self_gravity', 'ext_gravity', 'dimensions', 'subgrid', 'time_evo', 'solver',
         'coordinates', 'shock_pos', 't_end', 'boundary', 'misc', 'init_cond', 'ambient', 'ds',
         'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
         'axes', 'magnetic', 'convert', 'roots', 'weights', 'ppm_dissipate', 'higher_order', 'grid_interpolate', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'eps', 'home', 'save_path', 'db_path', 'hdf5', 'timesteps', 'print_status',
         'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test',
-        'units', 'constants', 'chemistry', 'network', 'pykrome', 'species', 'abundances', 'gravity', 'tracers', 
+        'units', 'constants', 'chemistry', 'network', 'pykrome', 'species', 'abundances', 'tracers', 'nvars',
     ]
 
     def __init__(self, seed, config_variables, test_variables):
         db, params = TinyDB(config_variables['db_path']), Query()
 
-        # Declare physical variables and their index in the array: [density, vx/px, vy/py, vz/pz, pressure/energy, Bx, By, Bz]
-        self.rho, self.vx, self.vy, self.vz, self.pressure, self.Bx, self.By, self.Bz = range(8)
+        # Declare physical variables and their index in the array: [density, vx/px, vy/py, vz/pz, pressure/energy, Bx, By, Bz, source terms]
+        self.nvars = 8
+        self.rho, self.vx, self.vy, self.vz, self.pressure, self.Bx, self.By, self.Bz = range(self.nvars)
         self.vels, self.Bfields = slice(1,4), slice(5,8)
         self.energy, self.momentums = self.pressure, self.vels
 
@@ -273,6 +287,22 @@ class SimulationVariables(object):
         # Permutations for axes
         self.multidimensional = self.dimensions >= 2
         self.axes = np.array(range(self.dimensions))
+
+        # Gravity set-up
+        self.self_gravity = self.ext_gravity = False
+        if self.gravity:
+            if self.gravity == "self":
+                self.self_gravity = True
+            elif self.gravity in ("ext", "external"):
+                self.ext_gravity = True
+            else:
+                self.self_gravity = self.ext_gravity = True
+        self.gravity = True if (self.self_gravity or self.ext_gravity) else False
+
+        if self.ext_gravity:
+            self.nvars += 3
+            self.gx, self.gy, self.gz = range(8,11)
+            self.gs = slice(8,11)
 
         # Chemistry network set-up
         if self.chemistry:

@@ -129,7 +129,7 @@ def core_run(sim_variables, **kwargs):
             # Post update steps (if any)
             ##############################
 
-            # Update conservative grid from self-gravity
+            # Update conservative grid from gravity
             if sim_variables.gravity:
                 grid = gravity.update(grid, dt, sim_variables)
 

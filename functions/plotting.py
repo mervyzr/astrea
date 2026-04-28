@@ -46,8 +46,9 @@ def make_figure(options, sim_variables, variable="normal"):
             "momentums": {"x":"RdYlBu", "y":"PuOr", "z":"PRGn"},
             "Bfields": {"x":"RdBu", "y":"BrBG", "z":"PiYG"},
             "Mach": "bone",
-            "divergence": "binary",
+            "divergence": "magma",
             "mass": "pink",
+            "schlieren": "binary",
         }
 
         # Set up labels and axes names
@@ -272,6 +273,8 @@ def make_data(options, grid, sim_variables):
                     quantity = div_along_axis(0) + div_along_axis(1)
                     if sim_variables.dimensions > 2:
                         quantity += div_along_axis(2)
+                    #quantity = np.log10(quantity)
+                    #exponent = np.floor(quantity)
                 else:
                     quantity = np.zeros_like(grid[...,5])
             else:

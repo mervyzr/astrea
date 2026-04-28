@@ -142,6 +142,12 @@
       "type": "config",
       "category": "2D-Riemann",
       "accepted": [
+        "yee-sjögreen",
+        "yee-sjoegreen",
+        "ys",
+        "yee",
+        "sjögreen",
+        "sjoegreen",
         "ll1",
         "ll2",
         "ll3",
@@ -313,6 +319,22 @@
       ]
     },
     "11": {
+      "type": "gravity",
+      "accepted": [
+        true,
+        false,
+        1,
+        0,
+        "true",
+        "false",
+        "1",
+        "0",
+        "self",
+        "ext",
+        "external"
+      ]
+    },
+    "12": {
       "type": "units",
       "accepted": [
         "code",
@@ -321,7 +343,7 @@
         "galactic"
       ]
     },
-    "12": {
+    "13": {
       "type": "subgrid",
       "category": "pcm",
       "accepted": [
@@ -330,7 +352,7 @@
         "c"
       ]
     },
-    "13": {
+    "14": {
       "type": "subgrid",
       "category": "plm",
       "accepted": [
@@ -339,7 +361,7 @@
         "l"
       ]
     },
-    "14": {
+    "15": {
       "type": "subgrid",
       "category": "ppm",
       "accepted": [
@@ -349,7 +371,7 @@
         "p"
       ]
     },
-    "15": {
+    "16": {
       "type": "subgrid",
       "category": "weno",
       "accepted": [
@@ -366,7 +388,7 @@
         "c-weno"
       ]
     },
-    "16": {
+    "17": {
       "type": "time_evo",
       "category": "euler",
       "accepted": [
@@ -374,7 +396,7 @@
         "forward-euler"
       ]
     },
-    "17": {
+    "18": {
       "type": "time_evo",
       "category": "rk",
       "accepted": [
@@ -383,7 +405,7 @@
         "runge-kutta4"
       ]
     },
-    "18": {
+    "19": {
       "type": "time_evo",
       "category": "ssprk",
       "accepted": [
@@ -410,7 +432,7 @@
         "ssprk65"
       ]
     },
-    "19": {
+    "20": {
       "type": "solver",
       "category": "lax",
       "accepted": [
@@ -427,7 +449,7 @@
         "g-force"
       ]
     },
-    "20": {
+    "21": {
       "type": "solver",
       "category": "hll",
       "accepted": [
@@ -438,7 +460,7 @@
         "d"
       ]
     },
-    "21": {
+    "22": {
       "type": "solver",
       "category": "complete",
       "accepted": [
@@ -451,7 +473,7 @@
         "entropy-stable"
       ]
     },
-    "22": {
+    "23": {
       "type": "default",
       "config": "sedov",
       "subgrid": "pcm",
@@ -464,7 +486,7 @@
         "total energy"
       ]
     },
-    "23": {
+    "24": {
       "type": "plot_options",
       "category": "plotting",
       "accepted": [
@@ -518,7 +540,7 @@
         "machnumber"
       ]
     },
-    "24": {
+    "25": {
       "type": "quotes",
       "name": [
         "It's not a bug; it's an undocumented feature.",

@@ -218,6 +218,7 @@ Several (magneto)hydrodynamics tests are in place:
     <li>MHD torus (Machida et al., 1999)</li>
     <li>MHD blast wave (Londrillo & Del Zanna, 2000)</li>
     <li>MHD current sheet (Gardiner & Stone, 2005)</li>
+    <li>Yee-Sjögreen Riemann problem (Yee & Sjögreen, 2005)</li>
     <li>Shock cloud (Dai & Woodward, 1998)</li>
     <li>Astrophysical jet (Wu & Shu, 2018)</li>
   </ul>
@@ -290,6 +291,7 @@ Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussi
     <li>Verma, P. S., Jean-Mathieu, T., & Müller, W.-C. (2018). Fourth-order accurate finite-volume CWENO scheme for astrophysical MHD problems. Monthly Notices of the Royal Astronomical Society, 482(1), 416-437.</li>
     <li>Williamson, J. H. (1980). Low-storage Runge-Kutta schemes. Journal of Computational Physics, 35(1), 48–56.</li>
     <li>Yee, H-C., Sandham, N., & Djomehri, M., (1999). Low dissipative high order shock-capturing methods using characteristic-based filters. Journal of Computational Physics, 150(1), 199-238.</li>
+    <li>Yee, H-C., & Sjögreen, B. (2005). Divergence Free High Order Filter Methods for the Compressible MHD Equations. Proc. International Conderence on High Performance Scientific Computing, 559-575.</li>
   </ol>
 </details>
 

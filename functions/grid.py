@@ -44,6 +44,9 @@ def initialise(sim_variables):
         physical_grid_y = make_physical_grid(coordinates[1], cells[1])
 
         if dimensions > 2:
+            ##############################
+            #  3-dimensional cases
+            ##############################
             z_centre = np.average(coordinates[2])
             physical_grid_z = make_physical_grid(coordinates[2], cells[2])
 
@@ -119,6 +122,10 @@ def initialise(sim_variables):
                 computational_grid[...,vy] = np.sqrt(params['GM'] * params['L']**2) * (x/_r**2)
                 computational_grid[...,Bx] = -params['B_phi'] * y/_r
                 computational_grid[...,By] = params['B_phi'] * x/_r
+                if sim_variables.ext_gravity:
+                    computational_grid[...,sim_variables.gx] = -params['GM']/r**3 * x
+                    computational_grid[...,sim_variables.gy] = -params['GM']/r**3 * y
+                    computational_grid[...,sim_variables.gz] = -params['GM']/r**3 * z
 
             elif match(any, ["blob"]):
                 dr = np.sqrt(np.sum([dh**2 for dh in ds.values()]))
@@ -135,6 +142,9 @@ def initialise(sim_variables):
                 computational_grid[...,By] = B_phi * (x/(r+params['eps']))
 
         else:
+            ##############################
+            #  2-dimensional cases
+            ##############################
             x, y = np.meshgrid(physical_grid_x, physical_grid_y, indexing='ij')
             r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
 
@@ -168,8 +178,10 @@ def initialise(sim_variables):
                 layer = np.where(y > shock_pos)
                 computational_grid[layer] = init_cond
                 computational_grid[...,pressure] = init_cond[pressure] - .1*computational_grid[...,rho]*y
+                if sim_variables.ext_gravity:
+                    computational_grid[...,sim_variables.gy] = -params['grav_acc']
                 if params['perturb']:
-                    computational_grid[...,vy] += (.5 * np.random.uniform(-2*params['ampl'], 2*params['ampl'], size=computational_grid.shape) * (1 + np.cos(8*np.pi*y/3)))[...,vy]
+                    computational_grid[...,vy] += (.5 * np.random.uniform(-2*params['ampl'], 2*params['ampl'], size=computational_grid.shape))[...,vy] * (1 + np.cos(8*np.pi*y/3))
                 else:
                     computational_grid[...,vy] = params['ampl'] * (1 + np.cos(4*np.pi*x)) * (1 + np.cos(3*np.pi*y))
                 if config.startswith('m') or "mhd" in config:
@@ -211,6 +223,11 @@ def initialise(sim_variables):
                     computational_grid[...,Bx] = np.cos(y) * np.sin(x)
                     computational_grid[...,By] = -np.cos(x) * np.sin(y)
 
+            elif match(any, ["yee", "sjögreen", "sjoegreen"]) or config == "ys":
+                computational_grid[np.where(x < shock_pos)] = init_cond
+                computational_grid[np.where((x < shock_pos) & (y < shock_pos))] = params['bottom_left']
+                computational_grid[np.where((x >= shock_pos) & (y < shock_pos))] = params['bottom_right']
+
             elif match(any, ["orszag", "tang"]) or config == "ot":
                 _x, _y, ampl = params['norm_factor']*x, params['norm_factor']*y, params['ampl']
 
@@ -243,6 +260,9 @@ def initialise(sim_variables):
                 computational_grid[...,vy] = np.sqrt(params['GM'] * params['L']**2) * (x/r**2)
                 computational_grid[...,Bx] = -params['B_phi'] * y/r
                 computational_grid[...,By] = params['B_phi'] * x/r
+                if sim_variables.ext_gravity:
+                    computational_grid[...,sim_variables.gx] = -params['GM']/r**3 * x
+                    computational_grid[...,sim_variables.gy] = -params['GM']/r**3 * y
 
             elif match(any, ["rotor", "blob"]):
                 if "blob" in config:
@@ -323,6 +343,9 @@ def initialise(sim_variables):
                 computational_grid[np.where(x < shock_pos)] = init_cond
 
     else:
+        ##############################
+        #  1-dimensional cases
+        ##############################
         x = physical_grid_x
 
         if match(any, ["sedov", "blast"]) or config.startswith('sq'):
@@ -347,7 +370,7 @@ def initialise(sim_variables):
 
     sim_variables.magnetic = computational_grid[...,sim_variables.Bfields].any()
 
-    if sim_variables.higher_order:
+    if sim_variables.grid_interpolate:
         return method_convert_cell('point', computational_grid, sim_variables)
     else:
         return computational_grid
@@ -361,7 +384,7 @@ def resample_blast(grid, sim_variables, resample_size=50):
     quarter = sim_variables.misc['mode'].lower().startswith('q')
 
     fine_grid = np.resize(np.zeros_like(grid), np.asarray(cells)*resample_size)
-    physical_grid = lambda axis: numeric.make_physical_grid(coordinates[axis], cells[axis]*resample_size)
+    physical_grid = lambda axis: make_physical_grid(coordinates[axis], cells[axis]*resample_size)
 
     if quarter:
         x_centre = coordinates[0][0]
@@ -443,9 +466,21 @@ def convert_thermo_variable(variable, grid, sim_variables):
     gamma, permeability = sim_variables.gamma, sim_variables.constants.mu_0
 
     if variable.lower().startswith('p'):
-        return grid[...,pressure]/(gamma-1) + .5*(grid[...,rho]*mfuncs.norm(grid[...,vels])**2) + .5*(mfuncs.norm(grid[...,Bfields])**2)/permeability
+        # pressure -> (total) energy density
+        return (
+            grid[...,pressure]/(gamma-1)
+            + .5*(grid[...,rho]*mfuncs.norm(grid[...,vels])**2)
+            + .5*(mfuncs.norm(grid[...,Bfields])**2)/permeability
+        )
     elif variable.lower().startswith('e') or 'energy' in variable.lower():
-        return (gamma-1) * (grid[...,energy] - .5 * (grid[...,rho]*mfuncs.norm(mfuncs.divide(grid[...,momentums], grid[...,rho][...,None]))**2 + (mfuncs.norm(grid[...,Bfields])**2)/permeability))
+        # (total) energy density -> pressure
+        return (
+            (gamma-1) * (
+                grid[...,energy]
+                - .5 * (grid[...,rho]*mfuncs.norm(mfuncs.divide(grid[...,momentums], grid[...,rho][...,None]))**2)
+                - .5 * (mfuncs.norm(grid[...,Bfields])**2)/permeability
+                )
+        )
 
 
 # Handler for conversion

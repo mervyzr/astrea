@@ -6,12 +6,13 @@ import numpy as np
 from functions import grid as gutils
 
 ##############################################################################
-# Self-gravity module
+# Gravity module, for self-gravity and external gravity
 ##############################################################################
 
-# (FFT) Poisson solver; works on periodic boundary conditions
+# (FFT) Poisson solver for self-gravity; works on periodic boundary conditions
 def poisson_solver(grid, sim_variables, G=1., eps=1e-6):
-    cells, ds = sim_variables.cells, [dh for dh in sim_variables.ds.values()]
+    cells = sim_variables.cells
+    ds = [dh for dh in sim_variables.ds.values()]
     rhos = grid[...,sim_variables.rho]
 
     # FFT densities
@@ -65,14 +66,24 @@ def get_acceleration(potentials, sim_variables):
 
 # Update step for gravity with conservative grid, given the timestep dt
 def update(grid, dt, sim_variables):
-    rho, momentums, energy = sim_variables.rho, 1+sim_variables.axes, sim_variables.energy
+    rho, momentums, energy, gs = sim_variables.rho, 1+sim_variables.axes, sim_variables.energy, 8+sim_variables.axes
 
-    frozen_momentum = np.copy(grid[...,momentums])
+    original_momentum = np.copy(grid[...,momentums])
 
-    phi = poisson_solver(grid, sim_variables)
-    g_accs = np.moveaxis(get_acceleration(phi, sim_variables), 0, -1)
+    if sim_variables.self_gravity:
+        Phi = poisson_solver(grid, sim_variables)
+        g_self = np.moveaxis(get_acceleration(Phi, sim_variables), 0, -1)
+    else:
+        g_self = 0
+
+    if sim_variables.ext_gravity and sim_variables.nvars > 8:
+        g_ext = grid[...,gs]
+    else:
+        g_ext = 0
+
+    g_accs = g_self + g_ext
 
     grid[...,momentums] += dt * grid[...,rho][...,None] * g_accs
-    grid[...,energy] += dt * np.sum(frozen_momentum * g_accs, axis=-1)
+    grid[...,energy] += dt * np.sum(original_momentum * g_accs, axis=-1)
 
     return grid

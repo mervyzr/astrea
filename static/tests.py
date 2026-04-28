@@ -6,7 +6,7 @@ import numpy as np
 
 # Primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
 def generate_test_conditions(config_variables):
-    config, cells, gamma = config_variables['config'], config_variables['cells'], config_variables['gamma']
+    config, cells, gamma, gravity = config_variables['config'], config_variables['cells'], config_variables['gamma'], config_variables['gravity']
     match = lambda match_type, substrings: match_type(substring in config for substring in substrings)
 
     # [Sod, 1978]
@@ -26,7 +26,7 @@ def generate_test_conditions(config_variables):
         t_end = 2
         init_cond = np.array([1,0,0,0,100,0,0,0])
         ambient = np.array([1,0,0,0,1e-12,0,0,0])
-        misc = {'ampl':1, 'mode':mode}
+        misc = {'ampl':1, 'GM':1, 'mode':mode}
 
         if mode.lower().startswith('q'):
             axis_coord = [0,10]
@@ -123,10 +123,10 @@ def generate_test_conditions(config_variables):
         axis_coord = [-.5,.5]
         shock_pos = 0
         t_end = 10
-        boundary = "wrap"
+        boundary = "edge"
         init_cond = np.array([2,.0,0,0,2.5,0,0,0])
         ambient = np.array([1,0,0,0,2.5,0,0,0])
-        misc = {'perturb':False, 'ampl':.0025, 'grav_acc':.1, 'Bx':.025*np.sqrt(np.pi)}
+        misc = {'perturb':True, 'ampl':.05, 'grav_acc':.1, 'Bx':.05*np.sqrt(np.pi)}
 
     elif "turb" in config:
         axis_coord = [-.5,.5]
@@ -315,6 +315,19 @@ def generate_test_conditions(config_variables):
             init_cond = np.array([1,.75,0,0,1,0,0,0])
             ambient = np.array([.125,0,0,0,.1,0,0,0])
 
+    # [Yee & Sjögreen, 2005]
+    elif match(any, ["yee", "sjögreen", "sjoegreen"]) or config == "ys":
+        axis_coord = [-1,1]
+        shock_pos = 0
+        t_end = 1
+        boundary = "wrap"
+        init_cond = np.array([1.0304,1.5308618,-1.0146545,-.09860248,2.48552123,.3501,.5078,.1576])
+        ambient = np.array([.9308,1.56392351,-.49774388,0.06177482,2.27014061,.3501,.983,.305])
+        misc = {
+            'bottom_left':np.array([1,1.75,-1,0,2.4322841,.5642,.5078,.2539]), 
+            'bottom_right':np.array([1.8887,.12357706,-.92243342,.03880976,6.20869473,.5642,.983,.4915])
+            }
+
     # [Lax & Liu, 1998]
     elif match(any, ["lax", "liu", "ll"]):
         axis_coord = [0,1]
@@ -430,6 +443,11 @@ def generate_test_conditions(config_variables):
         coordinates = {ax: coord for ax, coord in enumerate(axis_coord)}
     finally:
         ds = {ax: np.abs(np.diff(coordinates[ax]))/cells[ax] for ax in range(len(cells))}
+
+    # Append 3 additional slots for source term acceleration
+    if gravity and gravity != "self":
+        init_cond = np.append(init_cond, [0, 0, 0])
+        ambient = np.append(ambient, [0, 0, 0])
 
     return {
         'coordinates':coordinates,

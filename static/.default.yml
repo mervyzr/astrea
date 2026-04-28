@@ -7,7 +7,7 @@
 #   Instabilities:  (MHD) Rayleigh-Taylor instability (RTI), (MHD) Kelvin-Helmholtz instability (KHI)
 #   Non-linear MHD: MHD rotor, MHD current, MHD blob
 #   Astrophysical: Shock cloud, astrophysical jet, MHD torus, supernova (SN)
-#   2D Riemann: (MHD) Lax-Liu 1-19
+#   2D Riemann: Yee-Sjögreen (YS), (MHD) Lax-Liu 1-19
 #   Random noise: blank field
 
 physics_parameters:
