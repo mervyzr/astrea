@@ -64,8 +64,9 @@ parameters.yml
 **/.env
 
 # chemistry files
-!external/build
-external/build/*.mod
-external/build/*.o
-external/build/test
+!physics/krome/build
+physics/krome/build/*.mod
+physics/krome/build/*.o
+physics/krome/build/test
+physics/pychem
 KROME_ERROR_REPORT
