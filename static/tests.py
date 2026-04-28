@@ -207,8 +207,8 @@ def generate_test_conditions(config_variables):
             ambient = np.array([gamma/10,0,0,0,.1,0,0,0])
             misc = {'beta':1e3, 'eps':1e-6}
         else:
-            init_cond = np.array([10,0,0,0,.5,2.5/np.sqrt(4*np.pi),0,0])
-            ambient = np.array([1,0,0,0,.5,2.5/np.sqrt(4*np.pi),0,0])
+            init_cond = np.array([10,0,0,0,.5,2.5,0,0])
+            ambient = np.array([1,0,0,0,.5,2.5,0,0])
             misc = {'omega':1, 'ring_width':.015}
 
     # Blank field with tiny perturbations in densities
@@ -239,12 +239,12 @@ def generate_test_conditions(config_variables):
 
     # [Gardiner & Stone, 2005]
     elif match(any, ["current", "sheet"]):
-        axis_coord = [-.5,.5]
-        shock_pos = .25
+        axis_coord = [-1,1]
+        shock_pos = .5
         t_end = 10
         boundary = "wrap"
-        init_cond = np.array([1,0,0,0,.05/(4*np.pi),0,1/np.sqrt(4*np.pi),0])
-        ambient = np.array([1,0,0,0,.05/(4*np.pi),0,1/np.sqrt(4*np.pi),0])
+        init_cond = np.array([1,0,0,0,.1,0,1,0])
+        ambient = np.array([1,0,0,0,.1,0,1,0])
         misc = {'ampl':.1}
 
     # [Dai & Woodward, 1998; Pang & Wu, 2025]

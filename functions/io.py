@@ -383,6 +383,8 @@ def write_chkpt_file(grid, t, idx, sim_variables):
         f.attrs['time_evo'] = sim_variables.time_evo
         f.attrs['solver'] = sim_variables.solver
         f.attrs['magnetic'] = sim_variables.magnetic
+        f.attrs['self_gravity'] = sim_variables.self_gravity
+        f.attrs['ext_gravity'] = sim_variables.ext_gravity
         f.attrs['coordinates'] = tuple(sim_variables.coordinates.values())
 
         for name, value in sim_variables.constants.__dict__.items():
@@ -419,6 +421,8 @@ def load_chkpt_file(config_variables, file):
                 config_variables['time_evo'] = f.attrs['time_evo']
                 config_variables['solver'] = f.attrs['solver']
                 config_variables['magnetic'] = f.attrs['magnetic']
+                config_variables['self_gravity'] = f.attrs['self_gravity']
+                config_variables['ext_gravity'] = f.attrs['ext_gravity']
 
                 _const = {}
                 for name, value in f.attrs.items():

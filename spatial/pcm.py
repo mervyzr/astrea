@@ -21,12 +21,18 @@ def run(grid, sim_variables, axis):
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
 
     # Pad array with boundaries
-    padded_primitive = gutils.add_boundary(grid, sim_variables, axis=axis)
-    padded_conservative = gutils.variable_point_convert("primitive", padded_primitive, sim_variables)
+    padded_intf = gutils.slice_(gutils.add_boundary(grid, sim_variables, stencil=2, axis=axis), axis, end=-1)
+    padded_primitive = gutils.slice_(padded_intf, axis, start=1)
+
+    # Re-align the interfaces so that cell wall is in between interfaces
+    prim_plus, prim_minus = gutils.slice_(padded_primitive, axis, start=1), gutils.slice_(padded_primitive, axis, end=-1)
+
+    # Convert the primitive variables at the interface
+    cons_plus, cons_minus = gutils.variable_point_convert("primitive", prim_plus, sim_variables), gutils.variable_point_convert("primitive", prim_minus, sim_variables)
 
     # Compute the fluxes and the Jacobian
-    padded_flux = numeric.compute_flux(padded_primitive, sim_variables, axis=axis)
-    jacobian = numeric.compute_jacobian(padded_primitive, sim_variables, axis=axis)
+    flux_plus, flux_minus = numeric.compute_flux(prim_plus, sim_variables, axis=axis), numeric.compute_flux(prim_minus, sim_variables, axis=axis)
+    jacobian = numeric.compute_jacobian(padded_intf, sim_variables, axis=axis)
 
     # Resolve characteristics at interfaces
     try:
@@ -47,11 +53,11 @@ def run(grid, sim_variables, axis):
 
     # Calculate the interface-averaged fluxes (pointwise & averaged values are the same for lower-order schemes)
     intf_fluxes_avgd = intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
-        'prim_interfaces': (gutils.slice_(padded_primitive, axis, start=1), gutils.slice_(padded_primitive, axis, end=-1)),
-        'cons_interfaces': (gutils.slice_(padded_conservative, axis, start=1), gutils.slice_(padded_conservative, axis, end=-1)),
-        'flux_interfaces': (gutils.slice_(padded_flux, axis, start=1), gutils.slice_(padded_flux, axis, end=-1)),
+        'prim_interfaces': (prim_plus, prim_minus),
+        'cons_interfaces': (cons_plus, cons_minus),
+        'flux_interfaces': (flux_plus, flux_minus),
         'characteristics': characteristics,
-        'jacobian': gutils.slice_(jacobian, axis, start=1),
+        'jacobian': gutils.slice_(jacobian, axis, *[1,-1]),
     })
 
     # Compute flux difference for hydrodynamic components

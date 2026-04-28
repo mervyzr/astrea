@@ -297,9 +297,9 @@ def initialise(sim_variables):
                 computational_grid[...,rho] += np.random.uniform(-params['perturb_ampl'], params['perturb_ampl'], size=(computational_grid.shape))[...,rho]
 
             elif match(any, ["current", "sheet"]):
-                computational_grid[...,vx] = params['ampl'] * np.sin(2*np.pi*y)
-                mask = np.where((-shock_pos < x) & (x < shock_pos))
-                computational_grid[...,By][mask] = -computational_grid[...,By][mask]
+                computational_grid[...,vx] = params['ampl'] * np.sin(np.pi*y)
+                mask = np.where(abs(x) < shock_pos)
+                computational_grid[...,By][mask] *= -1
 
             elif "noh" in config:
                 mask = np.where(((x-coordinates[0][0])**2 + (y-coordinates[1][0])**2) > (shock_pos-coordinates[0][0])**2)
