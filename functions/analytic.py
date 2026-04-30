@@ -16,49 +16,70 @@ def calculate_entropy_density(grid, gamma):
 
 # Function for solution error calculation of sine-wave and Gaussian tests
 def calculate_solution_error(grid, sim_variables, norm):
-    gamma, axes = sim_variables.gamma, sim_variables.axes
-    rho, pressure = sim_variables.rho, sim_variables.pressure
+    axes = sim_variables.axes
+    rho, vels, pressure, Bfields = sim_variables.rho, sim_variables.vels, sim_variables.pressure, sim_variables.Bfields
+    vx, vy, vz = sim_variables.vx, sim_variables.vy, sim_variables.vz
+    Etot = sim_variables.Bz+1
+    momentums = slice(Etot, Etot+3)
     w_num = np.copy(grid)
-    grid_shape = w_num.shape[:-1]
 
     # Create theoretical array
-    sim_variables.cells = list(grid_shape)
-    sim_variables.ds = {ax: np.abs(np.diff(sim_variables.coordinates[ax]))/sim_variables.cells[ax] for ax in range(len(sim_variables.cells))}
     w_theo = gutils.initialise(sim_variables)
 
+    # Energy terms
     E_tot_num, E_tot_theo = mfuncs.divide(gutils.convert_thermo_variable('pressure', w_num, sim_variables), w_num[...,rho]), mfuncs.divide(gutils.convert_thermo_variable('pressure', w_theo, sim_variables), w_theo[...,rho])
-    E_int_num, E_int_theo = mfuncs.divide(w_num[...,pressure], w_num[...,rho]*(gamma-1)), mfuncs.divide(w_theo[...,pressure], w_theo[...,rho]*(gamma-1))
 
-    w_num, w_theo = np.concatenate((w_num, E_tot_num[...,None]), axis=-1), np.concatenate((w_theo, E_tot_theo[...,None]), axis=-1)
-    w_num, w_theo = np.concatenate((w_num, E_int_num[...,None]), axis=-1), np.concatenate((w_theo, E_int_theo[...,None]), axis=-1)
+    # Momentum terms
+    momx_num, momx_theo = w_num[...,rho] * w_num[...,vx], w_theo[...,rho] * w_theo[...,vx]
+    momy_num, momy_theo = w_num[...,rho] * w_num[...,vy], w_theo[...,rho] * w_theo[...,vy]
+    momz_num, momz_theo = w_num[...,rho] * w_num[...,vz], w_theo[...,rho] * w_theo[...,vz]
+
+    # Tag on at the end of the original arrays
+    w_num = np.concatenate((
+        w_num, E_tot_num[...,None],
+        momx_num[...,None], momy_num[...,None], momz_num[...,None]
+    ), axis=-1)
+    w_theo = np.concatenate((
+        w_theo, E_tot_theo[...,None],
+        momx_theo[...,None], momy_theo[...,None], momz_theo[...,None]
+    ), axis=-1)
 
     if norm > 5:
-        return np.max(np.abs(w_num-w_theo), axis=tuple(axes))
+        solution_errors = np.max(np.abs(w_num-w_theo), axis=tuple(axes))
     else:
         normalising_factor = np.prod(list(sim_variables.ds.values()))
         if norm <= 0:
-            return normalising_factor * np.sum(np.abs(w_num-w_theo), axis=tuple(axes))
+            solution_errors = normalising_factor * np.sum(np.abs(w_num-w_theo), axis=tuple(axes))
         else:
-            return normalising_factor * (np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(axes)))**(1/norm)
+            solution_errors = normalising_factor * (np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(axes)))**(1/norm)
+
+    return {
+        'density': solution_errors[...,rho],
+        'vels': solution_errors[...,vels],
+        'pressure': solution_errors[...,pressure],
+        'Bfields': solution_errors[...,Bfields],
+        'Etot': solution_errors[...,Etot],
+        'momentums': solution_errors[...,momentums],
+    }
 
 
 # Function for calculation of total variation (TVD scheme if TV(t+1) < TV(t)); total variation tests for oscillations
 def calculate_TV(simulation, sim_variables):
-    gamma, dimensions, axes, tot_vary = sim_variables.gamma, sim_variables.dimensions, sim_variables.axes, {}
-    rho, pressure = sim_variables.rho, sim_variables.pressure
+    dimensions, axes = sim_variables.dimensions, sim_variables.axes
+    total_variation = {}
 
     for t in list(simulation.keys()):
         grid = simulation[t]
-        E_tot = mfuncs.divide(gutils.convert_thermo_variable('pressure', grid, sim_variables), grid[...,rho])
-        E_int = mfuncs.divide(grid[...,pressure], grid[...,rho]*(gamma-1))
+
+        E_tot = mfuncs.divide(gutils.convert_thermo_variable('pressure', grid, sim_variables), grid[...,sim_variables.rho])
+
         for i in range(dimensions):
             grid = np.diff(grid, axis=i)
             E_tot = np.diff(E_tot, axis=i)
-            E_int = np.diff(E_int, axis=i)
-        tot_vary[float(t)] = np.sum(np.abs(grid), axis=tuple(axes))
-        tot_vary[float(t)] = np.append(tot_vary[float(t)], np.sum(np.abs(E_tot)))
-        tot_vary[float(t)] = np.append(tot_vary[float(t)], np.sum(np.abs(E_int)))
-    return tot_vary
+
+        total_variation[float(t)] = np.sum(np.abs(grid), axis=tuple(axes))
+        total_variation[float(t)] = np.append(total_variation[float(t)], np.sum(E_tot))
+    return total_variation
 
 
 # Function for checking the conservation equations; works with primitive variables but needs to be converted
@@ -97,6 +118,7 @@ def calculate_conservation_at_interval(simulation, sim_variables, interval=10):
 def calculate_Sod_analytical(grid, t, sim_variables):
     gamma, axis_coord, shock_pos = sim_variables.gamma, sim_variables.coordinates[0], sim_variables.shock_pos
     start_pos, end_pos = axis_coord
+    box_length = np.diff(axis_coord)[0]
 
     # Define array to be updated and returned
     arr = np.zeros_like(grid)
@@ -122,13 +144,13 @@ def calculate_Sod_analytical(grid, t, sim_variables):
     v_s = vx2/(1-(rho1/rho2))
 
     # Define boundary regions and number of cells within each region
-    boundary_54 = mfuncs.round_off(((shock_pos-(cs5*t)-start_pos)/np.diff(axis_coord)) * len(grid))
-    boundary_43 = mfuncs.round_off(((shock_pos-(v_t*t)-start_pos)/np.diff(axis_coord)) * len(grid))
-    boundary_32 = mfuncs.round_off(((shock_pos+(vx2*t)-start_pos)/np.diff(axis_coord)) * len(grid))
-    boundary_21 = mfuncs.round_off(((shock_pos+(v_s*t)-start_pos)/np.diff(axis_coord)) * len(grid))
+    boundary_54 = mfuncs.round_off(((shock_pos-(cs5*t)-start_pos)/box_length) * len(grid))
+    boundary_43 = mfuncs.round_off(((shock_pos-(v_t*t)-start_pos)/box_length) * len(grid))
+    boundary_32 = mfuncs.round_off(((shock_pos+(vx2*t)-start_pos)/box_length) * len(grid))
+    boundary_21 = mfuncs.round_off(((shock_pos+(v_s*t)-start_pos)/box_length) * len(grid))
 
     # Define number of cells in the rarefaction wave
-    rarefaction_cells = mfuncs.round_off(((cs5*t-v_t*t)/np.diff(axis_coord)) * len(grid))
+    rarefaction_cells = mfuncs.round_off(((cs5*t-v_t*t)/box_length) * len(grid))
     if rarefaction_cells - (boundary_43-boundary_54) < 0:
         rarefaction_cells += 1
     elif rarefaction_cells - (boundary_43-boundary_54) > 0:

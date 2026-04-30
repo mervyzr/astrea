@@ -209,7 +209,7 @@ def filter_variables(config_variables):
 
 
 class Constants(object):
-    def __init__(self, obj):
+    def __init__(self, obj, unit):
         try:
             for name, value in obj.__dict__.items():
                 if not name.startswith("_"):
@@ -217,6 +217,67 @@ class Constants(object):
         except Exception:
             for name, value in obj.items():
                 setattr(self, name, value)
+
+        # Set up scaling (CGS)
+        if unit == 'code':
+            L0 = 1
+            rho0 = 1
+            v0 = 1
+            m0 = 1
+            B0 = 1
+            box_scale = 1
+            time_scale = 1
+            box_label = ""
+            time_label = ""
+        else:
+            if unit == 'stellar':
+                L0 = self.r_sun
+                rho0 = 1.5
+                v0 = 10 * self.kms
+                box_scale = self.au  # normalise box size to this scale
+                box_label = " [au]"
+                time_scale = self.sec_per_year
+                time_label = " yr"
+            elif unit == 'cluster':
+                L0 = 5e4 * self.au
+                rho0 = 1e-19
+                v0 = self.kms
+                box_scale = self.pc
+                box_label = " [pc]"
+                time_scale = self.Myr
+                time_label = " Myr"
+            elif unit == 'galactic':
+                L0 = 1e3 * self.pc
+                rho0 = 1e-24
+                v0 = 100 * self.kms
+                box_scale = 1e3 * self.pc
+                box_label = " [kpc]"
+                time_scale = self.Myr
+                time_label = " Myr"
+
+            m0 = 1/self.m_sun
+            if self.mu_0 != 1:
+                B0 = v0 * np.sqrt(self.mu_0*rho0) * 1e6
+            else:
+                B0 = np.sqrt(4*np.pi*rho0 * v0**2 * L0**3) * 1e6
+
+        self.plot_scales = {
+            "length":       L0,                     # cm
+            "density":      rho0,                   # g/cm3
+            "velocity":     v0,                     # cm/s
+            "mass":         m0,                     # M_sun
+            "time":         L0/v0,                  # s
+            "momentum":     rho0 * v0,              # g/(cm2 s)
+            "pressure":     rho0 * v0**2,           # erg/cm3
+            "energy":       rho0 * v0**2 * L0**3,   # erg
+            "Bfield":       B0,                     # uG
+            "divergence":   B0/L0,                  # uG/cm
+            "Mach":         1,                      # unitless
+            "box_scale":    box_scale,
+            "box_label":    box_label,
+            "time_scale":   time_scale,
+            "time_label":   time_label,
+        }
 
 
 class SimulationVariables(object):
@@ -256,7 +317,7 @@ class SimulationVariables(object):
         self.access_key = None
         self.timesteps = 0
 
-        self.constants = Constants(const)
+        self.constants = Constants(const, self.units)
 
         # 5th-order Gauss-Legendre quadrature with interval [0,1] for OS solver
         roots, weights = np.array(list(np.polynomial.legendre.leggauss(5)))/2
@@ -306,7 +367,6 @@ class SimulationVariables(object):
 
         # Chemistry network set-up
         if self.chemistry:
-            self.units = 'physical'
             if not self.network:
                 krome_path = os.path.join(self.home, 'physics', 'krome')
             else:
@@ -383,12 +443,12 @@ def write_chkpt_file(grid, t, idx, sim_variables):
         f.attrs['time_evo'] = sim_variables.time_evo
         f.attrs['solver'] = sim_variables.solver
         f.attrs['magnetic'] = sim_variables.magnetic
+        f.attrs['units'] = sim_variables.units
         f.attrs['self_gravity'] = sim_variables.self_gravity
         f.attrs['ext_gravity'] = sim_variables.ext_gravity
+        f.attrs['boundary'] = sim_variables.boundary
+        f.attrs['aspect_ratio'] = sim_variables.aspect_ratio
         f.attrs['coordinates'] = tuple(sim_variables.coordinates.values())
-
-        for name, value in sim_variables.constants.__dict__.items():
-            f.attrs[f'constants-{name}'] = float(value)
 
         f.create_dataset('grid', data=grid, compression="gzip", compression_opts=9)
 
@@ -421,13 +481,11 @@ def load_chkpt_file(config_variables, file):
                 config_variables['time_evo'] = f.attrs['time_evo']
                 config_variables['solver'] = f.attrs['solver']
                 config_variables['magnetic'] = f.attrs['magnetic']
+                config_variables['units'] = f.attrs['units']
                 config_variables['self_gravity'] = f.attrs['self_gravity']
                 config_variables['ext_gravity'] = f.attrs['ext_gravity']
-
-                _const = {}
-                for name, value in f.attrs.items():
-                    if name.startswith('constants-'):
-                        _const[name.split('constants-')[-1]] = value
-                config_variables['constants'] = Constants(_const)
+                config_variables['aspect_ratio'] = f.attrs['aspect_ratio']
+                config_variables['boundary'] = f.attrs['boundary']
+                config_variables['coordinates'] = {ax:axis_coord for ax, axis_coord in enumerate(f.attrs['coordinates'])}
 
                 return seed, config_variables, {'time':time, 'idx':idx, 'grid':grid}

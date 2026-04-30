@@ -443,6 +443,7 @@ def generate_test_conditions(config_variables):
         coordinates = {ax: coord for ax, coord in enumerate(axis_coord)}
     finally:
         ds = {ax: np.abs(np.diff(coordinates[ax]))/cells[ax] for ax in range(len(cells))}
+        aspect_ratio = [i for ii in list(map(np.diff, coordinates.values())) for i in ii]
 
     # Append 3 additional slots for source term acceleration
     if gravity and gravity != "self":
@@ -451,6 +452,7 @@ def generate_test_conditions(config_variables):
 
     return {
         'coordinates':coordinates,
+        'aspect_ratio':np.array(aspect_ratio)/np.min(aspect_ratio),
         'shock_pos':shock_pos,
         't_end':t_end,
         'boundary':boundary.lower(),

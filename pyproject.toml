@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "astrea"
-version = "3.8.2"
+version = "3.9.0"
 description = "Astrophysical Shockwave and Turbulence REsearch for interstellar Applications: Multidimensional magnetohydrodynamics code for modelling shockwaves & turbulence in the interstellar medium"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -15,31 +15,33 @@ authors = [
 ]
 
 dependencies = [
-    "numpy>=2.0.0",
+    "gitpython",
     "h5py",
     "matplotlib",
-    "scipy",
-    "threadpoolctl",
+    "mpi4py",
+    "numba",
+    "numpy>=2.0.0",
+    "nvidia-ml-py3",
+    "psutil",
+    "pycairo",
     "python-dotenv",
     "pyyaml",
-    "tinydb",
-    "gitpython",
-    "pycairo",
-    "psutil",
     "scikit-image",
-    "nvidia-ml-py3",
+    "scipy",
     "tabulate",
-    "mpi4py",
+    "threadpoolctl",
+    "tinydb",
 ]
 
 keywords = [
-    "astrophysics",
     "computational astrophysics",
+    "astrophysics",
     "interstellar medium",
     "computational fluid dynamics",
+    "fluid dynamics",
     "finite volume method",
+    "numerical methods"
     "Riemann solver",
-    "numerical simulation"
 ]
 
 classifiers = [

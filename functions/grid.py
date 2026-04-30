@@ -376,56 +376,6 @@ def initialise(sim_variables):
         return computational_grid
 
 
-# Resample grid for circular blast injection to populate cell variables with a circle/sphere; value in grid cell is weighted by area/volume covered
-def resample_blast(grid, sim_variables, resample_size=50):
-    print(f"{generic.BColours.WARNING}Blast config. used; supersampling initialised grid before starting simulation for better resolution..{generic.BColours.ENDC}")
-    cells, dimensions, multidimensional, coordinates, shock_pos = sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.coordinates, sim_variables.shock_pos
-
-    quarter = sim_variables.misc['mode'].lower().startswith('q')
-
-    fine_grid = np.resize(np.zeros_like(grid), np.asarray(cells)*resample_size)
-    physical_grid = lambda axis: make_physical_grid(coordinates[axis], cells[axis]*resample_size)
-
-    if quarter:
-        x_centre = coordinates[0][0]
-    else:
-        x_centre = np.average(coordinates[0])
-    fine_physical_grid_x = physical_grid(0)
-    fine_x = fine_physical_grid_x - x_centre
-
-    fine_y = fine_z = np.zeros_like(fine_x)
-    y_centre = z_centre = 0
-
-    if multidimensional:
-        if quarter:
-            y_centre = coordinates[1][0]
-        else:
-            y_centre = np.average(coordinates[1])
-        fine_physical_grid_y = physical_grid(1)
-        fine_x, fine_y = np.meshgrid(fine_physical_grid_x, fine_physical_grid_y, indexing='ij')
-        fine_z = np.zeros_like(fine_x)
-
-        if dimensions == 3:
-            if quarter:
-                z_centre = coordinates[2][0]
-            else:
-                z_centre = np.average(coordinates[2])
-            fine_physical_grid_z = physical_grid(2)
-            fine_x, fine_y, fine_z = np.meshgrid(fine_physical_grid_x, fine_physical_grid_y, fine_physical_grid_z, indexing='ij')
-
-    fine_r = np.sqrt((fine_x-x_centre)**2 + (fine_y-y_centre)**2 + (fine_z-z_centre)**2)
-    fine_mask = np.where(fine_r**2 <= (shock_pos-x_centre)**2)
-    fine_grid[fine_mask] = 1
-
-    remapped_grid = block_reduce(fine_grid, block_size=tuple([resample_size,]*dimensions), func=np.sum)
-    mask = np.where(remapped_grid > 0)
-
-    _grid = np.copy(grid)
-    _grid[mask][...,sim_variables.pressure] *= (remapped_grid/np.max(remapped_grid))[mask]
-
-    return _grid
-
-
 # Slice grid along axis
 def slice_(grid, axis, start=0, end=None, step=1, *args):
     slc = [slice(None)] * grid.ndim
@@ -606,3 +556,53 @@ def approx_flux_avg(cntrd_fluxes, avgd_fluxes, sim_variables, axis):
 def assign_interfaces(interfaces, grid, sim_variables, axis):
     wL, wR = interfaces
     return slice_(add_boundary(wL, sim_variables, axis=axis), axis, start=1), slice_(add_boundary(wR, sim_variables, axis=axis), axis, end=-1)
+
+
+# Resample grid for circular blast injection to populate cell variables with a circle/sphere; value in grid cell is weighted by area/volume covered
+def resample_blast(grid, sim_variables, resample_size=50):
+    print(f"{generic.BColours.WARNING}Blast config. used; supersampling initialised grid before starting simulation for better resolution..{generic.BColours.ENDC}")
+    cells, dimensions, multidimensional, coordinates, shock_pos = sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.coordinates, sim_variables.shock_pos
+
+    quarter = sim_variables.misc['mode'].lower().startswith('q')
+
+    fine_grid = np.resize(np.zeros_like(grid), np.asarray(cells)*resample_size)
+    physical_grid = lambda axis: make_physical_grid(coordinates[axis], cells[axis]*resample_size)
+
+    if quarter:
+        x_centre = coordinates[0][0]
+    else:
+        x_centre = np.average(coordinates[0])
+    fine_physical_grid_x = physical_grid(0)
+    fine_x = fine_physical_grid_x - x_centre
+
+    fine_y = fine_z = np.zeros_like(fine_x)
+    y_centre = z_centre = 0
+
+    if multidimensional:
+        if quarter:
+            y_centre = coordinates[1][0]
+        else:
+            y_centre = np.average(coordinates[1])
+        fine_physical_grid_y = physical_grid(1)
+        fine_x, fine_y = np.meshgrid(fine_physical_grid_x, fine_physical_grid_y, indexing='ij')
+        fine_z = np.zeros_like(fine_x)
+
+        if dimensions == 3:
+            if quarter:
+                z_centre = coordinates[2][0]
+            else:
+                z_centre = np.average(coordinates[2])
+            fine_physical_grid_z = physical_grid(2)
+            fine_x, fine_y, fine_z = np.meshgrid(fine_physical_grid_x, fine_physical_grid_y, fine_physical_grid_z, indexing='ij')
+
+    fine_r = np.sqrt((fine_x-x_centre)**2 + (fine_y-y_centre)**2 + (fine_z-z_centre)**2)
+    fine_mask = np.where(fine_r**2 <= (shock_pos-x_centre)**2)
+    fine_grid[fine_mask] = 1
+
+    remapped_grid = block_reduce(fine_grid, block_size=tuple([resample_size,]*dimensions), func=np.sum)
+    mask = np.where(remapped_grid > 0)
+
+    _grid = np.copy(grid)
+    _grid[mask][...,sim_variables.pressure] *= (remapped_grid/np.max(remapped_grid))[mask]
+
+    return _grid
