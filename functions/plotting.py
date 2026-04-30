@@ -846,7 +846,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
     ax.grid(linestyle="--", linewidth=0.5)
 
     x_diff = resolutions[1:]
-    y_diff = -np.diff(np.log(solution_errors))
+    y_diff = -np.diff(np.log2(solution_errors), axis=-1)
 
     for idx in range(len(plot_['indexes'])):
         ax.plot(x_diff, y_diff[idx], linestyle="--", marker="o", color=plot_['colours']['1d'][idx], label=plot_['labels'][idx])

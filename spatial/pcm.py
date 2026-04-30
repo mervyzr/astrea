@@ -21,8 +21,8 @@ def run(grid, sim_variables, axis):
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
 
     # Pad array with boundaries
-    padded_intf = gutils.slice_(gutils.add_boundary(grid, sim_variables, stencil=2, axis=axis), axis, end=-1)
-    padded_primitive = gutils.slice_(padded_intf, axis, start=1)
+    padded_primitive_2 = gutils.add_boundary(grid, sim_variables, stencil=2, axis=axis)
+    padded_primitive = gutils.slice_(padded_primitive_2, axis, *[1,-1])
 
     # Re-align the interfaces so that cell wall is in between interfaces
     prim_plus, prim_minus = gutils.slice_(padded_primitive, axis, start=1), gutils.slice_(padded_primitive, axis, end=-1)
@@ -32,6 +32,8 @@ def run(grid, sim_variables, axis):
 
     # Compute the fluxes and the Jacobian
     flux_plus, flux_minus = numeric.compute_flux(prim_plus, sim_variables, axis=axis), numeric.compute_flux(prim_minus, sim_variables, axis=axis)
+
+    padded_intf = .5 * (gutils.slice_(padded_primitive_2, axis, end=-1) + gutils.slice_(padded_primitive_2, axis, start=1))
     jacobian = numeric.compute_jacobian(padded_intf, sim_variables, axis=axis)
 
     # Resolve characteristics at interfaces
