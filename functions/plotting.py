@@ -796,6 +796,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
     # Get x & y data for plotting
     resolutions = main_array[0].ravel()
     solution_errors = main_array[1:]
+    resolutions.sort()
 
     def assign_plot(idx, ij):
         _i, _j = ij
