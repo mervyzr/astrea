@@ -17,6 +17,7 @@ physics_parameters:
   gamma         : 1.4
   dimensions    : 2
   units         : code
+  gravity       : false
 
 numerical_parameters:
   # Subgrid models for hydro and mag. components : PCM, PLM, PPM, CWENO, WENO-Z, WENO-3/5/7

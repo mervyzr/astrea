@@ -122,6 +122,10 @@ def core_run(sim_variables, **kwargs):
                     create_chkpt_file = True
                 idx += 1
 
+            # Get external source term acceleration if present
+            if sim_variables.ext_gravity:
+                source_terms = np.copy(grid[...,sim_variables.gs])
+
             # Update the solution with the numerical fluxes using iterative methods
             grid = temporal_evolve(spatial_evolve, grid, fluxes, dt, sim_variables)
 
@@ -131,6 +135,8 @@ def core_run(sim_variables, **kwargs):
 
             # Update conservative grid from gravity
             if sim_variables.gravity:
+                if sim_variables.ext_gravity:
+                    grid[...,sim_variables.gs] = source_terms
                 grid = gravity.update(grid, dt, sim_variables)
 
             # Update chemical grid
