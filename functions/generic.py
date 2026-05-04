@@ -298,7 +298,7 @@ def print_verbose(sim_variables, t=None, status=''):
 
     else:
         if sim_variables.units != 'code':
-            time_label = sim_variables.constants.scale_labels['time']
+            time_label = f" [{sim_variables.constants.scale_labels['time']}]"
             _t = t * sim_variables.constants.plot_scales['time']
             _t_end = sim_variables.t_end * sim_variables.constants.plot_scales['time']
         else:
