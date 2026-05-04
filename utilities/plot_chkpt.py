@@ -1,6 +1,7 @@
 import os
 import argparse
 import concurrent.futures
+from itertools import repeat
 
 import h5py
 import numpy as np
@@ -20,6 +21,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 SAVE_AS_PDF = False
 
 RHO, PRESSURE, VELS, BFIELDS = 0, 4, slice(1,4), slice(5,8)
+CELLS_TO_STR = lambda size: rf"$N = {str(size).strip('[]').replace(' ','').replace(',','x')}$"
 
 
 def run(save=False, title=False):
@@ -89,18 +91,17 @@ def run(save=False, title=False):
 
                         coordinates = {axis:coord for axis, coord in enumerate(f.attrs['coordinates'])}
                         ds = {ax: np.abs(np.diff(coordinates[ax]))/cells[ax] for ax in range(len(cells))}
+                        box_volume = np.prod([np.diff(_) for _ in coordinates.values()])
+                        box_lengths = {ax:start_end for ax, start_end in enumerate(f.attrs['box_lengths'])}
 
                         constants = Constants(constant_values, units)
                         permeability = constants.mu_0
-                        plot_scales = constants.plot_scales
 
-                        box_label = plot_scales["box_label"]
                         if units != "code":
-                            half_box = plot_scales['length']/2
-                            scaled_half_box = half_box/plot_scales['box_scale']
-                            box_lengths = {ax: [-ratio*scaled_half_box, ratio*scaled_half_box] for ax, ratio in enumerate(aspect_ratio)}
-                        else:
-                            box_lengths = coordinates
+                            plot_scales, scale_labels = constants.plot_scales, constants.scale_labels
+                            length_label = scale_labels['length']
+                            time_scale = plot_scales['time']
+                            time_label = scale_labels['time']
 
                         if dimensions > 1:
                             if dimensions > 2:
@@ -110,11 +111,8 @@ def run(save=False, title=False):
                         else:
                             [(left, right)] = box_lengths.values()
 
-                        time_scale = plot_scales['time']/plot_scales['time_scale']
-                        time_label = plot_scales['time_label']
-
-                        fig, ax, plot_ = make_figure(plot_options, units, dimensions, coordinates)
-                        data = make_data(plot_options, grid, dimensions, gamma, permeability, boundary, ds, constants)
+                        fig, ax, plot_ = make_figure(plot_options, units, dimensions, coordinates, scale_labels)
+                        data = make_data(plot_options, grid, dimensions, gamma, permeability, boundary, ds, plot_scales, units, box_volume)
 
                         def assign_plots(idx, ij):
                             _i, _j = ij
@@ -135,9 +133,14 @@ def run(save=False, title=False):
 
                                     ax[_i,_j].scatter3D(X, Y, Z, c=plot_3d, alpha=.05, marker='.', linewidth=0, cmap=plot_['colours']['2d'][idx])
 
-                                    ax[_i,_j].set_xlabel(f'$x${box_label}')
-                                    ax[_i,_j].set_ylabel(f'$y${box_label}')
-                                    ax[_i,_j].set_zlabel(f'$z${box_label}')
+                                    x_label, y_label, z_label = r'$x$', r'$y$', r'$z$'
+                                    if units != "code":
+                                        x_label += length_label
+                                        y_label += length_label
+                                        z_label += length_label
+                                    ax[_i,_j].set_xlabel(x_label)
+                                    ax[_i,_j].set_ylabel(y_label)
+                                    ax[_i,_j].set_zlabel(z_label)
                                     ax[_i,_j].set_box_aspect(aspect=None, zoom=0.8)
                                 else:
                                     graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=[left,right,bottom,top])
@@ -158,15 +161,24 @@ def run(save=False, title=False):
                                 grid_axes = "$(x,y)$"
                             else:
                                 grid_axes = "$x$"
-                            plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell indices {grid_axes} at $t = {round(time*time_scale,3)}${time_label} ($N = {str(cells).strip('[]').replace(' ','').replace(',','x')}$)")
+
+                            if units != "code":
+                                time *= time_scale
+                                plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(time,4)}${time_label} ({CELLS_TO_STR(cells)})")
+                            else:
+                                plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(time,4)}$ ({CELLS_TO_STR(cells)})")
 
                         plt.tight_layout()
 
                         if dimensions < 3:
-                            fig.text(0.5, 0.04, f'$x${box_label}', ha='center')
+                            x_label, y_label = r'$x$', r'$y$'
+                            if units != "code":
+                                x_label += length_label
+                                y_label += length_label
+                            fig.text(0.5, 0.04, x_label, ha='center')
                             fig.subplots_adjust(bottom=0.1)
                             if dimensions > 1:
-                                fig.text(0.04, 0.5, f'$y${box_label}', ha='center', rotation='vertical')
+                                fig.text(0.04, 0.5, y_label, ha='center', rotation='vertical')
                                 fig.subplots_adjust(left=0.1)
 
                         if save or save_plot:
@@ -174,7 +186,7 @@ def run(save=False, title=False):
                                 extension = backend = "pdf"
                             else:
                                 extension, backend = "png", "cairo"
-                            plt.savefig(f"{os.getcwd()}/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.4f' % round(time*time_scale,4)}.{extension}", bbox_inches='tight', backend=backend)
+                            plt.savefig(f"{os.getcwd()}/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.4f' % round(time,4)}.{extension}", bbox_inches='tight', backend=backend)
                         else:
                             plt.show()
 
@@ -220,7 +232,7 @@ def convert_pressure(grid, gamma, permeability):
     return grid[...,PRESSURE]/(gamma-1) + .5*(grid[...,RHO]*norm(grid[...,VELS])**2) + .5*(norm(grid[...,BFIELDS])**2)/permeability
 
 # Make figures and axes for plotting
-def make_figure(options, units, dimensions, coordinates):
+def make_figure(options, units, dimensions, coordinates, scale_labels):
     if 0 < len(options) < 13:
         # Set up colours
         colours = plt.rcParams['axes.prop_cycle'].by_key()['color'] * 2
@@ -238,18 +250,6 @@ def make_figure(options, units, dimensions, coordinates):
             "mass": "pink",
             "schlieren": "binary",
         }
-        scale_labels = {
-            "density":          r" [$\mathrm{g}/\mathrm{cm}^3$]",               # g/cm3
-            "velocity":         r" [$\mathrm{km}/\mathrm{s}$]",                 # cm/s
-            "mass":             r" [$\mathrm{M}_\odot$]",                       # M_sun
-            "momentum":         r" [$\mathrm{g}/(\mathrm{cm}^2 \mathrm{s})$]",  # g/(cm2 s)
-            "pressure":         r" [$\mathrm{dyn}/\mathrm{cm}^3$]",             # dyn/cm3
-            "energy":           r" [$\mathrm{erg}$]",                           # erg
-            "energy density":   r" [$\mathrm{erg}/\mathrm{cm}^3$]",             # erg/cm3
-            "Bfield":           r" [$\mu\mathrm{G}$]",                          # uG
-            "divergence":       r" [$\mu\mathrm{G}/\mathrm{cm}$]",              # uG/cm
-            "Mach":             "",                                             # unitless
-        }
 
         assign_unit = lambda _unit: scale_labels[_unit] if units != "code" else " [arb. units]"
 
@@ -258,7 +258,6 @@ def make_figure(options, units, dimensions, coordinates):
             _option = _option.lower()
 
             if "energy" in _option or "temp" in _option or _option.startswith("e"):
-                unit = assign_unit('energy')
                 if "int" in _option:
                     name = "Internal energy"
                     twod_colour = cmap_colours['internal energy']
@@ -268,6 +267,7 @@ def make_figure(options, units, dimensions, coordinates):
                         unit = assign_unit('energy density')
                     else:
                         label = r"$E_\mathrm{int}$"
+                        unit = assign_unit('energy')
                 else:
                     name = "Total energy"
                     twod_colour = cmap_colours['total energy']
@@ -277,6 +277,7 @@ def make_figure(options, units, dimensions, coordinates):
                         unit = assign_unit('energy density')
                     else:
                         label = r"$E_\mathrm{tot}$"
+                        unit = assign_unit('energy')
 
             elif "mom" in _option:
                 name = "Momentum"
@@ -417,56 +418,77 @@ def make_figure(options, units, dimensions, coordinates):
         raise IndexError('Number of variables to plot should be < 13')
 
 
-# Create list of data plots; accepts primitive grid
-def make_data(options, grid, dimensions, gamma, permeability, boundary, ds, constants):
-    axes = lambda op: {"x":0, "y":1, "z":2}[op[-1]]
-    plot_scales = constants.plot_scales
 
-    def option_checker(_option):
+def make_data(options, grid, dimensions, gamma, permeability, boundary, ds, plot_scales, units, box_volume):
+    axes = lambda op: {"x":0, "y":1, "z":2}[op[-1]]
+
+    def option_checker(_option, _box_volume, scaling=None):
         _option = _option.lower()
 
         if "energy" in _option or "temp" in _option or _option.startswith("e"):
+            scaler = 'energy'
             if "int" in _option:
-                quantity = plot_scales['energy'] * divide(grid[...,PRESSURE], grid[...,RHO] * (gamma-1))
+                quantity = divide(grid[...,PRESSURE], grid[...,RHO] * (gamma-1))
             else:
-                quantity = plot_scales['energy'] * divide(convert_pressure(grid, gamma, permeability), grid[...,RHO])
+                quantity = divide(convert_pressure(grid, gamma, permeability), grid[...,RHO])
             if "density" in _option:
-                quantity *= grid[...,RHO]/(plot_scales['length']**3)
+                quantity *= grid[...,RHO]
+                scaler += ' density'
         elif _option.startswith("p"):
-            quantity = plot_scales['pressure'] * grid[...,PRESSURE]
+            quantity = grid[...,PRESSURE]
+            scaler = 'pressure'
         elif _option.startswith("v") or "mom" in _option:
             axis = axes(_option)
-            quantity = plot_scales['velocity']/constants.kms * grid[...,1+axis]
+            quantity = grid[...,1+axis]
+            scaler = 'velocity'
             if "mom" in _option:
-                quantity *= (plot_scales['density']*constants.kms) * grid[...,RHO]
+                quantity *= grid[...,RHO]
+                scaler = 'momentum'
+        elif "mass" in _option:
+            quantity = grid[...,RHO] * _box_volume
+            scaler = 'mass'
         elif _option.startswith("b") or _option.startswith("mag"):
             if "p" in _option:
-                quantity = plot_scales['pressure'] * .5 * norm(grid[...,BFIELDS])**2
+                quantity = .5 * norm(grid[...,BFIELDS])**2
+                scaler = 'pressure'
             else:
                 axis = axes(_option)
-                quantity = plot_scales['Bfield'] * grid[...,5+axis]
+                quantity = grid[...,5+axis]
+                scaler = 'Bfield'
         elif 'div' in _option or 'db' in _option:
             div_along_axis = lambda ax: slice_(np.diff(add_boundary(grid[...,5+ax], boundary, axis=ax), axis=ax), axis=ax, end=-1)/ds[ax]
+            scaler = 'divergence'
             if _option[-1] == 'b':
                 if dimensions > 1:
                     quantity = div_along_axis(0) + div_along_axis(1)
                     if dimensions > 2:
                         quantity += div_along_axis(2)
+                    #quantity = np.log10(quantity)
+                    #exponent = np.floor(quantity)
                 else:
                     quantity = np.zeros_like(grid[...,5])
             else:
                 quantity = div_along_axis(axes(_option))
-            quantity *= plot_scales['divergence']
         elif "mach" in _option:
             quantity = np.sqrt(divide(norm(grid[...,VELS])**2, divide(gamma*grid[...,PRESSURE], grid[...,RHO])))
+            scaler = 'Mach'
         else:
-            quantity = plot_scales['density'] * grid[...,RHO]
+            quantity = grid[...,RHO]
+            scaler = 'density'
 
-        # pyplot.imshow transposes the 2d plots (might be a column-major relic)
-        return quantity.T
+        if scaling:
+            return scaling[scaler] * quantity.T
+        else:
+            # pyplot.imshow transposes the 2d plots (might be a column-major relic)
+            return quantity.T
+
+    if units != "code":
+        get_option = lambda _option, _box_volume: option_checker(_option, _box_volume, scaling=plot_scales)
+    else:
+        get_option = lambda _option, _box_volume: option_checker(_option, _box_volume)
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        jobs = executor.map(option_checker, options)
+        jobs = executor.map(get_option, options, repeat(box_volume))
 
     return [job for job in jobs]
 
@@ -508,71 +530,84 @@ constant_values = {
     'sun_earths': 332980,
 }
 
+
 class Constants(object):
-    def __init__(self, obj, unit):
+    def __init__(self, obj, units):
         for name, value in obj.items():
             setattr(self, name, value)
 
-        # Set up scaling (CGS)
-        if unit == 'code':
-            L0 = 1
-            rho0 = 1
-            v0 = 1
-            m0 = 1
-            B0 = 1
-            box_scale = 1
-            time_scale = 1
-            box_label = ""
-            time_label = ""
-        else:
-            if unit == 'stellar':
-                L0 = self.r_sun
-                rho0 = 1.5
-                v0 = 10 * self.kms
-                box_scale = self.au  # normalise box size to this scale
-                box_label = " [au]"
+        # Set up scaling for physical units (CGS)
+        if units != "code":
+            if units == 'custom':
+                L0 = self.pc
+                rho0 = self.m_sun/(self.pc**3)
+                v0 = self.pc/self.sec_per_year
+                length_scale = self.pc
+                length_label = " [pc]"
                 time_scale = self.sec_per_year
                 time_label = " yr"
-            elif unit == 'cluster':
-                L0 = 5e4 * self.au
-                rho0 = 1e-19
+            elif units == 'stellar':
+                L0 = self.r_sun
+                rho0 = self.m_sun/self.au**3
                 v0 = self.kms
-                box_scale = self.pc
-                box_label = " [pc]"
+                length_scale = self.au
+                length_label = " [au]"
+                time_scale = self.sec_per_year
+                time_label = " yr"
+            elif units == 'cluster':
+                L0 = self.pc
+                rho0 = 10 * (self.m_sun/self.pc**3)
+                v0 = self.kms
+                length_scale = self.pc
+                length_label = " [pc]"
                 time_scale = self.Myr
                 time_label = " Myr"
-            elif unit == 'galactic':
+            elif units == 'galactic':
                 L0 = 1e3 * self.pc
-                rho0 = 1e-24
-                v0 = 100 * self.kms
-                box_scale = 1e3 * self.pc
-                box_label = " [kpc]"
+                rho0 = 1e11 * (self.m_sun/(1e4 * self.pc**3))
+                v0 = 10 * self.kms
+                length_scale = 1e3 * self.pc
+                length_label = " [kpc]"
                 time_scale = self.Myr
                 time_label = " Myr"
 
-            m0 = 1/self.m_sun
+            m0 = rho0 * L0**3
             if self.mu_0 != 1:
-                B0 = v0 * np.sqrt(self.mu_0*rho0) * 1e6
+                B0 = v0 * np.sqrt(self.mu_0*rho0)
             else:
-                B0 = np.sqrt(4*np.pi*rho0 * v0**2 * L0**3) * 1e6
+                B0 = np.sqrt(4*np.pi*rho0 * v0**2 * L0**3)
 
-        self.plot_scales = {
-            "length":       L0,                     # cm
-            "density":      rho0,                   # g/cm3
-            "velocity":     v0,                     # cm/s
-            "mass":         m0,                     # M_sun
-            "time":         L0/v0,                  # s
-            "momentum":     rho0 * v0,              # g/(cm2 s)
-            "pressure":     rho0 * v0**2,           # erg/cm3
-            "energy":       rho0 * v0**2 * L0**3,   # erg
-            "Bfield":       B0,                     # uG
-            "divergence":   B0/L0,                  # uG/cm
-            "Mach":         1,                      # unitless
-            "box_scale":    box_scale,
-            "box_label":    box_label,
-            "time_scale":   time_scale,
-            "time_label":   time_label,
-        }
+            # Scale quantities to plot units
+            self.plot_scales = {
+                "length":           L0 / length_scale,      # code -> cm -> au/pc/kpc
+                "time":             (L0/v0) / time_scale,   # code -> s -> s/yr/Myr
+                "density":          rho0,                   # code -> g/cm3 -> g/cm3
+                "velocity":         v0 * 1e-5,              # code -> cm/s -> km/s
+                "mass":             m0/self.m_sun,          # code -> g -> M_sun
+                "momentum":         rho0 * v0,              # code -> g/(cm2 s) -> g/(cm2 s)
+                "pressure":         10 * rho0 * v0**2,      # code -> dyn/cm3 -> Pa
+                "energy":           rho0 * v0**2 * L0**3,   # code -> erg -> erg
+                "energy density":   rho0 * v0**2,           # code -> erg/cm3 -> erg/cm3
+                "Bfield":           1e6 * B0,               # code -> G -> uG
+                "divergence":       1e6 * B0/L0,            # code -> G/cm -> uG/cm
+                "Mach":             1,                      # unitless
+            }
+
+            # Set plot units
+            self.scale_labels = {
+                "length":           length_label,                                      # cm/au/pc/kpc
+                "time":             time_label,                                     # s/yr/Myr
+                "density":          r" [$\mathrm{g}/\mathrm{cm}^3$]",               # g/cm3
+                "velocity":         r" [$\mathrm{km}/\mathrm{s}$]",                 # km/s
+                "mass":             r" [$\mathrm{M}_\odot$]",                       # M_sun
+                "momentum":         r" [$\mathrm{g}/(\mathrm{cm}^2 \mathrm{s})$]",  # g/(cm2 s)
+                "pressure":         r" [$\mathrm{Pa}$]",                            # Pa
+                "energy":           r" [$\mathrm{erg}$]",                           # erg
+                "energy density":   r" [$\mathrm{erg}/\mathrm{cm}^3$]",             # erg/cm3
+                "Bfield":           r" [$\mu\mathrm{G}$]",                          # uG
+                "divergence":       r" [$\mu\mathrm{G}/\mathrm{cm}$]",              # uG/cm
+                "Mach":             "",                                             # unitless
+            }
 
 
 ACCEPTED_PLOT_OPTIONS = [

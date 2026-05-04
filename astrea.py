@@ -18,7 +18,7 @@ import numpy as np
 from functions import generic, io, plotting
 from functions import grid as gutils
 from numkit import c_transport as ct
-from physics import constants, gravity, tracers
+from physics import gravity, tracers
 from physics.krome import krome_funcs
 from static import tests
 from spatial.spatial import evolve as spatial_evolve

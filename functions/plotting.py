@@ -22,6 +22,9 @@ from functions.generic import BColours
 # Plotting functions and media handling
 ##############################################################################
 
+CELLS_TO_STR = lambda size: rf"$N = {str(size).strip('[]').replace(' ','').replace(',','x')}$"
+
+
 # Make figures and axes for plotting
 def make_figure(options, sim_variables, variable="normal"):
     if 0 < len(options) < 15:
@@ -52,28 +55,15 @@ def make_figure(options, sim_variables, variable="normal"):
             "mass": "pink",
             "schlieren": "binary",
         }
-        scale_labels = {
-            "density":          r" [$\mathrm{g}/\mathrm{cm}^3$]",               # g/cm3
-            "velocity":         r" [$\mathrm{km}/\mathrm{s}$]",                 # cm/s
-            "mass":             r" [$\mathrm{M}_\odot$]",                       # M_sun
-            "momentum":         r" [$\mathrm{g}/(\mathrm{cm}^2 \mathrm{s})$]",  # g/(cm2 s)
-            "pressure":         r" [$\mathrm{dyn}/\mathrm{cm}^3$]",             # dyn/cm3
-            "energy":           r" [$\mathrm{erg}$]",                           # erg
-            "energy density":   r" [$\mathrm{erg}/\mathrm{cm}^3$]",             # erg/cm3
-            "Bfield":           r" [$\mu\mathrm{G}$]",                          # uG
-            "divergence":       r" [$\mu\mathrm{G}/\mathrm{cm}$]",              # uG/cm
-            "Mach":             "",                                             # unitless
-        }
 
         # Grab the characteristic scales and set up the values based on 'option'
-        assign_unit = lambda _unit: scale_labels[_unit] if sim_variables.units != "code" else " [arb. units]"
+        assign_unit = lambda _unit: sim_variables.constants.scale_labels[_unit] if sim_variables.units != "code" else " [arb. units]"
 
         # Set up labels and axes names
         def assign_plots(_option):
             _option = _option.lower()
 
             if "energy" in _option or "temp" in _option or _option.startswith("e"):
-                unit = assign_unit('energy')
                 if "int" in _option:
                     name = "Internal energy"
                     twod_colour = cmap_colours['internal energy']
@@ -87,6 +77,7 @@ def make_figure(options, sim_variables, variable="normal"):
                         label = r"$E_\mathrm{int}$"
                         error = r"$\epsilon_N(E_\mathrm{int})$"
                         tv = r"TV($E_\mathrm{int}$)"
+                        unit = assign_unit('energy')
                 else:
                     name = "Total energy"
                     twod_colour = cmap_colours['total energy']
@@ -100,6 +91,7 @@ def make_figure(options, sim_variables, variable="normal"):
                         label = r"$E_\mathrm{tot}$"
                         error = r"$\epsilon_N(E_\mathrm{tot})$"
                         tv = r"TV($E_\mathrm{tot}$)"
+                        unit = assign_unit('energy')
 
             elif "mom" in _option:
                 name = "Momentum"
@@ -275,35 +267,45 @@ def make_figure(options, sim_variables, variable="normal"):
 # Create list of data plots; accepts primitive grid
 def make_data(options, grid, sim_variables):
     rho, pressure, vels, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields
-    constants = sim_variables.constants
-    plot_scales = constants.plot_scales
+    units, box_volume = sim_variables.units, sim_variables.box_volume
     axes = lambda op: {"x":0, "y":1, "z":2}[op[-1]]
 
-    def option_checker(_option):
+    def option_checker(_option, _box_volume, scaling=None):
         _option = _option.lower()
 
         if "energy" in _option or "temp" in _option or _option.startswith("e"):
+            scaler = 'energy'
             if "int" in _option:
-                quantity = plot_scales['energy'] * mfuncs.divide(grid[...,pressure], grid[...,rho] * (sim_variables.gamma-1))
+                quantity = mfuncs.divide(grid[...,pressure], grid[...,rho] * (sim_variables.gamma-1))
             else:
-                quantity = plot_scales['energy'] * mfuncs.divide(gutils.convert_thermo_variable('pressure', grid, sim_variables), grid[...,rho])
+                quantity = mfuncs.divide(gutils.convert_thermo_variable('pressure', grid, sim_variables), grid[...,rho])
             if "density" in _option:
-                quantity *= grid[...,rho]/(plot_scales['length']**3)
+                quantity *= grid[...,rho]
+                scaler += ' density'
         elif _option.startswith("p"):
-            quantity = plot_scales['pressure'] * grid[...,pressure]
+            quantity = grid[...,pressure]
+            scaler = 'pressure'
         elif _option.startswith("v") or "mom" in _option:
             axis = axes(_option)
-            quantity = plot_scales['velocity']/constants.kms * grid[...,1+axis]
+            quantity = grid[...,1+axis]
+            scaler = 'velocity'
             if "mom" in _option:
-                quantity *= (plot_scales['density']*constants.kms) * grid[...,rho]
+                quantity *= grid[...,rho]
+                scaler = 'momentum'
+        elif "mass" in _option:
+            quantity = grid[...,rho] * _box_volume
+            scaler = 'mass'
         elif _option.startswith("b") or _option.startswith("mag"):
             if "p" in _option:
-                quantity = plot_scales['pressure'] * .5 * mfuncs.norm(grid[...,Bfields])**2
+                quantity = .5 * mfuncs.norm(grid[...,Bfields])**2
+                scaler = 'pressure'
             else:
                 axis = axes(_option)
-                quantity = plot_scales['Bfield'] * grid[...,5+axis]
+                quantity = grid[...,5+axis]
+                scaler = 'Bfield'
         elif 'div' in _option or 'db' in _option:
             div_along_axis = lambda ax: gutils.slice_(np.diff(gutils.add_boundary(grid[...,5+ax], sim_variables, axis=ax), axis=ax), axis=ax, end=-1)/sim_variables.ds[ax]
+            scaler = 'divergence'
             if _option[-1] == 'b':
                 if sim_variables.multidimensional:
                     quantity = div_along_axis(0) + div_along_axis(1)
@@ -315,41 +317,42 @@ def make_data(options, grid, sim_variables):
                     quantity = np.zeros_like(grid[...,5])
             else:
                 quantity = div_along_axis(axes(_option))
-            quantity *= plot_scales['divergence']
         elif "mach" in _option:
             quantity = np.sqrt(mfuncs.divide(mfuncs.norm(grid[...,vels])**2, mfuncs.divide(sim_variables.gamma*grid[...,pressure], grid[...,rho])))
+            scaler = 'Mach'
         else:
-            quantity = plot_scales['density'] * grid[...,rho]
+            quantity = grid[...,rho]
+            scaler = 'density'
 
-        # pyplot.imshow transposes the 2d plots (might be a column-major relic)
-        return quantity.T
+        if scaling:
+            return scaling[scaler] * quantity.T
+        else:
+            # pyplot.imshow transposes the 2d plots (might be a column-major relic)
+            return quantity.T
+
+    if units != "code":
+        get_option = lambda _option, _box_volume: option_checker(_option, _box_volume, scaling=sim_variables.constants.plot_scales)
+    else:
+        get_option = lambda _option, _box_volume: option_checker(_option, _box_volume)
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        jobs = executor.map(option_checker, options)
+        jobs = executor.map(get_option, options, repeat(box_volume))
 
     return [job for job in jobs]
 
 
 # Initiate the live plot feature
 def initiate_live_plot(sim_variables, title=False):
-    cells, dimensions, multidimensional, coordinates = sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.coordinates
-    options, constants = sim_variables.plot_options, sim_variables.constants
-    plot_scales = constants.plot_scales
+    cells, dimensions, multidimensional = sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional
+    options, units, box_lengths = sim_variables.plot_options, sim_variables.units, sim_variables.box_lengths
 
     plt.ion()
 
     fig, ax, plot_ = make_figure(options, sim_variables)
 
-    if sim_variables.units != 'code':
-        half_box = plot_scales['length']/2
-        scaled_half_box = half_box/plot_scales['box_scale']
-        box_lengths = {ax: [-ratio*scaled_half_box, ratio*scaled_half_box] for ax, ratio in enumerate(sim_variables.aspect_ratio)}
-    else:
-        box_lengths = coordinates
-
     if multidimensional:
         if dimensions > 2:
-            (left, right), (bottom, top), (backwards, forward) = box_lengths.values()
+            pass
         else:
             (left, right), (bottom, top) = box_lengths.values()
     else:
@@ -382,7 +385,11 @@ def initiate_live_plot(sim_variables, title=False):
                 grid_axes = "$(x,y)$"
         else:
             grid_axes = "$x$"
-        plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = 0.0000${plot_scales.time_label}", fontsize=24)
+
+        time_label = r'$t = 0.0000$'
+        if units != "code":
+            time_label += sim_variables.constants.scale_labels['time']
+        plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at {time_label}", fontsize=24)
 
     plt.tight_layout()
 
@@ -391,7 +398,7 @@ def initiate_live_plot(sim_variables, title=False):
 
 # Update live plot
 def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
-    options = sim_variables.plot_options
+    options, units = sim_variables.plot_options, sim_variables.units
     plot_data = make_data(options, grid_snapshot, sim_variables)
 
     def assign_plots(idx, graph):
@@ -415,8 +422,6 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
     except AttributeError:
         pass
     else:
-        time_scale = sim_variables.constants.plot_scales['time']/sim_variables.constants.plot_scales['time_scale']
-        time_label = sim_variables.constants.plot_scales['time_label']
         if sim_variables.multidimensional:
             if sim_variables.dimensions > 2:
                 grid_axes = "$(x,y,z)$"
@@ -424,7 +429,13 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
                 grid_axes = "$(x,y)$"
         else:
             grid_axes = "$x$"
-        plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(t*time_scale,4)}${time_label}", fontsize=24)
+
+        if units != "code":
+            t *= sim_variables.constants.plot_scales['time']
+            time_label = sim_variables.constants.scale_labels['time']
+            plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(t,4)}${time_label}", fontsize=24)
+        else:
+            plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(t,4)}$", fontsize=24)
 
     fig.canvas.draw()
     fig.canvas.flush_events()
@@ -433,9 +444,8 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
 
 # Function for plotting a snapshot of the grid
 def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
-    config, cells, dimensions, multidimensional, coordinates, subgrid, time_evo, solver = sim_variables.config, sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.coordinates, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
-    options, constants = sim_variables.plot_options, sim_variables.constants
-    plot_scales = constants.plot_scales
+    config, cells, dimensions, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
+    options, units, box_lengths = sim_variables.plot_options, sim_variables.units, sim_variables.box_lengths
 
     fig, ax, plot_ = make_figure(options, sim_variables)
     y_data = make_data(options, grid_snapshot, sim_variables)
@@ -445,13 +455,10 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
     else:
         extension, backend = "png", "cairo"
 
-    box_label = plot_scales["box_label"]
-    if sim_variables.units != "code":
-        half_box = plot_scales['length']/2
-        scaled_half_box = half_box/plot_scales['box_scale']
-        box_lengths = {ax: [-ratio*scaled_half_box, ratio*scaled_half_box] for ax, ratio in enumerate(sim_variables.aspect_ratio)}
-    else:
-        box_lengths = coordinates
+    if units != "code":
+        length_label = sim_variables.constants.scale_labels['length']
+        time_scale = sim_variables.constants.plot_scales['time']
+        time_label = sim_variables.constants.scale_labels['time']
 
     if multidimensional:
         if dimensions > 2:
@@ -480,9 +487,14 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
 
                 ax[_i,_j].scatter3D(X, Y, Z, c=plot_3d, alpha=.05, marker='.', linewidth=0, cmap=plot_['colours']['2d'][idx])
 
-                ax[_i,_j].set_xlabel(f'$x${box_label}')
-                ax[_i,_j].set_ylabel(f'$y${box_label}')
-                ax[_i,_j].set_zlabel(f'$z${box_label}')
+                x_label, y_label, z_label = r'$x$', r'$y$', r'$z$'
+                if units != "code":
+                    x_label += length_label
+                    y_label += length_label
+                    z_label += length_label
+                ax[_i,_j].set_xlabel(x_label)
+                ax[_i,_j].set_ylabel(y_label)
+                ax[_i,_j].set_zlabel(z_label)
                 ax[_i,_j].set_box_aspect(aspect=None, zoom=0.8)
             else:
                 graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=[left,right,bottom,top])
@@ -500,8 +512,6 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
         executor.map(assign_plots, range(len(plot_['indexes'])), plot_['indexes'])
 
     if title:
-        time_scale = plot_scales['time']/plot_scales['time_scale']
-        time_label = plot_scales['time_label']
         if multidimensional:
             if dimensions > 2:
                 grid_axes = "$(x,y,z)$"
@@ -509,18 +519,27 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
                 grid_axes = "$(x,y)$"
         else:
             grid_axes = "$x$"
-        plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(t*time_scale,3)}${time_label} ($N = {str(cells).strip('[]').replace(' ','').replace(',','x')}$)")
+
+        if units != "code":
+            t *= time_scale
+            plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(t,4)}${time_label} ({CELLS_TO_STR(cells)})")
+        else:
+            plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(t,4)}$ ({CELLS_TO_STR(cells)})")
 
     plt.tight_layout()
 
     if dimensions < 3:
-        fig.text(0.5, 0.04, f'$x${box_label}', ha='center')
+        x_label, y_label = r'$x$', r'$y$'
+        if units != "code":
+            x_label += length_label
+            y_label += length_label
+        fig.text(0.5, 0.04, x_label, ha='center')
         fig.subplots_adjust(bottom=0.1)
         if multidimensional:
-            fig.text(0.04, 0.5, f'$y${box_label}', ha='center', rotation='vertical')
+            fig.text(0.04, 0.5, y_label, ha='center', rotation='vertical')
             fig.subplots_adjust(left=0.1)
 
-    plt.savefig(f"{sim_variables.save_path}/snapshots/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.4f' % round(t*time_scale,4)}.{extension}", bbox_inches='tight', backend=backend)
+    plt.savefig(f"{sim_variables.save_path}/snapshots/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.4f' % round(t,4)}.{extension}", bbox_inches='tight', backend=backend)
 
     plt.cla()
     plt.clf()
@@ -530,23 +549,19 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
 
 # Generic plot of simulation variables        
 def plot_quantities(hdf5, sim_variables, title=False):
-    config, dimensions, multidimensional, coordinates, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.coordinates, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
+    config, dimensions, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     t_end, checkpoints = sim_variables.t_end, sim_variables.checkpoints
-    options, constants = sim_variables.plot_options, sim_variables.constants
-    plot_scales = constants.plot_scales
+    options, units, box_lengths = sim_variables.plot_options, sim_variables.units, sim_variables.box_lengths
 
     if sim_variables.save_as_pdf:
         extension = backend = "pdf"
     else:
         extension, backend = "png", "cairo"
 
-    box_label = plot_scales["box_label"]
-    if sim_variables.units != "code":
-        half_box = plot_scales['length']/2
-        scaled_half_box = half_box/plot_scales['box_scale']
-        box_lengths = {ax: [-ratio*scaled_half_box, ratio*scaled_half_box] for ax, ratio in enumerate(sim_variables.aspect_ratio)}
-    else:
-        box_lengths = coordinates
+    if units != "code":
+        length_label = sim_variables.constants.scale_labels['length']
+        time_scale = sim_variables.constants.plot_scales['time']
+        time_label = sim_variables.constants.scale_labels['time']
 
     if multidimensional:
         if dimensions > 2:
@@ -555,9 +570,6 @@ def plot_quantities(hdf5, sim_variables, title=False):
             (left, right), (bottom, top) = box_lengths.values()
     else:
         [(left, right)] = box_lengths.values()
-
-    time_scale = plot_scales['time']/plot_scales['time_scale']
-    time_label = plot_scales['time_label']
 
 
     # hdf5 keys are datetime strings; each datetime represents a simulation run
@@ -597,9 +609,14 @@ def plot_quantities(hdf5, sim_variables, title=False):
 
                 ax[_i,_j].scatter3D(X, Y, Z, c=plot_3d, alpha=.05, marker='.', linewidth=0, cmap=plot_['colours']['2d'][idx])
 
-                ax[_i,_j].set_xlabel(f'$x${box_label}')
-                ax[_i,_j].set_ylabel(f'$y${box_label}')
-                ax[_i,_j].set_zlabel(f'$z${box_label}')
+                x_label, y_label, z_label = r'$x$', r'$y$', r'$z$'
+                if units != "code":
+                    x_label += length_label
+                    y_label += length_label
+                    z_label += length_label
+                ax[_i,_j].set_xlabel(x_label)
+                ax[_i,_j].set_ylabel(y_label)
+                ax[_i,_j].set_zlabel(z_label)
                 ax[_i,_j].set_box_aspect(aspect=None, zoom=0.8)
             else:
                 # 2D plots for single or multiple simulation runs; doesn't make sense to overplot 2D runs over each other, but just do it anyway
@@ -611,7 +628,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
             x = np.linspace(left, right, _cells[0])
             if len(hdf5) != 1:
                 # Multiple simulation runs in one HDF5 (only when --test option is used); plot all simulation runs
-                ax[_i,_j].plot(x, y, label=rf"$N = {str(_cells).strip('[]').replace(' ','').replace(',','x')}$")
+                ax[_i,_j].plot(x, y, label=CELLS_TO_STR(_cells))
             else:
                 # Single simulation run
                 if sim_variables.beautify_1d_plots:
@@ -641,7 +658,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
                 executor.map(assign_plots, range(len(plot_['indexes'])), plot_['indexes'], repeat(y_data), repeat(cells))
 
             if title:
-                grid_cells = f" ($N = {str(cells).strip('[]').replace(' ','').replace(',','x')}$)"
+                grid_cells = rf" ({CELLS_TO_STR(cells)})"
                 if multidimensional:
                     if dimensions > 2:
                         grid_axes = "$(x,y,z)$"
@@ -651,15 +668,24 @@ def plot_quantities(hdf5, sim_variables, title=False):
                     grid_axes = "$x$"
                     if len(hdf5) != 1:
                         grid_cells = ""
-                plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(float(timing)*time_scale,4)}${time_label}{grid_cells}")
+
+                if units != "code":
+                    t = float(timing) * time_scale
+                    plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(t,4)}${time_label}{grid_cells}")
+                else:
+                    plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(float(timing),4)}${grid_cells}")
 
             plt.tight_layout()
 
             if dimensions < 3:
-                fig.text(0.5, 0.04, f'$x${box_label}', ha='center')
+                x_label, y_label = r'$x$', r'$y$'
+                if units != "code":
+                    x_label += length_label
+                    y_label += length_label
+                fig.text(0.5, 0.04, x_label, ha='center')
                 fig.subplots_adjust(bottom=0.1)
                 if multidimensional:
-                    fig.text(0.04, 0.5, f'$y${box_label}', ha='center', rotation='vertical')
+                    fig.text(0.04, 0.5, y_label, ha='center', rotation='vertical')
                     fig.subplots_adjust(left=0.1)
 
 
@@ -673,12 +699,15 @@ def plot_quantities(hdf5, sim_variables, title=False):
 
             # Add analytical solution for smooth functions
             if sim_variables.config_category == "smooth":
-                analytical = gutils.initialise(sim_variables)
+                if "manufacture" in config or "euler" in config:
+                    analytical = analytic.calculate_Euler_analytical(hdf5[ref_datetime][str(ref_time)][:], sim_variables)
+                else:
+                    analytical = gutils.initialise(sim_variables)
                 y_theo = make_data(options, analytical, sim_variables)
 
                 if config.startswith("sin"):
                     plot_label = rf"{config}$_{{theo}}$"
-                elif config == "cpaw":
+                elif config == "cpaw" or ("manufacture" in config or "euler" in config):
                     plot_label = rf"{config.upper()}$_{{theo}}$"
                 else:
                     plot_label = rf"{config.title()}$_{{theo}}$"
@@ -689,7 +718,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
                 plot_label = rf"{config.title()}$_{{theo}}$"
                 try:
                     if "sod" in config:
-                        soln = analytic.calculate_Sod_analytical(_grid, _t, sim_variables)        
+                        soln = analytic.calculate_Sod_analytical(_grid, _t, sim_variables)
                     elif "sedov" in config:
                         soln = analytic.calculate_Sedov_analytical(_grid, _t, sim_variables)
                 except Exception as e:
@@ -714,7 +743,9 @@ def plot_quantities(hdf5, sim_variables, title=False):
             handles, labels = zip(*sorted(zip(handles, labels), key=lambda k: sort_key(k[1])))
             fig.legend(handles, labels, ncol=_ncol)
 
-        plt.savefig(f"{sim_variables.save_path}/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.4f' % round(ref_time*time_scale,4)}.{extension}", bbox_inches='tight', backend=backend)
+        if units != "code":
+            ref_time *= time_scale
+        plt.savefig(f"{sim_variables.save_path}/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.4f' % round(ref_time,4)}.{extension}", bbox_inches='tight', backend=backend)
 
         plt.cla()
         plt.clf()
@@ -876,7 +907,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
 def plot_total_variation(hdf5, sim_variables, title=False):
     config, subgrid, time_evo, solver = sim_variables.config, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     options = sim_variables.plot_options
-    time_label = sim_variables.constants.plot_scales['time_label']
+    time_label = sim_variables.constants.scale_labels['time']
 
     if sim_variables.save_as_pdf:
         extension = backend = "pdf"
@@ -893,7 +924,6 @@ def plot_total_variation(hdf5, sim_variables, title=False):
         simulation = hdf5[datetime]
 
         cells = simulation.attrs['cells']
-        grid_size = str(cells).strip('[]').replace(' ','').replace(',','x')
 
         total_variations = analytic.calculate_TV(simulation, sim_variables)
 
@@ -922,14 +952,14 @@ def plot_total_variation(hdf5, sim_variables, title=False):
             ax[_i,_j].set_xlim([min(x), max(x)])
 
         if title:
-            plt.suptitle(rf"Total variation of grid variables TV($\mathbf{{u}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)")
+            plt.suptitle(rf"Total variation of grid variables TV($\mathbf{{u}}$) against time $t$ for {config.title()} test ({CELLS_TO_STR(cells)})")
 
         plt.tight_layout()
 
         fig.text(0.5, 0.04, rf"Time $t${time_label}", ha='center')
         fig.subplots_adjust(bottom=0.1)
 
-        plt.savefig(f"{sim_variables.save_path}/TV_{config}_{subgrid}_{time_evo}_{solver}_{grid_size}.{extension}", bbox_inches='tight', backend=backend)
+        plt.savefig(f"{sim_variables.save_path}/TV_{config}_{subgrid}_{time_evo}_{solver}.{extension}", bbox_inches='tight', backend=backend)
 
         plt.cla()
         plt.clf()
@@ -940,7 +970,7 @@ def plot_total_variation(hdf5, sim_variables, title=False):
 def plot_conservation_equations(hdf5, sim_variables, title=False):
     options = ["mass", "momentum_x", "total energy"]
     config, subgrid, time_evo, solver = sim_variables.config, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
-    time_label = sim_variables.constants.plot_scales['time_label']
+    time_label = sim_variables.constants.scale_labels['time']
 
     if sim_variables.save_as_pdf:
         extension = backend = "pdf"
@@ -957,7 +987,6 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
         simulation = hdf5[datetime]
 
         cells = simulation.attrs['cells']
-        grid_size = str(cells).strip('[]').replace(' ','').replace(',','x')
 
         conservation: dict = analytic.calculate_conservation(simulation, sim_variables)
 
@@ -994,14 +1023,14 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
             ax[_i,_j].annotate(round(y_final, decimal_point), xy=(x[-1], y_final), xytext=(0,0), textcoords='offset points')
 
         if title:
-            plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ for {config.title()} test ($N = {grid_size}$)")
+            plt.suptitle(rf"Conservation of variables ($m, p_x, E_{{tot}}$) against time $t$ for {config.title()} test ({CELLS_TO_STR(cells)})")
 
         plt.tight_layout()
 
         fig.text(0.5, 0.04, rf"Time $t${time_label}", ha='center')
         fig.subplots_adjust(bottom=0.1)
 
-        plt.savefig(f"{sim_variables.save_path}/conserveEq_{config}_{subgrid}_{time_evo}_{solver}_{grid_size}.{extension}", bbox_inches='tight', backend=backend)
+        plt.savefig(f"{sim_variables.save_path}/conserveEq_{config}_{subgrid}_{time_evo}_{solver}.{extension}", bbox_inches='tight', backend=backend)
 
         plt.cla()
         plt.clf()
@@ -1010,17 +1039,13 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
 
 # Make a video of entire simulation; video of all plot options or specific variable
 def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
-    config, dimensions, multidimensional, coordinates, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.coordinates, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
-    constants = sim_variables.constants
-    plot_scales = constants.plot_scales
+    config, dimensions, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
+    units, box_lengths = sim_variables.units, sim_variables.box_lengths
 
-    box_label = plot_scales["box_label"]
-    if sim_variables.units != "code":
-        half_box = plot_scales['length']/2
-        scaled_half_box = half_box/plot_scales['box_scale']
-        box_lengths = {ax: [-ratio*scaled_half_box, ratio*scaled_half_box] for ax, ratio in enumerate(sim_variables.aspect_ratio)}
-    else:
-        box_lengths = coordinates
+    if units != "code":
+        length_label = sim_variables.constants.scale_labels['length']
+        time_scale = sim_variables.constants.plot_scales['time']
+        time_label = sim_variables.constants.scale_labels['time']
 
     if multidimensional:
         if dimensions > 2:
@@ -1029,9 +1054,6 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
             (left, right), (bottom, top) = box_lengths.values()
     else:
         [(left, right)] = box_lengths.values()
-
-    time_scale = plot_scales['time']/plot_scales['time_scale']
-    time_label = plot_scales['time_label']
 
 
     # hdf5 keys are datetime strings
@@ -1077,9 +1099,14 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
                                 ax[_i,_j].scatter3D(X, Y, Z, c=plot_3d, alpha=.05, marker='.', linewidth=0, cmap=plot_['colours']['2d'][idx])
 
-                                ax[_i,_j].set_xlabel(f'$x${box_label}')
-                                ax[_i,_j].set_ylabel(f'$y${box_label}')
-                                ax[_i,_j].set_zlabel(f'$z${box_label}')
+                                x_label, y_label, z_label = r'$x$', r'$y$', r'$z$'
+                                if units != "code":
+                                    x_label += length_label
+                                    y_label += length_label
+                                    z_label += length_label
+                                ax[_i,_j].set_xlabel(x_label)
+                                ax[_i,_j].set_ylabel(y_label)
+                                ax[_i,_j].set_zlabel(z_label)
                                 ax[_i,_j].set_box_aspect(aspect=None, zoom=0.8)
                             else:
                                 graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=[left,right,bottom,top])
@@ -1094,7 +1121,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
 
                     if title:
-                        grid_cells = f" ($N = {str(cells).strip('[]').replace(' ','').replace(',','x')}$)"
+                        grid_cells = rf" ({CELLS_TO_STR(cells)})"
                         if multidimensional:
                             if dimensions > 2:
                                 grid_axes = "$(x,y,z)$"
@@ -1102,15 +1129,24 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                                 grid_axes = "$(x,y)$"
                         else:
                             grid_axes = "$x$"
-                        plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(float(t)*time_scale,4)}${time_label}{grid_cells}")
+
+                        if units != "code":
+                            timing = float(t) * time_scale
+                            plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(timing,4)}${time_label}{grid_cells}")
+                        else:
+                            plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(float(t),4)}${grid_cells}")
 
                     plt.tight_layout()
 
                     if dimensions < 3:
-                        fig.text(0.5, 0.04, f'$x${box_label}', ha='center')
+                        x_label, y_label = r'$x$', r'$y$'
+                        if units != "code":
+                            x_label += length_label
+                            y_label += length_label
+                        fig.text(0.5, 0.04, x_label, ha='center')
                         fig.subplots_adjust(bottom=0.1)
                         if multidimensional:
-                            fig.text(0.04, 0.5, f'$y${box_label}', ha='center', rotation='vertical')
+                            fig.text(0.04, 0.5, y_label, ha='center', rotation='vertical')
                             fig.subplots_adjust(left=0.1)
 
                     plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight', backend='cairo')
@@ -1133,9 +1169,14 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
                             ax[_i,_j].scatter3D(X, Y, Z, c=plot_3d, alpha=.05, marker='.', linewidth=0, cmap=plot_['colours']['2d'][idx])
 
-                            ax[_i,_j].set_xlabel(f'$x${box_label}')
-                            ax[_i,_j].set_ylabel(f'$y${box_label}')
-                            ax[_i,_j].set_zlabel(f'$z${box_label}')
+                            x_label, y_label, z_label = r'$x$', r'$y$', r'$z$'
+                            if units != "code":
+                                x_label += length_label
+                                y_label += length_label
+                                z_label += length_label
+                            ax[_i,_j].set_xlabel(x_label)
+                            ax[_i,_j].set_ylabel(y_label)
+                            ax[_i,_j].set_zlabel(z_label)
                             ax[_i,_j].set_box_aspect(aspect=None, zoom=0.8)
                         else:
                             plt.axis('off')
@@ -1193,9 +1234,14 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
                             ax[_i,_j].scatter3D(X, Y, Z, c=plot_3d, alpha=.05, marker='.', linewidth=0, cmap=plot_['colours']['2d'][0])
 
-                            ax[_i,_j].set_xlabel(f'$x${box_label}')
-                            ax[_i,_j].set_ylabel(f'$y${box_label}')
-                            ax[_i,_j].set_zlabel(f'$z${box_label}')
+                            x_label, y_label, z_label = r'$x$', r'$y$', r'$z$'
+                            if units != "code":
+                                x_label += length_label
+                                y_label += length_label
+                                z_label += length_label
+                            ax[_i,_j].set_xlabel(x_label)
+                            ax[_i,_j].set_ylabel(y_label)
+                            ax[_i,_j].set_zlabel(z_label)
                             ax[_i,_j].set_box_aspect(aspect=None, zoom=0.8)
                         else:
                             plt.axis('off')
@@ -1233,17 +1279,13 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
 # Function for plotting instance of the grid; insert into any part of the code
 def plot_this(grid, sim_variables, **kwargs):
-    cells, dimensions, multidimensional, coordinates = sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.coordinates
-    options, constants = sim_variables.plot_options, sim_variables.constants
-    plot_scales = constants.plot_scales
+    cells, dimensions, multidimensional = sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional
+    options, units, box_lengths = sim_variables.plot_options, sim_variables.units, sim_variables.box_lengths
 
-    box_label = plot_scales["box_label"]
-    if sim_variables.units != "code":
-        half_box = plot_scales['length']/2
-        scaled_half_box = half_box/plot_scales['box_scale']
-        box_lengths = {ax: [-ratio*scaled_half_box, ratio*scaled_half_box] for ax, ratio in enumerate(sim_variables.aspect_ratio)}
-    else:
-        box_lengths = coordinates
+    if units != "code":
+        length_label = sim_variables.constants.scale_labels['length']
+        time_scale = sim_variables.constants.plot_scales['time']
+        time_label = sim_variables.constants.scale_labels['time']
 
     if multidimensional:
         if dimensions > 2:
@@ -1253,9 +1295,6 @@ def plot_this(grid, sim_variables, **kwargs):
     else:
         [(left, right)] = box_lengths.values()
 
-    time_scale = plot_scales['time']/plot_scales['time_scale']
-    time_label = plot_scales['time_label']
-
     try:
         t = kwargs['t']
     except KeyError:
@@ -1264,7 +1303,11 @@ def plot_this(grid, sim_variables, **kwargs):
         except KeyError:
             text = ""
     else:
-        text = rf"at $t = {t*time_scale}${time_label}"
+        if units != "code":
+            t *= time_scale
+            text = rf"at $t = {t}${time_label}"
+        else:
+            text = rf"at $t = {t}$"
 
     fig, ax, plot_ = make_figure(options, sim_variables)
     y_data = make_data(options, grid, sim_variables)
@@ -1288,9 +1331,14 @@ def plot_this(grid, sim_variables, **kwargs):
 
                 ax[_i,_j].scatter3D(X, Y, Z, c=plot_3d, alpha=.05, marker='.', linewidth=0, cmap=plot_['colours']['2d'][idx])
 
-                ax[_i,_j].set_xlabel(f'$x${box_label}')
-                ax[_i,_j].set_ylabel(f'$y${box_label}')
-                ax[_i,_j].set_zlabel(f'$z${box_label}')
+                x_label, y_label, z_label = r'$x$', r'$y$', r'$z$'
+                if units != "code":
+                    x_label += length_label
+                    y_label += length_label
+                    z_label += length_label
+                ax[_i,_j].set_xlabel(x_label)
+                ax[_i,_j].set_ylabel(y_label)
+                ax[_i,_j].set_zlabel(z_label)
                 ax[_i,_j].set_box_aspect(aspect=None, zoom=0.8)
             else:
                 graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=[left,right,bottom,top])
@@ -1318,11 +1366,16 @@ def plot_this(grid, sim_variables, **kwargs):
     plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell indices {grid_axes} {text}")
     plt.tight_layout()
 
-    fig.text(0.5, 0.04, rf"$x${box_label}", ha='center')
-    fig.subplots_adjust(bottom=0.1)
-    if sim_variables.multidimensional:
-        fig.text(0.04, 0.5, rf"$y${box_label}", ha='center', rotation='vertical')
-        fig.subplots_adjust(left=0.1)
+    if dimensions < 3:
+        x_label, y_label = r'$x$', r'$y$'
+        if units != "code":
+            x_label += length_label
+            y_label += length_label
+        fig.text(0.5, 0.04, x_label, ha='center')
+        fig.subplots_adjust(bottom=0.1)
+        if multidimensional:
+            fig.text(0.04, 0.5, y_label, ha='center', rotation='vertical')
+            fig.subplots_adjust(left=0.1)
 
     if not sim_variables.live_plot:
         plt.show(block=True)
@@ -1332,10 +1385,7 @@ def plot_this(grid, sim_variables, **kwargs):
 # Plot the power spectrum for turbulence
 def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None):
     cells, dimensions, coordinates, ds = sim_variables.cells, sim_variables.dimensions, sim_variables.coordinates, sim_variables.ds
-    plot_scales = sim_variables.constants.plot_scales
-
-    time_scale = plot_scales['time']/plot_scales['time_scale']
-    time_label = plot_scales['time_label']
+    units = sim_variables.units
 
     if sim_variables.save_as_pdf:
         extension = backend = "pdf"
@@ -1430,7 +1480,13 @@ def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None
         log_offset = power_spectrum[0] - E_theo[0]
 
         # Plot the energy spectrum
-        ax.loglog(k_bin_centers, power_spectrum, label=f'$t={t*time_scale}{time_label.strip(' []')}, m = {round(m,3)}$')
+        if units != "code":
+            t *= sim_variables.constants.plot_scales['time']
+            time_label = sim_variables.constants.scale_labels['time'].strip(' []')
+            label = rf"$t = {round(t,4)}{time_label}$, m = {round(m,3)}$"
+        else:
+            label = rf"$t = {round(t,4)}$, m = {round(m,3)}$"
+        ax.loglog(k_bin_centers, power_spectrum, label=label)
 
     # Plot the theoretical line
     ax.loglog(k_bin_centers[1:22], (E_theo*log_offset)[1:22], color='black', linestyle='--', label=rf'$k^{{{power_law}}}$')
@@ -1447,16 +1503,13 @@ def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None
 
 # Plot positions of tracer particles
 def plot_tracer_particles(tracers, t, sim_variables, title=False):
-    dimensions, multidimensional, coordinates = sim_variables.dimensions, sim_variables.multidimensional, sim_variables.coordinates
-    plot_scales = sim_variables.constants.plot_scales
+    dimensions, multidimensional = sim_variables.dimensions, sim_variables.multidimensional
+    units, box_lengths = sim_variables.units, sim_variables.box_lengths
 
-    box_label = plot_scales["box_label"]
-    if sim_variables.units != "code":
-        half_box = plot_scales['length']/2
-        scaled_half_box = half_box/plot_scales['box_scale']
-        box_lengths = {ax: [-ratio*scaled_half_box, ratio*scaled_half_box] for ax, ratio in enumerate(sim_variables.aspect_ratio)}
-    else:
-        box_lengths = coordinates
+    if units != "code":
+        length_label = sim_variables.constants.scale_labels['length']
+        time_scale = sim_variables.constants.plot_scales['time']
+        time_label = sim_variables.constants.scale_labels['time']
 
     if multidimensional:
         if dimensions > 2:
@@ -1465,9 +1518,6 @@ def plot_tracer_particles(tracers, t, sim_variables, title=False):
             (left, right), (bottom, top) = box_lengths.values()
     else:
         [(left, right)] = box_lengths.values()
-
-    time_scale = plot_scales['time']/plot_scales['time_scale']
-    time_label = plot_scales['time_label']
 
     if sim_variables.save_as_pdf:
         extension = backend = "pdf"
@@ -1513,15 +1563,21 @@ def plot_tracer_particles(tracers, t, sim_variables, title=False):
         'linewidths': max(.2, 1.1 - .1*np.log2(np.average(sim_variables.cells))),
     }
 
-    ax.set_xlabel(rf"$x${box_label}")
+    x_label, y_label, z_label = r'$x$', r'$y$', r'$z$'
+    if units != "code":
+        x_label += length_label
+        y_label += length_label
+        z_label += length_label
+
+    ax.set_xlabel(x_label)
     ax.set_xlim(left, right)
 
     if multidimensional:
-        ax.set_ylabel(rf"$y${box_label}")
+        ax.set_ylabel(y_label)
         ax.set_ylim(bottom, top)
 
         if dimensions > 2:
-            ax.set_zlabel(rf"$z${box_label}")
+            ax.set_zlabel(z_label)
             ax.set_zlim(backwards, forward)
             ax.scatter(tracers[...,0], tracers[...,1], tracers[...,2], **fig_kwargs)
         else:
@@ -1530,9 +1586,13 @@ def plot_tracer_particles(tracers, t, sim_variables, title=False):
         ax.scatter(tracers[...,0], **fig_kwargs)
 
     if title:
-        plt.suptitle(rf"Tracer particles' positions at $t = {round(t*time_scale,4)}${time_label}")
+        if units != "code":
+            t *= time_scale
+            plt.suptitle(rf"Tracer particles' positions at $t = {round(t,4)}${time_label}")
+        else:
+            plt.suptitle(rf"Tracer particles' positions at $t = {round(t,4)}$")
 
-    plt.savefig(f"{sim_variables.save_path}/snapshots/tracers_{'%.3f' % round(t,3)}.{extension}", bbox_inches='tight', backend=backend)
+    plt.savefig(f"{sim_variables.save_path}/snapshots/tracers_{'%.3f' % round(t,4)}.{extension}", bbox_inches='tight', backend=backend)
 
     plt.cla()
     plt.clf()

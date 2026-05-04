@@ -146,10 +146,13 @@ def print_simple(sim_variables, t=None, status=''):
     elif status.lower() == 'init':
         pass
     else:
-        time_scale = sim_variables.constants.plot_scales['time']/sim_variables.constants.plot_scales['time_scale']
-        t *= time_scale
-        t_end = sim_variables.t_end * time_scale
-        _instance = f"{BColours.WARNING}{t:.6f} / {t_end:.3f}{sim_variables.constants.plot_scales['time_label']}{BColours.ENDC}"
+        if sim_variables.units != 'code':
+            time_scale = sim_variables.constants.plot_scales['time']
+            time_label = sim_variables.constants.scale_labels['time']
+            _instance = f"{BColours.WARNING}{t*time_scale:.6f} / {sim_variables.t_end*time_scale:.4f}{time_label}{BColours.ENDC}"
+        else:
+            _instance = f"{BColours.WARNING}{t:.6f} / {sim_variables.t_end:.3f}{BColours.ENDC}"
+
         print(f"[{sim_variables.now.strftime('%Y-%m-%d %H:%M:%S')} | {_seed}] {_dimension} CONFIG={_config}, CELLS={_cells}, CFL={_cfl}, SUBGRID={_subgrid}, SOLVER={_solver}, TIME_EVO={_time_evo} || {_instance}", end='\r')
         pass
 
@@ -294,9 +297,14 @@ def print_verbose(sim_variables, t=None, status=''):
 
 
     else:
-        time_scale = sim_variables.constants.plot_scales['time']/sim_variables.constants.plot_scales['time_scale']
-        t *= time_scale
-        t_end = sim_variables.t_end * time_scale
+        if sim_variables.units != 'code':
+            time_label = sim_variables.constants.scale_labels['time']
+            _t = t * sim_variables.constants.plot_scales['time']
+            _t_end = sim_variables.t_end * sim_variables.constants.plot_scales['time']
+        else:
+            time_label = ""
+            _t = t
+            _t_end = sim_variables.t_end
 
         try:
             pynvml.nvmlInit()
@@ -309,7 +317,7 @@ def print_verbose(sim_variables, t=None, status=''):
             sim_variables.seed, 
             datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 
             sim_variables.timesteps, 
-            f'{t:.6f} / {t_end:.3f}', 
+            f'{_t:.6f} / {_t_end:.4f}', 
             f'{psutil.cpu_percent()}%', 
             f'{psutil.virtual_memory().percent}%', 
             f'{psutil.swap_memory().percent}%', 
@@ -318,7 +326,7 @@ def print_verbose(sim_variables, t=None, status=''):
                 'seed', 
                 'datetime', 
                 'step', 
-                f'time{sim_variables.constants.plot_scales["time_label"]}', 
+                f'time{time_label}', 
                 'CPU usage', 
                 'RAM usage', 
                 'Swap usage', 

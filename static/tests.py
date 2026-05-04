@@ -21,19 +21,13 @@ def generate_test_conditions(config_variables):
 
     # [Sedov, 1959]
     elif "sedov" in config:
-        mode = 'full'
+        axis_coord = [-10,10]
         shock_pos = .5
         t_end = 2
+        boundary = "wrap"
         init_cond = np.array([1,0,0,0,100,0,0,0])
         ambient = np.array([1,0,0,0,1e-12,0,0,0])
-        misc = {'ampl':1, 'GM':1, 'mode':mode}
-
-        if mode.lower().startswith('q'):
-            axis_coord = [0,10]
-            boundary = "edge"
-        else:
-            axis_coord = [-10,10]
-            boundary = "wrap"
+        misc = None
 
     # [Shu & Osher, 1989]
     elif match(any, ["shu", "osher"]) or config == "so":
@@ -147,6 +141,16 @@ def generate_test_conditions(config_variables):
         ambient = np.array([1,0,0,0,1,0,0,0])
         misc = {'vortex_str':1, 'freq':2}
 
+    # [Roy et al., 2004]
+    elif match(any, ["manufacture", "euler"]):
+        axis_coord = [-.5,.5]
+        shock_pos = 0
+        t_end = 2
+        boundary = "wrap"
+        init_cond = np.array([1,.1,.2,.3,1,0,0,0])
+        ambient = np.array([1,.1,.2,.3,1,0,0,0])
+        misc = {'freq':2*np.pi}
+
     # [Gresho & Chan, 1990]
     elif "gresho" in config:
         axis_coord = [-.5,.5]
@@ -214,28 +218,22 @@ def generate_test_conditions(config_variables):
     # Blank field with tiny perturbations in densities
     elif "blank" in config:
         axis_coord = [-.5,.5]
-        boundary = "wrap"
-        t_end = .5
         shock_pos = 0
+        t_end = .5
+        boundary = "wrap"
         init_cond = np.array([1,0,0,0,1/gamma,0,0,.01])
         ambient = np.array([1,0,0,0,1/gamma,0,0,.01])
         misc = {'perturb_ampl':.1}
 
     # [Felker & Stone, 2018]
     elif match(all, ["mhd", "blast"]):
-        mode = 'full'
+        axis_coord = [-.5,.5]
         shock_pos = .1
         t_end = .2
+        boundary = "wrap"
         init_cond = np.array([1,0,0,0,10,0,0,0])
         ambient = np.array([1,0,0,0,.1,0,0,0])
-        misc = {'ampl':1/np.sqrt(2), 'mode':mode}
-
-        if mode.lower().startswith('q'):
-            axis_coord = [0,.5]
-            boundary = "edge"
-        else:
-            axis_coord = [-.5,.5]
-            boundary = "wrap"
+        misc = {'ampl':1/np.sqrt(2)}
 
     # [Gardiner & Stone, 2005]
     elif match(any, ["current", "sheet"]):
@@ -266,6 +264,22 @@ def generate_test_conditions(config_variables):
         init_cond = np.array([gamma*.1,0,0,0,1,0,np.sqrt(20),0])
         ambient = np.array([gamma*.1,0,0,0,1,0,np.sqrt(20),0])
         misc = {'perturb':False, 'velocity':800}
+
+    # [Markert et al., 2022]
+    elif match(any, ["supernova", "tycho"]) or config == "sn":
+        mode = 'quarter'
+        shock_pos = 0
+        t_end = 490
+        init_cond = np.array([2.4539e-3,0,0,0,1,0,0,0])
+        ambient = np.array([2.4539e-3,0,0,0,2.1309e-13,0,0,0])
+        misc = {'E':5.2516e-5, 'M':1.4, 't0':10, 'mode':mode}
+
+        if mode.lower().startswith(('o','q')):
+            axis_coord = [0,5]
+            boundary = "reflect"
+        else:
+            axis_coord = [-2.5,2.5]
+            boundary = "edge"
 
     # [Tóth, 2000]
     elif match(any, ["circular", "polarised", "alfven"]) or config == "cpaw":
@@ -452,7 +466,6 @@ def generate_test_conditions(config_variables):
 
     return {
         'coordinates':coordinates,
-        'aspect_ratio':np.array(aspect_ratio)/np.min(aspect_ratio),
         'shock_pos':shock_pos,
         't_end':t_end,
         'boundary':boundary.lower(),
@@ -460,4 +473,5 @@ def generate_test_conditions(config_variables):
         'init_cond':init_cond,
         'ambient':ambient,
         'ds':ds,
+        'aspect_ratio':np.array(aspect_ratio)/np.min(aspect_ratio),
     }

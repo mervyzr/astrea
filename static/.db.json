@@ -12,6 +12,8 @@
         "square",
         "sq",
         "square-wave",
+        "manufactured",
+        "euler",
         "cpaw",
         "circular",
         "polarised",
@@ -59,8 +61,6 @@
       "category": "blastwaves",
       "accepted": [
         "sedov",
-        "sedov-mhd",
-        "mhd-sedov",
         "mhd-blast",
         "noh",
         "noh-problem"
@@ -134,6 +134,7 @@
         "torus",
         "mhd-torus",
         "sn",
+        "tycho",
         "supernova",
         "supernovae"
       ]
@@ -340,7 +341,8 @@
         "code",
         "stellar",
         "cluster",
-        "galactic"
+        "galactic",
+        "custom"
       ]
     },
     "13": {

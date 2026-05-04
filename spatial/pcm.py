@@ -41,9 +41,9 @@ def run(grid, sim_variables, axis):
         characteristics = np.linalg.eigvals(jacobian)
     except np.linalg.LinAlgError:
         try:
-            characteristics = numeric.compute_characteristics(padded_primitive, sim_variables, axis=axis)
+            characteristics = numeric.compute_characteristics(padded_intf, sim_variables, axis=axis)
         except np.linalg.LinAlgError:
-            characteristics = np.full_like(padded_primitive, .1)
+            characteristics = np.full_like(padded_intf, .1)
 
     # Compute eigmax for time stepping limits
     data['eigmax'] = ds[axis]/numeric.compute_eigmax(characteristics, axis=axis)

@@ -1,6 +1,7 @@
 import scipy as sp
 import numpy as np
 
+from functions import analytic
 from functions import grid as gutils
 from functions import math as mfuncs
 
@@ -24,7 +25,10 @@ def calculate_solution_error(grid, sim_variables, norm):
     w_num = np.copy(grid)
 
     # Create theoretical array
-    w_theo = gutils.initialise(sim_variables)
+    if "manufacture" in sim_variables.config or "euler" in sim_variables.config:
+        w_theo = analytic.calculate_Euler_analytical(grid, sim_variables)
+    else:
+        w_theo = gutils.initialise(sim_variables)
 
     # Energy terms
     E_tot_num, E_tot_theo = mfuncs.divide(gutils.convert_thermo_variable('pressure', w_num, sim_variables), w_num[...,rho]), mfuncs.divide(gutils.convert_thermo_variable('pressure', w_theo, sim_variables), w_theo[...,rho])
@@ -389,6 +393,56 @@ def calculate_Sedov_analytical(grid, t, sim_variables):
         arr[...,sim_variables.vx] = np.concatenate((np.flip(vx), vx))
         arr[...,sim_variables.vy] = np.concatenate((np.flip(vy), vy))
         arr[...,sim_variables.vz] = np.concatenate((np.flip(vz), vz))
+
+    return arr
+
+
+# Determine the analytical solution for a manufactured Euler solution [Roy et al., 2004]
+def calculate_Euler_analytical(grid, sim_variables):
+    cells, t_end, multidimensional, dimensions, coordinates = sim_variables.cells, sim_variables.t_end, sim_variables.multidimensional, sim_variables.dimensions, sim_variables.coordinates
+    rho, vx, vy, vz, pressure = sim_variables.rho, sim_variables.vx, sim_variables.vy, sim_variables.vz, sim_variables.pressure
+    freq = sim_variables.misc['freq']
+
+    def make_physical_grid(axis_coord, cells):
+        start_pos, end_pos = axis_coord
+        dh = np.abs(np.diff(axis_coord)[0])/cells
+        half_cell = .5 * dh
+        return np.linspace(start_pos-half_cell, end_pos+half_cell, cells+2)[1:-1]
+
+    # Define array to be updated and returned
+    arr = np.zeros_like(grid)
+    arr[...,vx] = .1
+    arr[...,vy] = .2
+    arr[...,vz] = .3
+
+    Lx = np.diff(coordinates[0])
+    physical_grid_x = make_physical_grid(coordinates[0], cells[0])
+
+    if multidimensional:
+        Ly = np.diff(coordinates[1])
+        physical_grid_y = make_physical_grid(coordinates[1], cells[1])
+
+        if dimensions > 2:
+            Lz = np.diff(coordinates[2])
+            physical_grid_z = make_physical_grid(coordinates[2], cells[2])
+
+            x, y, z = np.meshgrid(physical_grid_x, physical_grid_y, physical_grid_z, indexing='ij')
+
+            arr[...,rho] = 1 + .35*np.sin(freq*(x-t_end)/Lx) + .24*np.cos(freq*(y-t_end)/Ly) + .1*np.sin(freq*(z-t_end)/Lz)
+            arr[...,pressure] = 1 + .23*np.sin(freq*(x-t_end)/Lx) + .19*np.cos(freq*(y-t_end)/Ly) + .2*np.cos(freq*(z-t_end)/Lz)
+
+        else:
+            x, y = np.meshgrid(physical_grid_x, physical_grid_y, indexing='ij')
+
+            arr[...,rho] = 1 + .35*np.sin(freq*(x-t_end)/Lx) + .24*np.cos(freq*(y-t_end)/Ly)
+            arr[...,vz] = 0
+            arr[...,pressure] = 1 + .23*np.sin(freq*(x-t_end)/Lx) + .19*np.cos(freq*(y-t_end)/Ly)
+    else:
+        x = physical_grid_x
+
+        arr[...,rho] = 1 + .35*np.sin(freq*(x-t_end)/Lx)
+        arr[...,vy] = arr[...,vz] = 0
+        arr[...,pressure] = 1 + .23*np.sin(freq*(x-t_end)/Lx)
 
     return arr
 

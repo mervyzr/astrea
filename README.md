@@ -158,10 +158,12 @@ Several (magneto)hydrodynamics tests are in place:
     <li>Slow-moving shockwave (Zingale, 2023, p.148)</li>
     <li>Shu-Osher shockwave (Shu & Osher, 1988)</li>
     <li>Toro tests (Toro, 1999, p.225)</li>
+    <li>Tycho supernova (Markert et al., 2022)</li>
     <li>Smooth advection wave tests</li>
     <ul>
       <li>Gaussian wave</li>
       <li>sine-wave</li>
+      <li>Manufactured Euler solution</li>
     </ul>
   </ul>
   </details>
@@ -176,9 +178,11 @@ Several (magneto)hydrodynamics tests are in place:
     <li>"Lax-Liu tests" (Lax & Liu, 1998)</li>
     <li>Isentropic vortex (Pang & Wu, 2025)</li>
     <li>Smooth advection wave tests</li>
+    <li>Tycho supernova</li>
     <ul>
       <li>Gaussian wave</li>
       <li>sine-wave</li>
+      <li>Manufactured Euler solution</li>
     </ul>
   </ul>
   </details>
@@ -186,10 +190,12 @@ Several (magneto)hydrodynamics tests are in place:
   <summary>Three-dimensional</summary>
   <ul>
     <li>Sedov blast wave</li>
+    <li>Tycho supernova</li>
     <li>Smooth advection wave tests</li>
     <ul>
       <li>Gaussian wave</li>
       <li>sine-wave</li>
+      <li>Manufactured Euler solution</li>
     </ul>
   </ul>
   </details>
@@ -209,7 +215,6 @@ Several (magneto)hydrodynamics tests are in place:
   <summary>Two-dimensional</summary>
   <ul>
     <li>Blank field with perturbations</li>
-    <li>Circular polarised Alfvén wave (Tóth, 2000)</li>
     <li>Magnetised Kelvin-Helmholtz instability</li>
     <li>Magnetised Rayleigh-Taylor instability</li>
     <li>Orszag-Tang vortex (Orszag & Tang, 1998)</li>
@@ -221,7 +226,10 @@ Several (magneto)hydrodynamics tests are in place:
     <li>Yee-Sjögreen Riemann problem (Yee & Sjögreen, 2005)</li>
     <li>Shock cloud (Dai & Woodward, 1998)</li>
     <li>Astrophysical jet (Wu & Shu, 2018)</li>
-  </ul>
+    <li>Smooth advection wave tests</li>
+    <ul>
+      <li>Circular polarised Alfvén wave (Tóth, 2000)</li>
+    </ul>
   </details>
   <details>
   <summary>Three-dimensional</summary>
@@ -269,6 +277,7 @@ Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussi
     <li>Levy, D., Puppo, G., & Russo, G. (1999). Central WENO Schemes for Hyperbolic Systems of Conservation Laws. Mathematical Modelling and Numerical Analysis, 33(3), 547-571.</li>
     <li>Levy, D., Puppo, G., & Russo, G. (2000). Compact Central WENO Schemes for Multidimensional Conservation Laws. SIAM Journal on Scientific Computing, 22(2), 656-672.</li>
     <li>Machida, M., Hayashi, M. R., & Matsumoto, R. (1999). Global Simulations of Differentially Rotating Magnetized Disks: Formation of Low-β Filaments and Structured Coronae. The Astrophysical Journal, 532, L67-L70.</li>
+    <li>Markert, J., Walch, S., & Gassner, G. (2022). A discontinuous Galerkin solver in the <span style="font-variant:small-caps;">flash</span> multiphysics framework. Monthly Notices of the Royal Astronomical Society, 511(3), 4179-4200.</li>
     <li>McCorquodale, P., & Colella, P. (2011). A high-order finite-volume method for conservation laws on locally refined grids. Communications in Applied Mathematics and Computational Science, 6(1), 1–25.</li>
     <li>Mignone, A. & Del Zanna, L. (2021). Systematic construction of upwind constrained transport schemes for MHD. Journal of Computational Physics, 424, 109748.</li>
     <li>Miyoshi, T., & Kusano, K. (2005). A multi-state HLL approximate Riemann solver for ideal magnetohydrodynamics. Journal of Computational Physics, 208(1), 315–344.</li>
@@ -278,6 +287,7 @@ Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussi
     <li>Powell, K. G. (1994). An approximate Riemann solver for magnetohydrodynamics (that works in more than one dimension). NASA Technical Reports, NAS 1.26:194902.</li>
     <li>Prince, P. J., & Dormand, J. R. (1981). High order embedded Runge-Kutta formulae. Journal of Computational and Applied Mathematics, 7(1), 67–75.</li>
     <li>Roe, P., & Pike, J. (1984). Efficient Conservation and Utilisation of Approximate Riemann Solution. Computing Methods in Applied Science and Engineering, 6, pp. 499-558.</li>
+    <li>Roy, C. J., Nelson, C. C., Smith, T. M., & Ober, C. C. (2004). Verification of euler/navier–stokes codes using the method of manufactured solutions. International Journal for Numerical Methods in Fluids, 44(6), 599–620.</li>
     <li>Ryu, D., & Jones, T. W. (1995). Numerical magetohydrodynamics in astrophysics: Algorithm and tests for one-dimensional flow. The Astrophysical Journal, 442, 228.</li>
     <li>San, O., & Kara, K. (2015). Evaluation of Riemann flux solvers for WENO reconstruction schemes: Kelvin–Helmholtz instability. Computers & Fluids, 117, 24–41.</li>
     <li>Sedov, L. I. (1946). Propagation of strong shock waves. Journal of Applied Mathematics and Mechanics, 10, 241-250.</li>

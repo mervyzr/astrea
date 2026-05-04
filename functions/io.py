@@ -209,7 +209,7 @@ def filter_variables(config_variables):
 
 
 class Constants(object):
-    def __init__(self, obj, unit):
+    def __init__(self, obj, units):
         try:
             for name, value in obj.__dict__.items():
                 if not name.startswith("_"):
@@ -218,66 +218,78 @@ class Constants(object):
             for name, value in obj.items():
                 setattr(self, name, value)
 
-        # Set up scaling (CGS)
-        if unit == 'code':
-            L0 = 1
-            rho0 = 1
-            v0 = 1
-            m0 = 1
-            B0 = 1
-            box_scale = 1
-            time_scale = 1
-            box_label = ""
-            time_label = ""
-        else:
-            if unit == 'stellar':
+        # Set up scaling for physical units (CGS)
+        if units != "code":
+            if units == 'custom':
+                L0 = 1
+                rho0 = 1
+                v0 = 1
+                length_scale = 1
+                length_label = " [pc]"
+                time_scale = 1
+                time_label = " yr"
+            elif units == 'stellar':
                 L0 = self.r_sun
-                rho0 = 1.5
-                v0 = 10 * self.kms
-                box_scale = self.au  # normalise box size to this scale
-                box_label = " [au]"
+                rho0 = self.m_sun/self.au**3
+                v0 = self.kms
+                length_scale = self.au
+                length_label = " [au]"
                 time_scale = self.sec_per_year
                 time_label = " yr"
-            elif unit == 'cluster':
-                L0 = 5e4 * self.au
-                rho0 = 1e-19
+            elif units == 'cluster':
+                L0 = self.pc
+                rho0 = 10 * (self.m_sun/self.pc**3)
                 v0 = self.kms
-                box_scale = self.pc
-                box_label = " [pc]"
+                length_scale = self.pc
+                length_label = " [pc]"
                 time_scale = self.Myr
                 time_label = " Myr"
-            elif unit == 'galactic':
+            elif units == 'galactic':
                 L0 = 1e3 * self.pc
-                rho0 = 1e-24
-                v0 = 100 * self.kms
-                box_scale = 1e3 * self.pc
-                box_label = " [kpc]"
+                rho0 = 1e11 * (self.m_sun/(1e4 * self.pc**3))
+                v0 = 10 * self.kms
+                length_scale = 1e3 * self.pc
+                length_label = " [kpc]"
                 time_scale = self.Myr
                 time_label = " Myr"
 
-            m0 = 1/self.m_sun
+            m0 = rho0 * L0**3
             if self.mu_0 != 1:
-                B0 = v0 * np.sqrt(self.mu_0*rho0) * 1e6
+                B0 = v0 * np.sqrt(self.mu_0*rho0)
             else:
-                B0 = np.sqrt(4*np.pi*rho0 * v0**2 * L0**3) * 1e6
+                B0 = np.sqrt(4*np.pi*rho0 * v0**2 * L0**3)
 
-        self.plot_scales = {
-            "length":       L0,                     # cm
-            "density":      rho0,                   # g/cm3
-            "velocity":     v0,                     # cm/s
-            "mass":         m0,                     # M_sun
-            "time":         L0/v0,                  # s
-            "momentum":     rho0 * v0,              # g/(cm2 s)
-            "pressure":     rho0 * v0**2,           # erg/cm3
-            "energy":       rho0 * v0**2 * L0**3,   # erg
-            "Bfield":       B0,                     # uG
-            "divergence":   B0/L0,                  # uG/cm
-            "Mach":         1,                      # unitless
-            "box_scale":    box_scale,
-            "box_label":    box_label,
-            "time_scale":   time_scale,
-            "time_label":   time_label,
-        }
+            # Scale quantities to plot units
+            self.plot_scales = {
+                "length":           L0 / length_scale,      # code -> cm -> au/pc/kpc (length_label)
+                "time":             (L0/v0) / time_scale,   # code -> s -> s/yr/Myr (time_label)
+                "density":          rho0,                   # code -> g/cm3 -> g/cm3
+                "velocity":         v0 * 1e-5,              # code -> cm/s -> km/s
+                "mass":             m0/self.m_sun,          # code -> g -> M_sun
+                "momentum":         rho0 * v0,              # code -> g/(cm2 s) -> g/(cm2 s)
+                "pressure":         10 * rho0 * v0**2,      # code -> dyn/cm3 -> Pa
+                "energy":           rho0 * v0**2 * L0**3,   # code -> erg -> erg
+                "energy density":   rho0 * v0**2,           # code -> erg/cm3 -> erg/cm3
+                "Bfield":           1e6 * B0,               # code -> G -> uG
+                "divergence":       1e6 * B0/L0,            # code -> G/cm -> uG/cm
+                "Mach":             1,                      # unitless
+            }
+
+            # Set plot units
+            self.scale_labels = {
+                "length":           length_label,                                   # cm/au/pc/kpc
+                "time":             time_label,                                     # s/yr/Myr
+                "density":          r" [$\mathrm{g}/\mathrm{cm}^3$]",               # g/cm3
+                "velocity":         r" [$\mathrm{km}/\mathrm{s}$]",                 # km/s
+                "mass":             r" [$\mathrm{M}_\odot$]",                       # M_sun
+                "momentum":         r" [$\mathrm{g}/(\mathrm{cm}^2 \mathrm{s})$]",  # g/(cm2 s)
+                "pressure":         r" [$\mathrm{Pa}$]",                            # Pa
+                "energy":           r" [$\mathrm{erg}$]",                           # erg
+                "energy density":   r" [$\mathrm{erg}/\mathrm{cm}^3$]",             # erg/cm3
+                "Bfield":           r" [$\mu\mathrm{G}$]",                          # uG
+                "divergence":       r" [$\mu\mathrm{G}/\mathrm{cm}$]",              # uG/cm
+                "Mach":             "",                                             # unitless
+            }
 
 
 class SimulationVariables(object):
@@ -413,10 +425,28 @@ class SimulationVariables(object):
         if self.save_snaps or self.save_plots or self.save_video or self.save_file:
             self.save_path = ''
 
-        self.full_set_required = True if (self.save_plots or self.save_video or self.save_file) else False
-
         self.beautify_1d_plots = os.getenv("BEAUTIFY_1D_PLOTS", False)
         self.save_as_pdf = os.getenv("SAVE_AS_PDF", False)
+
+        # Set up boxes for plotting
+        self.box_volume = np.prod([np.diff(_) for _ in self.coordinates.values()])
+        if self.units != "code":
+            try:
+                semi = self.misc['mode'].lower().startswith(('o','q'))
+            except Exception:
+                semi = False
+
+            if semi:
+                full_box = self.constants.plot_scales['length']
+                self.box_lengths = {ax: [start_pos, full_box*end_pos] for ax, (start_pos, end_pos) in self.coordinates.items()}
+            else:
+                half_box = self.constants.plot_scales['length']/2
+                centres = {ax: np.average(axis_coord) for ax, axis_coord in self.coordinates.items()}
+                self.box_lengths = {ax: [half_box*(start_pos-centres[ax]), half_box*(end_pos-centres[ax])] for ax, (start_pos, end_pos) in self.coordinates.items()}
+        else:
+            self.box_lengths = self.coordinates
+
+        self.full_set_required = True if (self.save_plots or self.save_video or self.save_file) else False
 
 
 # Write grid to HDF5 checkpoint files
@@ -449,6 +479,7 @@ def write_chkpt_file(grid, t, idx, sim_variables):
         f.attrs['boundary'] = sim_variables.boundary
         f.attrs['aspect_ratio'] = sim_variables.aspect_ratio
         f.attrs['coordinates'] = tuple(sim_variables.coordinates.values())
+        f.attrs['box_lengths'] = tuple(sim_variables.box_lengths.values())
 
         f.create_dataset('grid', data=grid, compression="gzip", compression_opts=9)
 
@@ -487,5 +518,6 @@ def load_chkpt_file(config_variables, file):
                 config_variables['aspect_ratio'] = f.attrs['aspect_ratio']
                 config_variables['boundary'] = f.attrs['boundary']
                 config_variables['coordinates'] = {ax:axis_coord for ax, axis_coord in enumerate(f.attrs['coordinates'])}
+                config_variables['box_lengths'] = {ax:start_end for ax, start_end in enumerate(f.attrs['box_lengths'])}
 
                 return seed, config_variables, {'time':time, 'idx':idx, 'grid':grid}
