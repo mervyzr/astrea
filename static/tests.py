@@ -267,12 +267,18 @@ def generate_test_conditions(config_variables):
 
     # [Markert et al., 2022]
     elif match(any, ["supernova", "tycho"]) or config == "sn":
-        mode = 'quarter'
+        # tau0 is the constant in Skumanich's law for stellar rotation
+        # (assumed Sun's age and rotational velocity)
+        rotation = False
+        tau0 = .1708284534  # [(pc/yr)⋅yr^0.51]
+        age = 1e7
+
+        mode = 'quarter'  # quadrant/octant or full-sphere mode
         shock_pos = 0
         t_end = 490
         init_cond = np.array([2.4539e-3,0,0,0,1,0,0,0])
         ambient = np.array([2.4539e-3,0,0,0,2.1309e-13,0,0,0])
-        misc = {'E':5.2516e-5, 'M':1.4, 't0':10, 'mode':mode}
+        misc = {'E':5.2516e-5, 'M':1.4, 't0':10, 'rotation':rotation, 'tau0':tau0, 'age':age, 'mode':mode}
 
         if mode.lower().startswith(('o','q')):
             axis_coord = [0,5]

@@ -79,6 +79,11 @@ def initialise(sim_variables):
                     e_tot = ambient[...,pressure]/(gamma-1) + (E/(4/3 * np.pi * r0**3))/((2*np.pi*sigma**2)**(dimensions/2)) * np.exp(-.5 * r/sigma**2)
                     computational_grid[...,pressure] = (gamma - 1) * e_tot
 
+                    if params['rotation']:
+                        tau0, age = params['tau0'], params['age']
+                        computational_grid[...,vx][core] = -tau0 * age**-.51 * y[core]
+                        computational_grid[...,vy][core] = tau0 * age**-.51 * x[core]
+
                 else:
                     mask = np.where(r <= r0)
                     computational_grid[mask] = init_cond
@@ -204,6 +209,11 @@ def initialise(sim_variables):
                     sigma = .75 * r0
                     e_tot = ambient[...,pressure]/(gamma-1) + (E/(np.pi * r0**2))/((2*np.pi*sigma**2)**(dimensions/2)) * np.exp(-.5 * r/sigma**2)
                     computational_grid[...,pressure] = (gamma - 1) * e_tot
+
+                    if params['rotation']:
+                        tau0, age = params['tau0'], params['age']
+                        computational_grid[...,vx][core] = -tau0 * age**-.51 * y[core]
+                        computational_grid[...,vy][core] = tau0 * age**-.51 * x[core]
 
                 else:
                     mask = np.where(r <= r0)
