@@ -76,7 +76,7 @@ def initialise(sim_variables):
                     computational_grid[...,rho][core] += rho0
 
                     sigma = .75 * r0
-                    e_tot = (ambient[...,pressure]/(gamma-1) + (E/(4/3 * np.pi * r0**3))/((2*np.pi*sigma**2)**(dimensions/2)) * np.exp(-.5 * r/sigma**2))
+                    e_tot = ambient[...,pressure]/(gamma-1) + (E/(4/3 * np.pi * r0**3))/((2*np.pi*sigma**2)**(dimensions/2)) * np.exp(-.5 * r/sigma**2)
                     computational_grid[...,pressure] = (gamma - 1) * e_tot
 
                 else:
@@ -202,7 +202,7 @@ def initialise(sim_variables):
                     computational_grid[...,rho][core] += rho0
 
                     sigma = .75 * r0
-                    e_tot = (ambient[...,pressure]/(gamma-1) + (E/(np.pi * r0**2))/((2*np.pi*sigma**2)**(dimensions/2)) * np.exp(-.5 * r/sigma**2))
+                    e_tot = ambient[...,pressure]/(gamma-1) + (E/(np.pi * r0**2))/((2*np.pi*sigma**2)**(dimensions/2)) * np.exp(-.5 * r/sigma**2)
                     computational_grid[...,pressure] = (gamma - 1) * e_tot
 
                 else:
