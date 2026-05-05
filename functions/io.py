@@ -223,7 +223,7 @@ class Constants(object):
             if units == 'custom':
                 L0 = 1
                 rho0 = 1
-                v0 = self.pc/self.sec_per_year
+                v0 = 1
                 length_scale = 1
                 length_label = " [pc]"
                 time_scale = 1
