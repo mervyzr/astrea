@@ -6,7 +6,7 @@ import numpy as np
 
 # Primitive variables [rho, vx, vy, vz, P, Bx, By, Bz]
 def generate_test_conditions(config_variables):
-    config, cells, gamma, gravity = config_variables['config'], config_variables['cells'], config_variables['gamma'], config_variables['gravity']
+    config, cells, gamma = config_variables['config'], config_variables['cells'], config_variables['gamma']
     match = lambda match_type, substrings: match_type(substring in config for substring in substrings)
 
     # [Sod, 1978]
@@ -464,11 +464,6 @@ def generate_test_conditions(config_variables):
     finally:
         ds = {ax: np.abs(np.diff(coordinates[ax]))/cells[ax] for ax in range(len(cells))}
         aspect_ratio = [i for ii in list(map(np.diff, coordinates.values())) for i in ii]
-
-    # Append 3 additional slots for source term acceleration
-    if gravity and gravity != "self":
-        init_cond = np.append(init_cond, [0, 0, 0])
-        ambient = np.append(ambient, [0, 0, 0])
 
     return {
         'coordinates':coordinates,

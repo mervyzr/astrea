@@ -295,7 +295,7 @@ class Constants(object):
 class SimulationVariables(object):
     __slots__ = [
         '__dict__',
-        'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'gx', 'gy', 'gz', 'energy', 'vels', 'Bfields', 'momentums', 'gs',
+        'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'gx', 'gy', 'gz', 'energy', 'vels', 'Bfields', 'momentums',
         'config', 'cells', 'cfl', 'gamma', 'gravity', 'self_gravity', 'ext_gravity', 'dimensions', 'subgrid', 'time_evo', 'solver',
         'coordinates', 'shock_pos', 't_end', 'boundary', 'misc', 'init_cond', 'ambient', 'ds',
         'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
@@ -373,9 +373,7 @@ class SimulationVariables(object):
         self.gravity = True if (self.self_gravity or self.ext_gravity) else False
 
         if self.ext_gravity:
-            self.nvars += 3
-            self.gx, self.gy, self.gz = range(8,11)
-            self.gs = slice(8,11)
+            self.gx, self.gy, self.gz = range(3)
 
         # Chemistry network set-up
         if self.chemistry:

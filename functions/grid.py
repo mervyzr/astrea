@@ -158,10 +158,6 @@ def initialise(sim_variables):
                 computational_grid[...,vy] = np.sqrt(params['GM'] * params['L']**2) * (x/_r**2)
                 computational_grid[...,Bx] = -params['B_phi'] * y/_r
                 computational_grid[...,By] = params['B_phi'] * x/_r
-                if sim_variables.ext_gravity:
-                    computational_grid[...,sim_variables.gx] = -params['GM']/r**3 * x
-                    computational_grid[...,sim_variables.gy] = -params['GM']/r**3 * y
-                    computational_grid[...,sim_variables.gz] = -params['GM']/r**3 * z
 
             elif match(any, ["blob"]):
                 dr = np.sqrt(np.sum([dh**2 for dh in ds.values()]))
@@ -251,8 +247,6 @@ def initialise(sim_variables):
                 layer = np.where(y > shock_pos)
                 computational_grid[layer] = init_cond
                 computational_grid[...,pressure] = init_cond[pressure] - .1*computational_grid[...,rho]*y
-                if sim_variables.ext_gravity:
-                    computational_grid[...,sim_variables.gy] = -params['grav_acc']
                 if params['perturb']:
                     computational_grid[...,vy] += (.5 * np.random.uniform(-2*params['ampl'], 2*params['ampl'], size=computational_grid.shape))[...,vy] * (1 + np.cos(8*np.pi*y/3))
                 else:
@@ -333,9 +327,6 @@ def initialise(sim_variables):
                 computational_grid[...,vy] = np.sqrt(params['GM'] * params['L']**2) * (x/r**2)
                 computational_grid[...,Bx] = -params['B_phi'] * y/r
                 computational_grid[...,By] = params['B_phi'] * x/r
-                if sim_variables.ext_gravity:
-                    computational_grid[...,sim_variables.gx] = -params['GM']/r**3 * x
-                    computational_grid[...,sim_variables.gy] = -params['GM']/r**3 * y
 
             elif match(any, ["rotor", "blob"]):
                 if "blob" in config:

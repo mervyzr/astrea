@@ -9,6 +9,45 @@ from functions import grid as gutils
 # Gravity module, for self-gravity and external gravity
 ##############################################################################
 
+# Initialise the discrete POINTWISE tracer particles at the centre of each cell; returns a (N x dim) x 3 array
+def initialise(sim_variables):
+    config, cells, multidimensional, dimensions, coordinates = sim_variables.config, sim_variables.cells, sim_variables.multidimensional, sim_variables.dimensions, sim_variables.coordinates
+    gx, gy, gz = sim_variables.gx, sim_variables.gy, sim_variables.gz
+
+    match = lambda match_type, substrings: match_type(substring in config for substring in substrings)
+
+    source_grid = np.zeros(list(cells)+[dimensions,], dtype=float, order='C')
+
+    if match(any, ["rayleigh", "taylor", "rti"]):
+        source_grid[...,gy] = -sim_variables.misc['grav_acc']
+
+    elif "torus" in config:
+        x_centre = np.average(coordinates[0])
+        physical_grid_x = gutils.make_physical_grid(coordinates[0], cells[0])
+        if multidimensional:
+            y_centre = np.average(coordinates[1])
+            physical_grid_y = gutils.make_physical_grid(coordinates[1], cells[1])
+            if dimensions > 2:
+                z_centre = np.average(coordinates[2])
+                physical_grid_z = gutils.make_physical_grid(coordinates[2], cells[2])
+
+                x, y, z = np.meshgrid(physical_grid_x, physical_grid_y, physical_grid_z, indexing='ij')
+                r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2 + (z-z_centre)**2)
+
+                source_grid[...,gx] = -sim_variables.misc['GM']/r**3 * x
+                source_grid[...,gy] = -sim_variables.misc['GM']/r**3 * y
+                source_grid[...,gz] = -sim_variables.misc['GM']/r**3 * z
+
+            else:
+                x, y = np.meshgrid(physical_grid_x, physical_grid_y, indexing='ij')
+                r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
+
+                source_grid[...,gx] = -sim_variables.misc['GM']/r**2 * x
+                source_grid[...,gy] = -sim_variables.misc['GM']/r**2 * y
+
+    return source_grid
+
+
 # (FFT) Poisson solver for self-gravity; works on periodic boundary conditions
 def poisson_solver(grid, sim_variables, G=1., eps=1e-6):
     cells = sim_variables.cells
@@ -65,8 +104,8 @@ def get_acceleration(potentials, sim_variables):
 
 
 # Update step for gravity with conservative grid, given the timestep dt
-def update(grid, dt, sim_variables):
-    rho, momentums, energy, gs = sim_variables.rho, 1+sim_variables.axes, sim_variables.energy, 8+sim_variables.axes
+def update(grid, dt, sim_variables, source_terms=0):
+    rho, momentums, energy = sim_variables.rho, 1+sim_variables.axes, sim_variables.energy
 
     original_momentum = np.copy(grid[...,momentums])
 
@@ -76,12 +115,7 @@ def update(grid, dt, sim_variables):
     else:
         g_self = 0
 
-    if sim_variables.ext_gravity and sim_variables.nvars > 8:
-        g_ext = grid[...,gs]
-    else:
-        g_ext = 0
-
-    g_accs = g_self + g_ext
+    g_accs = g_self + source_terms
 
     grid[...,momentums] += dt * grid[...,rho][...,None] * g_accs
     grid[...,energy] += dt * np.sum(original_momentum * g_accs, axis=-1)

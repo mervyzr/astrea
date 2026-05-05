@@ -51,10 +51,16 @@ def core_run(sim_variables, **kwargs):
 
     ########################
 
+    # Initialise the external source term grid if activateed
+    if sim_variables.ext_gravity:
+        source_terms = gravity.initialise(sim_variables)
+
+    ########################
+
     # Initialise the chemical grid if activated
     # Abundances can be overriden; accepts a dictionary of atom/molecule/ion name as key and the number densities [1/cm3] or mass fraction [X] as value
     if sim_variables.chemistry:
-        chem_grid = krome_funcs.initialise(sim_variables, perturb=True)
+        chem_grid = krome_funcs.initialise(sim_variables, perturb=False)
 
     ########################
 
@@ -122,10 +128,6 @@ def core_run(sim_variables, **kwargs):
                     create_chkpt_file = True
                 idx += 1
 
-            # Get external source term acceleration if present
-            if sim_variables.ext_gravity:
-                source_terms = np.copy(grid[...,sim_variables.gs])
-
             # Update the solution with the numerical fluxes using iterative methods
             grid = temporal_evolve(spatial_evolve, grid, fluxes, dt, sim_variables)
 
@@ -136,8 +138,9 @@ def core_run(sim_variables, **kwargs):
             # Update conservative grid from gravity
             if sim_variables.gravity:
                 if sim_variables.ext_gravity:
-                    grid[...,sim_variables.gs] = source_terms
-                grid = gravity.update(grid, dt, sim_variables)
+                    grid = gravity.update(grid, dt, sim_variables, source_terms=source_terms)
+                else:
+                    grid = gravity.update(grid, dt, sim_variables)
 
             # Update chemical grid
             if sim_variables.chemistry:
