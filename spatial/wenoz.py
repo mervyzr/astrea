@@ -43,7 +43,7 @@ def reconstruct(grid, sim_variables, axis, power=1):
     b_k = b0, b1, b2
 
     # Define the linear weights
-    g_k = 1/16, 5/8, 5/16
+    g_k = 1/10, 3/5, 3/10
     inv_g_k = g_k[::-1]
 
     # Compute the alpha values
@@ -54,15 +54,15 @@ def reconstruct(grid, sim_variables, axis, power=1):
     inv_omega = lambda k: mfuncs.divide(alpha(inv_g_k, k), alpha(inv_g_k, 0)+alpha(inv_g_k, 1)+alpha(inv_g_k, 2))
 
     # Define the stencils
-    wR = .125 * (
-        omega(0) * (3*minus_two - 10*minus_one + 15*zeroth)
-        + omega(1) * (-minus_one + 6*zeroth + 3*plus_one)
-        + omega(2) * (3*zeroth + 6*plus_one - plus_two)
+    wR = 1/6 * (
+        omega(0) * (2*minus_two - 7*minus_one + 11*zeroth)
+        + omega(1) * (-minus_one + 5*zeroth + 2*plus_one)
+        + omega(2) * (2*zeroth + 5*plus_one - plus_two)
     )
-    wL = .125 * (
-        inv_omega(0) * (3*zeroth + 6*minus_one - minus_two)
-        + inv_omega(1) * (-plus_one + 6*zeroth + 3*minus_one)
-        + inv_omega(2) * (3*plus_two - 10*plus_one + 15*zeroth)
+    wL = 1/6 * (
+        inv_omega(0) * (2*zeroth + 5*minus_one - minus_two)
+        + inv_omega(1) * (-plus_one + 5*zeroth + 2*minus_one)
+        + inv_omega(2) * (2*plus_two - 7*plus_one + 11*zeroth)
     )
 
     return wL, wR

@@ -346,7 +346,7 @@ class SimulationVariables(object):
             self.higher_order = self.grid_interpolate = True
 
             # WENO-Z can use point representation
-            if "z" in self.subgrid:
+            if self.subgrid_category == "weno" and ("z" in self.subgrid):
                 self.grid_interpolate = False
 
             # PPM-specific options

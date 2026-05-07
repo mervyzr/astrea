@@ -41,13 +41,13 @@ def reconstruct(grid, sim_variables, axis, order=5):
         inv_omega = lambda k: mfuncs.divide(alpha(inv_g_k, k), alpha(inv_g_k, 0)+alpha(inv_g_k, 1))
 
         # Define the stencils
-        wR = (
-            omega(0) * (1.5*zeroth - .5*minus_one)
-            + omega(1) * (.5*zeroth + .5*plus_one)
+        wR = .5 * (
+            omega(0) * (3*zeroth - minus_one)
+            + omega(1) * (zeroth + plus_one)
         )
-        wL = (
-            inv_omega(0) * (1.5*zeroth - .5*plus_one)
-            + inv_omega(1) * (.5*zeroth + .5*minus_one)
+        wL = .5 * (
+            inv_omega(0) * (3*zeroth - plus_one)
+            + inv_omega(1) * (zeroth + minus_one)
         )
 
     else:
@@ -92,17 +92,17 @@ def reconstruct(grid, sim_variables, axis, order=5):
             omega = lambda k: mfuncs.divide(alpha(g_k, k), alpha(g_k, 0)+alpha(g_k, 1)+alpha(g_k, 2)+alpha(g_k, 3))
             inv_omega = lambda k: mfuncs.divide(alpha(inv_g_k, k), alpha(inv_g_k, 0)+alpha(inv_g_k, 1)+alpha(inv_g_k, 2)+alpha(inv_g_k, 3))
 
-            wR = (
-                omega(0) * (-1/4*minus_three + 13/12*minus_two - 23/12*minus_one + 25/12*zeroth)
-                + omega(1) * (1/12*minus_two - 5/12*minus_one + 13/12*zeroth + 1/4*plus_one)
-                + omega(2) * (-1/12*minus_one + 7/12*zeroth + 7/12*plus_one - 1/12*plus_two)
-                + omega(3) * (1/4*zeroth + 13/12*plus_one - 5/12*plus_two + 1/12*plus_three)
+            wR = 1/12 * (
+                omega(0) * (-3*minus_three + 13*minus_two - 23*minus_one + 25*zeroth)
+                + omega(1) * (minus_two - 5*minus_one + 13*zeroth + 3*plus_one)
+                + omega(2) * (-minus_one + 7*zeroth + 7*plus_one - plus_two)
+                + omega(3) * (3*zeroth + 13*plus_one - 5*plus_two + plus_three)
             )
-            wL = (
-                inv_omega(0) * (1/4*zeroth + 13/12*minus_one - 5/12*minus_two + 1/12*minus_three)
-                + inv_omega(1) * (-1/12*plus_one + 7/12*zeroth + 7/12*minus_one - 1/12*minus_two)
-                + inv_omega(2) * (1/12*plus_two - 5/12*plus_one + 13/12*zeroth + 1/4*minus_one)
-                + inv_omega(3) * (-1/4*plus_three + 13/12*plus_two - 23/12*plus_one + 25/12*zeroth)
+            wL = 1/12 * (
+                inv_omega(0) * (3*zeroth + 13*minus_one - 5*minus_two + minus_three)
+                + inv_omega(1) * (-plus_one + 7*zeroth + 7*minus_one - minus_two)
+                + inv_omega(2) * (plus_two - 5*plus_one + 13*zeroth + 3*minus_one)
+                + inv_omega(3) * (-3*plus_three + 13*plus_two - 23*plus_one + 25*zeroth)
             )
 
         else:
@@ -128,15 +128,15 @@ def reconstruct(grid, sim_variables, axis, order=5):
             omega = lambda k: mfuncs.divide(alpha(g_k, k), alpha(g_k, 0)+alpha(g_k, 1)+alpha(g_k, 2))
             inv_omega = lambda k: mfuncs.divide(alpha(inv_g_k, k), alpha(inv_g_k, 0)+alpha(inv_g_k, 1)+alpha(inv_g_k, 2))
 
-            wR = (
-                omega(0) * (1/3*minus_two - 7/6*minus_one + 11/6*zeroth)
-                + omega(1) * (-1/6*minus_one + 5/6*zeroth + 1/3*plus_one)
-                + omega(2) * (1/3*zeroth + 5/6*plus_one - 1/6*plus_two)
+            wR = 1/6 * (
+                omega(0) * (2*minus_two - 7*minus_one + 11*zeroth)
+                + omega(1) * (-minus_one + 5*zeroth + 2*plus_one)
+                + omega(2) * (2*zeroth + 5*plus_one - plus_two)
             )
-            wL = (
-                inv_omega(0) * (1/3*zeroth + 5/6*minus_one - 1/6*minus_two)
-                + inv_omega(1) * (-1/6*plus_one + 5/6*zeroth + 1/3*minus_one)
-                + inv_omega(2) * (1/3*plus_two - 7/6*plus_one + 11/6*zeroth)
+            wL = 1/6 * (
+                inv_omega(0) * (2*zeroth + 5*minus_one - minus_two)
+                + inv_omega(1) * (-plus_one + 5*zeroth + 2*minus_one)
+                + inv_omega(2) * (2*plus_two - 7*plus_one + 11*zeroth)
             )
 
     return wL, wR
