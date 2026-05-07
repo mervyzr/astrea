@@ -111,8 +111,12 @@ def run(save=False, title=False):
                         else:
                             [(left, right)] = box_lengths.values()
 
-                        fig, ax, plot_ = make_figure(plot_options, units, dimensions, coordinates, scale_labels)
-                        data = make_data(plot_options, grid, dimensions, gamma, permeability, boundary, ds, plot_scales, units, box_volume)
+                        if units != "code":
+                            fig, ax, plot_ = make_figure(plot_options, units, dimensions, coordinates, scale_labels=scale_labels)
+                            data = make_data(plot_options, grid, dimensions, gamma, permeability, boundary, ds, units, box_volume, plot_scales=plot_scales)
+                        else:
+                            fig, ax, plot_ = make_figure(plot_options, units, dimensions, coordinates)
+                            data = make_data(plot_options, grid, dimensions, gamma, permeability, boundary, ds, units, box_volume)
 
                         def assign_plots(idx, ij):
                             _i, _j = ij
@@ -232,7 +236,7 @@ def convert_pressure(grid, gamma, permeability):
     return grid[...,PRESSURE]/(gamma-1) + .5*(grid[...,RHO]*norm(grid[...,VELS])**2) + .5*(norm(grid[...,BFIELDS])**2)/permeability
 
 # Make figures and axes for plotting
-def make_figure(options, units, dimensions, coordinates, scale_labels):
+def make_figure(options, units, dimensions, coordinates, scale_labels=None):
     if 0 < len(options) < 13:
         # Set up colours
         colours = plt.rcParams['axes.prop_cycle'].by_key()['color'] * 2
@@ -419,7 +423,7 @@ def make_figure(options, units, dimensions, coordinates, scale_labels):
 
 
 
-def make_data(options, grid, dimensions, gamma, permeability, boundary, ds, plot_scales, units, box_volume):
+def make_data(options, grid, dimensions, gamma, permeability, boundary, ds, units, box_volume, plot_scales=None):
     axes = lambda op: {"x":0, "y":1, "z":2}[op[-1]]
 
     def option_checker(_option, _box_volume, scaling=None):
