@@ -23,6 +23,8 @@ SAVE_AS_PDF = False
 RHO, PRESSURE, VELS, BFIELDS = 0, 4, slice(1,4), slice(5,8)
 CELLS_TO_STR = lambda size: rf"$N = {str(size).strip('[]').replace(' ','').replace(',','x')}$"
 
+PLOT_OPTIONS = ['density', 'pressure', 'total energy', 'vx', 'vy', 'vz', 'Bx', 'By', 'Bz']
+
 
 def run(save=False, title=False):
     parser = argparse.ArgumentParser()
@@ -39,7 +41,7 @@ def run(save=False, title=False):
         try:
             plot_options = args.plot_options
         except Exception as e:
-            plot_options = ['density', 'pressure', 'total energy', 'vx', 'vy', 'vz', 'Bx', 'By', 'Bz']
+            plot_options = PLOT_OPTIONS
         finally:
             invalid = []
             try:
