@@ -12,7 +12,7 @@ from functions import math as mfuncs
 from functions.generic import BColours
 from functions.generic import verbose_timer
 from numkit import c_transport as ct
-from physics import constants
+from physics import constants, turbulence
 
 ##############################################################################
 # Functions for krome routines
@@ -206,7 +206,8 @@ def initialise(sim_variables, perturb=False):
 
                 # Add a small perturbation to the initial abundances by 2 orders of magnitude (1%)
                 if perturb:
-                    network[mol_idx,...] += .01 * np.random.uniform(-abundance, abundance, size=sim_variables.cells)
+                    perturbations = turbulence.pertubations(network, abundance)
+                    network[mol_idx,...] += perturbations
 
     return network
 

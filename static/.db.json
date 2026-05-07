@@ -305,10 +305,11 @@
     },
     "9": {
       "type": "config",
-      "category": "random-noise",
+      "category": "turbulent",
       "accepted": [
-        "blank",
-        "blank-field"
+        "turbulence",
+        "turb",
+        "blank"
       ]
     },
     "10": {

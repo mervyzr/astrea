@@ -18,7 +18,7 @@ import numpy as np
 from functions import generic, io, plotting
 from functions import grid as gutils
 from numkit import c_transport as ct
-from physics import gravity, tracers
+from physics import gravity, tracers, turbulence
 from physics.krome import krome_funcs
 from static import tests
 from spatial.spatial import evolve as spatial_evolve
@@ -57,10 +57,16 @@ def core_run(sim_variables, **kwargs):
 
     ########################
 
+    # Initialise the turbulent driving field if activateed
+    if sim_variables.turbulence:
+        forcing_field = turbulence.initialise(sim_variables)
+
+    ########################
+
     # Initialise the chemical grid if activated
     # Abundances can be overriden; accepts a dictionary of atom/molecule/ion name as key and the number densities [1/cm3] or mass fraction [X] as value
     if sim_variables.chemistry:
-        chem_grid = krome_funcs.initialise(sim_variables, perturb=False)
+        chem_grid = krome_funcs.initialise(sim_variables)
 
     ########################
 
@@ -141,6 +147,11 @@ def core_run(sim_variables, **kwargs):
                     grid = gravity.update(grid, dt, sim_variables, source_terms=source_terms)
                 else:
                     grid = gravity.update(grid, dt, sim_variables)
+
+            # Update conservative grid from forcing field and update forcing field
+            if sim_variables.turbulence:
+                grid = turbulence.update(grid, forcing_field, dt, sim_variables)
+                forcing_field = turbulence.drive(forcing_field, dt, eigmax, sim_variables, zeta=.5, mach=5.5)
 
             # Update chemical grid
             if sim_variables.chemistry:

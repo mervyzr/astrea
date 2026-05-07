@@ -7,6 +7,7 @@ from skimage.measure import block_reduce
 from functions import generic
 from functions import math as mfuncs
 from functions.generic import verbose_timer
+from physics import turbulence
 
 ##############################################################################
 # Grid functions used throughout the finite volume code
@@ -106,8 +107,13 @@ def initialise(sim_variables):
                 computational_grid[...,rho] = 1 + .35*np.sin(freq*x/Lx) + .24*np.cos(freq*y/Ly) + .1*np.sin(freq*z/Lz)
                 computational_grid[...,pressure] = 1 + .23*np.sin(freq*x/Lx) + .19*np.cos(freq*y/Ly) + .2*np.cos(freq*z/Lz)
 
-            elif "blank" in config:
-                computational_grid[...,rho] += np.random.uniform(-params['perturb_ampl'], params['perturb_ampl'], size=(computational_grid.shape))[...,rho]
+            elif match(any, ["turb", "blank"]):
+                if "turb" in config:
+                    if params['magnetic']:
+                        computational_grid[...,Bx] = -params['ampl'] * np.sin(2*np.pi*y)
+                        computational_grid[...,By] = params['ampl'] * np.sin(4*np.pi*x)
+                else:
+                    computational_grid[...,rho] += np.random.uniform(-params['perturb_ampl'], params['perturb_ampl'], size=(computational_grid.shape))[...,rho]
 
             elif match(any, ["orszag", "tang"]) or config == "ot":
                 _x, _y, _z, ampl, eps = params['norm_factor']*x, params['norm_factor']*y, params['norm_factor']*z, params['ampl'], params['eps']
@@ -239,7 +245,8 @@ def initialise(sim_variables):
                 computational_grid[layer] = init_cond
                 computational_grid[...,vy] = params['ampl'] * np.sin(params['freq']*np.pi*x/np.diff(coordinates[0]))
                 if params['perturb']:
-                    computational_grid[...,(vx,vy)] += np.random.uniform(-params['ampl']/2, params['ampl']/2, size=computational_grid.shape)[...,(vx,vy)]
+                    perturbations = turbulence.pertubations(computational_grid, params['ampl'])
+                    computational_grid[...,(vx,vy)] += perturbations[...,(vx,vy)]
                 if config.startswith('m') or "mhd" in config:
                     computational_grid[...,Bx] = params['Bx']
 
@@ -248,7 +255,8 @@ def initialise(sim_variables):
                 computational_grid[layer] = init_cond
                 computational_grid[...,pressure] = init_cond[pressure] - .1*computational_grid[...,rho]*y
                 if params['perturb']:
-                    computational_grid[...,vy] += (.5 * np.random.uniform(-2*params['ampl'], 2*params['ampl'], size=computational_grid.shape))[...,vy] * (1 + np.cos(8*np.pi*y/3))
+                    perturbations = turbulence.pertubations(computational_grid, 2*params['ampl'])
+                    computational_grid[...,vy] += perturbations[...,vy] * (1 + np.cos(8*np.pi*y/3))
                 else:
                     computational_grid[...,vy] = params['ampl'] * (1 + np.cos(4*np.pi*x)) * (1 + np.cos(3*np.pi*y))
                 if config.startswith('m') or "mhd" in config:
@@ -358,8 +366,13 @@ def initialise(sim_variables):
                     computational_grid[...,vx][core] = ((-params['omega']*y0)/shock_pos)[core]
                     computational_grid[...,vy][core] = ((params['omega']*x0)/shock_pos)[core]
 
-            elif "blank" in config:
-                computational_grid[...,rho] += np.random.uniform(-params['perturb_ampl'], params['perturb_ampl'], size=(computational_grid.shape))[...,rho]
+            elif match(any, ["turb", "blank"]):
+                if "turb" in config:
+                    if params['magnetic']:
+                        computational_grid[...,Bx] = -params['ampl'] * np.sin(2*np.pi*y)
+                        computational_grid[...,By] = params['ampl'] * np.sin(4*np.pi*x)
+                else:
+                    computational_grid[...,rho] += np.random.uniform(-params['perturb_ampl'], params['perturb_ampl'], size=(computational_grid.shape))[...,rho]
 
             elif match(any, ["current", "sheet"]):
                 computational_grid[...,vx] = params['ampl'] * np.sin(np.pi*y)
@@ -383,7 +396,8 @@ def initialise(sim_variables):
                 computational_grid[...,vy][nozzle] = params['velocity']
                 computational_grid[...,By] *= np.sqrt(10)  # weak: 1, moderate:np.sqrt(10), strong:np.sqrt(1e2), extreme:np.sqrt(1e3)
                 if params['perturb']:
-                    computational_grid[...,(vx,vy)] += np.random.uniform(-params['velocity']/4, params['velocity']/4, size=(computational_grid.shape))[...,(vx,vy)]
+                    perturbations = turbulence.pertubations(computational_grid, params['velocity']/4)
+                    computational_grid[...,(vx,vy)] += perturbations[...,(vx,vy)]
 
             elif match(any, ["circular", "polarised", "alfven"]) or config == "cpaw":
                 alpha, ampl, wave = params['alpha'], params['ampl'], params['wave']
@@ -464,8 +478,13 @@ def initialise(sim_variables):
                 computational_grid[...,rho] = 1 + .35*np.sin(freq*x/Lx)
                 computational_grid[...,vy] = computational_grid[...,vz] = 0
                 computational_grid[...,pressure] = 1 + .23*np.sin(freq*x/Lx)
-        elif "blank" in config:
-            computational_grid[...,rho] += np.random.uniform(-params['perturb_ampl'], params['perturb_ampl'], size=(computational_grid.shape))[...,rho]
+        elif match(any, ["turb", "blank"]):
+            if "turb" in config:
+                if params['magnetic']:
+                    computational_grid[...,Bx] = -params['ampl'] * np.sin(2*np.pi*y)
+                    computational_grid[...,By] = params['ampl'] * np.sin(4*np.pi*x)
+            else:
+                computational_grid[...,rho] += np.random.uniform(-params['perturb_ampl'], params['perturb_ampl'], size=(computational_grid.shape))[...,rho]
 
     sim_variables.magnetic = computational_grid[...,sim_variables.Bfields].any()
 

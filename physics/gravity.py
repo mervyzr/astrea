@@ -9,7 +9,7 @@ from functions import grid as gutils
 # Gravity module, for self-gravity and external gravity
 ##############################################################################
 
-# Initialise the discrete POINTWISE tracer particles at the centre of each cell; returns a (N x dim) x 3 array
+# Initialise the grid for external gravity
 def initialise(sim_variables):
     config, cells, multidimensional, dimensions, coordinates = sim_variables.config, sim_variables.cells, sim_variables.multidimensional, sim_variables.dimensions, sim_variables.coordinates
     gx, gy, gz = sim_variables.gx, sim_variables.gy, sim_variables.gz
@@ -48,7 +48,7 @@ def initialise(sim_variables):
     return source_grid
 
 
-# (FFT) Poisson solver for self-gravity; works on periodic boundary conditions
+# (FFT) Poisson solver for self-gravity; works on uniform grids
 def poisson_solver(grid, sim_variables, G=1., eps=1e-6):
     cells = sim_variables.cells
     ds = [dh for dh in sim_variables.ds.values()]

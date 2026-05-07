@@ -153,6 +153,8 @@ Several (magneto)hydrodynamics tests are in place:
   <details>
   <summary>One-dimensional</summary>
   <ul>
+    <li>Random noise field</li>
+    <li>Turbulent (OU) driving motions (Federrath et al., 2010; Brucy et al., 2024)</li>
     <li>Sod shock tube (Sod, 1978)</li>
     <li>Sedov blast wave (Sedov, 1946)</li>
     <li>Slow-moving shockwave (Zingale, 2023, p.148)</li>
@@ -170,6 +172,8 @@ Several (magneto)hydrodynamics tests are in place:
   <details>
   <summary>Two-dimensional</summary>
   <ul>
+    <li>Random noise field</li>
+    <li>Turbulent (OU) driving motions</li>
     <li>Sedov blast wave (Sedov, 1946)</li>
     <li>Kelvin-Helmholtz instability</li>
     <li>Rayleigh-Taylor instability</li>
@@ -189,6 +193,8 @@ Several (magneto)hydrodynamics tests are in place:
   <details>
   <summary>Three-dimensional</summary>
   <ul>
+    <li>Random noise field</li>
+    <li>Turbulent (OU) driving motions</li>
     <li>Sedov blast wave</li>
     <li>Tycho supernova</li>
     <li>Smooth advection wave tests</li>
@@ -206,7 +212,8 @@ Several (magneto)hydrodynamics tests are in place:
   <details>
   <summary>One-dimensional</summary>
   <ul>
-    <li>Blank field with perturbations</li>
+    <li>Random noise field</li>
+    <li>Turbulent (OU) driving motions</li>
     <li>Ryu-Jones 2a shockwave (Ryu & Jones, 1995)</li>
     <li>Brio-Wu shockwave (Brio & Wu, 1988)</li>
   </ul>
@@ -214,7 +221,8 @@ Several (magneto)hydrodynamics tests are in place:
   <details>
   <summary>Two-dimensional</summary>
   <ul>
-    <li>Blank field with perturbations</li>
+    <li>Random noise field</li>
+    <li>Turbulent (OU) driving motions</li>
     <li>Magnetised Kelvin-Helmholtz instability</li>
     <li>Magnetised Rayleigh-Taylor instability</li>
     <li>Orszag-Tang vortex (Orszag & Tang, 1998)</li>
@@ -234,7 +242,8 @@ Several (magneto)hydrodynamics tests are in place:
   <details>
   <summary>Three-dimensional</summary>
   <ul>
-    <li>Blank field with perturbations</li>
+    <li>Random noise field</li>
+    <li>Turbulent (OU) driving motions</li>
     <li>Orszag-Tang vortex (Orszag & Tang, 1998)</li>
     <li>MHD vortex (Mignone et al., 2010)</li>
     <li>MHD torus (Machida et al., 1999)</li>
@@ -252,6 +261,7 @@ Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussi
     <li>Beam, R. M., & Warming, R. F. (1976). An implicit finite-difference algorithm for hyperbolic systems in conservation-law form. Journal of Computational Physics, 22(1), 87-110.</li>
     <li>Borges, R., Carmona, M., Costa, B., & Don, W. S. (2008). An improved weighted essentially non-oscillatory scheme for hyperbolic conservation laws. Journal of Computational Physics, 227, 3191-3211.</li>
     <li>Brio, M., & Wu, C. C. (1988). An upwind diﬀerencing scheme for the equations of ideal magnetohydrodynamics. Journal of Computational Physics, 75(2), 400–422.</li>
+    <li>Brucy, N., Hennebelle, P., Colman, T., Klessen, R. S., & Le Yhuelic, C. (2024). Inefficient star formation in high Mach number environments: II. Numerical simulations and comparison with analytical models. Astronomy & Astrophysics, 690, A44.</li>
     <li>Butcher, J. C. (1975). A stability property of implicit Runge-Kutta methods. BIT, 15(4), 358–361.</li>
     <li>Cargo, P., & Gallice, G. (1997). Roe Matrices for Ideal MHD and Systematic Construction of Roe Matrices for Systems of Conservation Laws. Journal of Computational Physics, 136(2), 446–466.</li>
     <li>Colella, P., Dorr, M. R., Hittinger, J. A. F., & Martin, D. F. (2011). High-order, finite-volume methods in mapped coordinates. Journal of Computational Physics, 230(8), 2952–2976.</li>
@@ -259,6 +269,7 @@ Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussi
     <li>Derigs, D., Gassner, G. J., Walch, S., & Winters, A. R. (2017). Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics (arXiv:1708.03537). arXiv.</li>
     <li>Dumbser, M., & Toro, E. F. (2011). A Simple Extension of the Osher Riemann Solver to Non-conservative Hyperbolic Systems. Journal of Scientific Computing, 48(1–3), 70–88.</li>
     <li>Evans, C. R., & Hawley, J. F. (1988). Simulation of Magnetohydrodynamic Flows: A Constrained Transport Model. The Astrophysical Journal, 332, 659.</li>
+    <li>Federrath, C., Roman-Duval, J., Klessen, R. S., Schmidt, W., & Mac-Low, M.-M. (2010). Comparing the statistics of interstellar turbulence in simulations and observations: Solenoidal versus compressive turbulence forcing. Astronomy & Astrophysics ,512, A81.</li>
     <li>Felker, K. G., & Stone, J. (2018). A fourth-order accurate finite volume method for ideal MHD via upwind constrained transport. Journal of Computational Physics, 375, 1365–1400.</li>
     <li>Fleischmann, N., Adami, S., & Adams, N. A. (2020). A shock-stable modification of the HLLC Riemann solver with reduced numerical dissipation. Journal of Computational Physics, 423, 109762.</li>
     <li>Fromm, J. E. (1968). A method for reducing dispersion in convective difference schemes. Journal of Computational Physics, 3, 176.</li>

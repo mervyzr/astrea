@@ -122,15 +122,6 @@ def generate_test_conditions(config_variables):
         ambient = np.array([1,0,0,0,2.5,0,0,0])
         misc = {'perturb':True, 'ampl':.05, 'grav_acc':.1, 'Bx':.05*np.sqrt(np.pi)}
 
-    elif "turb" in config:
-        axis_coord = [-.5,.5]
-        shock_pos = 0
-        t_end = 1
-        boundary = "wrap"
-        init_cond = np.array([gamma**2,1e-6,1e-6,1e-6,gamma,0,0,0])
-        ambient = np.array([gamma**2,1e-6,1e-6,1e-6,gamma,0,0,0])
-        misc = {'force':'solenoidal', 'mach':5, 'beta':2/gamma, 'ampl':.5, 'k1':1, 'k2':2, 'pk':0}
-
     # [Pang & Wu, 2025]
     elif match(any, ["ivc", "isentropic"]):
         axis_coord = [0,10]
@@ -215,15 +206,16 @@ def generate_test_conditions(config_variables):
             ambient = np.array([1,0,0,0,.5,2.5,0,0])
             misc = {'omega':1, 'ring_width':.015}
 
-    # Blank field with tiny perturbations in densities
-    elif "blank" in config:
+    # Uniform field with turbulent driving motions [Federrath et al., 2010; Brucy et al., 2024]
+    elif match(any, ["turb", "blank"]):
+        magnetic = True
         axis_coord = [-.5,.5]
         shock_pos = 0
-        t_end = .5
+        t_end = 5
         boundary = "wrap"
-        init_cond = np.array([1,0,0,0,1/gamma,0,0,.01])
-        ambient = np.array([1,0,0,0,1/gamma,0,0,.01])
-        misc = {'perturb_ampl':.1}
+        init_cond = np.array([gamma**2,0,0,0,gamma,0,0,0])
+        ambient = np.array([gamma**2,0,0,0,gamma,0,0,0])
+        misc = {'ampl':.1/np.sqrt(4*np.pi), 'perturb_ampl':.1, 'magnetic':magnetic}
 
     # [Felker & Stone, 2018]
     elif match(all, ["mhd", "blast"]):

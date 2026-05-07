@@ -375,6 +375,9 @@ class SimulationVariables(object):
         if self.ext_gravity:
             self.gx, self.gy, self.gz = range(3)
 
+        # Turbulence set-up
+        self.turbulence = True if "turb" in self.config else False
+
         # Chemistry network set-up
         if self.chemistry:
             if not self.network:
