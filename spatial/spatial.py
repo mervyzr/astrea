@@ -6,7 +6,7 @@ import numpy as np
 from functions import grid as gutils
 from functions.generic import verbose_timer
 from numkit import c_transport as ct
-from spatial import pcm, plm, ppm, weno, cweno, wenoz
+from spatial import pcm, plm, ppm, weno, cweno, wenocu6, wenoz
 
 ##############################################################################
 # Collates and controls space evolution
@@ -23,9 +23,11 @@ def evolve(grid, sim_variables, first_stage=False):
     # Hydrodynamics computation (with fluxes and eigmax)
     with concurrent.futures.ThreadPoolExecutor() as executor:
         if subgrid_category == "weno":
-            if "c" in subgrid:
+            if subgrid.startswith("c"):
                 jobs = executor.map(cweno.run, repeat(primitive), repeat(sim_variables), axes)
-            elif "z" in subgrid:
+            elif "cu6" in subgrid:
+                jobs = executor.map(wenocu6.run, repeat(primitive), repeat(sim_variables), axes)
+            elif subgrid.endswith("z"):
                 jobs = executor.map(wenoz.run, repeat(primitive), repeat(sim_variables), axes)
             else:
                 jobs = executor.map(weno.run, repeat(primitive), repeat(sim_variables), axes)
