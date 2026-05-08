@@ -351,8 +351,7 @@
       "category": "pcm",
       "accepted": [
         "pcm",
-        "constant",
-        "c"
+        "constant"
       ]
     },
     "14": {
@@ -360,8 +359,7 @@
       "category": "plm",
       "accepted": [
         "plm",
-        "linear",
-        "l"
+        "linear"
       ]
     },
     "15": {
@@ -370,8 +368,7 @@
       "accepted": [
         "ppm",
         "parabolic",
-        "polynomial",
-        "p"
+        "polynomial"
       ]
     },
     "16": {
@@ -385,8 +382,6 @@
         "weno-5",
         "weno7",
         "weno-7",
-        "wenocu6",
-        "weno-cu6",
         "wenoz",
         "weno-z",
         "cweno",
@@ -398,7 +393,8 @@
       "category": "eno",
       "accepted": [
         "teno",
-        "t"
+        "tenoaa",
+        "teno-aa"
       ]
     },
     "18": {

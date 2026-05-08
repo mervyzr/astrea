@@ -4,15 +4,13 @@ from itertools import repeat
 import numpy as np
 
 from functions import grid as gutils
-from functions.generic import verbose_timer
 from numkit import c_transport as ct
-from spatial import pcm, plm, ppm, weno, cweno, wenocu6, wenoz
+from spatial import pcm, plm, ppm, weno, cweno, wenoz, teno
 
 ##############################################################################
 # Collates and controls space evolution
 ##############################################################################
 
-@verbose_timer
 def evolve(grid, sim_variables, first_stage=False):
     multidimensional, subgrid, subgrid_category, axes, magnetic = sim_variables.multidimensional, sim_variables.subgrid, sim_variables.subgrid_category, sim_variables.axes, sim_variables.magnetic
 
@@ -25,12 +23,13 @@ def evolve(grid, sim_variables, first_stage=False):
         if subgrid_category == "weno":
             if subgrid.startswith("c"):
                 jobs = executor.map(cweno.run, repeat(primitive), repeat(sim_variables), axes)
-            elif "cu6" in subgrid:
-                jobs = executor.map(wenocu6.run, repeat(primitive), repeat(sim_variables), axes)
             elif subgrid.endswith("z"):
                 jobs = executor.map(wenoz.run, repeat(primitive), repeat(sim_variables), axes)
             else:
                 jobs = executor.map(weno.run, repeat(primitive), repeat(sim_variables), axes)
+
+        if subgrid_category == "eno":
+            jobs = executor.map(teno.run, repeat(primitive), repeat(sim_variables), axes)
 
         elif subgrid_category == "ppm":
             # Compute additional dissipation for PPM, if active

@@ -64,7 +64,7 @@ Some experimentation was done to parallelise the code with `Open MPI` and `MPICH
 
 The space in the simulation is discretised into a uniform Cartesian grid, and thus the computational domain is assumed to be identically mapped to the physical domain.
 
-The code employs various reconstruction methods with _primitive variables_ as part of the subgrid modelling: the piecewise constant method (PCM) (Godunov, 1959), the piecewise linear method (PLM) (Derigs et al., 2018), the piecewise parabolic method (PPM) (Felker & Stone, 2018), the WENO method (Shu, 2009; San & Kara, 2015), the CWENO method (Levy et al., 1999, 2000), the WENO-Z method (Borges et al., 2008), and the WENO-CU6 method (Hu et al., 2010).
+The code employs various reconstruction methods with _primitive variables_ as part of the subgrid modelling: the piecewise constant method (PCM) (Godunov, 1959), the piecewise linear method (PLM) (Derigs et al., 2018), the piecewise parabolic method (PPM) (Felker & Stone, 2018), the WENO method (Jiang & Shu, 1996; Balsara & Shu, 2000), the CWENO method (Levy et al., 1999, 2000), the WENO-Z method (Borges et al., 2008), and the TENO(-AA) method (Fu et al., 2016; Fu, 2021).
 
 Godunov's theorem states that for a linear scheme that is monotonicity-preserving (i.e. do not produce spurrious oscillations), the scheme can be at most first-order accurate (Godunov, 1954). This has led to the development of several subgrid models that reduce these spurious oscillations while still maintaining a high-order accuracy. These models are known as Total Variation Diminishing (TVD) schemes (Harten, 1983). In order to fulfil the TVD condition, limiters have to be used after the spatial reconstructions. The PCM does not require any limiters. The PLM employs the "minmod" slope limiter (Derigs et al., 2018). The PPM employs several limiters: when _interpolating_ from the cell centres to the interfaces (Colella et al., 2011) and when _extrapolating_ to the left and right of each cell interface (Colella et al., 2011; McCorquodale & Colella, 2011). The WENO method currently does not employ any limiters. There are other TVD slope limiters available in the code too (e.g., superbee).
 
@@ -257,6 +257,7 @@ Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussi
 <details>
   <summary>References</summary>
   <ol>
+    <li>Balsara, D. S., & Shu, C.-W. (2000). Monotonicity Preserving weighted essentially non-oscillatory schemes with increasingly high order of accuracy. Journal of Computational Physics, 160, 405-452.</li>
     <li>Balsara, D. S., & Spicer, D. S. (1999). A Staggered Mesh Algorithm Using High Order Godunov Fluxes to Ensure Solenoidal Magnetic Fields in Magnetohydrodynamic Simulations. Journal of Computational Physics, 149, 270–292.</li>
     <li>Beam, R. M., & Warming, R. F. (1976). An implicit finite-difference algorithm for hyperbolic systems in conservation-law form. Journal of Computational Physics, 22(1), 87-110.</li>
     <li>Borges, R., Carmona, M., Costa, B., & Don, W. S. (2008). An improved weighted essentially non-oscillatory scheme for hyperbolic conservation laws. Journal of Computational Physics, 227, 3191-3211.</li>
@@ -273,6 +274,8 @@ Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussi
     <li>Felker, K. G., & Stone, J. (2018). A fourth-order accurate finite volume method for ideal MHD via upwind constrained transport. Journal of Computational Physics, 375, 1365–1400.</li>
     <li>Fleischmann, N., Adami, S., & Adams, N. A. (2020). A shock-stable modification of the HLLC Riemann solver with reduced numerical dissipation. Journal of Computational Physics, 423, 109762.</li>
     <li>Fromm, J. E. (1968). A method for reducing dispersion in convective difference schemes. Journal of Computational Physics, 3, 176.</li>
+    <li>Fu, L., Hu, X. Y., & Adams, N. A. (2016). A family of high-order targeted ENO schemes for compressible-fluid simulations. Journal of Computational Physics, 305, 333-359.</li>
+    <li>Fu, L. (2021). Very-high-order TENO schemes with adaptive accuracy order and adaptive dissipation control. Computer Methods in Applied Mechanics and Engineering, 387, 114193.</li>
     <li>Gardiner, T. A. & Stone, J. M. (2005). An unsplit Godunov method for ideal MHD via constrained transport. Journal of Computational Physics, 205(2), 509–539.</li>
     <li>Godunov, S. K. (1959). A Difference Scheme for Numerical Solution of Discontinuous Solution of Hydrodynamic Equations. Mat. Sbornik, 47, 271-306. Translated US Joint Publ. Res. Service, JPRS 7226, 1969</li>
     <li>Gottlieb, S., Ketcheson, D. I., & Shu, C.-W. (2009). High Order Strong Stability Preserving Time Discretizations. Journal of Scientific Computing, 38(3), 251–289.</li>
@@ -280,7 +283,7 @@ Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussi
     <li>Harten, A. (1983). High Resolution Schemes for Hyperbolic Conservation Laws. Journal of Computational Physics, 49(3), 357–393.</li>
     <li>Harten, A., Lax, P., & van Leer, B. (1983). On upstream differencing and godunov-type schemes for hyperbolic conservation laws. SIAM Review, 25(1), 35–61.</li>
     <li>Helzel, C., Rossmanith, J. A., & Taetz, B. (2011). An unstaggered constrained transport method for the 3D ideal magnetohydrodynamic equations. Journal of Computational Physics, 230(10), 3803-3829.</li>
-    <li>Hu, X. Y., Wang, Q., & Adams, N. A. (2010). An adaptive central-upwind weighted essentially non-oscillatory scheme. Journal of Computational Physics, 229(23), 8952-8965.</li>
+    <li>Jiang, G. S., & Shu, C.-W. (1996). Efficient Implementation of Weighted ENO Schemes. Journal of Computational Physics, 126(1), 202-228.</li>
     <li>Ketcheson, D. I. (2008). Highly Efficient Strong Stability-Preserving Runge–Kutta Methods with Low-Storage Implementations. SIAM Journal on Scientific Computing, 30(4), 2113–2136.</li>
     <li>Kraaijevanger, J. F. B. M. (1991). Contractivity of Runge-Kutta methods. BIT, 31(3), 482–528.</li>
     <li>Lax, P. D., & Wendroff, B. (1960). Systems of conservation laws. Commun. Pure Appl. Math. 13 (2), 217–237.</li>
@@ -412,8 +415,8 @@ astrea/
 │   ├── plm.py      : Piecewise linear method (PLM) [Derigs et al., 2018]
 │   ├── ppm.py      : Piecewise parabolic method (PPM) [McCorquodale & Colella, 2011; Felker & Stone, 2018]
 │   ├── spatial.py  : Handler for spatial reconstruction schemes
-│   ├── weno.py     : Weighted essentially non-oscillatory method (WENO) [Shu, 2009]
-│   ├── wenocu6.py  : WENO method with downwind stencil contributions (WENO-CU6) [Hu et al., 2010]
+│   ├── teno.py     : Targeted ENO method (TENO) [Fu et al., 2016]
+│   ├── weno.py     : Weighted essentially non-oscillatory method (WENO) [Jiang & Shu, 1996]
 │   ├── wenoz.py    : WENO method with higher-order smoothness indicators (WENO-Z) [Borges et al., 2008]
 ├── static
 │   ├── __init__.py

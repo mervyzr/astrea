@@ -5,7 +5,7 @@ import numpy as np
 
 from functions import grid as gutils
 from functions import math as mfuncs
-from spatial import pcm, plm, ppm, weno, cweno, wenocu6, wenoz
+from spatial import pcm, plm, ppm, weno, cweno, wenoz, teno
 
 ##############################################################################
 # Fourth-order upwind constrained transport algorithm for MHD [Felker & Stone, 2018]
@@ -158,12 +158,15 @@ def reconstruct_transverse(data, sim_variables, axis, method=None, eta=None):
         if method == "weno":
             if sim_variables.subgrid.startswith("c"):
                 reconstruct = cweno.reconstruct
-            elif "cu6" in sim_variables.subgrid:
-                reconstruct = wenocu6.reconstruct
             elif sim_variables.subgrid.endswith("z"):
                 reconstruct = wenoz.reconstruct
             else:
                 reconstruct = weno.reconstruct
+        if method == "eno":
+            if sim_variables.subgrid.endswith("a"):
+                reconstruct = lambda _grid, _sim_variables, _axis: teno.reconstruct(_grid, _sim_variables, _axis, adaptive=True)
+            else:
+                reconstruct = teno.reconstruct
         elif method == "ppm":
             if sim_variables.ppm_dissipate:
                 reconstruct = lambda _grid, _sim_variables, _axis: ppm.reconstruct(_grid, _sim_variables, _axis, eta=eta)
