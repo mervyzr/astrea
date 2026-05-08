@@ -409,6 +409,24 @@ class SimulationVariables(object):
         else:
             self.print_status = generic.print_simple
 
+        # Set up boxes for plotting
+        self.box_volume = np.prod([np.diff(_) for _ in self.coordinates.values()])
+        if self.units != "code":
+            try:
+                semi = self.misc['mode'].lower().startswith(('o','q'))
+            except Exception:
+                semi = False
+
+            if semi:
+                full_box = self.constants.plot_scales['length']
+                self.box_lengths = {ax: [start_pos, full_box*end_pos] for ax, (start_pos, end_pos) in self.coordinates.items()}
+            else:
+                half_box = self.constants.plot_scales['length']/2
+                centres = {ax: np.average(axis_coord) for ax, axis_coord in self.coordinates.items()}
+                self.box_lengths = {ax: [half_box*(start_pos-centres[ax]), half_box*(end_pos-centres[ax])] for ax, (start_pos, end_pos) in self.coordinates.items()}
+        else:
+            self.box_lengths = self.coordinates
+
         # Media options
         if self.test:
             self.save_plots = True
@@ -428,24 +446,6 @@ class SimulationVariables(object):
 
         self.beautify_1d_plots = os.getenv("BEAUTIFY_1D_PLOTS", False)
         self.save_as_pdf = os.getenv("SAVE_AS_PDF", False)
-
-        # Set up boxes for plotting
-        self.box_volume = np.prod([np.diff(_) for _ in self.coordinates.values()])
-        if self.units != "code":
-            try:
-                semi = self.misc['mode'].lower().startswith(('o','q'))
-            except Exception:
-                semi = False
-
-            if semi:
-                full_box = self.constants.plot_scales['length']
-                self.box_lengths = {ax: [start_pos, full_box*end_pos] for ax, (start_pos, end_pos) in self.coordinates.items()}
-            else:
-                half_box = self.constants.plot_scales['length']/2
-                centres = {ax: np.average(axis_coord) for ax, axis_coord in self.coordinates.items()}
-                self.box_lengths = {ax: [half_box*(start_pos-centres[ax]), half_box*(end_pos-centres[ax])] for ax, (start_pos, end_pos) in self.coordinates.items()}
-        else:
-            self.box_lengths = self.coordinates
 
         self.full_set_required = True if (self.save_plots or self.save_video or self.save_file) else False
 
