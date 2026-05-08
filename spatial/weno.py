@@ -7,7 +7,7 @@ from numkit import c_transport as ct
 from numkit import solvers
 
 ##############################################################################
-# WENO reconstruction method [Shu, 2009]
+# WENO reconstruction method [Jiang & Shu, 1996; Balsara & Shu, 2000; Shu, 2009; San & Kara, 2015]
 ##############################################################################
 
 def reconstruct(grid, sim_variables, axis, order=5):
@@ -19,7 +19,7 @@ def reconstruct(grid, sim_variables, axis, order=5):
     zeroth = np.copy(grid)
     minus_one, plus_one = gutils.slice_(padded_grid, axis, end=-2), gutils.slice_(padded_grid, axis, start=2)
 
-    """WENO reconstruction from cell averages to face averages (both sides) [Shu, 2009; San & Kara, 2015]
+    """WENO reconstruction from cell averages to face averages (both sides) [Jiang & Shu, 1996]
     |                        w(i-1/2)                    w(i+1/2)                       |
     |<--         i-1         -->|<--          i          -->|<--         i+1         -->|
     |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
@@ -54,6 +54,7 @@ def reconstruct(grid, sim_variables, axis, order=5):
         padded_grid_2 = gutils.add_boundary(grid, sim_variables, stencil=2, axis=axis)
         minus_two, plus_two = gutils.slice_(padded_grid_2, axis, end=-4), gutils.slice_(padded_grid_2, axis, start=4)
 
+        # [Balsara & Shu, 2000]
         if 5 < order <= 7:
             padded_grid_3 = gutils.add_boundary(grid, sim_variables, stencil=3, axis=axis)
             minus_three, plus_three = gutils.slice_(padded_grid_3, axis, end=-6), gutils.slice_(padded_grid_3, axis, start=6)
@@ -148,7 +149,7 @@ def run(grid, sim_variables, axis):
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
 
-    # WENO reconstruction [Shu, 2009; San & Kara, 2015]
+    # WENO reconstruction [Jiang & Shu, 1996]
     try:
         wL, wR = reconstruct(grid, sim_variables, axis, int(subgrid.replace('-','').split("weno")[-1]))
     except ValueError:
