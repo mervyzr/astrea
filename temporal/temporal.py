@@ -5,6 +5,7 @@ from temporal import euler, rk4, ssprk2, ssprk3, ssprk4, ssprk5
 # Collates and controls time evolution
 ##############################################################################
 
+@verbose_timer
 def evolve(sevolve_func, grid, fluxes, dt, sim_variables):
     # Methods for linear and non-linear systems [Shu & Osher, 1988]
     if sim_variables.time_evo.startswith("ssprk"):
