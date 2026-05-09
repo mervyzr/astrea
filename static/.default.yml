@@ -3,12 +3,12 @@
 #   Smooth: sine wave, Gaussian, manufactured Euler solution (Euler), circular polarised Alfvén wave (CPAW)
 #   Shocktubes: Sod shock, slow-moving shock, Shu-Osher (OS), Ryu-Jones (RJ), Brio-Wu (BW), Toro 1-5
 #   Blastwaves: Sedov, MHD blast, Noh problem
-#   Vortices: MHD vortex, Orszag-Tang vortex, Gresho vortex, isentropic vortex (IVC)
-#   Instabilities: (MHD) Rayleigh-Taylor instability (RTI), (MHD) Kelvin-Helmholtz instability (KHI)
+#   Vortices: Gresho vortex, MHD vortex, Orszag-Tang vortex, isentropic vortex (IVC)
+#   Instabilities: (MHD) Kelvin-Helmholtz instability (KHI), (MHD) Rayleigh-Taylor instability (RTI)
+#   Turbulent/random noise: turbulence, blank field
 #   Non-linear MHD: MHD rotor, MHD current, MHD blob
 #   Astrophysical: Shock cloud, astrophysical jet, MHD torus, supernova (SN)
 #   2D Riemann: Yee-Sjögreen (YS), (MHD) Lax-Liu 1-19
-#   Turbulent/random noise: turbulence, blank field
 
 physics_parameters:
   config        : Sedov

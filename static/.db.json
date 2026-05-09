@@ -109,6 +109,15 @@
     },
     "6": {
       "type": "config",
+      "category": "turbulent",
+      "accepted": [
+        "turbulence",
+        "turb",
+        "blank"
+      ]
+    },
+    "7": {
+      "type": "config",
       "category": "non-linear-MHD",
       "accepted": [
         "rotor",
@@ -123,7 +132,7 @@
         "mhd-blob"
       ]
     },
-    "7": {
+    "8": {
       "type": "config",
       "category": "astrophysical",
       "accepted": [
@@ -139,7 +148,7 @@
         "supernovae"
       ]
     },
-    "8": {
+    "9": {
       "type": "config",
       "category": "2D-Riemann",
       "accepted": [
@@ -301,15 +310,6 @@
         "mhd-lax-liu-17",
         "mhd-lax-liu-18",
         "mhd-lax-liu-19"
-      ]
-    },
-    "9": {
-      "type": "config",
-      "category": "turbulent",
-      "accepted": [
-        "turbulence",
-        "turb",
-        "blank"
       ]
     },
     "10": {
