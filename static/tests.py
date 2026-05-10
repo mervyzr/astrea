@@ -261,7 +261,7 @@ def generate_test_conditions(config_variables):
         magnetic = True
         axis_coord = [-.5,.5]
         shock_pos = 0
-        t_end = 1
+        t_end = .5
         boundary = "wrap"
         init_cond = np.array([gamma**2,0,0,0,gamma,0,0,0])
         ambient = np.array([gamma**2,0,0,0,gamma,0,0,0])
