@@ -401,7 +401,7 @@ def calculate_Sedov_analytical(grid, t, sim_variables):
 def calculate_Euler_analytical(grid, sim_variables):
     cells, t_end, multidimensional, dimensions, coordinates = sim_variables.cells, sim_variables.t_end, sim_variables.multidimensional, sim_variables.dimensions, sim_variables.coordinates
     rho, vx, vy, vz, pressure = sim_variables.rho, sim_variables.vx, sim_variables.vy, sim_variables.vz, sim_variables.pressure
-    freq = sim_variables.misc['freq']
+    freq = sim_variables.test_specifics['freq']
 
     def make_physical_grid(axis_coord, cells):
         start_pos, end_pos = axis_coord

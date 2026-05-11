@@ -15,11 +15,16 @@ def initialise(sim_variables):
 
 
 # Compute and set up the turbulent driving field based on the mixing ratio
-def drive(forcing_field, dt, eigmax, sim_variables, zeta=.5, mach=5.5, f_rms=50, proj='wiener', k_range=[1,3]):
+def drive(forcing_field, dt, eigmax, sim_variables, proj='wiener'):
     cells, dimensions = sim_variables.cells, sim_variables.dimensions
     ds = list(sim_variables.ds.values())
     axes = tuple(range(dimensions))
-    k_min, k_max = k_range
+
+    # Load turbulent driving parameters (values can be altered at any time during simulation too; just re-assign class attribute)
+    zeta = sim_variables.test_specifics['zeta']
+    mach = sim_variables.test_specifics['mach']
+    f_rms = sim_variables.test_specifics['f_rms']
+    k_min, k_max = sim_variables.test_specifics['k_range']
 
     def get_projections(field, _kvectors, _k2):
         # Compute dot product between k-vector and field

@@ -19,7 +19,7 @@ def initialise(sim_variables):
     source_grid = np.zeros(list(cells)+[dimensions,], dtype=float, order='C')
 
     if match(any, ["rayleigh", "taylor", "rti"]):
-        source_grid[...,gy] = -sim_variables.misc['grav_acc']
+        source_grid[...,gy] = -sim_variables.test_specifics['grav_acc']
 
     elif "torus" in config:
         x_centre = np.average(coordinates[0])
@@ -34,16 +34,16 @@ def initialise(sim_variables):
                 x, y, z = np.meshgrid(physical_grid_x, physical_grid_y, physical_grid_z, indexing='ij')
                 r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2 + (z-z_centre)**2)
 
-                source_grid[...,gx] = -sim_variables.misc['GM']/r**3 * x
-                source_grid[...,gy] = -sim_variables.misc['GM']/r**3 * y
-                source_grid[...,gz] = -sim_variables.misc['GM']/r**3 * z
+                source_grid[...,gx] = -sim_variables.test_specifics['GM']/r**3 * x
+                source_grid[...,gy] = -sim_variables.test_specifics['GM']/r**3 * y
+                source_grid[...,gz] = -sim_variables.test_specifics['GM']/r**3 * z
 
             else:
                 x, y = np.meshgrid(physical_grid_x, physical_grid_y, indexing='ij')
                 r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
 
-                source_grid[...,gx] = -sim_variables.misc['GM']/r**2 * x
-                source_grid[...,gy] = -sim_variables.misc['GM']/r**2 * y
+                source_grid[...,gx] = -sim_variables.test_specifics['GM']/r**2 * x
+                source_grid[...,gy] = -sim_variables.test_specifics['GM']/r**2 * y
 
     return source_grid
 

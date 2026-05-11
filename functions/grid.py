@@ -27,7 +27,7 @@ def make_physical_grid(axis_coord, cells):
 def initialise(sim_variables):
     config, cells, gamma, dimensions, multidimensional = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimensions, sim_variables.multidimensional
     rho, vx, vy, vz, pressure, Bx, By, Bz = sim_variables.rho, sim_variables.vx, sim_variables.vy, sim_variables.vz, sim_variables.pressure, sim_variables.Bx, sim_variables.By, sim_variables.Bz
-    ds, coordinates, shock_pos, params = sim_variables.ds, sim_variables.coordinates, sim_variables.shock_pos, sim_variables.misc
+    ds, coordinates, shock_pos, test_specifics = sim_variables.ds, sim_variables.coordinates, sim_variables.shock_pos, sim_variables.test_specifics
     init_cond, ambient = sim_variables.init_cond, sim_variables.ambient
     axes = sim_variables.axes
 
@@ -58,11 +58,11 @@ def initialise(sim_variables):
 
             if ("sedov" in config) or match(all, ["mhd", "blast"]) or (match(any, ["supernova", "tycho"]) or config == "sn"):
                 if match(any, ["supernova", "tycho"]) or config == "sn":
-                    if params['mode'].lower().startswith(('o','q')):
+                    if test_specifics['mode'].lower().startswith(('o','q')):
                         x_centre, y_centre, z_centre = (axis_coord[0] for axis_coord in coordinates.values())
                         r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2 + (z-z_centre)**2)
 
-                    E, M, t0 = params['E'], params['M'], params['t0']
+                    E, M, t0 = test_specifics['E'], test_specifics['M'], test_specifics['t0']
                     shock_pos = t0 * np.sqrt(gamma * E/M)
                     sim_variables.shock_pos = shock_pos
 
@@ -80,8 +80,8 @@ def initialise(sim_variables):
                     e_tot = ambient[...,pressure]/(gamma-1) + (E/(4/3 * np.pi * r0**3))/((2*np.pi*sigma**2)**(dimensions/2)) * np.exp(-.5 * r/sigma**2)
                     computational_grid[...,pressure] = (gamma - 1) * e_tot
 
-                    if params['rotation']:
-                        tau0, age = params['tau0'], params['age']
+                    if test_specifics['rotation']:
+                        tau0, age = test_specifics['tau0'], test_specifics['age']
                         computational_grid[...,vx][core] = -tau0 * age**-.51 * y[core]
                         computational_grid[...,vy][core] = tau0 * age**-.51 * x[core]
 
@@ -90,33 +90,33 @@ def initialise(sim_variables):
                     computational_grid[mask] = init_cond
 
                     if match(all, ["mhd", "blast"]):
-                        computational_grid[...,5+axes] = params['ampl']
+                        computational_grid[...,5+axes] = test_specifics['ampl']
 
                 computational_grid = resample_blast(computational_grid, sim_variables)
 
             elif config.startswith("sin"):
-                computational_grid[...,rho] = mfuncs.sine_func(r, params)
+                computational_grid[...,rho] = mfuncs.sine_func(r, test_specifics)
 
             elif config.startswith("gauss"):
-                computational_grid[...,rho] = mfuncs.gauss_func(r, params)
+                computational_grid[...,rho] = mfuncs.gauss_func(r, test_specifics)
 
             elif match(any, ["manufacture", "euler"]):
                 Lx, Ly, Lz = np.diff(coordinates[0]), np.diff(coordinates[1]), np.diff(coordinates[2])
-                freq = params['freq']
+                freq = test_specifics['freq']
 
                 computational_grid[...,rho] = 1 + .35*np.sin(freq*x/Lx) + .24*np.cos(freq*y/Ly) + .1*np.sin(freq*z/Lz)
                 computational_grid[...,pressure] = 1 + .23*np.sin(freq*x/Lx) + .19*np.cos(freq*y/Ly) + .2*np.cos(freq*z/Lz)
 
             elif match(any, ["turb", "blank"]):
                 if "turb" in config:
-                    if params['magnetic']:
-                        computational_grid[...,Bx] = -params['ampl'] * np.sin(2*np.pi*y)
-                        computational_grid[...,By] = params['ampl'] * np.sin(4*np.pi*x)
+                    if test_specifics['magnetic']:
+                        computational_grid[...,Bx] = -test_specifics['mag_ampl'] * np.sin(2*np.pi*y)
+                        computational_grid[...,By] = test_specifics['mag_ampl'] * np.sin(4*np.pi*x)
                 else:
-                    computational_grid[...,rho] += np.random.uniform(-params['perturb_ampl'], params['perturb_ampl'], size=(computational_grid.shape))[...,rho]
+                    computational_grid[...,rho] += np.random.uniform(-test_specifics['perturb_ampl'], test_specifics['perturb_ampl'], size=(computational_grid.shape))[...,rho]
 
             elif match(any, ["orszag", "tang"]) or config == "ot":
-                _x, _y, _z, ampl, eps = params['norm_factor']*x, params['norm_factor']*y, params['norm_factor']*z, params['ampl'], params['eps']
+                _x, _y, _z, ampl, eps = test_specifics['norm_factor']*x, test_specifics['norm_factor']*y, test_specifics['norm_factor']*z, test_specifics['ampl'], test_specifics['eps']
 
                 computational_grid[...,vx] = -(1 + eps*np.sin(_z)) * np.sin(_y)
                 computational_grid[...,vy] = (1 + eps*np.sin(_z)) * np.sin(_x)
@@ -125,45 +125,45 @@ def initialise(sim_variables):
                 computational_grid[...,By] = ampl * np.sin(2*_x)
 
             elif match(all, ["mhd", "vortex"]):
-                factor = np.exp(params['q'] * (1 - r**2))
-                computational_grid[...,vx] = 1 - y0*params['kappa']*factor
-                computational_grid[...,vy] = 1 + x0*params['kappa']*factor
-                computational_grid[...,pressure] = 1 + (1/(4*params['q'])) * ((1 - 2*params['q']*(r**2 - z0**2)) * params['mu']**2 - params['kappa']**2) * factor**2
-                computational_grid[...,Bx] = -y0*params['mu']*factor
-                computational_grid[...,By] = x0*params['mu']*factor
+                factor = np.exp(test_specifics['q'] * (1 - r**2))
+                computational_grid[...,vx] = 1 - y0*test_specifics['kappa']*factor
+                computational_grid[...,vy] = 1 + x0*test_specifics['kappa']*factor
+                computational_grid[...,pressure] = 1 + (1/(4*test_specifics['q'])) * ((1 - 2*test_specifics['q']*(r**2 - z0**2)) * test_specifics['mu']**2 - test_specifics['kappa']**2) * factor**2
+                computational_grid[...,Bx] = -y0*test_specifics['mu']*factor
+                computational_grid[...,By] = x0*test_specifics['mu']*factor
 
             elif "torus" in config:
                 r = np.sqrt(x0**2 + y0**2)
-                cA2 = lambda _r: 2 * (params['polytropeK']/params['beta']) * (init_cond[rho] * _r**2)**(gamma-1)
+                cA2 = lambda _r: 2 * (test_specifics['polytropeK']/test_specifics['beta']) * (init_cond[rho] * _r**2)**(gamma-1)
                 cs2 = np.sqrt(gamma * init_cond[pressure]/init_cond[rho])
-                torus_phi = -params['GM']/params['r0'] + params['L']**2/(2*params['r0']**2) + (2*cs2 + gamma*cA2(params['r0']))/(2*(gamma-1))
+                torus_phi = -test_specifics['GM']/test_specifics['r0'] + test_specifics['L']**2/(2*test_specifics['r0']**2) + (2*cs2 + gamma*cA2(test_specifics['r0']))/(2*(gamma-1))
 
                 computational_grid[...,rho] = (
                     mfuncs.divide(
-                        np.maximum(0, torus_phi + params['GM']/params['r0'] - params['L']**2/(2*r**2)),
-                        params['polytropeK'] * (gamma/(gamma-1)) * (1 + (r**(2*(gamma-1)))/params['beta'])
+                        np.maximum(0, torus_phi + test_specifics['GM']/test_specifics['r0'] - test_specifics['L']**2/(2*r**2)),
+                        test_specifics['polytropeK'] * (gamma/(gamma-1)) * (1 + (r**(2*(gamma-1)))/test_specifics['beta'])
                     )
                 )**(1/(gamma-1))
-                computational_grid[...,vx] = -np.sqrt(params['GM']) * (y/r**1.5)
-                computational_grid[...,vy] = np.sqrt(params['GM']) * (x/r**1.5)
+                computational_grid[...,vx] = -np.sqrt(test_specifics['GM']) * (y/r**1.5)
+                computational_grid[...,vy] = np.sqrt(test_specifics['GM']) * (x/r**1.5)
 
                 _r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
-                _P = params['K'] * init_cond[rho]**gamma
-                cA2 = 2 * (params['K']/params['beta0']) * (init_cond[rho] * params['r0']**2)**(gamma-1)
+                _P = test_specifics['K'] * init_cond[rho]**gamma
+                cA2 = 2 * (test_specifics['K']/test_specifics['beta0']) * (init_cond[rho] * test_specifics['r0']**2)**(gamma-1)
                 cs2 = np.sqrt(gamma * _P/init_cond[rho])
-                torus_phi = -params['GM']/params['r0'] + params['L']**2/(2*params['r0']**2) + (2*cs2 + gamma*cA2)/(2*(gamma-1))
+                torus_phi = -test_specifics['GM']/test_specifics['r0'] + test_specifics['L']**2/(2*test_specifics['r0']**2) + (2*cs2 + gamma*cA2)/(2*(gamma-1))
 
                 computational_grid[...,rho] = (
                     mfuncs.divide(
-                        np.maximum(0, torus_phi + params['GM']/r - params['L']**2/(2*_r**2)),
-                        params['K'] * (gamma/(gamma-1)) * (1 + (_r**(2*(gamma-1)))/params['beta0'])
+                        np.maximum(0, torus_phi + test_specifics['GM']/r - test_specifics['L']**2/(2*_r**2)),
+                        test_specifics['K'] * (gamma/(gamma-1)) * (1 + (_r**(2*(gamma-1)))/test_specifics['beta0'])
                     )
                 )**(1/(gamma-1))
                 computational_grid[...,pressure] = _P
-                computational_grid[...,vx] = -np.sqrt(params['GM'] * params['L']**2) * (y/_r**2)
-                computational_grid[...,vy] = np.sqrt(params['GM'] * params['L']**2) * (x/_r**2)
-                computational_grid[...,Bx] = -params['B_phi'] * y/_r
-                computational_grid[...,By] = params['B_phi'] * x/_r
+                computational_grid[...,vx] = -np.sqrt(test_specifics['GM'] * test_specifics['L']**2) * (y/_r**2)
+                computational_grid[...,vy] = np.sqrt(test_specifics['GM'] * test_specifics['L']**2) * (x/_r**2)
+                computational_grid[...,Bx] = -test_specifics['B_phi'] * y/_r
+                computational_grid[...,By] = test_specifics['B_phi'] * x/_r
 
             elif match(any, ["blob"]):
                 dr = np.sqrt(np.sum([dh**2 for dh in ds.values()]))
@@ -175,9 +175,9 @@ def initialise(sim_variables):
                 computational_grid[...,vx] = -omega * y
                 computational_grid[...,vy] = omega * x
 
-                B_phi = np.sqrt((2*init_cond[pressure])/params['beta']) * smoothing * r/r0
-                computational_grid[...,Bx] = -B_phi * (y/(r+params['eps']))
-                computational_grid[...,By] = B_phi * (x/(r+params['eps']))
+                B_phi = np.sqrt((2*init_cond[pressure])/test_specifics['beta']) * smoothing * r/r0
+                computational_grid[...,Bx] = -B_phi * (y/(r+test_specifics['eps']))
+                computational_grid[...,By] = B_phi * (x/(r+test_specifics['eps']))
 
         else:
             ##############################
@@ -190,11 +190,11 @@ def initialise(sim_variables):
 
             if ("sedov" in config) or match(all, ["mhd", "blast"]) or (match(any, ["supernova", "tycho"]) or config == "sn"):
                 if match(any, ["supernova", "tycho"]) or config == "sn":
-                    if params['mode'].lower().startswith(('o','q')):
+                    if test_specifics['mode'].lower().startswith(('o','q')):
                         x_centre, y_centre = (axis_coord[0] for axis_coord in coordinates.values())
                         r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
 
-                    E, M, t0 = params['E'], params['M'], params['t0']
+                    E, M, t0 = test_specifics['E'], test_specifics['M'], test_specifics['t0']
                     shock_pos = t0 * np.sqrt(gamma * E/M)
                     sim_variables.shock_pos = shock_pos
 
@@ -212,8 +212,8 @@ def initialise(sim_variables):
                     e_tot = ambient[...,pressure]/(gamma-1) + (E/(np.pi * r0**2))/((2*np.pi*sigma**2)**(dimensions/2)) * np.exp(-.5 * r/sigma**2)
                     computational_grid[...,pressure] = (gamma - 1) * e_tot
 
-                    if params['rotation']:
-                        tau0, age = params['tau0'], params['age']
+                    if test_specifics['rotation']:
+                        tau0, age = test_specifics['tau0'], test_specifics['age']
                         computational_grid[...,vx][core] = -tau0 * age**-.51 * y[core]
                         computational_grid[...,vy][core] = tau0 * age**-.51 * x[core]
 
@@ -222,19 +222,19 @@ def initialise(sim_variables):
                     computational_grid[mask] = init_cond
 
                     if match(all, ["mhd", "blast"]):
-                        computational_grid[...,5+axes] = params['ampl']
+                        computational_grid[...,5+axes] = test_specifics['ampl']
 
                 computational_grid = resample_blast(computational_grid, sim_variables)
 
             elif config.startswith("sin"):
-                computational_grid[...,rho] = mfuncs.sine_func(r, params)
+                computational_grid[...,rho] = mfuncs.sine_func(r, test_specifics)
 
             elif config.startswith("gauss"):
-                computational_grid[...,rho] = mfuncs.gauss_func(r, params)
+                computational_grid[...,rho] = mfuncs.gauss_func(r, test_specifics)
 
             elif match(any, ["manufacture", "euler"]):
                 Lx, Ly = np.diff(coordinates[0]), np.diff(coordinates[1])
-                freq = params['freq']
+                freq = test_specifics['freq']
 
                 computational_grid[...,vz] = 0
                 computational_grid[...,rho] = 1 + .35*np.sin(freq*x/Lx) + .24*np.cos(freq*y/Ly)
@@ -243,27 +243,27 @@ def initialise(sim_variables):
             elif match(any, ["kelvin", "helmholtz", "khi"]):
                 layer = np.where(np.abs(y) <= shock_pos)
                 computational_grid[layer] = init_cond
-                computational_grid[...,vy] = params['ampl'] * np.sin(params['freq']*np.pi*x/np.diff(coordinates[0]))
-                if params['perturb']:
-                    perturbations = turbulence.pertubations(computational_grid, params['ampl'])
+                computational_grid[...,vy] = test_specifics['ampl'] * np.sin(test_specifics['freq']*np.pi*x/np.diff(coordinates[0]))
+                if test_specifics['perturb']:
+                    perturbations = turbulence.pertubations(computational_grid, test_specifics['ampl'])
                     computational_grid[...,(vx,vy)] += perturbations[...,(vx,vy)]
                 if config.startswith('m') or "mhd" in config:
-                    computational_grid[...,Bx] = params['Bx']
+                    computational_grid[...,Bx] = test_specifics['Bx']
 
             elif match(any, ["rayleigh", "taylor", "rti"]):
                 layer = np.where(y > shock_pos)
                 computational_grid[layer] = init_cond
                 computational_grid[...,pressure] = init_cond[pressure] - .1*computational_grid[...,rho]*y
-                if params['perturb']:
-                    perturbations = turbulence.pertubations(computational_grid, 2*params['ampl'])
+                if test_specifics['perturb']:
+                    perturbations = turbulence.pertubations(computational_grid, 2*test_specifics['ampl'])
                     computational_grid[...,vy] += perturbations[...,vy] * (1 + np.cos(8*np.pi*y/3))
                 else:
-                    computational_grid[...,vy] = params['ampl'] * (1 + np.cos(4*np.pi*x)) * (1 + np.cos(3*np.pi*y))
+                    computational_grid[...,vy] = test_specifics['ampl'] * (1 + np.cos(4*np.pi*x)) * (1 + np.cos(3*np.pi*y))
                 if config.startswith('m') or "mhd" in config:
-                    computational_grid[...,Bx] = params['Bx']
+                    computational_grid[...,Bx] = test_specifics['Bx']
 
             elif match(any, ["ivc", "isentropic"]):
-                b, freq = params['vortex_str'], params['freq']
+                b, freq = test_specifics['vortex_str'], test_specifics['freq']
 
                 dv = lambda _array: (b*np.exp(.5*(1-r**2))*_array)/(np.sqrt(freq)*np.pi)
                 computational_grid[...,vx] = 1 + dv(-y0)
@@ -278,7 +278,7 @@ def initialise(sim_variables):
 
             elif "gresho" in config:
                 core, ring = np.where((0 <= r) & (r < .2)), np.where((.2 <= r) & (r < .4))
-                p0 = init_cond[...,rho]/(gamma*params['mach']**2)
+                p0 = init_cond[...,rho]/(gamma*test_specifics['mach']**2)
 
                 computational_grid[...,pressure] = p0 - 2 + 4*np.log(2)
 
@@ -292,19 +292,19 @@ def initialise(sim_variables):
 
             elif match(any, ["lax", "liu", "ll"]):
                 computational_grid[np.where(x < shock_pos)] = init_cond
-                computational_grid[np.where((x < shock_pos) & (y < shock_pos))] = params['bottom_left']
-                computational_grid[np.where((x >= shock_pos) & (y < shock_pos))] = params['bottom_right']
+                computational_grid[np.where((x < shock_pos) & (y < shock_pos))] = test_specifics['bottom_left']
+                computational_grid[np.where((x >= shock_pos) & (y < shock_pos))] = test_specifics['bottom_right']
                 if config.startswith('m') or "mhd" in config:
                     computational_grid[...,Bx] = np.cos(y) * np.sin(x)
                     computational_grid[...,By] = -np.cos(x) * np.sin(y)
 
             elif match(any, ["yee", "sjögreen", "sjoegreen"]) or config == "ys":
                 computational_grid[np.where(x < shock_pos)] = init_cond
-                computational_grid[np.where((x < shock_pos) & (y < shock_pos))] = params['bottom_left']
-                computational_grid[np.where((x >= shock_pos) & (y < shock_pos))] = params['bottom_right']
+                computational_grid[np.where((x < shock_pos) & (y < shock_pos))] = test_specifics['bottom_left']
+                computational_grid[np.where((x >= shock_pos) & (y < shock_pos))] = test_specifics['bottom_right']
 
             elif match(any, ["orszag", "tang"]) or config == "ot":
-                _x, _y, ampl = params['norm_factor']*x, params['norm_factor']*y, params['ampl']
+                _x, _y, ampl = test_specifics['norm_factor']*x, test_specifics['norm_factor']*y, test_specifics['ampl']
 
                 computational_grid[...,vx] = -np.sin(_y)
                 computational_grid[...,vy] = np.sin(_x)
@@ -312,29 +312,29 @@ def initialise(sim_variables):
                 computational_grid[...,By] = ampl * np.sin(2*_x)
 
             elif match(all, ["mhd", "vortex"]):
-                computational_grid[...,vx] = 1 - ((y0*params['kappa'])/(2*np.pi) * np.exp((1-r**2)/2))
-                computational_grid[...,vy] = 1 + ((x0*params['kappa'])/(2*np.pi) * np.exp((1-r**2)/2))
-                computational_grid[...,pressure] = 1 + (((1-r**2)*params['kappa']**2 - params['mu']**2)/(8*np.pi**2) * np.exp(1-r**2))
-                computational_grid[...,Bx] = (-y0*params['mu'])/(2*np.pi) * np.exp((1-r**2)/2)
-                computational_grid[...,By] = (x0*params['mu'])/(2*np.pi) * np.exp((1-r**2)/2)
+                computational_grid[...,vx] = 1 - ((y0*test_specifics['kappa'])/(2*np.pi) * np.exp((1-r**2)/2))
+                computational_grid[...,vy] = 1 + ((x0*test_specifics['kappa'])/(2*np.pi) * np.exp((1-r**2)/2))
+                computational_grid[...,pressure] = 1 + (((1-r**2)*test_specifics['kappa']**2 - test_specifics['mu']**2)/(8*np.pi**2) * np.exp(1-r**2))
+                computational_grid[...,Bx] = (-y0*test_specifics['mu'])/(2*np.pi) * np.exp((1-r**2)/2)
+                computational_grid[...,By] = (x0*test_specifics['mu'])/(2*np.pi) * np.exp((1-r**2)/2)
 
             elif "torus" in config:
-                _P = params['K'] * init_cond[rho]**gamma
-                cA2 = 2 * (params['K']/params['beta0']) * (init_cond[rho] * params['r0']**2)**(gamma-1)
+                _P = test_specifics['K'] * init_cond[rho]**gamma
+                cA2 = 2 * (test_specifics['K']/test_specifics['beta0']) * (init_cond[rho] * test_specifics['r0']**2)**(gamma-1)
                 cs2 = np.sqrt(gamma * _P/init_cond[rho])
-                torus_phi = -params['GM']/params['r0'] + params['L']**2/(2*params['r0']**2) + (2*cs2 + gamma*cA2)/(2*(gamma-1))
+                torus_phi = -test_specifics['GM']/test_specifics['r0'] + test_specifics['L']**2/(2*test_specifics['r0']**2) + (2*cs2 + gamma*cA2)/(2*(gamma-1))
 
                 computational_grid[...,rho] = (
                     mfuncs.divide(
-                        np.maximum(0, torus_phi + params['GM']/r - params['L']**2/(2*r**2)),
-                        params['K'] * (gamma/(gamma-1)) * (1 + (r**(2*(gamma-1)))/params['beta0'])
+                        np.maximum(0, torus_phi + test_specifics['GM']/r - test_specifics['L']**2/(2*r**2)),
+                        test_specifics['K'] * (gamma/(gamma-1)) * (1 + (r**(2*(gamma-1)))/test_specifics['beta0'])
                     )
                 )**(1/(gamma-1))
                 computational_grid[...,pressure] = _P
-                computational_grid[...,vx] = -np.sqrt(params['GM'] * params['L']**2) * (y/r**2)
-                computational_grid[...,vy] = np.sqrt(params['GM'] * params['L']**2) * (x/r**2)
-                computational_grid[...,Bx] = -params['B_phi'] * y/r
-                computational_grid[...,By] = params['B_phi'] * x/r
+                computational_grid[...,vx] = -np.sqrt(test_specifics['GM'] * test_specifics['L']**2) * (y/r**2)
+                computational_grid[...,vy] = np.sqrt(test_specifics['GM'] * test_specifics['L']**2) * (x/r**2)
+                computational_grid[...,Bx] = -test_specifics['B_phi'] * y/r
+                computational_grid[...,By] = test_specifics['B_phi'] * x/r
 
             elif match(any, ["rotor", "blob"]):
                 if "blob" in config:
@@ -347,35 +347,35 @@ def initialise(sim_variables):
                     computational_grid[...,vx] = -omega * y
                     computational_grid[...,vy] = omega * x
 
-                    B_phi = np.sqrt((2*init_cond[pressure])/params['beta']) * smoothing * r/r0
-                    computational_grid[...,Bx] = -B_phi * (y/(r+params['eps']))
-                    computational_grid[...,By] = B_phi * (x/(r+params['eps']))
+                    B_phi = np.sqrt((2*init_cond[pressure])/test_specifics['beta']) * smoothing * r/r0
+                    computational_grid[...,Bx] = -B_phi * (y/(r+test_specifics['eps']))
+                    computational_grid[...,By] = B_phi * (x/(r+test_specifics['eps']))
 
                 else:
-                    ring_pos = r0 + params['ring_width']
+                    ring_pos = r0 + test_specifics['ring_width']
                     phi = (ring_pos - r)/(ring_pos - r0)
                     r_ring = np.sqrt((ring_pos-x_centre)**2 + (ring_pos-y_centre)**2)
 
                     ring = np.where(r <= r_ring)
                     computational_grid[...,rho][ring] = (1 + 9*phi)[ring]
-                    computational_grid[...,vx][ring] = ((-params['omega']*phi*y0*shock_pos)/r)[ring]
-                    computational_grid[...,vy][ring] = ((params['omega']*phi*x0*shock_pos)/r)[ring]
+                    computational_grid[...,vx][ring] = ((-test_specifics['omega']*phi*y0*shock_pos)/r)[ring]
+                    computational_grid[...,vy][ring] = ((test_specifics['omega']*phi*x0*shock_pos)/r)[ring]
 
                     core = np.where(r <= r0)
                     computational_grid[core] = init_cond
-                    computational_grid[...,vx][core] = ((-params['omega']*y0)/shock_pos)[core]
-                    computational_grid[...,vy][core] = ((params['omega']*x0)/shock_pos)[core]
+                    computational_grid[...,vx][core] = ((-test_specifics['omega']*y0)/shock_pos)[core]
+                    computational_grid[...,vy][core] = ((test_specifics['omega']*x0)/shock_pos)[core]
 
             elif match(any, ["turb", "blank"]):
                 if "turb" in config:
-                    if params['magnetic']:
-                        computational_grid[...,Bx] = -params['ampl'] * np.sin(2*np.pi*y)
-                        computational_grid[...,By] = params['ampl'] * np.sin(4*np.pi*x)
+                    if test_specifics['magnetic']:
+                        computational_grid[...,Bx] = -test_specifics['mag_ampl'] * np.sin(2*np.pi*y)
+                        computational_grid[...,By] = test_specifics['mag_ampl'] * np.sin(4*np.pi*x)
                 else:
-                    computational_grid[...,rho] += np.random.uniform(-params['perturb_ampl'], params['perturb_ampl'], size=(computational_grid.shape))[...,rho]
+                    computational_grid[...,rho] += np.random.uniform(-test_specifics['perturb_ampl'], test_specifics['perturb_ampl'], size=(computational_grid.shape))[...,rho]
 
             elif match(any, ["current", "sheet"]):
-                computational_grid[...,vx] = params['ampl'] * np.sin(np.pi*y)
+                computational_grid[...,vx] = test_specifics['ampl'] * np.sin(np.pi*y)
                 mask = np.where(abs(x) < shock_pos)
                 computational_grid[...,By][mask] *= -1
 
@@ -387,20 +387,20 @@ def initialise(sim_variables):
             elif "cloud" in config:
                 computational_grid[np.where(x < shock_pos)] = init_cond
                 mask = np.where(((x-.8)**2 + (y-.5)**2) < .15**2)
-                computational_grid[...,rho][mask] = params['cloud_mass']
+                computational_grid[...,rho][mask] = test_specifics['cloud_mass']
 
             elif "jet" in config:
                 nozzle = np.where((np.abs(x) < shock_pos) & (y <= (coordinates[1][0] + ds[1])))
                 sim_variables.mask = nozzle
                 computational_grid[...,rho][nozzle] = gamma
-                computational_grid[...,vy][nozzle] = params['velocity']
+                computational_grid[...,vy][nozzle] = test_specifics['velocity']
                 computational_grid[...,By] *= np.sqrt(10)  # weak: 1, moderate:np.sqrt(10), strong:np.sqrt(1e2), extreme:np.sqrt(1e3)
-                if params['perturb']:
-                    perturbations = turbulence.pertubations(computational_grid, params['velocity']/4)
+                if test_specifics['perturb']:
+                    perturbations = turbulence.pertubations(computational_grid, test_specifics['velocity']/4)
                     computational_grid[...,(vx,vy)] += perturbations[...,(vx,vy)]
 
             elif match(any, ["circular", "polarised", "alfven"]) or config == "cpaw":
-                alpha, ampl, wave = params['alpha'], params['ampl'], params['wave']
+                alpha, ampl, wave = test_specifics['alpha'], test_specifics['ampl'], test_specifics['wave']
                 s = x*np.cos(alpha) + y*np.sin(alpha)
 
                 v_perp = B_perp = ampl*np.sin(2*np.pi*s)
@@ -430,11 +430,11 @@ def initialise(sim_variables):
 
         if ("sedov" in config) or match(all, ["mhd", "blast"]) or (match(any, ["supernova", "tycho"]) or config == "sn") or config.startswith('sq'):
             if match(any, ["supernova", "tycho"]) or config == "sn":
-                if params['mode'].lower().startswith(('o','q')):
+                if test_specifics['mode'].lower().startswith(('o','q')):
                     x_centre = coordinates[0][0]
                     x -= x_centre
 
-                E, M, t0 = params['E'], params['M'], params['t0']
+                E, M, t0 = test_specifics['E'], test_specifics['M'], test_specifics['t0']
                 shock_pos = t0 * np.sqrt(gamma * E/M)
                 sim_variables.shock_pos = shock_pos
 
@@ -464,27 +464,27 @@ def initialise(sim_variables):
             computational_grid[mask] = init_cond
 
         if config.startswith('m') or "mhd" in config:
-            computational_grid[...,5+axes] = params['ampl']
+            computational_grid[...,5+axes] = test_specifics['ampl']
 
         if match(any, ["shu", "osher"]) or config == "so":
-            computational_grid[np.where(x > shock_pos), rho] = mfuncs.sine_func(x[x > shock_pos], params)
+            computational_grid[np.where(x > shock_pos), rho] = mfuncs.sine_func(x[x > shock_pos], test_specifics)
         elif config.startswith("sin"):
-            computational_grid[...,rho] = mfuncs.sine_func(x, params)
+            computational_grid[...,rho] = mfuncs.sine_func(x, test_specifics)
         elif config.startswith('gauss'):
-            computational_grid[...,rho] = mfuncs.gauss_func(x-params['peak_pos'], params)
+            computational_grid[...,rho] = mfuncs.gauss_func(x-test_specifics['peak_pos'], test_specifics)
         elif match(any, ["manufacture", "euler"]):
                 Lx = np.diff(coordinates[0])
-                freq = params['freq']
+                freq = test_specifics['freq']
                 computational_grid[...,rho] = 1 + .35*np.sin(freq*x/Lx)
                 computational_grid[...,vy] = computational_grid[...,vz] = 0
                 computational_grid[...,pressure] = 1 + .23*np.sin(freq*x/Lx)
         elif match(any, ["turb", "blank"]):
             if "turb" in config:
-                if params['magnetic']:
-                    computational_grid[...,Bx] = -params['ampl'] * np.sin(2*np.pi*y)
-                    computational_grid[...,By] = params['ampl'] * np.sin(4*np.pi*x)
+                if test_specifics['magnetic']:
+                    computational_grid[...,Bx] = -test_specifics['mag_ampl'] * np.sin(2*np.pi*y)
+                    computational_grid[...,By] = test_specifics['mag_ampl'] * np.sin(4*np.pi*x)
             else:
-                computational_grid[...,rho] += np.random.uniform(-params['perturb_ampl'], params['perturb_ampl'], size=(computational_grid.shape))[...,rho]
+                computational_grid[...,rho] += np.random.uniform(-test_specifics['perturb_ampl'], test_specifics['perturb_ampl'], size=(computational_grid.shape))[...,rho]
 
     sim_variables.magnetic = computational_grid[...,sim_variables.Bfields].any()
 
@@ -685,7 +685,7 @@ def resample_blast(grid, sim_variables, subsample_limit=25600**2):
     subsample_size = int(np.minimum(100, np.floor((subsample_limit / np.prod(cells)) ** (1/dimensions))))
 
     try:
-        semi = sim_variables.misc['mode'].lower().startswith(('o','q'))
+        semi = sim_variables.test_specifics['mode'].lower().startswith(('o','q'))
     except Exception:
         semi = False
 

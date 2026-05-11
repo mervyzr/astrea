@@ -5,13 +5,13 @@ import numpy as np
 ##############################################################################
 
 # Generic Gaussian function
-def gauss_func(r, params):
-    return params['y_offset'] + params['ampl']*np.exp(-(r**2)/params['fwhm'])
+def gauss_func(r, test_specifics):
+    return test_specifics['y_offset'] + test_specifics['ampl']*np.exp(-(r**2)/test_specifics['fwhm'])
 
 
 # Generic sin function
-def sine_func(r, params):
-    return params['y_offset'] + params['ampl']*np.sin(params['freq']*np.pi*r)
+def sine_func(r, test_specifics):
+    return test_specifics['y_offset'] + test_specifics['ampl']*np.sin(test_specifics['freq']*np.pi*r)
 
 
 # Magic function to make errors disappear (!! physics would most likely be messed up so be very careful using this function !!)

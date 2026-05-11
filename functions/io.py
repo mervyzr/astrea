@@ -1,4 +1,5 @@
 import os
+import json
 import random
 import argparse
 
@@ -297,7 +298,7 @@ class SimulationVariables(object):
         '__dict__',
         'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'gx', 'gy', 'gz', 'energy', 'vels', 'Bfields', 'momentums',
         'config', 'cells', 'cfl', 'gamma', 'gravity', 'self_gravity', 'ext_gravity', 'dimensions', 'subgrid', 'time_evo', 'solver',
-        'coordinates', 'shock_pos', 't_end', 'boundary', 'misc', 'init_cond', 'ambient', 'ds',
+        'coordinates', 'shock_pos', 't_end', 'boundary', 'test_specifics', 'init_cond', 'ambient', 'ds',
         'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
         'axes', 'magnetic', 'convert', 'roots', 'weights', 'ppm_dissipate', 'higher_order', 'grid_interpolate', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'eps', 'home', 'save_path', 'db_path', 'hdf5', 'timesteps', 'print_status',
@@ -413,7 +414,7 @@ class SimulationVariables(object):
         self.box_volume = np.prod([np.diff(_) for _ in self.coordinates.values()])
         if self.units != "code":
             try:
-                semi = self.misc['mode'].lower().startswith(('o','q'))
+                semi = self.test_specifics['mode'].lower().startswith(('o','q'))
             except Exception:
                 semi = False
 
@@ -478,9 +479,9 @@ def write_chkpt_file(grid, t, idx, sim_variables):
         f.attrs['self_gravity'] = sim_variables.self_gravity
         f.attrs['ext_gravity'] = sim_variables.ext_gravity
         f.attrs['boundary'] = sim_variables.boundary
-        f.attrs['aspect_ratio'] = sim_variables.aspect_ratio
-        f.attrs['coordinates'] = tuple(sim_variables.coordinates.values())
-        f.attrs['box_lengths'] = tuple(sim_variables.box_lengths.values())
+        f.attrs['coordinates'] = json.dumps(sim_variables.coordinates)
+        f.attrs['box_lengths'] = json.dumps(sim_variables.box_lengths)
+        f.attrs['test_specifics'] = json.dumps(sim_variables.test_specifics)
 
         f.create_dataset('grid', data=grid, compression="gzip", compression_opts=9)
 
@@ -516,9 +517,9 @@ def load_chkpt_file(config_variables, file):
                 config_variables['units'] = f.attrs['units']
                 config_variables['self_gravity'] = f.attrs['self_gravity']
                 config_variables['ext_gravity'] = f.attrs['ext_gravity']
-                config_variables['aspect_ratio'] = f.attrs['aspect_ratio']
                 config_variables['boundary'] = f.attrs['boundary']
-                config_variables['coordinates'] = {ax:axis_coord for ax, axis_coord in enumerate(f.attrs['coordinates'])}
-                config_variables['box_lengths'] = {ax:start_end for ax, start_end in enumerate(f.attrs['box_lengths'])}
+                config_variables['coordinates'] = json.loads(f.attrs['coordinates'])
+                config_variables['box_lengths'] = json.loads(f.attrs['box_lengths'])
+                config_variables['test_specifics'] = json.loads(f.attrs['test_specifics'])
 
                 return seed, config_variables, {'time':time, 'idx':idx, 'grid':grid}

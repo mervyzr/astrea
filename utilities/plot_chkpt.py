@@ -1,4 +1,5 @@
 import os
+import json
 import argparse
 import concurrent.futures
 from itertools import repeat
@@ -89,12 +90,11 @@ def run(save=False, title=False):
                         solver = f.attrs['solver']
                         units = f.attrs['units']
                         boundary = f.attrs['boundary']
-                        aspect_ratio = f.attrs['aspect_ratio']
 
-                        coordinates = {axis:coord for axis, coord in enumerate(f.attrs['coordinates'])}
+                        coordinates = json.loads(f.attrs['coordinates'])
+                        box_lengths = json.loads(f.attrs['box_lengths'])
                         ds = {ax: np.abs(np.diff(coordinates[ax]))/cells[ax] for ax in range(len(cells))}
                         box_volume = np.prod([np.diff(_) for _ in coordinates.values()])
-                        box_lengths = {ax:start_end for ax, start_end in enumerate(f.attrs['box_lengths'])}
 
                         constants = Constants(constant_values, units)
                         permeability = constants.mu_0

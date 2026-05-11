@@ -151,7 +151,7 @@ def core_run(sim_variables, **kwargs):
             # Update conservative grid from forcing field and update forcing field
             if sim_variables.turbulence:
                 grid = turbulence.update(grid, forcing_field, dt, sim_variables)
-                forcing_field = turbulence.drive(forcing_field, dt, eigmax, sim_variables, zeta=.5, mach=5.5)
+                forcing_field = turbulence.drive(forcing_field, dt, eigmax, sim_variables)
 
             # Update chemical grid
             if sim_variables.chemistry:
