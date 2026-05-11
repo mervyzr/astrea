@@ -39,7 +39,7 @@ keywords = [
     "computational fluid dynamics",
     "fluid dynamics",
     "finite volume method",
-    "numerical methods"
+    "numerical methods",
     "Riemann solver",
 ]
 
