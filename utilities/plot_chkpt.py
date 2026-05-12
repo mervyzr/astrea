@@ -91,7 +91,7 @@ def run(save=False, title=False):
                         units = f.attrs['units']
                         boundary = f.attrs['boundary']
 
-                        coordinates = json.loads(f.attrs['coordinates'])
+                        coordinates = {int(ax):value for ax, value in json.loads(f.attrs['coordinates']).items()}
                         box_lengths = json.loads(f.attrs['box_lengths'])
                         ds = {ax: np.abs(np.diff(coordinates[ax]))/cells[ax] for ax in range(len(cells))}
                         box_volume = np.prod([np.diff(_) for _ in coordinates.values()])
