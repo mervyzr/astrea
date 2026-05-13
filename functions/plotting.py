@@ -827,7 +827,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
     solution_errors = main_array[1:]
     resolutions.sort()
 
-    def assign_plot(idx, ij):
+    def assign_plots(idx, ij):
         _i, _j = ij
         solution_error = solution_errors[idx]
 
@@ -846,7 +846,7 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
             ax[_i,_j].legend()
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.map(assign_plot, range(len(plot_['indexes'])), plot_['indexes'])
+        executor.map(assign_plots, range(len(plot_['indexes'])), plot_['indexes'])
 
     if title:
         if config.startswith('sin'):
