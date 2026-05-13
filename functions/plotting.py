@@ -270,7 +270,7 @@ def make_data(options, grid, sim_variables):
     units, box_volume = sim_variables.units, sim_variables.box_volume
     axes = lambda op: {"x":0, "y":1, "z":2}[op[-1]]
 
-    def option_checker(_option, _box_volume, scaling=None):
+    def option_checker(_option, scaling=None):
         _option = _option.lower()
 
         if "energy" in _option or "temp" in _option or _option.startswith("e"):
@@ -293,7 +293,7 @@ def make_data(options, grid, sim_variables):
                 quantity *= grid[...,rho]
                 scaler = 'momentum'
         elif "mass" in _option:
-            quantity = grid[...,rho] * _box_volume
+            quantity = grid[...,rho] * box_volume
             scaler = 'mass'
         elif _option.startswith("b") or _option.startswith("mag"):
             if "p" in _option:
@@ -331,14 +331,12 @@ def make_data(options, grid, sim_variables):
             return quantity.T
 
     if units != "code":
-        get_option = lambda _option, _box_volume: option_checker(_option, _box_volume, scaling=sim_variables.constants.plot_scales)
+        get_option = lambda _option: option_checker(_option, scaling=sim_variables.constants.plot_scales)
     else:
-        get_option = lambda _option, _box_volume: option_checker(_option, _box_volume)
+        print('get_option')
+        get_option = lambda _option: option_checker(_option)
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        jobs = executor.map(get_option, options, repeat(box_volume))
-
-    return [job for job in jobs]
+    return [get_option(i) for i in options]
 
 
 # Initiate the live plot feature
