@@ -333,7 +333,6 @@ def make_data(options, grid, sim_variables):
     if units != "code":
         get_option = lambda _option: option_checker(_option, scaling=sim_variables.constants.plot_scales)
     else:
-        print('get_option')
         get_option = lambda _option: option_checker(_option)
 
     return [get_option(i) for i in options]
