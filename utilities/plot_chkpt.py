@@ -1,5 +1,4 @@
 import os
-import json
 import argparse
 import concurrent.futures
 from itertools import repeat
@@ -91,8 +90,8 @@ def run(save=False, title=False):
                         units = f.attrs['units']
                         boundary = f.attrs['boundary']
 
-                        coordinates = {int(ax):value for ax, value in json.loads(f.attrs['coordinates']).items()}
-                        box_lengths = json.loads(f.attrs['box_lengths'])
+                        coordinates = {ax:axis_coord for ax, axis_coord in enumerate(f.attrs['coordinates'])}
+                        box_lengths = {ax:start_end for ax, start_end in enumerate(f.attrs['box_lengths'])}
                         ds = {ax: np.abs(np.diff(coordinates[ax]))/cells[ax] for ax in range(len(cells))}
                         box_volume = np.prod([np.diff(_) for _ in coordinates.values()])
 

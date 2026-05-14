@@ -131,7 +131,7 @@ def filter_variables(config_variables):
                 else:
                     if len(v) > config_variables['dimensions']:
                         v = v[:config_variables['dimensions']]
-            elif isinstance(v, list):
+            elif isinstance(v, list) or isinstance(v, np.ndarray):
                 try:
                     v = [int(_)-int(_)%2 for _ in v]
                 except Exception:
@@ -479,9 +479,9 @@ def write_chkpt_file(grid, t, idx, sim_variables):
         f.attrs['self_gravity'] = sim_variables.self_gravity
         f.attrs['ext_gravity'] = sim_variables.ext_gravity
         f.attrs['boundary'] = sim_variables.boundary
-        f.attrs['coordinates'] = json.dumps(sim_variables.coordinates)
-        f.attrs['box_lengths'] = json.dumps(sim_variables.box_lengths)
         f.attrs['test_specifics'] = json.dumps(sim_variables.test_specifics)
+        f.attrs['coordinates'] = tuple(sim_variables.coordinates.values())
+        f.attrs['box_lengths'] = tuple(sim_variables.box_lengths.values())
 
         f.create_dataset('grid', data=grid, compression="gzip", compression_opts=9)
 
@@ -518,8 +518,8 @@ def load_chkpt_file(config_variables, file):
                 config_variables['self_gravity'] = f.attrs['self_gravity']
                 config_variables['ext_gravity'] = f.attrs['ext_gravity']
                 config_variables['boundary'] = f.attrs['boundary']
-                config_variables['coordinates'] = json.loads(f.attrs['coordinates'])
-                config_variables['box_lengths'] = json.loads(f.attrs['box_lengths'])
                 config_variables['test_specifics'] = json.loads(f.attrs['test_specifics'])
+                config_variables['coordinates'] = {ax:axis_coord for ax, axis_coord in enumerate(f.attrs['coordinates'])}
+                config_variables['box_lengths'] = {ax:start_end for ax, start_end in enumerate(f.attrs['box_lengths'])}
 
                 return seed, config_variables, {'time':time, 'idx':idx, 'grid':grid}
