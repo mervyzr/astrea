@@ -315,7 +315,7 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
                 else:
                     plotting.plot_total_variation(f, sim_variables)
                     plotting.plot_conservation_equations(f, sim_variables)
-                    if any(substring in sim_variables.config for substring in ["kelvin", "helmholtz", "khi"]):
+                    if sim_variables.config_category in ["instabilities", "turbulence"]:
                         plotting.plot_turbulence_spectrum(f, sim_variables, bins=8, normalise=False)
 
         if sim_variables.save_video:
