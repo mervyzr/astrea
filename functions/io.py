@@ -87,7 +87,7 @@ def handle_CLI(db_path):
     parser.add_argument('--save_video', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving a video of the simulation', choices=bool_choices)
     parser.add_argument('--save_file', metavar='', type=bool_handler, default=argparse.SUPPRESS, help='toggle saving the simulation data file (.hdf5)', choices=bool_choices)
     parser.add_argument('--plot_style', metavar='', type=str.lower, default=argparse.SUPPRESS, help='plot styles (based on matplotlib style sheets)')
-    parser.add_argument('--plot_options', metavar='', type=str.lower, default=argparse.SUPPRESS, help='simulation variables to plot')
+    parser.add_argument('--plot_options', metavar='', nargs="*", type=str.lower, default=argparse.SUPPRESS, help='simulation variable to plot (appendable)')
 
     parser.add_argument('--file', dest='chkpt_file', metavar='', type=str.lower, default='', help='(absolute) path to astrea checkpoint file')
     parser.add_argument('--tracers', help='switch on tracer particles in the simulation', action='store_true')

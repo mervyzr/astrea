@@ -29,7 +29,7 @@ PLOT_OPTIONS = ['density', 'pressure', 'total energy', 'vx', 'vy', 'vz', 'Bx', '
 def run(save=False, title=False):
     parser = argparse.ArgumentParser()
     parser.add_argument('--file', '--chkpt_file', dest='chkpt_file', metavar='', type=str, default=argparse.SUPPRESS, help='input path to astrea checkpoint file')
-    parser.add_argument('--plot_options', metavar='', type=str, default=argparse.SUPPRESS, help='simulation variables to plot')
+    parser.add_argument('--plot_options', metavar='', nargs="*", type=str.lower, default=argparse.SUPPRESS, help='simulation variable to plot (appendable)')
     parser.add_argument('-s', '--save', dest='save', default=argparse.SUPPRESS, help=argparse.SUPPRESS, action='store_true')
     args = parser.parse_args()
 
