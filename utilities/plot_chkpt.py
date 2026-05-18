@@ -397,7 +397,8 @@ def make_figure(options, units, dimensions, coordinates, scale_labels=None):
 
 
 def make_data(options, grid, dimensions, gamma, permeability, boundary, ds, units, box_volume, plot_scales=None):
-    axes = lambda op: {"x":0, "y":1, "z":2}[op[-1]]
+    get_axis = lambda op: {"x":0, "y":1, "z":2}[op[-1]]
+    axes = np.array(range(dimensions))
 
     def option_checker(_option, _box_volume, scaling=None):
         _option = _option.lower()
@@ -415,7 +416,7 @@ def make_data(options, grid, dimensions, gamma, permeability, boundary, ds, unit
             quantity = grid[...,PRESSURE]
             scaler = 'pressure'
         elif _option.startswith("v") or "mom" in _option:
-            axis = axes(_option)
+            axis = get_axis(_option)
             quantity = grid[...,1+axis]
             scaler = 'velocity'
             if "mom" in _option:
@@ -429,23 +430,18 @@ def make_data(options, grid, dimensions, gamma, permeability, boundary, ds, unit
                 quantity = .5 * norm(grid[...,BFIELDS])**2
                 scaler = 'pressure'
             else:
-                axis = axes(_option)
+                axis = get_axis(_option)
                 quantity = grid[...,5+axis]
                 scaler = 'Bfield'
         elif 'div' in _option or 'db' in _option:
             div_along_axis = lambda ax: slice_(np.diff(add_boundary(grid[...,5+ax], boundary, axis=ax), axis=ax), axis=ax, end=-1)/ds[ax]
             scaler = 'divergence'
             if _option[-1] == 'b':
-                if dimensions > 1:
-                    quantity = div_along_axis(0) + div_along_axis(1)
-                    if dimensions > 2:
-                        quantity += div_along_axis(2)
-                    #quantity = np.log10(quantity)
-                    #exponent = np.floor(quantity)
-                else:
-                    quantity = np.zeros_like(grid[...,5])
+                quantity = sum([div_along_axis(i) for i in axes])
+                #quantity = np.log10(quantity)
+                #exponent = np.floor(quantity)
             else:
-                quantity = div_along_axis(axes(_option))
+                quantity = div_along_axis(get_axis(_option))
         elif "mach" in _option:
             quantity = np.sqrt(divide(norm(grid[...,VELS])**2, divide(gamma*grid[...,PRESSURE], grid[...,RHO])))
             scaler = 'Mach'
