@@ -18,11 +18,11 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 # ```
 ##############################################################################
 
-SAVE_AS_PDF = False
 
 RHO, PRESSURE, VELS, BFIELDS = 0, 4, slice(1,4), slice(5,8)
 CELLS_TO_STR = lambda size: rf"$N = {str(size).strip('[]').replace(' ','').replace(',','x')}$"
 
+SAVE_AS_PDF = False
 PLOT_OPTIONS = ['density', 'pressure', 'total energy', 'vx', 'vy', 'vz', 'Bx', 'By', 'Bz']
 
 
