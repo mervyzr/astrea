@@ -106,11 +106,17 @@ def run(save=False, title=False):
 
                         if dimensions > 1:
                             if dimensions > 2:
-                                (left, right), (bottom, top), (backwards, forward) = box_lengths.values()
+                                slice_axis = 2  # z-axis
+                                slice_3d = int(cells[slice_axis]/2)
+
+                                extent = [item for key, values in box_lengths.items() if key != slice_axis for item in values]
+                                x_label, y_label = [values for key, values in {0:r"$x$", 1:r"$y$", 2:r"$z$"}.items() if key != slice_axis]
                             else:
-                                (left, right), (bottom, top) = box_lengths.values()
+                                extent = [item for values in box_lengths.values() for item in values]
+                                x_label, y_label = r"$x$", r"$y$"
                         else:
-                            [(left, right)] = box_lengths.values()
+                            left, right = box_lengths[0]
+                            x_label = r'$x$'
 
                         if units != "code":
                             fig, ax, plot_ = make_figure(plot_options, units, dimensions, coordinates, scale_labels=scale_labels)
@@ -124,34 +130,10 @@ def run(save=False, title=False):
                             y = data[idx]
 
                             if dimensions > 1:
-                                if dimensions > 2:
-                                    X, Y, Z = np.meshgrid(
-                                        np.linspace(left, right, y.shape[0]), 
-                                        np.linspace(bottom, top, y.shape[1]), 
-                                        np.linspace(backwards, forward, y.shape[2])
-                                        )
-
-                                    plot_3d = np.full_like(y, np.nan)
-                                    values, counts = np.unique(y.ravel(), return_counts=True)
-                                    background = values[counts.argmax()]
-                                    plot_3d[y > background] = y[y > background]
-
-                                    ax[_i,_j].scatter3D(X, Y, Z, c=plot_3d, alpha=.05, marker='.', linewidth=0, cmap=plot_['colours']['2d'][idx])
-
-                                    x_label, y_label, z_label = r'$x$', r'$y$', r'$z$'
-                                    if units != "code":
-                                        x_label += length_label
-                                        y_label += length_label
-                                        z_label += length_label
-                                    ax[_i,_j].set_xlabel(x_label)
-                                    ax[_i,_j].set_ylabel(y_label)
-                                    ax[_i,_j].set_zlabel(z_label)
-                                    ax[_i,_j].set_box_aspect(aspect=None, zoom=0.8)
-                                else:
-                                    graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=[left,right,bottom,top])
-                                    divider = make_axes_locatable(ax[_i,_j])
-                                    cax = divider.append_axes(position='right', size='5%', pad=0.05)
-                                    fig.colorbar(graph, cax=cax, orientation='vertical')
+                                graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
+                                divider = make_axes_locatable(ax[_i,_j])
+                                cax = divider.append_axes(position='right', size='5%', pad=0.05)
+                                fig.colorbar(graph, cax=cax, orientation='vertical')
                             else:
                                 x = np.linspace(left, right, cells[0])
                                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
@@ -160,31 +142,21 @@ def run(save=False, title=False):
                             executor.map(assign_plots, range(len(plot_['indexes'])), plot_['indexes'])
 
                         if title:
-                            if dimensions > 2:
-                                grid_axes = "$(x,y,z)$"
-                            elif dimensions > 1:
-                                grid_axes = "$(x,y)$"
-                            else:
-                                grid_axes = "$x$"
-
                             if units != "code":
                                 time *= time_scale
-                                plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(time,4)}${time_label} ({CELLS_TO_STR(cells)})")
+                                plt.suptitle(rf"Grid variables $\mathbf{{u}}$ at $t = {round(time,4)}${time_label} ({CELLS_TO_STR(cells)})")
                             else:
-                                plt.suptitle(rf"Grid variables $\mathbf{{u}}$ against cell position {grid_axes} at $t = {round(time,4)}$ ({CELLS_TO_STR(cells)})")
+                                plt.suptitle(rf"Grid variables $\mathbf{{u}}$ at $t = {round(time,4)}$ ({CELLS_TO_STR(cells)})")
 
                         plt.tight_layout()
 
-                        if dimensions < 3:
-                            x_label, y_label = r'$x$', r'$y$'
-                            if units != "code":
-                                x_label += length_label
-                                y_label += length_label
-                            fig.text(0.5, 0.04, x_label, ha='center')
-                            fig.subplots_adjust(bottom=0.1)
-                            if dimensions > 1:
-                                fig.text(0.04, 0.5, y_label, ha='center', rotation='vertical')
-                                fig.subplots_adjust(left=0.1)
+                        if units != "code":
+                            x_label += length_label
+                            y_label += length_label
+                        fig.text(0.5, 0.04, x_label, ha='center')
+                        fig.subplots_adjust(bottom=0.1)
+                        if dimensions > 1:
+                            fig.text(0.04, 0.5, y_label, ha='center')
 
                         if save or save_plot:
                             if SAVE_AS_PDF:

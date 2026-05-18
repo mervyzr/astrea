@@ -340,7 +340,10 @@ def initiate_live_plot(sim_variables, title=False):
     fig, ax, plot_ = make_figure(options, sim_variables)
 
     if multidimensional:
-        extent = [item for key, values in box_lengths.items() if key != sim_variables.slice_axis for item in values]
+        if dimensions > 2:
+            extent = [item for key, values in box_lengths.items() if key != sim_variables.slice_axis for item in values]
+        else:
+            extent = [item for values in box_lengths.values() for item in values]
     else:
         left, right = box_lengths[0]
 
@@ -436,8 +439,12 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
         time_label = sim_variables.constants.scale_labels['time']
 
     if multidimensional:
-        extent = [item for key, values in box_lengths.items() if key != sim_variables.slice_axis for item in values]
-        x_label, y_label = [values for key, values in {0:r"$x$", 1:r"$y$", 2:r"$z$"}.items() if key != sim_variables.slice_axis]
+        if dimensions > 2:
+            extent = [item for key, values in box_lengths.items() if key != sim_variables.slice_axis for item in values]
+            x_label, y_label = [values for key, values in {0:r"$x$", 1:r"$y$", 2:r"$z$"}.items() if key != sim_variables.slice_axis]
+        else:
+            extent = [item for values in box_lengths.values() for item in values]
+            x_label, y_label = r"$x$", r"$y$"
     else:
         left, right = box_lengths[0]
         x_label = r'$x$'
@@ -476,8 +483,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
     fig.text(0.5, 0.04, x_label, ha='center')
     fig.subplots_adjust(bottom=0.1)
     if multidimensional:
-        fig.text(0.04, 0.5, y_label, ha='center', rotation='vertical')
-        fig.subplots_adjust(left=0.1)
+        fig.text(0.04, 0.5, y_label, ha='center')
 
     plt.savefig(f"{sim_variables.save_path}/snapshots/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.4f' % round(t,4)}.{extension}", bbox_inches='tight', backend=backend)
 
@@ -504,8 +510,12 @@ def plot_quantities(hdf5, sim_variables, title=False):
         time_label = sim_variables.constants.scale_labels['time']
 
     if multidimensional:
-        extent = [item for key, values in box_lengths.items() if key != sim_variables.slice_axis for item in values]
-        x_label, y_label = [values for key, values in {0:r"$x$", 1:r"$y$", 2:r"$z$"}.items() if key != sim_variables.slice_axis]
+        if dimensions > 2:
+            extent = [item for key, values in box_lengths.items() if key != sim_variables.slice_axis for item in values]
+            x_label, y_label = [values for key, values in {0:r"$x$", 1:r"$y$", 2:r"$z$"}.items() if key != sim_variables.slice_axis]
+        else:
+            extent = [item for values in box_lengths.values() for item in values]
+            x_label, y_label = r"$x$", r"$y$"
     else:
         left, right = box_lengths[0]
         x_label = r'$x$'
@@ -588,8 +598,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
             fig.text(0.5, 0.04, x_label, ha='center')
             fig.subplots_adjust(bottom=0.1)
             if multidimensional:
-                fig.text(0.04, 0.5, y_label, ha='center', rotation='vertical')
-                fig.subplots_adjust(left=0.1)
+                fig.text(0.04, 0.5, y_label, ha='center')
 
 
         # Add analytical solutions only for 1D, using the highest resolution/grid size
@@ -942,7 +951,7 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
 
 # Make a video of entire simulation; video of all plot options or specific variable
 def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
-    config, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
+    config, dimensions, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
     units, box_lengths = sim_variables.units, sim_variables.box_lengths
 
     if units != "code":
@@ -951,8 +960,12 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
         time_label = sim_variables.constants.scale_labels['time']
 
     if multidimensional:
-        extent = [item for key, values in box_lengths.items() if key != sim_variables.slice_axis for item in values]
-        x_label, y_label = [values for key, values in {0:r"$x$", 1:r"$y$", 2:r"$z$"}.items() if key != sim_variables.slice_axis]
+        if dimensions > 2:
+            extent = [item for key, values in box_lengths.items() if key != sim_variables.slice_axis for item in values]
+            x_label, y_label = [values for key, values in {0:r"$x$", 1:r"$y$", 2:r"$z$"}.items() if key != sim_variables.slice_axis]
+        else:
+            extent = [item for values in box_lengths.values() for item in values]
+            x_label, y_label = r"$x$", r"$y$"
     else:
         left, right = box_lengths[0]
         x_label = r'$x$'
@@ -1015,8 +1028,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                     fig.text(0.5, 0.04, x_label, ha='center')
                     fig.subplots_adjust(bottom=0.1)
                     if multidimensional:
-                        fig.text(0.04, 0.5, y_label, ha='center', rotation='vertical')
-                        fig.subplots_adjust(left=0.1)
+                        fig.text(0.04, 0.5, y_label, ha='center')
 
                     plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight', backend='cairo')
 
@@ -1100,7 +1112,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
 # Function for plotting instance of the grid; insert into any part of the code
 def plot_this(grid, sim_variables, **kwargs):
-    cells, multidimensional = sim_variables.cells, sim_variables.multidimensional
+    cells, dimensions, multidimensional = sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional
     options, units, box_lengths = sim_variables.plot_options, sim_variables.units, sim_variables.box_lengths
 
     if units != "code":
@@ -1109,8 +1121,12 @@ def plot_this(grid, sim_variables, **kwargs):
         time_label = sim_variables.constants.scale_labels['time']
 
     if multidimensional:
-        extent = [item for key, values in box_lengths.items() if key != sim_variables.slice_axis for item in values]
-        x_label, y_label = [values for key, values in {0:r"$x$", 1:r"$y$", 2:r"$z$"}.items() if key != sim_variables.slice_axis]
+        if dimensions > 2:
+            extent = [item for key, values in box_lengths.items() if key != sim_variables.slice_axis for item in values]
+            x_label, y_label = [values for key, values in {0:r"$x$", 1:r"$y$", 2:r"$z$"}.items() if key != sim_variables.slice_axis]
+        else:
+            extent = [item for values in box_lengths.values() for item in values]
+            x_label, y_label = r"$x$", r"$y$"
     else:
         left, right = box_lengths[0]
         x_label = r'$x$'
@@ -1160,8 +1176,7 @@ def plot_this(grid, sim_variables, **kwargs):
     fig.text(0.5, 0.04, x_label, ha='center')
     fig.subplots_adjust(bottom=0.1)
     if multidimensional:
-        fig.text(0.04, 0.5, y_label, ha='center', rotation='vertical')
-        fig.subplots_adjust(left=0.1)
+        fig.text(0.04, 0.5, y_label, ha='center')
 
     if not sim_variables.live_plot:
         plt.show(block=True)

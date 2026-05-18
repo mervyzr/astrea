@@ -62,6 +62,8 @@ parameters.yml
 *.hdf5
 *.sh
 **/.env
+utilities/*.png
+utilities/*.pdf
 
 # chemistry files
 !physics/krome/build
