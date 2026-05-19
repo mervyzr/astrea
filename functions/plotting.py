@@ -50,10 +50,10 @@ def make_figure(options, sim_variables, variable="normal"):
             "vels": {"x":"berlin", "y":"managua", "z":"vanimo"},
             "momentums": {"x":"RdYlBu", "y":"PuOr", "z":"PRGn"},
             "Bfields": {"x":"RdBu", "y":"BrBG", "z":"PiYG"},
-            "Mach": "bone",
-            "divergence": "magma",
+            "divergence": "coolwarm",
+            "Mach": "magma",
             "mass": "pink",
-            "schlieren": "binary",
+            "schlieren": "bone",
         }
 
         # Grab the characteristic scales and set up the values based on 'option'

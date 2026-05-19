@@ -222,10 +222,10 @@ def make_figure(options, units, dimensions, coordinates, scale_labels=None):
             "vels": {"x":"berlin", "y":"managua", "z":"vanimo"},
             "momentums": {"x":"RdYlBu", "y":"PuOr", "z":"PRGn"},
             "Bfields": {"x":"RdBu", "y":"BrBG", "z":"PiYG"},
-            "Mach": "bone",
-            "divergence": "magma",
+            "divergence": "coolwarm",
+            "Mach": "magma",
             "mass": "pink",
-            "schlieren": "binary",
+            "schlieren": "bone",
         }
 
         assign_unit = lambda _unit: scale_labels[_unit] if units != "code" else " [arb. units]"
