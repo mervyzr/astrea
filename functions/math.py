@@ -14,6 +14,11 @@ def sine_func(r, test_specifics):
     return test_specifics['y_offset'] + test_specifics['ampl']*np.sin(test_specifics['freq']*np.pi*r)
 
 
+# Smoothing kernel
+def smoothing_kernel(quantity, r, d=1, mu=0, sigma=1):
+    return quantity * (2 * np.pi * sigma**2)**(-d/2) * np.exp(-.5 * ((r - mu)/sigma)**2)
+
+
 # Magic function to make errors disappear (!! physics would most likely be messed up so be very careful using this function !!)
 def nan_to_num(arr, eps=1e-16):
     return np.nan_to_num(arr, copy=True, nan=0., posinf=eps, neginf=-eps)

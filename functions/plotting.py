@@ -2,8 +2,6 @@ import os
 import re
 import shutil
 import subprocess
-import concurrent.futures
-from itertools import repeat
 
 import numpy as np
 import matplotlib as mpl
@@ -56,132 +54,81 @@ def make_figure(options, sim_variables, variable="normal"):
             "schlieren": "bone",
         }
 
-        # Grab the characteristic scales and set up the values based on 'option'
-        assign_unit = lambda _unit: sim_variables.constants.scale_labels[_unit] if sim_variables.units != "code" else " [arb. units]"
+        def make_outputs(name, symbol, unit, colour):
+            # Grab the characteristic scales and set up the values based on 'option'
+            assign_unit = lambda u: sim_variables.constants.scale_labels[u] if sim_variables.units != "code" else " [arb. units]"
+            return f"{name} {symbol}", rf"{symbol}{assign_unit(unit)}", rf"$\epsilon_N({symbol[1:-1]})${assign_unit(unit)}", rf"TV({symbol}){assign_unit(unit)}", colour
 
         # Set up labels and axes names
         def assign_plots(_option):
             _option = _option.lower()
 
+            # Energies
             if "energy" in _option or "temp" in _option or _option.startswith("e"):
-                if "int" in _option:
-                    name = "Internal energy"
-                    twod_colour = cmap_colours['internal energy']
-                    if "density" in _option:
-                        name += ' density'
-                        label = r"$e_\mathrm{int}$"
-                        error = r"$\epsilon_N(e_\mathrm{int})$"
-                        tv = r"TV($e_\mathrm{int}$)"
-                        unit = assign_unit('energy density')
-                    else:
-                        label = r"$E_\mathrm{int}$"
-                        error = r"$\epsilon_N(E_\mathrm{int})$"
-                        tv = r"TV($E_\mathrm{int}$)"
-                        unit = assign_unit('energy')
-                else:
-                    name = "Total energy"
-                    twod_colour = cmap_colours['total energy']
-                    if "density" in _option:
-                        name += ' density'
-                        label = r"$e_\mathrm{tot}$"
-                        error = r"$\epsilon_N(e_\mathrm{tot})$"
-                        tv = r"TV($e_\mathrm{tot}$)"
-                        unit = assign_unit('energy density')
-                    else:
-                        label = r"$E_\mathrm{tot}$"
-                        error = r"$\epsilon_N(E_\mathrm{tot})$"
-                        tv = r"TV($E_\mathrm{tot}$)"
-                        unit = assign_unit('energy')
+                internal = "int" in _option
+                colour = cmap_colours["internal energy" if internal else "total energy"]
 
+                prefix = "Internal" if internal else "Total"
+                shortform = "int" if internal else "tot"
+
+                name = f"{prefix} energy"
+                if "density" in _option:
+                    name += " density"
+                    symbol = rf"$e_\mathrm{{{shortform}}}$"
+                    unit = "energy density"
+                else:
+                    symbol = rf"$E_\mathrm{{{shortform}}}$"
+                    unit = "energy"
+
+                return make_outputs(name, symbol, unit, colour)
+
+            # Momentums
             elif "mom" in _option:
-                name = "Momentum"
-                twod_colour = cmap_colours['momentums'][_option[-1]]
-                label = rf"$p_{_option[-1]}$"
-                error = rf"$\epsilon_N(p_{_option[-1]})$"
-                tv = rf"TV($p_{_option[-1]}$)"
-                unit = assign_unit('momentum')
+                axis = _option[-1]
+                return make_outputs("Momentum", rf"$p_{axis}$", "momentum", cmap_colours["momentums"][axis])
 
+            # Mass
             elif "mass" in _option:
-                name = "Mass"
-                twod_colour = cmap_colours['mass']
-                label = r"$m$"
-                error = r"$\epsilon_N(m)$"
-                tv = r"TV($m$)"
-                unit = assign_unit('mass')
+                return make_outputs("Mass", r"$m$", "mass", cmap_colours["mass"])
 
+            # Mach
             elif "mach" in _option:
-                name = "Mach number"
-                twod_colour = cmap_colours['Mach']
-                label = r"$\mathcal{M}$"
-                error = r"$\epsilon_N(\mathcal{M})$"
-                tv = r"TV($\mathcal{M}$)"
-                unit = assign_unit('Mach')
+                return make_outputs("Mach number", r"$\mathcal{M}$", "Mach", cmap_colours["Mach"])
 
+            # Pressure
             elif _option.startswith("p"):
-                name = "Pressure"
-                twod_colour = cmap_colours['pressure']
-                label = r"$P$"
-                error = r"$\epsilon_N(P)$"
-                tv = r"TV($P$)"
-                unit = assign_unit('pressure')
+                return make_outputs("Pressure", r"$P$", "pressure", cmap_colours["pressure"])
 
+            # Velocities
             elif _option.startswith("v"):
-                name = "Velocity"
-                twod_colour = cmap_colours['vels'][_option[-1]]
-                label = rf"$v_{_option[-1]}$"
-                error = rf"$\epsilon_N(v_{_option[-1]})$"
-                tv = rf"TV($v_{_option[-1]}$)"
-                unit = assign_unit('velocity')
+                axis = _option[-1]
+                return make_outputs("Velocity", rf"$v_{axis}$", "velocity", cmap_colours["vels"][axis])
 
-            elif _option.startswith("b") or _option.startswith("mag"):
+            # Magnetic field/pressure
+            elif _option.startswith(("b", "mag")):
                 if "p" in _option:
-                    name = "Mag. pressure"
-                    twod_colour = cmap_colours['magnetic pressure']
-                    label = r"$P_B$"
-                    error = r"$\epsilon_N(P_B)$"
-                    tv = r"TV($P_B$)"
-                    unit = assign_unit('pressure')
-                else:
-                    name = "Mag. field"
-                    twod_colour = cmap_colours['Bfields'][_option[-1]]
-                    label = rf"$B_{_option[-1]}$"
-                    error = rf"$\epsilon_N(B_{_option[-1]})$"
-                    tv = rf"TV($B_{_option[-1]}$)"
-                    unit = assign_unit('Bfield')
+                    return make_outputs("Mag. pressure", r"$P_B$", "pressure", cmap_colours["magnetic pressure"])
 
+                axis = _option[-1]
+                return make_outputs("Mag. field", rf"$B_{axis}$", "Bfield", cmap_colours["Bfields"][axis])
+
+            # Divergence
             elif 'div' in _option or 'db' in _option:
-                name = "divergence"
-                twod_colour = cmap_colours['divergence']
-                unit = assign_unit('divergence')
-                if _option[-1] == 'b':
-                    label = r"$\nabla \cdot B$"
-                    error = r"$\epsilon_N(\nabla \cdot B)$"
-                    tv = r"TV($\nabla \cdot B$)"
+                axis = _option[-1]
+                if axis == "b":
+                    symbol = r"$\nabla \cdot B$"
+                    colour = cmap_colours["divergence"]
                 else:
-                    label = rf"$\nabla \cdot B_{_option[-1]}$"
-                    error = rf"$\epsilon_N(\nabla \cdot B_{_option[-1]})$"
-                    tv = rf"TV($\nabla \cdot B_{_option[-1]}$)"
+                    symbol = rf"$\nabla \cdot B_{axis}$"
+                    colour = cmap_colours["Bfields"][axis]
 
-            else:
-                name = "Density"
-                twod_colour = cmap_colours['density']
-                label = r"$\rho$"
-                error = r"$\epsilon_N(\rho)$"
-                tv = r"TV($\rho$)"
-                unit = assign_unit('density')
+                return make_outputs("Divergence", symbol, "divergence", colour)
 
-            return f"{name} {label}", rf"{label}{unit}", rf"{error}{unit}", rf"{tv}{unit}", twod_colour
+            # Density
+            return make_outputs("Density", r"$\rho$", "density", cmap_colours["density"])
 
-        names, labels, errors, tvs, twod_colours = [], [], [], [], []
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            jobs = executor.map(assign_plots, options)
-
-            for (name, label, error, tv, twod_colour) in jobs:
-                names.append(name)
-                labels.append(label)
-                errors.append(error)
-                tvs.append(tv)
-                twod_colours.append(twod_colour)
+        outputs = [assign_plots(option) for option in options]
+        names, labels, errors, tvs, twod_colours = map(list, zip(*outputs))
 
         # Set up rows and columns
         indexes = []
@@ -366,10 +313,8 @@ def initiate_live_plot(sim_variables, title=False):
             ax[_i,_j].grid(linestyle='--', linewidth=0.5)
             graph, = ax[_i,_j].plot(np.linspace(left, right, cells[0]), np.linspace(left, right, cells[0]), color=plot_['colours']['1d'][idx])
         return graph
-
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        jobs = executor.map(assign_plots, range(len(plot_['indexes'])), plot_['indexes'])
-        graphs = [graph for graph in jobs]
+    
+    graphs = [assign_plots(*idx_ij) for idx_ij in zip(range(len(plot_['indexes'])), plot_['indexes'])]
 
     if title:
         time_label = r'$t = 0.0000$'
@@ -387,21 +332,15 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
     options, units = sim_variables.plot_options, sim_variables.units
     plot_data = make_data(options, grid_snapshot, sim_variables)
 
-    def assign_plots(idx, graph):
-        if sim_variables.multidimensional:
+    if sim_variables.multidimensional:
+        for idx, graph in enumerate(graphs):
             graph.set_data(plot_data[idx])
             graph.set_clim([np.min(plot_data[idx]), np.max(plot_data[idx])])
-        else:
-            graph.set_ydata(plot_data[idx])
-
-    def relim_ax(_ax):
-        _ax.relim()
-        _ax.autoscale_view()
-
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.map(assign_plots, range(len(graphs)), graphs)
-        if not sim_variables.multidimensional:
-            executor.map(relim_ax, ax.ravel()[:len(options)])
+    else:
+        for idx, _ax in enumerate(ax.ravel()):
+            graphs[idx].set_ydata(plot_data[idx])
+            _ax.relim()
+            _ax.autoscale_view()
 
     try:
         fig._suptitle.get_text()
@@ -465,8 +404,8 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
             else:
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.map(assign_plots, range(len(plot_['indexes'])), plot_['indexes'])
+    for idx_ij in enumerate(plot_['indexes']):
+        assign_plots(*idx_ij)
 
     if title:
         if units != "code":
@@ -578,8 +517,8 @@ def plot_quantities(hdf5, sim_variables, title=False):
 
             y_data = make_data(options, grid, sim_variables)
 
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                executor.map(assign_plots, range(len(plot_['indexes'])), plot_['indexes'], repeat(y_data), repeat(cells))
+            for idx, ij in enumerate(plot_['indexes']):
+                assign_plots(idx, ij, y_data, cells)
 
             if title:
                 grid_cells = "" if len(hdf5) != 1 else rf" ({CELLS_TO_STR(cells)})" 
@@ -759,8 +698,8 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
             ax[_i,_j].scatter([], [], s=.5, color=fig.get_facecolor(), label=rf"$|$EOC$_{{max}}|$ = {round(max(np.abs(eoc)), 4)}")
             ax[_i,_j].legend()
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.map(assign_plots, range(len(plot_['indexes'])), plot_['indexes'])
+    for idx_ij in enumerate(plot_['indexes']):
+        assign_plots(*idx_ij)
 
     if title:
         if config.startswith('sin'):
@@ -1164,8 +1103,8 @@ def plot_this(grid, sim_variables, **kwargs):
             else:
                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.map(assign_plots, range(len(plot_['indexes'])), plot_['indexes'])
+    for idx_ij in enumerate(plot_['indexes']):
+        assign_plots(*idx_ij)
 
     plt.suptitle(rf"Grid variables $\mathbf{{u}}$ {text}")
     plt.tight_layout()
@@ -1447,8 +1386,8 @@ def plot_3d(y_data, ax, plot_, box_lengths):
         ax[_i,_j].set_zlabel(z_label)
         ax[_i,_j].set_box_aspect(aspect=None, zoom=0.8)
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.map(assign_plots, range(len(plot_['indexes'])), plot_['indexes'])
+    for idx_ij in enumerate(plot_['indexes']):
+        assign_plots(*idx_ij)
 
     return None
 

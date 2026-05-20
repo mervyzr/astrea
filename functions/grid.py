@@ -76,8 +76,8 @@ def initialise(sim_variables):
                     computational_grid[core] = init_cond
                     computational_grid[...,rho][core] += rho0
 
-                    sigma = .75 * r0
-                    e_tot = ambient[...,pressure]/(gamma-1) + (E/(4/3 * np.pi * r0**3))/((2*np.pi*sigma**2)**(dimensions/2)) * np.exp(-.5 * r/sigma**2)
+                    sigma, V = .75 * r0, 4/3 * np.pi * r0**3
+                    e_tot = ambient[pressure]/(gamma-1) + mfuncs.smoothing_kernel(E/V, r, d=dimensions, sigma=sigma)
                     computational_grid[...,pressure] = (gamma - 1) * e_tot
 
                     if test_specifics['rotation']:
@@ -89,10 +89,13 @@ def initialise(sim_variables):
                     mask = np.where(r <= r0)
                     computational_grid[mask] = init_cond
 
+                    if "sedov" in config:
+                        mu = np.sqrt(x_centre**2 + y_centre**2 + z_centre**2)
+                        sigma = np.abs(r0 - mu)
+                        computational_grid[...,pressure] = ambient[pressure] + mfuncs.smoothing_kernel(init_cond[pressure], r, d=dimensions, mu=mu, sigma=sigma)
+
                     if match(all, ["mhd", "blast"]):
                         computational_grid[...,5+axes] = test_specifics['ampl']
-
-                computational_grid = resample_blast(computational_grid, sim_variables)
 
             elif config.startswith("sin"):
                 computational_grid[...,rho] = mfuncs.sine_func(r, test_specifics)
@@ -208,8 +211,8 @@ def initialise(sim_variables):
                     computational_grid[core] = init_cond
                     computational_grid[...,rho][core] += rho0
 
-                    sigma = .75 * r0
-                    e_tot = ambient[...,pressure]/(gamma-1) + (E/(np.pi * r0**2))/((2*np.pi*sigma**2)**(dimensions/2)) * np.exp(-.5 * r/sigma**2)
+                    sigma, A = .75 * r0, np.pi * r0**2
+                    e_tot = ambient[pressure]/(gamma-1) + mfuncs.smoothing_kernel(E/A, r, d=dimensions, sigma=sigma)
                     computational_grid[...,pressure] = (gamma - 1) * e_tot
 
                     if test_specifics['rotation']:
@@ -221,10 +224,13 @@ def initialise(sim_variables):
                     mask = np.where(r <= r0)
                     computational_grid[mask] = init_cond
 
+                    if "sedov" in config:
+                        mu = np.sqrt(x_centre**2 + y_centre**2)
+                        sigma = np.abs(r0 - mu)
+                        computational_grid[...,pressure] = ambient[pressure] + mfuncs.smoothing_kernel(init_cond[pressure], r, d=dimensions, mu=mu, sigma=sigma)
+
                     if match(all, ["mhd", "blast"]):
                         computational_grid[...,5+axes] = test_specifics['ampl']
-
-                computational_grid = resample_blast(computational_grid, sim_variables)
 
             elif config.startswith("sin"):
                 computational_grid[...,rho] = mfuncs.sine_func(r, test_specifics)
@@ -448,19 +454,20 @@ def initialise(sim_variables):
                 computational_grid[core] = init_cond
                 computational_grid[...,rho][core] += rho0
 
-                sigma = .75 * r0
-                e_tot = (ambient[...,pressure]/(gamma-1) + (E/r0)/((2*np.pi*sigma**2)**(dimensions/2)) * np.exp(-.5 * r/sigma**2))
+                sigma, L = .75 * r0, r0
+                e_tot = ambient[pressure]/(gamma-1) + mfuncs.smoothing_kernel(E/L, r, d=dimensions, sigma=sigma)
                 computational_grid[...,pressure] = (gamma - 1) * e_tot
 
             else:
-                mask = np.where(r <= r0)
+                mask = np.where(np.abs(x) <= shock_pos)
                 computational_grid[mask] = init_cond
 
-            if not config.startswith('sq'):
-                computational_grid = resample_blast(computational_grid, sim_variables)
+                if "sedov" in config:
+                    sigma = np.abs(shock_pos - x_centre)
+                    computational_grid[...,pressure] = ambient[pressure] + mfuncs.smoothing_kernel(init_cond[pressure], x, d=dimensions, mu=x_centre, sigma=sigma)
 
         else:
-            mask = np.where(x <= shock_pos)
+            mask = np.where(np.abs(x) <= shock_pos)
             computational_grid[mask] = init_cond
 
         if config.startswith('m') or "mhd" in config:
@@ -674,62 +681,3 @@ def approx_flux_avg(cntrd_fluxes, avgd_fluxes, sim_variables, axis):
 def assign_interfaces(interfaces, grid, sim_variables, axis):
     wL, wR = interfaces
     return slice_(add_boundary(wL, sim_variables, axis=axis), axis, start=1), slice_(add_boundary(wR, sim_variables, axis=axis), axis, end=-1)
-
-
-# Resample grid for circular blast injection to populate cell variables with a circle/sphere; value in grid cell is weighted by area/volume covered
-def resample_blast(grid, sim_variables, subsample_limit=25600**2):
-    print(f"{generic.BColours.WARNING}Blast config. used; supersampling initialised grid before starting simulation for better resolution..{generic.BColours.ENDC}")
-    cells, dimensions, multidimensional, coordinates, shock_pos = sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.coordinates, sim_variables.shock_pos
-
-    # Dynamic sub-sampling (prevents clogging up computing resources with some outrageous grid size, e.g. (512 cells x 50 sub-sample)^3 is some crazy number)
-    subsample_size = int(np.minimum(100, np.floor((subsample_limit / np.prod(cells)) ** (1/dimensions))))
-
-    try:
-        semi = sim_variables.test_specifics['mode'].lower().startswith(('o','q'))
-    except Exception:
-        semi = False
-
-    fine_grid = np.resize(np.zeros_like(grid), np.asarray(cells)*subsample_size)
-    physical_grid = lambda axis: make_physical_grid(coordinates[axis], cells[axis]*subsample_size)
-
-    if semi:
-        x_centre = coordinates[0][0]
-    else:
-        x_centre = np.average(coordinates[0])
-    fine_physical_grid_x = physical_grid(0)
-    fine_x = fine_physical_grid_x - x_centre
-
-    fine_y = fine_z = np.zeros_like(fine_x)
-    y_centre = z_centre = 0
-
-    if multidimensional:
-        if semi:
-            y_centre = coordinates[1][0]
-        else:
-            y_centre = np.average(coordinates[1])
-        fine_physical_grid_y = physical_grid(1)
-        fine_x, fine_y = np.meshgrid(fine_physical_grid_x, fine_physical_grid_y, indexing='ij')
-        fine_z = np.zeros_like(fine_x)
-
-        if dimensions == 3:
-            if semi:
-                z_centre = coordinates[2][0]
-            else:
-                z_centre = np.average(coordinates[2])
-            fine_physical_grid_z = physical_grid(2)
-            fine_x, fine_y, fine_z = np.meshgrid(fine_physical_grid_x, fine_physical_grid_y, fine_physical_grid_z, indexing='ij')
-
-    fine_r = np.sqrt((fine_x-x_centre)**2 + (fine_y-y_centre)**2 + (fine_z-z_centre)**2)
-    fine_r0 = np.sqrt((shock_pos-x_centre)**2 + (shock_pos-y_centre)**2 + (shock_pos-z_centre)**2)
-    fine_mask = np.where(fine_r <= fine_r0)
-    fine_grid[fine_mask] = 1
-
-    remapped_grid = block_reduce(fine_grid, block_size=tuple([subsample_size,]*dimensions), func=np.sum)
-    mask = np.where(remapped_grid > 0)
-
-    # Remap density and pressure
-    arr = np.copy(grid)
-    arr[...,sim_variables.pressure][mask] *= (remapped_grid/np.max(remapped_grid))[mask]
-    arr[...,sim_variables.rho][mask] *= (remapped_grid/np.max(remapped_grid))[mask]
-
-    return arr

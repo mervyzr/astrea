@@ -1,6 +1,5 @@
 import os
 import argparse
-import concurrent.futures
 from itertools import repeat
 
 import h5py
@@ -138,8 +137,8 @@ def run(save=False, title=False):
                                 x = np.linspace(left, right, cells[0])
                                 ax[_i,_j].plot(x, y, color=plot_['colours']['1d'][idx])
 
-                        with concurrent.futures.ThreadPoolExecutor() as executor:
-                            executor.map(assign_plots, range(len(plot_['indexes'])), plot_['indexes'])
+                        for idx_ij in enumerate(plot_['indexes']):
+                            assign_plots(*idx_ij)
 
                         if title:
                             if units != "code":
@@ -228,101 +227,80 @@ def make_figure(options, units, dimensions, coordinates, scale_labels=None):
             "schlieren": "bone",
         }
 
-        assign_unit = lambda _unit: scale_labels[_unit] if units != "code" else " [arb. units]"
+        def make_outputs(name, symbol, unit, colour):
+            assign_unit = lambda _unit: scale_labels[_unit] if units != "code" else " [arb. units]"
+            return f"{name} {symbol}", rf"{symbol}{assign_unit(unit)}", colour
 
         # Set up labels and axes names
         def assign_plots(_option):
             _option = _option.lower()
 
+            # Energies
             if "energy" in _option or "temp" in _option or _option.startswith("e"):
-                if "int" in _option:
-                    name = "Internal energy"
-                    twod_colour = cmap_colours['internal energy']
-                    if "density" in _option:
-                        name += ' density'
-                        label = r"$e_\mathrm{int}$"
-                        unit = assign_unit('energy density')
-                    else:
-                        label = r"$E_\mathrm{int}$"
-                        unit = assign_unit('energy')
-                else:
-                    name = "Total energy"
-                    twod_colour = cmap_colours['total energy']
-                    if "density" in _option:
-                        name += ' density'
-                        label = r"$e_\mathrm{tot}$"
-                        unit = assign_unit('energy density')
-                    else:
-                        label = r"$E_\mathrm{tot}$"
-                        unit = assign_unit('energy')
+                internal = "int" in _option
+                colour = cmap_colours["internal energy" if internal else "total energy"]
 
+                prefix = "Internal" if internal else "Total"
+                shortform = "int" if internal else "tot"
+
+                name = f"{prefix} energy"
+                if "density" in _option:
+                    name += " density"
+                    symbol = rf"$e_\mathrm{{{shortform}}}$"
+                    unit = "energy density"
+                else:
+                    symbol = rf"$E_\mathrm{{{shortform}}}$"
+                    unit = "energy"
+
+                return make_outputs(name, symbol, unit, colour)
+
+            # Momentums
             elif "mom" in _option:
-                name = "Momentum"
-                twod_colour = cmap_colours['momentums'][_option[-1]]
-                label = rf"$p_{_option[-1]}$"
-                unit = assign_unit('momentum')
+                axis = _option[-1]
+                return make_outputs("Momentum", rf"$p_{axis}$", "momentum", cmap_colours["momentums"][axis])
 
+            # Mass
             elif "mass" in _option:
-                name = "Mass"
-                twod_colour = cmap_colours['mass']
-                label = r"$m$"
-                unit = assign_unit('mass')
+                return make_outputs("Mass", r"$m$", "mass", cmap_colours["mass"])
 
+            # Mach
             elif "mach" in _option:
-                name = "Mach number"
-                twod_colour = cmap_colours['Mach']
-                label = r"$\mathcal{M}$"
-                unit = assign_unit('Mach')
+                return make_outputs("Mach number", r"$\mathcal{M}$", "Mach", cmap_colours["Mach"])
 
+            # Pressure
             elif _option.startswith("p"):
-                name = "Pressure"
-                twod_colour = cmap_colours['pressure']
-                label = r"$P$"
-                unit = assign_unit('pressure')
+                return make_outputs("Pressure", r"$P$", "pressure", cmap_colours["pressure"])
 
+            # Velocities
             elif _option.startswith("v"):
-                name = "Velocity"
-                twod_colour = cmap_colours['vels'][_option[-1]]
-                label = rf"$v_{_option[-1]}$"
-                unit = assign_unit('velocity')
+                axis = _option[-1]
+                return make_outputs("Velocity", rf"$v_{axis}$", "velocity", cmap_colours["vels"][axis])
 
-            elif _option.startswith("b") or _option.startswith("mag"):
+            # Magnetic field/pressure
+            elif _option.startswith(("b", "mag")):
                 if "p" in _option:
-                    name = "Mag. pressure"
-                    twod_colour = cmap_colours['magnetic pressure']
-                    label = r"$P_B$"
-                    unit = assign_unit('pressure')
-                else:
-                    name = "Mag. field"
-                    twod_colour = cmap_colours['Bfields'][_option[-1]]
-                    label = rf"$B_{_option[-1]}$"
-                    unit = assign_unit('Bfield')
+                    return make_outputs("Mag. pressure", r"$P_B$", "pressure", cmap_colours["magnetic pressure"])
 
+                axis = _option[-1]
+                return make_outputs("Mag. field", rf"$B_{axis}$", "Bfield", cmap_colours["Bfields"][axis])
+
+            # Divergence
             elif 'div' in _option or 'db' in _option:
-                name = "divergence"
-                twod_colour = cmap_colours['divergence']
-                unit = assign_unit('divergence')
-                if _option[-1] == 'b':
-                    label = r"$\nabla \cdot B$"
+                axis = _option[-1]
+                if axis == "b":
+                    symbol = r"$\nabla \cdot B$"
+                    colour = cmap_colours["divergence"]
                 else:
-                    label = rf"$\nabla \cdot B_{_option[-1]}$"
+                    symbol = rf"$\nabla \cdot B_{axis}$"
+                    colour = cmap_colours["Bfields"][axis]
 
-            else:
-                name = "Density"
-                twod_colour = cmap_colours['density']
-                label = r"$\rho$"
-                unit = assign_unit('density')
+                return make_outputs("Divergence", symbol, "divergence", colour)
 
-            return f"{name} {label}", rf"{label}{unit}", twod_colour
-        
-        names, labels, twod_colours = [], [], []
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            jobs = executor.map(assign_plots, options)
+            # Density
+            return make_outputs("Density", r"$\rho$", "density", cmap_colours["density"])
 
-            for (name, label, twod_colour) in jobs:
-                names.append(name)
-                labels.append(label)
-                twod_colours.append(twod_colour)
+        outputs = [assign_plots(option) for option in options]
+        names, labels, twod_colours = map(list, zip(*outputs))
 
         # Set up rows and columns
         indexes = []
@@ -460,10 +438,7 @@ def make_data(options, grid, dimensions, gamma, permeability, boundary, ds, unit
     else:
         get_option = lambda _option, _box_volume: option_checker(_option, _box_volume)
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        jobs = executor.map(get_option, options, repeat(box_volume))
-
-    return [job for job in jobs]
+    return [get_option(i, box_volume) for i in options]
 
 
 

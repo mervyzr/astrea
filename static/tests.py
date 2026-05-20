@@ -170,7 +170,7 @@ def generate_test_conditions(config_variables):
         boundary = "wrap"
         init_cond = np.array([1,0,0,0,10,0,0,0])
         ambient = np.array([1,0,0,0,.1,0,0,0])
-        test_specifics = {'ampl':1/np.sqrt(2)}
+        test_specifics = {'ampl':np.sqrt(2*np.pi)}
 
     elif "noh" in config:
         axis_coord = [0,1]
@@ -340,7 +340,7 @@ def generate_test_conditions(config_variables):
         tau0 = .1708284534  # [(pc/yr)⋅yr^0.51]
         age = 1e7
 
-        mode = 'quarter'  # quadrant/octant or full-sphere mode
+        mode = 'full'  # quadrant/octant or full-sphere mode
         shock_pos = 0
         t_end = 490
         init_cond = np.array([2.4539e-3,0,0,0,1,0,0,0])
