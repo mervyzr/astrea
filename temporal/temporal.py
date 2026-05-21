@@ -8,6 +8,7 @@ from temporal import euler, rk4, ssprk2, ssprk3, ssprk4, ssprk5
 @verbose_timer
 def evolve(sevolve_func, grid, fluxes, dt, sim_variables):
     # Methods for linear and non-linear systems [Shu & Osher, 1988]
+    # dt ≤ C_{SSP} * dt_{Euler} => CFL_{SSP-RK} ≤ C_{SSP} * CFL_{Euler}
     if sim_variables.time_evo.startswith("ssprk"):
         time_evo = sim_variables.time_evo.replace(',','').replace('(','').replace(')','').replace('ssprk','')
         register, order = int(time_evo[:-1]), int(time_evo[-1])

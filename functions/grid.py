@@ -2,9 +2,7 @@ import concurrent.futures
 from itertools import repeat
 
 import numpy as np
-from skimage.measure import block_reduce
 
-from functions import generic
 from functions import math as mfuncs
 from functions.generic import verbose_timer
 from physics import turbulence

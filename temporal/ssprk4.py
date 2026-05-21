@@ -11,7 +11,8 @@ def run(sevolve_func, grid, fluxes, dt, sim_variables, **kwargs):
         register = 5
 
     if register == 10:
-        # Evolve system by SSP-RK (10,4) method (4th-order); effective SSP coeff = 0.6 [Ketcheson, 2008]
+        # Evolve system by SSP-RK (10,4) method (4th-order) [Ketcheson, 2008]
+        # SSP coeff = 6, effective SSP coeff = 0.6
         # Computation of i-th registers (i = 1,2,3,4)
         k = np.copy(grid)
         for _ in range(5):
@@ -32,7 +33,8 @@ def run(sevolve_func, grid, fluxes, dt, sim_variables, **kwargs):
         return -11/35*grid + 5/7*k5 + 3/5*_k + 1/10*dt*fluxes
 
     else:
-        # Evolve system by SSP-RK (5,4) method (4th-order); effective SSP coeff = 0.302 [Kraaijevanger, 1991; Spiteri & Ruuth, 2002; Gottlieb et al., 2008]
+        # Evolve system by SSP-RK (5,4) method (4th-order) [Kraaijevanger, 1991; Spiteri & Ruuth, 2002; Gottlieb et al., 2008]
+        # SSP coeff = 1.508, effective SSP coeff = 0.302
         # Computation of 1st register
         k1 = grid + .39175222657189*dt*fluxes
         fluxes1 = sevolve_func(k1, sim_variables)

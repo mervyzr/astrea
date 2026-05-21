@@ -10,7 +10,8 @@ def run(sevolve_func, grid, fluxes, dt, sim_variables, **kwargs):
         register = 3
 
     if register == 5:
-        # Evolve system by SSP-RK (5,3) method (3rd-order); effective SSP coeff = 0.53 [Spiteri & Ruuth, 2002; Gottlieb et al., 2008]
+        # Evolve system by SSP-RK (5,3) method (3rd-order) [Spiteri & Ruuth, 2002; Gottlieb et al., 2008]
+        # SSP coeff = 2.65, effective SSP coeff = 0.53
         # Computation of 1st register
         k1 = grid + .3772689151171*dt*fluxes
         fluxes1 = sevolve_func(k1, sim_variables)
@@ -32,7 +33,8 @@ def run(sevolve_func, grid, fluxes, dt, sim_variables, **kwargs):
             .0027771981946*fluxes + .00001567934613*fluxes1 + .29786487010104*fluxes4)
 
     elif register == 4:
-        # Evolve system by SSP-RK (4,3) method (3rd-order); effective SSP coeff = 0.5 [Spiteri & Ruuth, 2002; Gottlieb et al., 2008]
+        # Evolve system by SSP-RK (4,3) method (3rd-order) [Spiteri & Ruuth, 2002; Gottlieb et al., 2008]
+        # SSP coeff = 2, effective SSP coeff = 0.5
         # Computation of 1st register
         k1 = grid + .5*dt*fluxes
         fluxes1 = sevolve_func(k1, sim_variables)
@@ -49,7 +51,8 @@ def run(sevolve_func, grid, fluxes, dt, sim_variables, **kwargs):
         return k3 + .5*dt*fluxes3
 
     else:
-        # Evolve system by SSP-RK (3,3) method (3rd-order); effective SSP coeff = 0.333 [Shu & Osher, 1988; Gottlieb et al., 2008]
+        # Evolve system by SSP-RK (3,3) method (3rd-order) [Shu & Osher, 1988; Gottlieb et al., 2008]
+        # SSP coeff = 1, effective SSP coeff = 0.333
         # Computation of 1st register
         k1 = grid + dt*fluxes
         fluxes1 = sevolve_func(k1, sim_variables)

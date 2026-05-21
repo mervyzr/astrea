@@ -3,7 +3,7 @@
 # (Strong stability-preserving) Runge-Kutta 2 time integration (2nd-order)
 ##############################################################################
 
-# Effective SSP coeff = 0.5 [Gottlieb et al., 2008]
+# SSP coeff = 1, effective SSP coeff = 0.5 [Gottlieb et al., 2008]
 def run(sevolve_func, grid, fluxes, dt, sim_variables, **kwargs):
     # Computation of 1st register
     k1 = grid + dt*fluxes
