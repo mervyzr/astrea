@@ -238,7 +238,7 @@ def make_data(options, grid, sim_variables):
             scaler = 'mass'
         elif _option.startswith("b") or _option.startswith("mag"):
             if "p" in _option:
-                quantity = .5 * mfuncs.norm(grid[...,Bfields])**2
+                quantity = .5 * mfuncs.norm2(grid[...,Bfields])
                 scaler = 'pressure'
             else:
                 axis = axes(_option)
@@ -254,7 +254,7 @@ def make_data(options, grid, sim_variables):
             else:
                 quantity = div_along_axis(axes(_option))
         elif "mach" in _option:
-            quantity = np.sqrt(mfuncs.divide(mfuncs.norm(grid[...,vels])**2, mfuncs.divide(sim_variables.gamma*grid[...,pressure], grid[...,rho])))
+            quantity = np.sqrt(mfuncs.divide(mfuncs.norm2(grid[...,vels]), mfuncs.divide(sim_variables.gamma*grid[...,pressure], grid[...,rho])))
             scaler = 'Mach'
         else:
             quantity = grid[...,rho]
@@ -422,6 +422,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
     fig.text(0.5, 0.04, x_label, ha='center')
     fig.subplots_adjust(bottom=0.1)
     if multidimensional:
+        fig.subplots_adjust(left=0.1)
         fig.text(0.04, 0.5, y_label, ha='center')
 
     plt.savefig(f"{sim_variables.save_path}/snapshots/varPlot_{dimensions}D_{config}_{subgrid}_{time_evo}_{solver}_{'%.4f' % round(t,4)}.{extension}", bbox_inches='tight', backend=backend)
@@ -537,6 +538,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
             fig.text(0.5, 0.04, x_label, ha='center')
             fig.subplots_adjust(bottom=0.1)
             if multidimensional:
+                fig.subplots_adjust(left=0.1)
                 fig.text(0.04, 0.5, y_label, ha='center')
 
 
@@ -917,7 +919,6 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
     for datetime in datetimes:
         simulation = hdf5[datetime]
         cells = simulation.attrs['cells']
-        x = np.linspace(left, right, cells[0])
 
         if isinstance(variable, str):
             variable = variable.lower()
@@ -945,6 +946,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                             fig.colorbar(graph, cax=cax, orientation='vertical')
                             #graph.set_clim(0, 1)
                         else:
+                            x = np.linspace(left, right, cells[0])
                             if sim_variables.beautify_1d_plots:
                                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
                             else:
@@ -967,6 +969,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                     fig.text(0.5, 0.04, x_label, ha='center')
                     fig.subplots_adjust(bottom=0.1)
                     if multidimensional:
+                        fig.subplots_adjust(left=0.1)
                         fig.text(0.04, 0.5, y_label, ha='center')
 
                     plt.savefig(f"{vidpath}/{str(counter).zfill(5)}.png", bbox_inches='tight', backend='cairo')
@@ -979,6 +982,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                         graph = ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
                         #graph.set_clim(0, 1)
                     else:
+                        x = np.linspace(left, right, cells[0])
                         ax[idx,idx].plot(x, y_data[idx], color=plot_['colours']['1d'][idx])
 
                     ax[idx,idx].set_title('')
@@ -1020,6 +1024,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                         graph = ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][0], origin="lower", extent=extent)
                         #graph.set_clim(0, 1)
                     else:
+                        x = np.linspace(left, right, cells[0])
                         ax[idx,idx].plot(x, y_data[idx], color=plot_['colours']['1d'][style_counter])
 
                     ax[idx,idx].set_title('')
@@ -1115,6 +1120,7 @@ def plot_this(grid, sim_variables, **kwargs):
     fig.text(0.5, 0.04, x_label, ha='center')
     fig.subplots_adjust(bottom=0.1)
     if multidimensional:
+        fig.subplots_adjust(left=0.1)
         fig.text(0.04, 0.5, y_label, ha='center')
 
     if not sim_variables.live_plot:
@@ -1171,7 +1177,7 @@ def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None
         vels = grid[...,sim_variables.vels]
 
         # Kinetic energy in real space
-        E_kin = .5 * density * mfuncs.norm(vels)**2
+        E_kin = .5 * density * mfuncs.norm2(vels)
 
         fft_field = np.fft.fft2(E_kin)  # Fourier transform the energy field
         fft_field = np.fft.fftshift(fft_field)  # Shift zero frequency to the center
