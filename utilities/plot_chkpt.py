@@ -180,8 +180,8 @@ def run(save=False, title=False):
 def divide(dividend, divisor):
     return np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
 
-def norm(arr):
-    return np.linalg.norm(arr, axis=-1)
+def norm2(arr):
+    return np.linalg.norm(arr, axis=-1) ** 2
 
 def slice_(grid, axis, start=0, end=None, step=1, *args):
     slc = [slice(None)] * grid.ndim
@@ -205,7 +205,7 @@ def add_boundary(grid, mode, stencil=1, axis=0):
 
 # pressure -> (total) energy density
 def convert_pressure(grid, gamma, permeability):
-    return grid[...,PRESSURE]/(gamma-1) + .5*(grid[...,RHO]*norm(grid[...,VELS])**2) + .5*(norm(grid[...,BFIELDS])**2)/permeability
+    return grid[...,PRESSURE]/(gamma-1) + .5*(grid[...,RHO]*norm2(grid[...,VELS])) + .5*(norm2(grid[...,BFIELDS]))/permeability
 
 # Make figures and axes for plotting
 def make_figure(options, units, dimensions, coordinates, scale_labels=None):
@@ -405,7 +405,7 @@ def make_data(options, grid, dimensions, gamma, permeability, boundary, ds, unit
             scaler = 'mass'
         elif _option.startswith("b") or _option.startswith("mag"):
             if "p" in _option:
-                quantity = .5 * norm(grid[...,BFIELDS])**2
+                quantity = .5 * norm2(grid[...,BFIELDS])
                 scaler = 'pressure'
             else:
                 axis = get_axis(_option)
@@ -421,7 +421,7 @@ def make_data(options, grid, dimensions, gamma, permeability, boundary, ds, unit
             else:
                 quantity = div_along_axis(get_axis(_option))
         elif "mach" in _option:
-            quantity = np.sqrt(divide(norm(grid[...,VELS])**2, divide(gamma*grid[...,PRESSURE], grid[...,RHO])))
+            quantity = np.sqrt(divide(norm2(grid[...,VELS]), divide(gamma*grid[...,PRESSURE], grid[...,RHO])))
             scaler = 'Mach'
         else:
             quantity = grid[...,RHO]

@@ -541,16 +541,16 @@ def convert_thermo_variable(variable, grid, sim_variables):
         # pressure -> (total) energy density
         return (
             grid[...,pressure]/(gamma-1)
-            + .5*(grid[...,rho]*mfuncs.norm(grid[...,vels])**2)
-            + .5*(mfuncs.norm(grid[...,Bfields])**2)/permeability
+            + .5 * (grid[...,rho] * mfuncs.norm2(grid[...,vels]))
+            + .5 * (mfuncs.norm2(grid[...,Bfields]))/permeability
         )
     elif variable.lower().startswith('e') or 'energy' in variable.lower():
         # (total) energy density -> pressure
         return (
             (gamma-1) * (
                 grid[...,energy]
-                - .5 * (grid[...,rho]*mfuncs.norm(mfuncs.divide(grid[...,momentums], grid[...,rho][...,None]))**2)
-                - .5 * (mfuncs.norm(grid[...,Bfields])**2)/permeability
+                - .5 * (grid[...,rho] * mfuncs.norm2(mfuncs.divide(grid[...,momentums], grid[...,rho][...,None])))
+                - .5 * (mfuncs.norm2(grid[...,Bfields]))/permeability
                 )
         )
 

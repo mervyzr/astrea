@@ -171,7 +171,7 @@ def calculate_HLLD_flux(axis, sim_variables, **kwargs):
     """
     rhoL, vecL, pL, bL, qL = prim_minus[...,rho], prim_minus[...,vels], prim_minus[...,pressure], prim_minus[...,Bfields], cons_minus
     rhoR, vecR, pR, bR, qR = prim_plus[...,rho], prim_plus[...,vels], prim_plus[...,pressure], prim_plus[...,Bfields], cons_plus
-    pTL, pTR = pL + .5*mfuncs.norm(bL)**2, pR + .5*mfuncs.norm(bR)**2
+    pTL, pTR = pL + .5*mfuncs.norm2(bL), pR + .5*mfuncs.norm2(bR)
 
     # Compute the wavespeeds
     cFF_L = numeric.compute_wavespeeds(prim_minus, sim_variables, axis, waves='cff')
@@ -350,7 +350,7 @@ def calculate_ES_flux(axis, sim_variables, **kwargs):
     # Define the jump in the entropy vector
     entropy = np.log(p1_hat * rho_hat**-gamma)
     entropy_vector = np.zeros_like(prim_plus)
-    entropy_vector[...,rho] = ((gamma-entropy)/(gamma-1) - mfuncs.divide(rho_hat*mfuncs.norm(np.array([u1_hat.T, v1_hat.T, w1_hat.T]).T)**2, 2*p1_hat))
+    entropy_vector[...,rho] = ((gamma-entropy)/(gamma-1) - mfuncs.divide(rho_hat*mfuncs.norm2(np.array([u1_hat.T, v1_hat.T, w1_hat.T]).T), 2*p1_hat))
     entropy_vector[...,1+abscissa] = mfuncs.divide(rho_hat*u1_hat, p1_hat)
     entropy_vector[...,1+ordinate] = mfuncs.divide(rho_hat*v1_hat, p1_hat)
     entropy_vector[...,1+applicate] = mfuncs.divide(rho_hat*w1_hat, p1_hat)

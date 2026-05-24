@@ -17,10 +17,10 @@ def compute_flux(grid, sim_variables, axis):
     arr = np.zeros_like(grid)
 
     arr[...,0] = rhos * vels[...,abscissa]
-    arr[...,1+abscissa] = rhos*vels[...,abscissa]**2 + pressures + .5*mfuncs.norm(Bfields)**2 - (Bfields[...,abscissa]**2)/permeability
+    arr[...,1+abscissa] = rhos*vels[...,abscissa]**2 + pressures + .5*mfuncs.norm2(Bfields) - (Bfields[...,abscissa]**2)/permeability
     arr[...,1+ordinate] = rhos*vels[...,abscissa]*vels[...,ordinate] - (Bfields[...,abscissa]*Bfields[...,ordinate])/permeability
     arr[...,1+applicate] = rhos*vels[...,abscissa]*vels[...,applicate] - (Bfields[...,abscissa]*Bfields[...,applicate])/permeability
-    arr[...,4] = vels[...,abscissa]*(.5*rhos*mfuncs.norm(vels)**2 + (gamma*pressures)/(gamma-1) + mfuncs.norm(Bfields)**2) - (Bfields[...,abscissa]*np.einsum('...i,...i->...', vels, Bfields))/permeability
+    arr[...,4] = vels[...,abscissa]*(.5*rhos*mfuncs.norm2(vels) + (gamma*pressures)/(gamma-1) + mfuncs.norm2(Bfields)) - (Bfields[...,abscissa]*np.einsum('...i,...i->...', vels, Bfields))/permeability
     arr[...,5+ordinate] = Bfields[...,ordinate]*vels[...,abscissa] - Bfields[...,abscissa]*vels[...,ordinate]
     arr[...,5+applicate] = Bfields[...,applicate]*vels[...,abscissa] - Bfields[...,abscissa]*vels[...,applicate]
 
@@ -360,28 +360,28 @@ def compute_right_eigenvectors(grids, sim_variables, axis):
     beta3 = mfuncs.divide(Bz, np.sqrt(By**2 + Bz**2))
 
     psi_plus_slow = (
-        .5 * alpha_s * rhos * mfuncs.norm(vels)**2
+        .5 * alpha_s * rhos * mfuncs.norm2(vels)
         - cs * alpha_f * rhos * b_perpend
         + (alpha_s * rhos * cs**2)/(gamma - 1)
         + alpha_s * cSS * rhos * vx
         + alpha_f * cFF * rhos * S * (vy*beta2 + vz*beta3)
         )
     psi_minus_slow = (
-        .5 * alpha_s * rhos * mfuncs.norm(vels)**2
+        .5 * alpha_s * rhos * mfuncs.norm2(vels)
         - cs * alpha_f * rhos * b_perpend
         + (alpha_s * rhos * cs**2)/(gamma - 1)
         - alpha_s * cSS * rhos * vx
         - alpha_f * cFF * rhos * S * (vy*beta2 + vz*beta3)
         )
     psi_plus_fast = (
-        .5 * alpha_f * rhos * mfuncs.norm(vels)**2
+        .5 * alpha_f * rhos * mfuncs.norm2(vels)
         + cs * alpha_s * rhos * b_perpend
         + (alpha_f * rhos * cs**2)/(gamma - 1)
         + alpha_f * cFF * rhos * vx
         - alpha_s * cSS * rhos * S * (vy*beta2 + vz*beta3)
         )
     psi_minus_fast = (
-        .5 * alpha_f * rhos * mfuncs.norm(vels)**2
+        .5 * alpha_f * rhos * mfuncs.norm2(vels)
         + cs * alpha_s * rhos * b_perpend
         + (alpha_f * rhos * cs**2)/(gamma - 1)
         - alpha_f * cFF * rhos * vx
@@ -416,7 +416,7 @@ def compute_right_eigenvectors(grids, sim_variables, axis):
     right_eigenvectors[...,1,3] = vx
     right_eigenvectors[...,2,3] = vy
     right_eigenvectors[...,3,3] = vz
-    right_eigenvectors[...,4,3] = .5 * mfuncs.norm(vels)**2
+    right_eigenvectors[...,4,3] = .5 * mfuncs.norm2(vels)
     # Fifth column (Divergence wave)
     right_eigenvectors[...,4,4] = Bx
     right_eigenvectors[...,6,4] = 1

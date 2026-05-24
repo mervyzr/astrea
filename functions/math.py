@@ -38,15 +38,20 @@ def log(arr, eps=1e-16):
 
 
 # There are situations where oscillations may produce negative densities/pressures
-# This function is for handling those scenarios; ideally there should be no negative values
+# This function is for clipping those values; ideally there should be no negative values
 # !! MONITOR THE PHYSICS WHEN USING THIS; IMAGINARY PARTS DISCARDED, MONITOR FOR RANDOM OSCILLATIONS !!
 def sqrt(arr):
-    return np.sqrt(np.real(arr), out=np.zeros_like(arr), where=arr>=0)
+    return np.sqrt(np.maximum(0, arr))
 
 
 # For handling norms; typically would always be using the last axis
 def norm(arr):
     return np.linalg.norm(arr, axis=-1)
+
+
+# Same as norm, but returns the squared value
+def norm2(arr):
+    return np.linalg.norm(arr, axis=-1) ** 2
 
 
 # Customised rounding function
