@@ -37,7 +37,7 @@ def drive(forcing_field, dt, eigmax, sim_variables, proj='wiener'):
         k_curls = [field[...,i] - k_divs[i] for i in range(dimensions)]
 
         # Compute the projection operator from Helmholtz decomposition
-        # zeta is the solenoidal (curl) to compressive (div) forcing mixing ratio
+        # zeta is the compressive (div) to solenoidal (curl) forcing mixing ratio
         projections = np.stack([(1 - zeta) * k_curls[i] + zeta * k_divs[i] for i in range(dimensions)], axis=-1)
 
         return projections
