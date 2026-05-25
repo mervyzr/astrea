@@ -11,15 +11,15 @@ from datetime import datetime
 from time import perf_counter, process_time
 
 import h5py
-import yaml
 import dotenv
 import numpy as np
 
-from functions import generic, io, plotting
+from functions import generic, plotting
 from functions import grid as gutils
 from numkit import c_transport as ct
 from physics import gravity, tracers, turbulence
 from physics.krome import krome_funcs
+from simio import chkpt_funcs, handler, simulation
 from static import tests
 from spatial.spatial import evolve as spatial_evolve
 from temporal.temporal import evolve as temporal_evolve
@@ -37,10 +37,10 @@ warnings.filterwarnings('ignore')
 np.set_printoptions(linewidth=1000, edgeitems=4, suppress=True)
 
 # Finite volume simulation
-def core_run(sim_variables, **kwargs):
+def core_run(sim_variables):
     # Initialise or load the discrete solution array with primitive variables <w>
     if sim_variables.chkpt_file:
-        primitive_grid, t, idx = kwargs['grid'], kwargs['time'], kwargs['idx']
+        primitive_grid, t, idx = chkpt_funcs.load_chkpt_file(sim_variables.chkpt_file)
     else:
         primitive_grid, t, idx = gutils.initialise(sim_variables), 0., 1
 
@@ -110,7 +110,7 @@ def core_run(sim_variables, **kwargs):
             if sim_variables.tracers:
                 plotting.plot_tracer_particles(tracer_positions, t, sim_variables)
         if create_chkpt_file:
-            io.write_chkpt_file(grid_snapshot, t, idx, sim_variables)
+            chkpt_funcs.write_chkpt_file(grid_snapshot, t, idx, sim_variables)
             create_chkpt_file = False
 
         ########################
@@ -179,59 +179,21 @@ def graceful_exit(sig, frame):
     sys.exit(0)
 
 
-# __main__ script; includes handlers and core execution of simulation
+# __main__ script; includes core execution of simulation
 def run(seed=SEED, save_dir=SAVE_DIR) -> None:
     np.random.seed(seed)
-
     current_dir = Path(__file__).resolve().parent
     db_path = current_dir/"static"/".db.json"
     file_name = current_dir/f".astrea_hdf5_temp_{seed}"
 
-    config_variables = {
-        'home': current_dir,
-        'db_path': db_path,
-        'hdf5': file_name,
-    }
+    # Create configuration variables based on parameters, CLI & checkpoint files
+    config_variables = handler.allocate(seed, current_dir, db_path, file_name)
 
-    cli_arguments = io.handle_CLI(db_path)
-
-    init = cli_arguments.get('init', False)
-    if init:
-        generic.check_init(current_dir)
-        sys.exit(0)
-    else:
-        # Generate the simulation variables from settings (dict)
-        try:
-            with open(current_dir/"parameters.yml", "r") as settings_file:
-                _config_variables = yaml.safe_load(settings_file)
-        except Exception:
-            print(f"{generic.BColours.FAIL}parameters.yml file not found; please run astrea again with the --init option..{generic.BColours.ENDC}")
-            sys.exit(0)
-        else:
-            # Remove nested dictionary from config_variables
-            for parameters in _config_variables.values():
-                for k,v in parameters.items():
-                    config_variables[k] = v
-
-    # Replace the relevant configuration variables; priority: checkpoint file > CLI > parameters.yml
-    config_variables.update(cli_arguments)
-
-    checkpoint_file = cli_arguments['chkpt_file']
-    if checkpoint_file:
-        try:
-            seed, config_variables, chkpt_kwargs = io.load_chkpt_file(config_variables, checkpoint_file)
-        except Exception as e:
-            print(f"{generic.BColours.FAIL}Unable to load checkpoint file: {e}..{generic.BColours.ENDC}")
-        else:
-            print(f"{generic.BColours.OKGREEN}Checkpoint file loaded! Running simulation from checkpoint..{generic.BColours.ENDC}")
-
-    config_variables = io.filter_variables(config_variables)
-
-    # Generate test configuration based on configuration
+    # Generate test setup based on configuration variables
     test_variables = tests.generate_test_conditions(config_variables)
 
-    # Initialise simulation variables
-    sim_variables = io.SimulationVariables(seed, config_variables, test_variables)
+    # Initialise simulation variables and state
+    sim_variables = simulation.Variables(config_variables, test_variables)
 
     # Auto-generate the resolutions/grid-sizes for run type
     if sim_variables.test:
@@ -293,7 +255,7 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
 
             ################### CORE ###################
             lap, cpu_start = perf_counter(), process_time()
-            core_run(sim_variables, **chkpt_kwargs) if sim_variables.chkpt_file else core_run(sim_variables)
+            core_run(sim_variables)
             elapsed, cpu_elapsed = perf_counter() - lap, process_time() - cpu_start
             ################### CORE ###################
 

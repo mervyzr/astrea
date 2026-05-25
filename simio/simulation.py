@@ -1,0 +1,170 @@
+import os
+
+import numpy as np
+from tinydb import TinyDB, Query
+
+from functions import generic
+from functions.generic import BColours
+from physics import constants as const
+from physics.krome import krome_funcs
+from physics.conversions import Constants
+
+##############################################################################
+# I/O functions for simulation variables
+##############################################################################
+
+class Variables(object):
+    __slots__ = [
+        '__dict__',
+        'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'gx', 'gy', 'gz', 'energy', 'vels', 'Bfields', 'momentums',
+        'config', 'cells', 'cfl', 'gamma', 'gravity', 'self_gravity', 'ext_gravity', 'dimensions', 'subgrid', 'time_evo', 'solver',
+        'coordinates', 'shock_pos', 't_end', 'boundary', 'test_specifics', 'init_cond', 'ambient', 'ds',
+        'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
+        'axes', 'magnetic', 'convert', 'roots', 'weights', 'ppm_dissipate', 'higher_order', 'grid_interpolate', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
+        'seed', 'now', 'elapsed', 'access_key', 'datetime', 'eps', 'home', 'save_path', 'db_path', 'hdf5', 'timesteps', 'print_status',
+        'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test',
+        'units', 'constants', 'chemistry', 'network', 'pykrome', 'species', 'abundances', 'tracers', 'nvars',
+    ]
+
+    def __init__(self, config_variables, test_variables):
+        db, params = TinyDB(config_variables['db_path']), Query()
+
+        # Declare physical variables and their index in the array: [density, vx/px, vy/py, vz/pz, pressure/energy, Bx, By, Bz, source terms]
+        self.nvars = 8
+        self.rho, self.vx, self.vy, self.vz, self.pressure, self.Bx, self.By, self.Bz = range(self.nvars)
+        self.vels, self.Bfields = slice(1,4), slice(5,8)
+        self.energy, self.momentums = self.pressure, self.vels
+
+        # Parse configuration variables into the class
+        for key in config_variables:
+            setattr(self, key, config_variables[key])
+
+        # Parse tests variables into the class
+        for key in test_variables:
+            setattr(self, key, test_variables[key])
+
+        # Parse additional variables into the class
+        self.now = None
+        self.elapsed = None
+        self.access_key = None
+        self.timesteps = 0
+
+        self.constants = Constants(const, self.units)
+
+        # 5th-order Gauss-Legendre quadrature with interval [0,1] for OS solver
+        roots, weights = np.array(list(np.polynomial.legendre.leggauss(5)))/2
+        self.roots = roots + .5
+        self.weights = weights
+
+        self.config_category = db.get(params.accepted.any([self.config]))['category']
+        self.subgrid_category = db.get(params.accepted.any([self.subgrid]))['category']
+        self.solver_category = db.get(params.accepted.any([self.solver]))['category']
+
+        # Higher-order method options
+        self.higher_order = self.grid_interpolate = False
+        if self.subgrid_category in ["ppm", "eno", "weno"]:
+            self.higher_order = self.grid_interpolate = True
+
+            # WENO-Z can use point representation
+            if self.subgrid_category == "weno" and (self.subgrid.endswith("z")):
+                self.grid_interpolate = False
+
+            # PPM-specific options
+            if self.subgrid_category == "ppm":
+                self.ppm_author = os.getenv("PPM_AUTHOR", "MC:2011")  # [McCorquodale & Colella, 2011 (MC:2011); Colella et al., 2011 (C+:2011); Peterson & Hammett, 2008 (PH:2008)]
+                self.ppm_dissipate = os.getenv("PPM_DISSIPATE", False)
+
+        # CT-specific options
+        self.ct_dissipative = os.getenv("CT_DISSIPATIVE", False)
+
+        # Permutations for axes
+        self.multidimensional = self.dimensions >= 2
+        self.axes = np.array(range(self.dimensions))
+
+        # Gravity set-up
+        self.self_gravity = self.ext_gravity = False
+        if self.gravity:
+            if self.gravity == "self":
+                self.self_gravity = True
+            elif self.gravity in ("ext", "external"):
+                self.ext_gravity = True
+            else:
+                self.self_gravity = self.ext_gravity = True
+        self.gravity = True if (self.self_gravity or self.ext_gravity) else False
+
+        if self.ext_gravity:
+            self.gx, self.gy, self.gz = range(3)
+
+        # Turbulence set-up
+        self.turbulence = True if "turb" in self.config else False
+
+        # Chemistry network set-up
+        if self.chemistry:
+            if not self.network:
+                krome_path = os.path.join(self.home, 'physics', 'krome')
+            else:
+                try:
+                    krome_path = [os.path.join(root, dirname) for root, dirs, _ in os.walk(self.home) for dirname in dirs if 'krome' in os.path.join(root, dirname)][0]
+                except IndexError:
+                    print(f"{BColours.WARNING}Chemistry switched on but krome folder cannot be found. Switching off chemistry..{BColours.ENDC}")
+                    krome_path = None
+
+            paths = [self.home, krome_path, self.network]
+            options = [
+                '-iRHS',
+                '-noRecCheck',
+                '-coolFile=data/coolZ.dat',
+                '-cooling=ATOMIC,H2,DUST,Z,CI,OI,CII',
+                '-heating=COMPRESS,PHOTO,CHEM,PHOTODUST'
+            ]
+            self.pykrome, self.species, self.useX = krome_funcs.build_krome(paths, options)
+
+            if self.pykrome == None or self.species == None:
+                print(f"{BColours.WARNING}krome built but cannot be accessed. Switching off chemistry..{BColours.ENDC}")
+                self.chemistry = False
+
+        # Printer functions
+        if self.verbose:
+            self.print_status = generic.print_verbose
+        else:
+            self.print_status = generic.print_simple
+
+        # Set up boxes for plotting
+        self.box_volume = np.prod([np.diff(_) for _ in self.coordinates.values()])
+        if self.units != "code":
+            try:
+                semi = self.test_specifics['mode'].lower().startswith(('o','q'))
+            except Exception:
+                semi = False
+
+            if semi:
+                full_box = self.constants.plot_scales['length']
+                self.box_lengths = {ax: [start_pos, full_box*end_pos] for ax, (start_pos, end_pos) in self.coordinates.items()}
+            else:
+                half_box = self.constants.plot_scales['length']/2
+                centres = {ax: np.average(axis_coord) for ax, axis_coord in self.coordinates.items()}
+                self.box_lengths = {ax: [half_box*(start_pos-centres[ax]), half_box*(end_pos-centres[ax])] for ax, (start_pos, end_pos) in self.coordinates.items()}
+        else:
+            self.box_lengths = self.coordinates
+
+        # Media options
+        if self.test:
+            self.save_plots = True
+            if (self.live_plot or self.save_snaps or self.save_video):
+                self.live_plot = self.save_snaps = self.save_video = False
+
+        if self.dimensions > 2:
+            self.slice_axis = 2  # z-axis
+            self.slice_3d = int(self.cells[self.slice_axis]/2)
+
+        if (self.save_snaps or self.save_plots or self.save_video) and self.live_plot:
+            print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live_plot interferes with matplotlib.savefig..{BColours.ENDC}")
+            self.live_plot = False
+
+        if self.save_snaps or self.save_plots or self.save_video or self.save_file:
+            self.save_path = ''
+
+        self.beautify_1d_plots = os.getenv("BEAUTIFY_1D_PLOTS", False)
+        self.save_as_pdf = os.getenv("SAVE_AS_PDF", False)
+
+        self.full_set_required = True if (self.save_plots or self.save_video or self.save_file) else False

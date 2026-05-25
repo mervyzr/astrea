@@ -388,10 +388,16 @@ astrea/
 │   ├── analytic.py   : Analytical solutions to smooth advection wave tests
 │   ├── generic.py    : Generic functions not specific to FVM
 │   ├── grid.py       : Grid functions used for padding, slicing, higher-order interpolations, etc.
-│   ├── io.py         : Functions for I/O, e.g., simulation variables
 │   ├── math.py       : Math functions, including specialised math functions
 │   ├── numeric.py    : Numerical functions for computing eigenvectors, Jacobian matrices, wavespeeds, etc.
 │   └── plotting.py   : Functions for media, e.g., (live-)plotting, saving videos
+├── simio
+│   ├── __init__.py
+│   ├── chkpt_funcs.py  : Checkpoint file I/O functions
+│   ├── cli_funcs.py    : User input I/O functions
+│   ├── handler.py      : Consolidator for all I/O functions; implements priority list for user input
+│   ├── simulation.py   : Functions for generating simulation variables
+│   ├── param_funcs.py  : Parameter file I/O functions
 ├── numkit
 │   ├── __init__.py
 │   ├── c_transport.py  : Functions for the constrained transport implementation
@@ -434,5 +440,5 @@ astrea/
 │   ├── ssprk5.py     : Fifth-order strong stability-preserving scheme [Gottlieb et al., 2009]
 │   ├── temporal.py   : Handler for time integration schemes
 ├── utilities
-│   ├── plot_chkpt.py    : Plotting function for checkpoint files
+│   ├── plot_chkpt.py    : Standalone plotting function for checkpoint files
 ```
