@@ -476,23 +476,19 @@ def generate_test_conditions(config_variables):
         ambient = np.array([.125,0,0,0,.1,0,0,0])
         test_specifics = None
 
-    try:
-        for idx, _ in enumerate(cells):
-            _, _ = axis_coord[idx]
-    except:
-        coordinates = {ax: axis_coord for ax in range(len(cells))}
-    else:
+    if all(isinstance(coord, list) for coord in axis_coord):
         coordinates = {ax: coord for ax, coord in enumerate(axis_coord)}
-    finally:
-        ds = {ax: np.abs(np.diff(coordinates[ax]))/cells[ax] for ax in range(len(cells))}
+    else:
+        coordinates = {ax: axis_coord for ax in range(len(cells))}
+    ds = {ax: np.abs(np.diff(coordinates[ax]))/cells[ax] for ax in range(len(cells))}
 
     return {
-        'coordinates':coordinates,
         'shock_pos':shock_pos,
         't_end':t_end,
         'boundary':boundary.lower(),
-        'test_specifics':test_specifics,
         'init_cond':init_cond,
         'ambient':ambient,
+        'test_specifics':test_specifics,
+        'coordinates':coordinates,
         'ds':ds,
     }
