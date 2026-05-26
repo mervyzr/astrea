@@ -19,6 +19,7 @@ dependencies = [
     "h5py",
     "matplotlib",
     "mpi4py",
+    "numba",
     "numpy>=2.0.0",
     "nvidia-ml-py3",
     "psutil",
