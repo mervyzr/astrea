@@ -61,7 +61,7 @@ def initialise(sim_variables):
                         r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2 + (z-z_centre)**2)
 
                     E, M, t0 = test_specifics['E'], test_specifics['M'], test_specifics['t0']
-                    shock_pos = t0 * np.sqrt(gamma * E/M)
+                    shock_pos = 2 * t0 * np.sqrt(gamma * E/M)
                     sim_variables.shock_pos = shock_pos
 
                     r0 = np.sqrt((shock_pos-x_centre)**2 + (shock_pos-y_centre)**2 + (shock_pos-z_centre)**2)
@@ -196,7 +196,7 @@ def initialise(sim_variables):
                         r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
 
                     E, M, t0 = test_specifics['E'], test_specifics['M'], test_specifics['t0']
-                    shock_pos = t0 * np.sqrt(gamma * E/M)
+                    shock_pos = 2 * t0 * np.sqrt(gamma * E/M)
                     sim_variables.shock_pos = shock_pos
 
                     r0 = np.sqrt((shock_pos-x_centre)**2 + (shock_pos-y_centre)**2)
@@ -439,7 +439,7 @@ def initialise(sim_variables):
                     x -= x_centre
 
                 E, M, t0 = test_specifics['E'], test_specifics['M'], test_specifics['t0']
-                shock_pos = t0 * np.sqrt(gamma * E/M)
+                shock_pos = 2 * t0 * np.sqrt(gamma * E/M)
                 sim_variables.shock_pos = shock_pos
 
                 r0 = shock_pos - x_centre
