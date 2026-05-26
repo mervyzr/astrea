@@ -21,6 +21,7 @@ eps_0 = 1.                  # vacuum electric permittivity [A^2 s^4 g^-1 cm^-3]
 #   astronomical:
 au = 1.49598e+13            # astronomical unit [cm]
 pc = 3.0856776e+18          # parsec [cm]
+kpc = 3.0856776e+21         # kiloparsec [cm]
 G = 6.67259e-8              # gravitational constant [cm^3 g^-1 s^-2]
 m_sun = 1.98892e+33         # solar mass [g]
 r_sun = 6.9598e+10          # solar radii [cm]

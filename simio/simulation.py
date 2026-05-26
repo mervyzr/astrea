@@ -132,18 +132,17 @@ class Variables(object):
         # Set up boxes for plotting
         self.box_volume = np.prod([np.diff(_) for _ in self.coordinates.values()])
         if self.units != "code":
+            length_scale = self.constants.plot_scales['length']
             try:
                 semi = self.test_specifics['mode'].lower().startswith(('o','q'))
             except Exception:
                 semi = False
 
             if semi:
-                full_box = self.constants.plot_scales['length']
-                self.box_lengths = {ax: [start_pos, full_box*end_pos] for ax, (start_pos, end_pos) in self.coordinates.items()}
+                self.box_lengths = {ax: [start_pos, length_scale*end_pos] for ax, (start_pos, end_pos) in self.coordinates.items()}
             else:
-                half_box = self.constants.plot_scales['length']/2
                 centres = {ax: np.average(axis_coord) for ax, axis_coord in self.coordinates.items()}
-                self.box_lengths = {ax: [half_box*(start_pos-centres[ax]), half_box*(end_pos-centres[ax])] for ax, (start_pos, end_pos) in self.coordinates.items()}
+                self.box_lengths = {ax: [length_scale*(start_pos-centres[ax]), length_scale*(end_pos-centres[ax])] for ax, (start_pos, end_pos) in self.coordinates.items()}
         else:
             self.box_lengths = self.coordinates
 

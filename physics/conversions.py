@@ -14,75 +14,109 @@ class Constants(object):
             for name, value in obj.items():
                 setattr(self, name, value)
 
-        # Set up scaling for physical units (CGS)
         if units != "code":
             if units == 'custom':
-                L0 = 1
-                rho0 = 1
-                v0 = 1
-                length_scale = 1
-                length_label = " [pc]"
-                time_scale = 1
-                time_label = " yr"
-            elif units == 'stellar':
-                L0 = self.r_sun
-                rho0 = self.m_sun/self.au**3
-                v0 = self.kms
-                length_scale = self.au
-                length_label = " [au]"
-                time_scale = self.sec_per_year
-                time_label = " yr"
-            elif units == 'cluster':
+                # Set up physical scaling (code -> CGS)
                 L0 = self.pc
-                rho0 = 10 * (self.m_sun/self.pc**3)
-                v0 = self.kms
-                length_scale = self.pc
-                length_label = " [pc]"
-                time_scale = self.Myr
-                time_label = " Myr"
-            elif units == 'galactic':
-                L0 = 1e3 * self.pc
-                rho0 = 1e11 * (self.m_sun/(1e4 * self.pc**3))
-                v0 = 10 * self.kms
-                length_scale = 1e3 * self.pc
-                length_label = " [kpc]"
-                time_scale = self.Myr
-                time_label = " Myr"
+                m0 = self.m_sun
+                t0 = self.sec_per_year
 
-            m0 = rho0 * L0**3
+                # Set up plot scaling (CGS -> plot)
+                length_scale, length_label = self.pc, " [pc]"
+                mass_scale, mass_label = self.m_sun, r" [$\mathrm{M}_\odot$]"
+                time_scale, time_label = self.sec_per_year, " yr"
+
+                density_scale, density_label = 1, r" [$\mathrm{g}/\mathrm{cm}^3$]"
+                velocity_scale, velocity_label = 1e3 * self.kms, " [$10^3$ km/s]"
+                momentum_scale, momentum_label = 1, r" [$\mathrm{g}/(\mathrm{cm}^2 \mathrm{s})$]"
+
+                pressure_scale, pressure_label = .1, " [Pa]"
+                energy_scale, energy_label = 1, " [erg]"
+                energy_density_scale, energy_density_label = 1, r" [$\mathrm{erg}/\mathrm{cm}^3$]"
+
+                bfield_scale, bfield_label = 1e-6, r" [$\mu\mathrm{G}$]"
+                divergence_scale, divergence_label = 1e-6, r" [$\mu\mathrm{G}/\mathrm{cm}$]"
+
+            else:
+                if units == 'stellar':
+                    # Set up physical scaling (code -> CGS)
+                    L0 = self.r_sun
+                    m0 = self.m_sun
+                    t0 = self.sec_per_year
+
+                    # Set up plot scaling (CGS -> plot)
+                    length_scale, length_label = self.au, " [au]"
+                    time_scale, time_label = self.sec_per_year, " yr"
+
+                elif units == 'cluster':
+                    L0 = self.pc
+                    m0 = 10 * self.m_sun
+                    t0 = self.Myr
+
+                    length_scale, length_label = self.pc, " [pc]"
+                    time_scale, time_label = self.Myr, " Myr"
+
+                elif units == 'galactic':
+                    L0 = self.kpc
+                    m0 = 1e7 * self.m_sun
+                    t0 = 10 * self.Myr
+
+                    length_scale, length_label = self.kpc, " [kpc]"
+                    time_scale, time_label = self.Myr, " Myr"
+
+                mass_scale, mass_label = self.m_sun, r" [$\mathrm{M}_\odot$]"
+
+                density_scale, density_label = 1, r" [$\mathrm{g}/\mathrm{cm}^3$]"
+                velocity_scale, velocity_label = self.kms, " [km/s]"
+                momentum_scale, momentum_label = 1, r" [$\mathrm{g}/(\mathrm{cm}^2 \mathrm{s})$]"
+
+                pressure_scale, pressure_label = .1, " [Pa]"
+                energy_scale, energy_label = 1, " [erg]"
+                energy_density_scale, energy_density_label = 1, r" [$\mathrm{erg}/\mathrm{cm}^3$]"
+
+                bfield_scale, bfield_label = 1e-6, r" [$\mu\mathrm{G}$]"
+                divergence_scale, divergence_label = 1e-6, r" [$\mu\mathrm{G}/\mathrm{cm}$]"
+
+            # Compute physical scaling (CGS) for other derived quantities
+            rho0 = m0/L0**3
+            v0 = L0/t0
+            mom0 = rho0 * v0
+            P0 = rho0 * v0**2
+            e0 = P0
+            E0 = e0 * L0**3
+
             if self.mu_0 != 1:
                 B0 = v0 * np.sqrt(self.mu_0*rho0)
             else:
                 B0 = np.sqrt(4*np.pi*rho0 * v0**2 * L0**3)
 
-            # Scale quantities to plot units
+            # Save plot scaling values and scale labels
             self.plot_scales = {
-                "length":           L0 / length_scale,      # code -> cm -> au/pc/kpc (length_label)
-                "time":             (L0/v0) / time_scale,   # code -> s -> s/yr/Myr (time_label)
-                "density":          rho0,                   # code -> g/cm3 -> g/cm3
-                "velocity":         v0 * 1e-5,              # code -> cm/s -> km/s
-                "mass":             m0/self.m_sun,          # code -> g -> M_sun
-                "momentum":         rho0 * v0,              # code -> g/(cm2 s) -> g/(cm2 s)
-                "pressure":         10 * rho0 * v0**2,      # code -> dyn/cm3 -> Pa
-                "energy":           rho0 * v0**2 * L0**3,   # code -> erg -> erg
-                "energy density":   rho0 * v0**2,           # code -> erg/cm3 -> erg/cm3
-                "Bfield":           1e6 * B0,               # code -> G -> uG
-                "divergence":       1e6 * B0/L0,            # code -> G/cm -> uG/cm
-                "Mach":             1,                      # unitless
+                "length":           L0 / length_scale,          # code -> cm -> au/pc/kpc
+                "mass":             m0 / mass_scale,            # code -> g -> M_sun
+                "time":             t0 / time_scale,            # code -> s -> s/yr/Myr
+                "density":          rho0 / density_scale,       # code -> g/cm3 -> g/cm3
+                "velocity":         v0 / velocity_scale,        # code -> cm/s -> km/s
+                "momentum":         mom0 / momentum_scale,      # code -> g/(cm2 s) -> g/(cm2 s)
+                "pressure":         P0 / pressure_scale,        # code -> dyn/cm3 -> Pa
+                "energy":           E0 / energy_scale,          # code -> erg -> erg
+                "energy density":   e0 / energy_density_scale,  # code -> erg/cm3 -> erg/cm3
+                "Bfield":           B0 / bfield_scale,          # code -> G -> uG
+                "divergence":       B0/L0 / divergence_scale,   # code -> G/cm -> uG/cm
+                "Mach":             1,                          # unitless
             }
 
-            # Set plot units
             self.scale_labels = {
-                "length":           length_label,                                   # cm/au/pc/kpc
-                "time":             time_label,                                     # s/yr/Myr
-                "density":          r" [$\mathrm{g}/\mathrm{cm}^3$]",               # g/cm3
-                "velocity":         r" [$\mathrm{km}/\mathrm{s}$]",                 # km/s
-                "mass":             r" [$\mathrm{M}_\odot$]",                       # M_sun
-                "momentum":         r" [$\mathrm{g}/(\mathrm{cm}^2 \mathrm{s})$]",  # g/(cm2 s)
-                "pressure":         r" [$\mathrm{Pa}$]",                            # Pa
-                "energy":           r" [$\mathrm{erg}$]",                           # erg
-                "energy density":   r" [$\mathrm{erg}/\mathrm{cm}^3$]",             # erg/cm3
-                "Bfield":           r" [$\mu\mathrm{G}$]",                          # uG
-                "divergence":       r" [$\mu\mathrm{G}/\mathrm{cm}$]",              # uG/cm
-                "Mach":             "",                                             # unitless
+                "length":           length_label,           # cm/au/pc/kpc
+                "time":             time_label,             # s/yr/Myr
+                "velocity":         velocity_label,         # km/s
+                "mass":             mass_label,             # M_sun
+                "density":          density_label,          # g/cm3
+                "momentum":         momentum_label,         # g/(cm2 s)
+                "pressure":         pressure_label,         # Pa
+                "energy":           energy_label,           # erg
+                "energy density":   energy_density_label,   # erg/cm3
+                "Bfield":           bfield_label,           # uG
+                "divergence":       divergence_label,       # uG/cm
+                "Mach":             "",                     # unitless
             }

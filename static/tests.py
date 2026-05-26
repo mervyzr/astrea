@@ -343,7 +343,7 @@ def generate_test_conditions(config_variables):
         mode = 'full'  # quadrant/octant or full-sphere mode
         shock_pos = 0
         t_end = 490
-        init_cond = np.array([2.4539e-3,0,0,0,1,0,0,0])
+        init_cond = np.array([2.4539e-3,0,0,0,2.1309e-13,0,0,0])
         ambient = np.array([2.4539e-3,0,0,0,2.1309e-13,0,0,0])
         test_specifics = {'E':5.2516e-5, 'M':1.4, 't0':10, 'rotation':rotation, 'tau0':tau0, 'age':age, 'mode':mode}
 
@@ -351,7 +351,7 @@ def generate_test_conditions(config_variables):
             axis_coord = [0,5]
             boundary = "reflect"
         else:
-            axis_coord = [-2.5,2.5]
+            axis_coord = [-5,5]
             boundary = "edge"
 
     ##############################################
