@@ -759,8 +759,12 @@ def plot_solution_errors(hdf5, sim_variables, error_norm=1, title=False):
 # Total variation to determine if numerical scheme prevents oscillation
 def plot_total_variation(hdf5, sim_variables, title=False):
     config, subgrid, time_evo, solver = sim_variables.config, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
-    options = sim_variables.plot_options
-    time_label = sim_variables.constants.scale_labels['time']
+    options, units = sim_variables.plot_options, sim_variables.units
+
+    if units != "code":
+        time_label = sim_variables.constants.scale_labels['time']
+    else:
+        time_label = ""
 
     if sim_variables.save_as_pdf:
         extension = backend = "pdf"
@@ -822,8 +826,12 @@ def plot_total_variation(hdf5, sim_variables, title=False):
 # Determines if numerical scheme is conservative to machine precision
 def plot_conservation_equations(hdf5, sim_variables, title=False):
     options = ["mass", "momentum_x", "total energy"]
-    config, subgrid, time_evo, solver = sim_variables.config, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
-    time_label = sim_variables.constants.scale_labels['time']
+    config, subgrid, time_evo, solver, units = sim_variables.config, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver, sim_variables.units
+
+    if units != "code":
+        time_label = sim_variables.constants.scale_labels['time']
+    else:
+        time_label = ""
 
     if sim_variables.save_as_pdf:
         extension = backend = "pdf"

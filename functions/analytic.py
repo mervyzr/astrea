@@ -1,5 +1,6 @@
 import scipy as sp
 import numpy as np
+from scipy.special import gamma as gamma_func
 
 from functions import analytic
 from functions import grid as gutils
@@ -187,29 +188,41 @@ def calculate_Sedov_analytical(grid, t, sim_variables):
     shock_pos = sim_variables.shock_pos
 
     # Create a physical half-grid for a single axis
-    def make_half_grid(_axis, _cells):
-        dh = np.abs(np.diff(_axis)[0])/_cells
-        half_cell = dh/2
-        return np.linspace(_axis[0]-half_cell, _axis[1]+half_cell, _cells+2)[1+int(_cells/2):-1]
+    def make_half_grid(axis_coord, _cells):
+        dh = np.abs(np.diff(axis_coord)[0])/_cells
+        half_cell = .5 * dh
+        return np.linspace(axis_coord[0]-half_cell, axis_coord[1]+half_cell, _cells+2)[1+int(_cells/2):-1]
 
     x_centre = np.average(coordinates[0])
     physical_halfgrid_x = make_half_grid(coordinates[0], cells[0])
-    X, Y, Z = np.array(physical_halfgrid_x), np.zeros_like(physical_halfgrid_x), np.zeros_like(physical_halfgrid_x)
 
     if multidimensional:
         y_centre = np.average(coordinates[1])
         physical_halfgrid_y = make_half_grid(coordinates[1], cells[1])
-        X, Y = np.meshgrid(physical_halfgrid_x, physical_halfgrid_y, indexing='ij')
-        Z = np.zeros_like(X)
 
-        if dimensions == 3:
+        if dimensions > 2:
             z_centre = np.average(coordinates[2])
             physical_halfgrid_z = make_half_grid(coordinates[2], cells[2])
-            X, Y, Z = np.meshgrid(physical_halfgrid_x, physical_halfgrid_y, physical_halfgrid_z, indexing='ij')
 
-    rx, ry, rz = X - x_centre, Y - y_centre, Z - z_centre
-    r = np.sqrt(rx**2 + ry**2 + rz**2)
-    E_blast = 4/3 * np.pi * (P0*(shock_pos-x_centre)**3)/(gamma-1)
+            x, y, z = np.meshgrid(physical_halfgrid_x, physical_halfgrid_y, physical_halfgrid_z, indexing='ij')
+            x0, y0, z0 = x - x_centre, y - y_centre, z - z_centre
+            r = np.sqrt(x0**2 + y0**2 + z0**2)
+            r0 = np.sqrt((shock_pos-x_centre)**2 + (shock_pos-y_centre)**2 + (shock_pos-z_centre)**2)
+
+        else:
+            x, y = np.meshgrid(physical_halfgrid_x, physical_halfgrid_y, indexing='ij')
+            x0, y0 = x - x_centre, y - y_centre
+            r = np.sqrt(x0**2 + y0**2)
+            r0 = np.sqrt((shock_pos-x_centre)**2 + (shock_pos-y_centre)**2)
+
+    else:
+        x = physical_halfgrid_x
+        x0 = r = np.abs(x - x_centre)
+        r0 = np.abs(shock_pos - x_centre)
+
+    Vd = (np.pi**(dimensions/2) / gamma_func(dimensions/2 + 1)) * r0**dimensions
+    E_blast = Vd * P0 / (gamma - 1)
+    Eps = dimensions+2
 
     # ----------------------------------------------------
     # Self-similar ODEs for A(η), B(η), C(η)
@@ -223,17 +236,17 @@ def calculate_Sedov_analytical(grid, t, sim_variables):
         coeff_dA_1 = eta * (2*C - (gamma+1))/(gamma+1)
         coeff_dB_1 = 0
         coeff_dC_1 = (2 * eta * A) / (gamma+1)
-        const1 = -(6*A*C) / (gamma+1)
+        const1 = -(2*dimensions*A*C) / (gamma+1)
 
         coeff_dA_2 = 0
         coeff_dB_2 = eta * (gamma-1)/A
         coeff_dC_2 = eta * (2*C - (gamma+1))
-        const2 = 2.5 * (gamma+1) * C - 2 * C**2 - 2 * (gamma-1) * B/A
+        const2 = .5 * Eps * (gamma+1) * C - 2 * C**2 - 2 * (gamma-1) * B/A
 
         coeff_dA_3 = C**2 * eta * (gamma + 1 - 2*C)
         coeff_dB_3 = eta * (gamma + 1 - 2*gamma*C)
         coeff_dC_3 = 2 * eta * (A*C*(gamma+1) + gamma*B - A*C**2)
-        const3 = 10 * C * (gamma*B + A*C**2) - 5 * (gamma+1) * (B + A*C**2)
+        const3 = 2 * Eps * C * (gamma*B + A*C**2) - Eps * (gamma+1) * (B + A*C**2)
 
         coeffs = np.array([
             [coeff_dA_1, coeff_dB_1, coeff_dC_1],
@@ -245,7 +258,7 @@ def calculate_Sedov_analytical(grid, t, sim_variables):
         try:
             dA, dB, dC = np.linalg.solve(coeffs, consts)
         except np.linalg.LinAlgError:
-            coeffs += np.eye(3) * sim_variables.eps
+            #coeffs += np.eye(3) * sim_variables.eps
             dA, dB, dC = np.linalg.solve(coeffs, consts)
 
         return [dA, dB, dC]
@@ -253,7 +266,7 @@ def calculate_Sedov_analytical(grid, t, sim_variables):
     # ----------------------------------------------------
     # Integrate similarity ODEs inward from shock
     # ----------------------------------------------------
-    def integrate_profiles(eta_s, eta_min=1e-6, npts=2000):
+    def integrate_profiles(eta_s, eta_min=1e-3, npts=2000):
         eta_start = eta_s * (1 - 1e-8)
         solution = sp.integrate.solve_ivp(
             lambda _eta, _eta_funcs: sedov_derivs(_eta, _eta_funcs),
@@ -275,8 +288,9 @@ def calculate_Sedov_analytical(grid, t, sim_variables):
     # Energy integral condition (eq. 10.34)
     # ----------------------------------------------------
     def energy_integral(eta, A, B, C):
-        integrand = (B + A*C**2) * eta**4
-        coeff = 32*np.pi / (25*(sim_variables.gamma**2 - 1))
+        integrand = (B + A*C**2) * eta**(dimensions+1)
+        Sd = 2 * np.pi**(dimensions/2) / gamma_func(dimensions/2)
+        coeff = 8 * Sd / ((gamma**2 - 1) * Eps**2)
         return coeff * np.trapezoid(integrand, eta)
 
     # ----------------------------------------------------
@@ -307,9 +321,9 @@ def calculate_Sedov_analytical(grid, t, sim_variables):
     eta_s, eta, A, B, C = find_eta_s()
 
     # similarity length scale and shock radius
-    length_scale = (E_blast * t**2 / rho0)**0.2
+    length_scale = (E_blast * t**2 / rho0)**(1/Eps)
     shock_radius = eta_s * length_scale
-    shock_vel = (2/5) * shock_radius / t
+    shock_vel = 2 / Eps * shock_radius / t
 
     # interpolate A,B,C
     Aint = sp.interpolate.interp1d(eta, A, kind="cubic", fill_value=(A[0], 1.0), bounds_error=False)
@@ -334,15 +348,18 @@ def calculate_Sedov_analytical(grid, t, sim_variables):
     zeta = eta_grid[inside_shock]
     A_in, B_in, C_in = Aint(zeta), Bint(zeta), Cint(zeta)
     density[inside_shock] = rho2 * A_in
-    pressure[inside_shock] = P2 * (zeta / eta_s)**2 * B_in
-    vmag = v2 * (zeta / eta_s) * C_in
-    vx[inside_shock] = vmag * (rx[inside_shock] / r[inside_shock])
-    vy[inside_shock] = vmag * (ry[inside_shock] / r[inside_shock])
-    vz[inside_shock] = vmag * (rz[inside_shock] / r[inside_shock])
+    pressure[inside_shock] = P2 * B_in
+    vmag = v2 * C_in
+    vx[inside_shock] = vmag * (x0[inside_shock] / r[inside_shock])
+    if multidimensional:
+        vy[inside_shock] = vmag * (y0[inside_shock] / r[inside_shock])
+        if dimensions > 2:
+            vz[inside_shock] = vmag * (z0[inside_shock] / r[inside_shock])
 
     # handle center
-    density[(r - x_centre) < 1e-6] = rho2 * A[0]
-    pressure[(r - x_centre) < 1e-6] = P2 * (eta[0]/eta_s)**2 * B[0]
+    #density[r < 1e-6] = rho2 * A[0]
+    density[r < 1e-6] = density[r >= 1e-6].max()
+    pressure[r < 1e-6] = P2 * B[0]
 
     # populate arr
     arr = np.zeros_like(grid)
