@@ -357,8 +357,7 @@ def calculate_Sedov_analytical(grid, t, sim_variables):
             vz[inside_shock] = vmag * (z0[inside_shock] / r[inside_shock])
 
     # handle center
-    #density[r < 1e-6] = rho2 * A[0]
-    density[r < 1e-6] = density[r >= 1e-6].max()
+    density[r < 1e-6] = rho2 * A[0]
     pressure[r < 1e-6] = P2 * B[0]
 
     # populate arr
