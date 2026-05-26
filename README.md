@@ -391,7 +391,7 @@ astrea/
 │   ├── math.py       : Math functions, including specialised math functions
 │   ├── numeric.py    : Numerical functions for computing eigenvectors, Jacobian matrices, wavespeeds, etc.
 │   └── plotting.py   : Functions for media, e.g., (live-)plotting, saving videos
-├── simio
+├── iokit
 │   ├── __init__.py
 │   ├── chkpt_funcs.py  : Checkpoint file I/O functions
 │   ├── cli_funcs.py    : User input I/O functions

@@ -5,7 +5,7 @@ import numpy as np
 from tinydb import TinyDB, Query
 
 from functions.generic import BColours
-from simio import chkpt_funcs, cli_funcs, param_funcs
+from iokit import chkpt_funcs, cli_funcs, param_funcs
 
 ##############################################################################
 # Handler for I/O functions; consolidates and allocates user input

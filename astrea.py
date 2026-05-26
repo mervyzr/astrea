@@ -16,10 +16,10 @@ import numpy as np
 
 from functions import generic, plotting
 from functions import grid as gutils
+from iokit import chkpt_funcs, handler, simulation
 from numkit import c_transport as ct
 from physics import gravity, tracers, turbulence
 from physics.krome import krome_funcs
-from simio import chkpt_funcs, handler, simulation
 from static import tests
 from spatial.spatial import evolve as spatial_evolve
 from temporal.temporal import evolve as temporal_evolve
