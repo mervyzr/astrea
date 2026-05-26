@@ -313,7 +313,7 @@ def initiate_live_plot(sim_variables, title=False):
             ax[_i,_j].grid(linestyle='--', linewidth=0.5)
             graph, = ax[_i,_j].plot(np.linspace(left, right, cells[0]), np.linspace(left, right, cells[0]), color=plot_['colours']['1d'][idx])
         return graph
-    
+
     graphs = [assign_plots(*idx_ij) for idx_ij in zip(range(len(plot_['indexes'])), plot_['indexes'])]
 
     if title:
