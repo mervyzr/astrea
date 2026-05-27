@@ -1,17 +1,19 @@
 import numpy as np
 
+from physics import constants
+
 ##############################################################################
 # Conversion values for code units into physical units
 ##############################################################################
 
 class Constants(object):
-    def __init__(self, obj, units):
+    def __init__(self, units):
         try:
-            for name, value in obj.__dict__.items():
+            for name, value in constants.__dict__.items():
                 if not name.startswith("_"):
                     setattr(self, name, value)
         except Exception:
-            for name, value in obj.items():
+            for name, value in constants.items():
                 setattr(self, name, value)
 
         if units != "code":

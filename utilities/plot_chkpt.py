@@ -1,6 +1,5 @@
 import os
 import argparse
-from itertools import repeat
 
 import h5py
 import numpy as np
@@ -94,7 +93,7 @@ def run(save=False, title=False):
                         ds = {ax: np.abs(np.diff(coordinates[ax]))/cells[ax] for ax in range(len(cells))}
                         box_volume = np.prod([np.diff(_) for _ in coordinates.values()])
 
-                        constants = Constants(constant_values, units)
+                        constants = Constants(units)
                         permeability = constants.mu_0
 
                         if units != "code":
@@ -119,10 +118,10 @@ def run(save=False, title=False):
 
                         if units != "code":
                             fig, ax, plot_ = make_figure(plot_options, units, dimensions, coordinates, scale_labels=scale_labels)
-                            data = make_data(plot_options, grid, dimensions, gamma, permeability, boundary, ds, units, box_volume, plot_scales=plot_scales)
+                            data = make_data(plot_options, grid, dimensions, gamma, permeability, boundary, ds, units, box_volume, slice_axis, slice_3d, plot_scales=plot_scales)
                         else:
                             fig, ax, plot_ = make_figure(plot_options, units, dimensions, coordinates)
-                            data = make_data(plot_options, grid, dimensions, gamma, permeability, boundary, ds, units, box_volume)
+                            data = make_data(plot_options, grid, dimensions, gamma, permeability, boundary, ds, units, box_volume, slice_axis, slice_3d)
 
                         def assign_plots(idx, ij):
                             _i, _j = ij
@@ -374,7 +373,7 @@ def make_figure(options, units, dimensions, coordinates, scale_labels=None):
 
 
 
-def make_data(options, grid, dimensions, gamma, permeability, boundary, ds, units, box_volume, plot_scales=None):
+def make_data(options, grid, dimensions, gamma, permeability, boundary, ds, units, box_volume, slice_axis, slice_3d, plot_scales=None):
     get_axis = lambda op: {"x":0, "y":1, "z":2}[op[-1]]
     axes = np.array(range(dimensions))
 
@@ -426,6 +425,9 @@ def make_data(options, grid, dimensions, gamma, permeability, boundary, ds, unit
         else:
             quantity = grid[...,RHO]
             scaler = 'density'
+
+        if dimensions > 2:
+            quantity = np.take(quantity, slice_3d, axis=slice_axis)
 
         if scaling:
             return scaling[scaler] * quantity.T
@@ -480,8 +482,8 @@ constant_values = {
 
 
 class Constants(object):
-    def __init__(self, obj, units):
-        for name, value in obj.items():
+    def __init__(self, units):
+        for name, value in constant_values.items():
             setattr(self, name, value)
 
         # Set up scaling for physical units (CGS)

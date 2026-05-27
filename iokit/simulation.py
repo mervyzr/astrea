@@ -1,17 +1,29 @@
 import os
+from collections import namedtuple
 
 import numpy as np
 from tinydb import TinyDB, Query
 
 from functions import generic
 from functions.generic import BColours
-from physics import constants as const
 from physics.krome import krome_funcs
 from physics.conversions import Constants
 
 ##############################################################################
 # I/O functions for simulation variables
 ##############################################################################
+
+# Plucking function for creating namedtuple
+def plucker(obj, *args):
+    attrs = []
+    for arg in args:
+        if isinstance(arg, (list, tuple)):
+            attrs.extend(arg)
+        else:
+            attrs.append(arg)
+    Container = namedtuple('Container', attrs)
+    return Container(*(getattr(obj, attr) for attr in attrs))
+
 
 class Variables(object):
     __slots__ = [
@@ -49,7 +61,7 @@ class Variables(object):
         self.access_key = None
         self.timesteps = 0
 
-        self.constants = Constants(const, self.units)
+        self.constants = Constants(self.units)
 
         # 5th-order Gauss-Legendre quadrature with interval [0,1] for OS solver
         roots, weights = np.array(list(np.polynomial.legendre.leggauss(5)))/2
