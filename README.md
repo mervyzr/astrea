@@ -329,12 +329,12 @@ Clone this repository onto your local machine, and navigate to the cloned reposi
 
 In order to install the minimum packages to run the simulation, in the command line, run:
 ```bash
-python3 -m pip install .
+$ python3 -m pip install .
 ```
 
 To test whether the installation has installed properly, run:
 ```bash
-python3 astrea.py --init
+$ python3 astrea.py --init
 ```
 This would also create a `parameters.yml` file for changing the simulation configurations.
 
@@ -346,19 +346,19 @@ This would also create a `parameters.yml` file for changing the simulation confi
 The main method to run the simulation would be to edit the simulation parameters in `parameters.yml` and running the main Python file:
 
 ```bash
-python3 astrea.py
+$ python3 astrea.py
 ```
 
 OR
 
 ```bash
-./astrea.py
+$ ./astrea.py
 ```
 
 Alternatively, the code can be run with CLI options:
 
 ```bash
-python3 astrea.py --config=sedov --cells=256 --file=/path/to/checkpoint_file
+$ python3 astrea.py --config=sedov --cells=256 --file=/path/to/checkpoint_file
 ```
 
 See _`--help`_ for a list of available options.
