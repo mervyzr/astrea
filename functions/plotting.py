@@ -292,7 +292,7 @@ def initiate_live_plot(sim_variables, title=False):
         else:
             extent = [item for values in box_lengths.values() for item in values]
     else:
-        box_length = box_lengths.values()
+        [box_length] = box_lengths.values()
 
     def assign_plots(idx, ij):
         _i, _j = ij
@@ -385,7 +385,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
             extent = [item for values in box_lengths.values() for item in values]
             x_label, y_label = r"$x$", r"$y$"
     else:
-        box_length = box_lengths.values()
+        [box_length] = box_lengths.values()
         x_label = r'$x$'
 
     def assign_plots(idx, ij):
@@ -457,7 +457,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
             extent = [item for values in box_lengths.values() for item in values]
             x_label, y_label = r"$x$", r"$y$"
     else:
-        box_length = box_lengths.values()
+        [box_length] = box_lengths.values()
         x_label = r'$x$'
 
 
@@ -951,7 +951,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
             extent = [item for values in box_lengths.values() for item in values]
             x_label, y_label = r"$x$", r"$y$"
     else:
-        box_length = box_lengths.values()
+        [box_length] = box_lengths.values()
         x_label = r'$x$'
 
 
@@ -1115,7 +1115,7 @@ def plot_this(grid, sim_variables, **kwargs):
             extent = [item for values in box_lengths.values() for item in values]
             x_label, y_label = r"$x$", r"$y$"
     else:
-        box_length = box_lengths.values()
+        [box_length] = box_lengths.values()
         x_label = r'$x$'
 
     try:
