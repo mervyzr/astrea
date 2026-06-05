@@ -8,7 +8,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
-from matplotlib.patches import Polygon
+from matplotlib.patches import Circle, Polygon
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from functions import grid as gutils
@@ -292,7 +292,7 @@ def initiate_live_plot(sim_variables, title=False):
         else:
             extent = [item for values in box_lengths.values() for item in values]
     else:
-        left, right = box_lengths[0]
+        box_length = box_lengths.values()
 
     def assign_plots(idx, ij):
         _i, _j = ij
@@ -309,9 +309,9 @@ def initiate_live_plot(sim_variables, title=False):
             cax = divider.append_axes(position='right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
-            ax[_i,_j].set_xlim(left, right)
+            ax[_i,_j].set_xlim(*box_length)
             ax[_i,_j].grid(linestyle='--', linewidth=0.5)
-            graph, = ax[_i,_j].plot(np.linspace(left, right, cells[0]), np.linspace(left, right, cells[0]), color=plot_['colours']['1d'][idx])
+            graph, = ax[_i,_j].plot(np.linspace(*box_length, cells[0]), np.linspace(*box_length, cells[0]), color=plot_['colours']['1d'][idx])
         return graph
 
     graphs = [assign_plots(*idx_ij) for idx_ij in zip(range(len(plot_['indexes'])), plot_['indexes'])]
@@ -385,7 +385,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
             extent = [item for values in box_lengths.values() for item in values]
             x_label, y_label = r"$x$", r"$y$"
     else:
-        left, right = box_lengths[0]
+        box_length = box_lengths.values()
         x_label = r'$x$'
 
     def assign_plots(idx, ij):
@@ -398,7 +398,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
             cax = divider.append_axes(position='right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
-            x = np.linspace(left, right, cells[0])
+            x = np.linspace(*box_length, cells[0])
             if sim_variables.beautify_1d_plots:
                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
             else:
@@ -436,7 +436,7 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
 # Generic plot of simulation variables        
 def plot_quantities(hdf5, sim_variables, title=False):
     config, dimensions, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
-    t_end, checkpoints = sim_variables.t_end, sim_variables.checkpoints
+    t_end, checkpoints, coordinates = sim_variables.t_end, sim_variables.checkpoints, sim_variables.coordinates
     options, units, box_lengths = sim_variables.plot_options, sim_variables.units, sim_variables.box_lengths
 
     if sim_variables.save_as_pdf:
@@ -457,7 +457,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
             extent = [item for values in box_lengths.values() for item in values]
             x_label, y_label = r"$x$", r"$y$"
     else:
-        left, right = box_lengths[0]
+        box_length = box_lengths.values()
         x_label = r'$x$'
 
 
@@ -489,7 +489,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
             cax = divider.append_axes(position='right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
-            x = np.linspace(left, right, _cells[0])
+            x = np.linspace(*box_length, _cells[0])
             if len(hdf5) != 1:
                 # Multiple simulation runs in one HDF5 (only when --test option is used); plot all simulation runs
                 ax[_i,_j].plot(x, y, label=CELLS_TO_STR(_cells))
@@ -542,46 +542,81 @@ def plot_quantities(hdf5, sim_variables, title=False):
                 fig.text(0.04, 0.5, y_label, ha='center')
 
 
-        # Add analytical solutions only for 1D, using the highest resolution/grid size
-        if not multidimensional and (sim_variables.config_category == "smooth" or ("sod" in config or "sedov" in config)):
+        # Add analytical solutions using the highest resolution/grid size
+        if sim_variables.config_category == "smooth" or ("sod" in config or "sedov" in config):
             cells = hdf5[ref_datetime].attrs['cells']
-            x = np.linspace(left, right, cells[0])
-
             sim_variables.cells = cells
-            sim_variables.ds = {ax: np.abs(np.diff(sim_variables.coordinates[ax]))/cells[ax] for ax in range(len(cells))}
+            sim_variables.ds = {ax: np.abs(np.diff(coordinates[ax]))/cells[ax] for ax in range(len(cells))}
 
-            # Add analytical solution for smooth functions
-            if sim_variables.config_category == "smooth":
-                if "manufacture" in config or "euler" in config:
-                    analytical = analytic.calculate_Euler_analytical(hdf5[ref_datetime][str(ref_time)][:], sim_variables)
-                else:
-                    analytical = gutils.initialise(sim_variables)
-                y_theo = make_data(options, analytical, sim_variables)
+            plot_label = rf"{config.title()}$_{{theo}}$"
 
-                if config.startswith("sin"):
-                    plot_label = rf"{config}$_{{theo}}$"
-                elif config == "cpaw" or ("manufacture" in config or "euler" in config):
-                    plot_label = rf"{config.upper()}$_{{theo}}$"
-                else:
-                    plot_label = rf"{config.title()}$_{{theo}}$"
-
-            # Add Sod or Sedov analytical solution
-            elif "sod" in config or "sedov" in config:
+            # Add Sod analytical solution (1D)
+            if "sod" in config and not multidimensional:
                 _grid, _t = hdf5[ref_datetime][str(ref_time)][:], ref_time
-                plot_label = rf"{config.title()}$_{{theo}}$"
                 try:
-                    if "sod" in config:
-                        soln = analytic.calculate_Sod_analytical(_grid, _t, sim_variables)
-                    elif "sedov" in config:
-                        soln = analytic.calculate_Sedov_analytical(_grid, _t, sim_variables)
+                    soln = analytic.calculate_Sod_analytical(_grid, _t, sim_variables)
                 except Exception as e:
                     print(f"{BColours.WARNING}Analytic plot error: {e}{BColours.ENDC}")
-                    pass
                 else:
+                    x = np.linspace(*box_length, cells[0])
                     y_theo = make_data(options, soln, sim_variables)
+                    for idx, (_i,_j) in enumerate(plot_['indexes']):
+                        ax[_i,_j].plot(x, y_theo[idx], color=plot_['colours']['theo'], linestyle="--", label=plot_label)
 
-            for idx, (_i,_j) in enumerate(plot_['indexes']):
-                ax[_i,_j].plot(x, y_theo[idx], color=plot_['colours']['theo'], linestyle="--", label=plot_label)
+            # Add Sedov analytical solution (1D, 2D, 3D)
+            elif "sedov" in config:
+                _grid, _t = hdf5[ref_datetime][str(ref_time)][:], ref_time
+                try:
+                    soln, rshock = analytic.calculate_Sedov_analytical(_grid, _t, sim_variables)
+                except Exception as e:
+                    print(f"{BColours.WARNING}Analytic plot error: {e}{BColours.ENDC}")
+                else:
+                    if multidimensional:
+                        centres = tuple(np.average(axis_coord) for axis_coord in coordinates.values())
+                        if dimensions > 2:
+                            h = np.abs(_grid[...,0].shape[sim_variables.slice_axis]//2 - sim_variables.slice_3d) * sim_variables.ds[sim_variables.slice_axis][0]
+                            rshock = np.sqrt(rshock**2 - h**2)
+
+                        for idx, (_i,_j) in enumerate(plot_["indexes"]):
+                            circle = Circle(centres, rshock, fill=False, linestyle=':', linewidth=1.5, color=plot_['colours']['theo'], label=plot_label)
+                            ax[_i,_j].add_patch(circle)
+
+                    else:
+                        x = np.linspace(*box_length, cells[0])
+                        y_theo = make_data(options, soln, sim_variables)
+                        for idx, (_i,_j) in enumerate(plot_['indexes']):
+                            ax[_i,_j].plot(x, y_theo[idx], color=plot_['colours']['theo'], linestyle="--", label=plot_label)
+
+            # Add smooth analytical solution (1D, 2D, 3D)
+            elif sim_variables.config_category == "smooth":
+                if "manufacture" in config or "euler" in config:
+                    _grid = hdf5[ref_datetime][str(ref_time)][:]
+                    analytical = analytic.calculate_Euler_analytical(_grid, sim_variables)
+                else:
+                    analytical = gutils.initialise(sim_variables)
+                    if config.startswith("sin"):
+                        plot_label = rf"{config}$_{{theo}}$"
+                    elif config == "cpaw":
+                        plot_label = rf"{config.upper()}$_{{theo}}$"
+
+                y_theo = make_data(options, analytical, sim_variables)
+
+                if multidimensional:
+                    for idx, (_i,_j) in enumerate(plot_['indexes']):
+                        try:
+                            ax[_i,_j].contour(
+                                y_theo[idx], 
+                                color=plot_['colours']['2d'][idx], 
+                                origin='lower', 
+                                extent=extent, 
+                                levels=np.linspace(np.min(y_theo[idx]), np.max(y_theo[idx]), 5),
+                            )
+                        except ValueError:
+                            pass
+                else:
+                    x = np.linspace(*box_length, cells[0])
+                    for idx, (_i,_j) in enumerate(plot_['indexes']):
+                        ax[_i,_j].plot(x, y_theo[idx], color=plot_['colours']['theo'], linestyle="--", label=plot_label)
 
         if legends_on:
             def sort_key(label):
@@ -916,7 +951,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
             extent = [item for values in box_lengths.values() for item in values]
             x_label, y_label = r"$x$", r"$y$"
     else:
-        left, right = box_lengths[0]
+        box_length = box_lengths.values()
         x_label = r'$x$'
 
 
@@ -954,7 +989,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                             fig.colorbar(graph, cax=cax, orientation='vertical')
                             #graph.set_clim(0, 1)
                         else:
-                            x = np.linspace(left, right, cells[0])
+                            x = np.linspace(*box_length, cells[0])
                             if sim_variables.beautify_1d_plots:
                                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
                             else:
@@ -990,7 +1025,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                         graph = ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
                         #graph.set_clim(0, 1)
                     else:
-                        x = np.linspace(left, right, cells[0])
+                        x = np.linspace(*box_length, cells[0])
                         ax[idx,idx].plot(x, y_data[idx], color=plot_['colours']['1d'][idx])
 
                     ax[idx,idx].set_title('')
@@ -1032,7 +1067,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                         graph = ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][0], origin="lower", extent=extent)
                         #graph.set_clim(0, 1)
                     else:
-                        x = np.linspace(left, right, cells[0])
+                        x = np.linspace(*box_length, cells[0])
                         ax[idx,idx].plot(x, y_data[idx], color=plot_['colours']['1d'][style_counter])
 
                     ax[idx,idx].set_title('')
@@ -1080,7 +1115,7 @@ def plot_this(grid, sim_variables, **kwargs):
             extent = [item for values in box_lengths.values() for item in values]
             x_label, y_label = r"$x$", r"$y$"
     else:
-        left, right = box_lengths[0]
+        box_length = box_lengths.values()
         x_label = r'$x$'
 
     try:
@@ -1110,7 +1145,7 @@ def plot_this(grid, sim_variables, **kwargs):
             cax = divider.append_axes(position='right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
         else:
-            x = np.linspace(left, right, cells[0])
+            x = np.linspace(*box_length, cells[0])
             if sim_variables.beautify_1d_plots:
                 gradient_plot([x, y], [_i,_j], ax, color=plot_['colours']['1d'][idx])
             else:

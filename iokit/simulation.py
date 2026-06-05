@@ -89,9 +89,12 @@ class Variables(object):
         # CT-specific options
         self.ct_dissipative = os.getenv("CT_DISSIPATIVE", False)
 
-        # Permutations for axes
+        # Axes options
         self.multidimensional = self.dimensions >= 2
         self.axes = np.array(range(self.dimensions))
+        if self.dimensions > 2:
+            self.slice_axis = 2  # z-axis
+            self.slice_3d = int(self.cells[self.slice_axis]/2)
 
         # Gravity set-up
         self.self_gravity = self.ext_gravity = False
@@ -163,10 +166,6 @@ class Variables(object):
             self.save_plots = True
             if (self.live_plot or self.save_snaps or self.save_video):
                 self.live_plot = self.save_snaps = self.save_video = False
-
-        if self.dimensions > 2:
-            self.slice_axis = 2  # z-axis
-            self.slice_3d = int(self.cells[self.slice_axis]/2)
 
         if (self.save_snaps or self.save_plots or self.save_video) and self.live_plot:
             print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live_plot interferes with matplotlib.savefig..{BColours.ENDC}")
