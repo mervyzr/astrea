@@ -28,7 +28,7 @@ def evolve(grid, sim_variables, first_stage=False):
             else:
                 jobs = executor.map(weno.run, repeat(primitive), repeat(sim_variables), axes)
 
-        if subgrid_category == "eno":
+        elif subgrid_category == "eno":
             jobs = executor.map(teno.run, repeat(primitive), repeat(sim_variables), axes)
 
         elif subgrid_category == "ppm":

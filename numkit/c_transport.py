@@ -162,7 +162,7 @@ def reconstruct_transverse(data, sim_variables, axis, method=None, eta=None):
                 reconstruct = wenoz.reconstruct
             else:
                 reconstruct = weno.reconstruct
-        if method == "eno":
+        elif method == "eno":
             if sim_variables.subgrid.endswith("a"):
                 reconstruct = lambda _grid, _sim_variables, _axis: teno.reconstruct(_grid, _sim_variables, _axis, adaptive=True)
             else:
