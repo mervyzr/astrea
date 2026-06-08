@@ -10,12 +10,12 @@ from functions import grid as gutils
 def initialise(sim_variables):
     cells, dimensions, multidimensional, coordinates = sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.coordinates
 
-    physical_grid_x = gutils.make_physical_grid(coordinates[0], cells[0])
+    _, physical_grid_x = gutils.make_physical_grid(coordinates, cells, 0)
 
     if multidimensional:
-        physical_grid_y = gutils.make_physical_grid(coordinates[1], cells[1])
+        _, physical_grid_y = gutils.make_physical_grid(coordinates, cells, 1)
         if dimensions > 2:
-            physical_grid_z = gutils.make_physical_grid(coordinates[2], cells[2])
+            _, physical_grid_z = gutils.make_physical_grid(coordinates, cells, 2)
 
             grid = np.meshgrid(physical_grid_x, physical_grid_y, physical_grid_z, indexing='ij')
         else:

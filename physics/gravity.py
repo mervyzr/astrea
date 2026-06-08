@@ -22,14 +22,11 @@ def initialise(sim_variables):
         source_grid[...,gy] = -sim_variables.test_specifics['grav_acc']
 
     elif "torus" in config:
-        x_centre = np.average(coordinates[0])
-        physical_grid_x = gutils.make_physical_grid(coordinates[0], cells[0])
+        x_centre, physical_grid_x = gutils.make_physical_grid(coordinates, cells, 0)
         if multidimensional:
-            y_centre = np.average(coordinates[1])
-            physical_grid_y = gutils.make_physical_grid(coordinates[1], cells[1])
+            y_centre, physical_grid_y = gutils.make_physical_grid(coordinates, cells, 1)
             if dimensions > 2:
-                z_centre = np.average(coordinates[2])
-                physical_grid_z = gutils.make_physical_grid(coordinates[2], cells[2])
+                z_centre, physical_grid_z = gutils.make_physical_grid(coordinates, cells, 2)
 
                 x, y, z = np.meshgrid(physical_grid_x, physical_grid_y, physical_grid_z, indexing='ij')
                 r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2 + (z-z_centre)**2)

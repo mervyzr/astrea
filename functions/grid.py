@@ -12,11 +12,11 @@ from physics import turbulence
 ##############################################################################
 
 # Create a physical grid for a single axis
-def make_physical_grid(axis_coord, cells):
-    start_pos, end_pos = axis_coord
-    dh = np.abs(np.diff(axis_coord)[0])/cells
+def make_physical_grid(coordinates, cells, idx):
+    start_pos, end_pos = coordinates[idx]
+    dh = np.abs(np.diff(coordinates[idx])[0])/cells[idx]
     half_cell = .5 * dh
-    return np.linspace(start_pos-half_cell, end_pos+half_cell, cells+2)[1:-1]
+    return np.average(coordinates[idx]), np.linspace(start_pos-half_cell, end_pos+half_cell, cells[idx]+2)[1:-1]
 
 
 # Initialise the discrete POINTWISE solution array with initial conditions and primitive variables w, and transform into discrete AVERAGES <w>
@@ -35,19 +35,16 @@ def initialise(sim_variables):
     computational_grid = np.zeros(list(cells)+[len(ambient),], dtype=float, order='C')
     computational_grid[:] = ambient
 
-    x_centre = np.average(coordinates[0])
-    physical_grid_x = make_physical_grid(coordinates[0], cells[0])
+    x_centre, physical_grid_x = make_physical_grid(coordinates, cells, 0)
 
     if multidimensional:
-        y_centre = np.average(coordinates[1])
-        physical_grid_y = make_physical_grid(coordinates[1], cells[1])
+        y_centre, physical_grid_y = make_physical_grid(coordinates, cells, 1)
 
         if dimensions > 2:
             ##############################
             #  3-dimensional cases
             ##############################
-            z_centre = np.average(coordinates[2])
-            physical_grid_z = make_physical_grid(coordinates[2], cells[2])
+            z_centre, physical_grid_z = make_physical_grid(coordinates, cells, 2)
 
             x, y, z = np.meshgrid(physical_grid_x, physical_grid_y, physical_grid_z, indexing='ij')
             x0, y0, z0 = x - x_centre, y - y_centre, z - z_centre
