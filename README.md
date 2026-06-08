@@ -427,7 +427,6 @@ astrea/
 │   ├── __init__.py
 │   ├── .db.json        : Database for parameters
 │   ├── .default.yml    : Default parameters file
-|   ├── *.gif           : .gif files for graphics in README.md
 │   ├── tests.py        : Initial conditions for (magneto)hydrodynamics tests
 ├── temporal
 │   ├── __init__.py
