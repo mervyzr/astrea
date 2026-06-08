@@ -11,11 +11,10 @@
 **_This code was originally created as part of my Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner. The thesis has since been completed._**
 
 <p align='center'>
-  <img src='./static/khi-energy.gif' width=30% alt='Kelvin-Helmholtz instability'>
-  <img src='./static/ll3-density.gif' width=30% alt='Lax-Liu config. 3'>
-  <img src='./static/ot-magpressure.gif' width=30% alt='Orszag-Tang vortex'>
+  <img src='https://github.com/mervyzr/astrea_latex/blob/main/GIFs/khi-energy.gif' width=30% alt='Kelvin-Helmholtz instability'>
+  <img src='https://github.com/mervyzr/astrea_latex/blob/main/GIFs/ll3-density.gif' width=30% alt='Lax-Liu config. 3'>
+  <img src='https://github.com/mervyzr/astrea_latex/blob/main/GIFs/ot-magpressure.gif' width=30% alt='Orszag-Tang vortex'>
 </p>
-
 
 ### Table of Contents  
 - [Description](#description)
