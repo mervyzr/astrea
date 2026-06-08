@@ -219,8 +219,8 @@ def calculate_Sedov_analytical(grid, t, sim_variables):
         x0 = r = np.abs(x - x_centre)
         r0 = np.abs(shock_pos - x_centre)
 
-    # Initialise initial conditions and variables
-    E_blast = (np.pi**(dimensions/2) / gamma_func(dimensions/2 + 1)) * r0**dimensions * P_inj/(gamma-1)
+    # Initialise initial conditions and variables (assume ideal gas)
+    E_blast = P_inj/(gamma-1)
     Eps = dimensions + 2
 
     # ----------------------------------------------------
@@ -396,16 +396,13 @@ def calculate_Euler_analytical(grid, sim_variables):
     arr[...,vy] = .2
     arr[...,vz] = .3
 
-    Lx = np.diff(coordinates[0])
-    physical_grid_x = gutils.make_physical_grid(coordinates[0], cells[0])
+    Lx, physical_grid_x = gutils.make_physical_grid(coordinates, cells, 0)
 
     if multidimensional:
-        Ly = np.diff(coordinates[1])
-        physical_grid_y = gutils.make_physical_grid(coordinates[1], cells[1])
+        Ly, physical_grid_y = gutils.make_physical_grid(coordinates, cells, 1)
 
         if dimensions > 2:
-            Lz = np.diff(coordinates[2])
-            physical_grid_z = gutils.make_physical_grid(coordinates[2], cells[2])
+            Lz, physical_grid_z = gutils.make_physical_grid(coordinates, cells, 2)
 
             x, y, z = np.meshgrid(physical_grid_x, physical_grid_y, physical_grid_z, indexing='ij')
 
