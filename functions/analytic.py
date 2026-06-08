@@ -184,7 +184,7 @@ def calculate_Sod_analytical(grid, t, sim_variables):
 def calculate_Sedov_analytical(grid, t, sim_variables):
     cells, gamma, dimensions, multidimensional, coordinates = sim_variables.cells, sim_variables.gamma, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.coordinates
     rho0, vx0, vy0, vz0, P0, Bx0, By0, Bz0 = sim_variables.ambient
-    shock_pos, P_inj = sim_variables.shock_pos, sim_variables.init_cond[sim_variables.pressure]
+    P_inj = sim_variables.init_cond[sim_variables.pressure]
 
     # Create a physical half-grid for a single axis
     def make_half_grid(axis_coord, _cells):
@@ -206,18 +206,15 @@ def calculate_Sedov_analytical(grid, t, sim_variables):
             x, y, z = np.meshgrid(physical_halfgrid_x, physical_halfgrid_y, physical_halfgrid_z, indexing='ij')
             x0, y0, z0 = x - x_centre, y - y_centre, z - z_centre
             r = np.sqrt(x0**2 + y0**2 + z0**2)
-            r0 = np.sqrt((shock_pos-x_centre)**2 + (shock_pos-y_centre)**2 + (shock_pos-z_centre)**2)
 
         else:
             x, y = np.meshgrid(physical_halfgrid_x, physical_halfgrid_y, indexing='ij')
             x0, y0 = x - x_centre, y - y_centre
             r = np.sqrt(x0**2 + y0**2)
-            r0 = np.sqrt((shock_pos-x_centre)**2 + (shock_pos-y_centre)**2)
 
     else:
         x = physical_halfgrid_x
         x0 = r = np.abs(x - x_centre)
-        r0 = np.abs(shock_pos - x_centre)
 
     # Initialise initial conditions and variables (assume ideal gas)
     E_blast = P_inj/(gamma-1)
