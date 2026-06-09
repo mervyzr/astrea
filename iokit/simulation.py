@@ -63,14 +63,15 @@ class Variables(object):
 
         self.constants = Constants(self.units)
 
-        # 5th-order Gauss-Legendre quadrature with interval [0,1] for OS solver
-        roots, weights = np.array(list(np.polynomial.legendre.leggauss(5)))/2
-        self.roots = roots + .5
-        self.weights = weights
-
         self.config_category = db.get(params.accepted.any([self.config]))['category']
         self.subgrid_category = db.get(params.accepted.any([self.subgrid]))['category']
         self.solver_category = db.get(params.accepted.any([self.solver]))['category']
+
+        # 5th-order Gauss-Legendre quadrature with interval [0,1] for OS solver
+        if self.solver_category == "complete" and not self.solver.startswith("e"):
+            roots, weights = np.array(list(np.polynomial.legendre.leggauss(5)))/2
+            self.roots = roots + .5
+            self.weights = weights
 
         # Higher-order method options
         self.higher_order = self.grid_interpolate = False
