@@ -210,5 +210,5 @@ def make_sim_variables(file):
     from static import tests
     test_variables = tests.generate_test_conditions(config_variables)
 
-    from io import simulation
+    from iokit import simulation
     return simulation.Variables(config_variables, test_variables)
