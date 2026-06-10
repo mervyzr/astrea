@@ -439,5 +439,5 @@ astrea/
 │   ├── temporal.py   : Handler for time integration schemes
 ├── utilities
 │   ├── plot_chkpt.py   : Standalone plotting function for checkpoint files
-│   ├── make_simvars.py : Standalone function for generating simulation variables for testing individual functions with Python REPL
+│   ├── simvars.py : Standalone function for generating simulation variables for testing individual functions with Python REPL
 ```
