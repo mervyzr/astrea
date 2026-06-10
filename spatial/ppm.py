@@ -10,7 +10,7 @@ from numkit import limiters, solvers
 # Piecewise parabolic reconstruction method (PPM) [Colella & Woodward, 1984; McCorquodale & Colella, 2011; Felker & Stone, 2018]
 ##############################################################################
 
-def reconstruct(grid, sim_variables, axis, eta=None):
+def reconstruct(grid, sim_variables, axis):
     # Pad array with boundary; PPM requires additional ghost cells
     padded_grid_2 = gutils.add_boundary(grid, sim_variables, stencil=2, axis=axis)
     padded_grid = gutils.slice_(padded_grid_2, axis, *[1,-1])
@@ -67,24 +67,20 @@ def reconstruct(grid, sim_variables, axis, eta=None):
         'padded_grid':padded_grid, 'padded_grid_2':padded_grid_2, 'padded_interface_2':padded_interface_2
         })
 
-    if sim_variables.ppm_dissipate:
-        wL = wL * eta[...,None] + grid * (1-eta)[...,None]
-        wR = wR * eta[...,None] + grid * (1-eta)[...,None]
-
     return wL, wR
 
 
 def run(grid, sim_variables, axis, eta=None):
-    multidimensional, magnetic, ds, dissipate = sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds, sim_variables.ppm_dissipate
+    multidimensional, magnetic, ds = sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds
     data = {}
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
 
     # Parabolic piecewise reconstruction [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
-    if dissipate:
-        wL, wR = reconstruct(grid, sim_variables, axis, eta=eta)
-    else:
-        wL, wR = reconstruct(grid, sim_variables, axis)
+    wL, wR = reconstruct(grid, sim_variables, axis)
+    if sim_variables.ppm_dissipate:
+        wL = wL * eta[...,None] + grid * (1-eta)[...,None]
+        wR = wR * eta[...,None] + grid * (1-eta)[...,None]
 
     # Re-align the interfaces so that cell wall is in between interfaces
     assign_interfaces = ct.assign_interfaces if magnetic else gutils.assign_interfaces
@@ -145,7 +141,7 @@ def run(grid, sim_variables, axis, eta=None):
         intf_fluxes_cntrd = intf_fluxes_avgd
 
     # Add additional dissipation for strong shocks, if switched on (should not apply for mag. fields) [McCorquodale & Colella, 2011]
-    if dissipate:
+    if sim_variables.ppm_dissipate:
         plus_one = gutils.slice_(gutils.add_boundary(grid, sim_variables, axis=axis), axis, start=2)
         intf_fluxes_cntrd += get_artificial_viscosity((grid, plus_one), axis, sim_variables)
 
@@ -156,36 +152,39 @@ def run(grid, sim_variables, axis, eta=None):
 
 
 # Calculate the coefficient of the slope flattener for the parabolic interpolants/extrapolants [Colella, 1990]
-def get_flattening_coeff(grid, sim_variables, axis, slope_determinants=[.33, .75, .85]):
+def get_flattening_coeff(grid, sim_variables, slope_determinants=[.33, .75, .85]):
     delta, z0, z1 = slope_determinants
-    pressure = sim_variables.pressure
+    axes, pressure = sim_variables.axes, sim_variables.pressure
 
-    padded_primitive_2 = gutils.add_boundary(grid, sim_variables, stencil=2, axis=axis)
-    padded_primitive = gutils.slice_(padded_primitive_2, axis, *[1,-1])
+    def coefficient_per_axis(_grid, _sim_variables, axis):
+        padded_primitive_2 = gutils.add_boundary(_grid, _sim_variables, stencil=2, axis=axis)
+        padded_primitive = gutils.slice_(padded_primitive_2, axis, *[1,-1])
 
-    minus_one, minus_two = gutils.slice_(padded_primitive, axis, end=-2), gutils.slice_(padded_primitive_2, axis, end=-4)
-    plus_one, plus_two = gutils.slice_(padded_primitive, axis, start=2), gutils.slice_(padded_primitive_2, axis, start=4)
+        minus_one, minus_two = gutils.slice_(padded_primitive, axis, end=-2), gutils.slice_(padded_primitive_2, axis, end=-4)
+        plus_one, plus_two = gutils.slice_(padded_primitive, axis, start=2), gutils.slice_(padded_primitive_2, axis, start=4)
 
-    # zeta function
-    z = mfuncs.divide(np.abs(plus_one[...,pressure]-minus_one[...,pressure]), np.abs(plus_two[...,pressure]-minus_two[...,pressure]))
-    chi_bar = 1 - mfuncs.divide(z-z0, z1-z0)
-    chi_bar[z > z1] = 0
-    chi_bar[z < z0] = 1
+        # zeta function
+        z = mfuncs.divide(np.abs(plus_one[...,pressure]-minus_one[...,pressure]), np.abs(plus_two[...,pressure]-minus_two[...,pressure]))
+        chi_bar = 1 - mfuncs.divide(z-z0, z1-z0)
+        chi_bar[z > z1] = 0
+        chi_bar[z < z0] = 1
 
-    # Update chi_bar based on condition [eq. 4.9]
-    otherwise_condition = np.where(
-        ((minus_one[...,1+axis]-plus_one[...,1+axis]) <= 0)
-        & (mfuncs.divide(np.abs(plus_one[...,pressure]-minus_one[...,pressure]), np.minimum(plus_one[...,pressure], minus_one[...,pressure])) <= delta))
-    chi_bar[otherwise_condition] = 0
+        # Update chi_bar based on condition [eq. 4.9]
+        otherwise_condition = np.where(
+            ((minus_one[...,1+axis]-plus_one[...,1+axis]) <= 0)
+            & (mfuncs.divide(np.abs(plus_one[...,pressure]-minus_one[...,pressure]), np.minimum(plus_one[...,pressure], minus_one[...,pressure])) <= delta))
+        chi_bar[otherwise_condition] = 0
 
-    # Create flattening coefficient
-    chi = np.copy(chi_bar)
-    chi_bar_padded = gutils.add_boundary(chi_bar, sim_variables, axis=axis)
-    signage = np.sign(plus_one[...,pressure]-minus_one[...,pressure])
-    chi[signage < 0] = np.minimum(chi_bar, gutils.slice_(chi_bar_padded, axis, start=2))[signage < 0]
-    chi[signage > 0] = np.minimum(chi_bar, gutils.slice_(chi_bar_padded, axis, end=-2))[signage > 0]
+        # Create flattening coefficient
+        chi = np.copy(chi_bar)
+        chi_bar_padded = gutils.add_boundary(chi_bar, _sim_variables, axis=axis)
+        signage = np.sign(plus_one[...,pressure]-minus_one[...,pressure])
+        chi[signage < 0] = np.minimum(chi_bar, gutils.slice_(chi_bar_padded, axis, start=2))[signage < 0]
+        chi[signage > 0] = np.minimum(chi_bar, gutils.slice_(chi_bar_padded, axis, end=-2))[signage > 0]
 
-    return chi
+        return chi
+    
+    return np.minimum(1, np.min([coefficient_per_axis(grid, sim_variables, axis) for axis in axes], axis=0))
 
 
 # Implement artificial viscosity [McCorquodale & Colella, 2011]

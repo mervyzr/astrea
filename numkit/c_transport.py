@@ -101,7 +101,7 @@ def inverse_reconstruct(grid, sim_variables):
 
 # Reconstruct the longitudinal B-fields for each transverse axis
 # Note that this reconstruction is done at the cell INTERFACES, NOT cell CENTRES
-def reconstruct_transverse(data, sim_variables, axis, method=None, eta=None):
+def reconstruct_transverse(data, sim_variables, axis, method=None):
     ortho_interfaces = {}
 
     # Get the orthogonal axes & emfs from the axis being computed
@@ -168,10 +168,7 @@ def reconstruct_transverse(data, sim_variables, axis, method=None, eta=None):
             else:
                 reconstruct = teno.reconstruct
         elif method == "ppm":
-            if sim_variables.ppm_dissipate:
-                reconstruct = lambda _grid, _sim_variables, _axis: ppm.reconstruct(_grid, _sim_variables, _axis, eta=eta)
-            else:
-                reconstruct = ppm.reconstruct
+            reconstruct = ppm.reconstruct
         elif method == "plm":
             reconstruct = plm.reconstruct
         else:
