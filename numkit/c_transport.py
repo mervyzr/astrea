@@ -32,7 +32,8 @@ def convert(variable, grid, sim_variables):
 
 # Compute the maximum(+) & minimum(-) eigenvalues for alpha+ and alpha- respectively for each axis; used in the compute_emf function
 def compute_alphas(characteristics, axis):
-    local_max, local_min = np.max(characteristics, axis=-1), np.min(characteristics, axis=-1)
+    local_values = np.max(characteristics, axis=-1), np.min(characteristics, axis=-1)
+    local_funcs = np.maximum, np.minimum
 
     def compute_plus_minus(_axis, func, localised_eigenvalues):
         plus = func(
@@ -44,10 +45,8 @@ def compute_alphas(characteristics, axis):
             gutils.slice_(localised_eigenvalues, axis, end=-2)
         )
         return func(0, .5 * (plus + minus))
-
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        jobs = executor.map(compute_plus_minus, repeat(axis), (np.maximum, np.minimum), (local_max, local_min))
-        alpha_plus, alpha_minus = [job for job in jobs]
+    
+    alpha_plus, alpha_minus = [compute_plus_minus(axis, func, eigenvalues) for func, eigenvalues in zip(local_funcs, local_values)]
 
     return gutils.slice_(alpha_plus, axis, start=1), gutils.slice_(-alpha_minus, axis, start=1)
 
@@ -61,26 +60,27 @@ def inverse_reconstruct(grid, sim_variables):
         face_cntrd = np.copy(_Bfields)
 
         if _sim_variables.higher_order:
+            _axes = _sim_variables.axes
+
             # Approximate the face-averaged values to face-centred values with orthogonal axes (eq. 38)
             if _sim_variables.grid_interpolate and _sim_variables.multidimensional:
                 ortho_axes = _sim_variables.axes[_sim_variables.axes != axis]
                 with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-                    jobs = inner_executor.map(gutils.laplacian, repeat(_Bfields), repeat(_sim_variables), ortho_axes)
-                    for idx, ortho_Bfield in enumerate(jobs):
+                    for idx, ortho_Bfield in enumerate(inner_executor.map(gutils.laplacian, repeat(_Bfields), repeat(_sim_variables), ortho_axes)):
                         face_cntrd -= (_sim_variables.ds[ortho_axes[idx]]**2)/24 * ortho_Bfield
 
             # Interpolate the face-centred values to cell-centred values with axis (eq. 39)
             face_cntrd_padded_2 = gutils.add_boundary(face_cntrd, _sim_variables, stencil=2, axis=axis)
             face_cntrd_padded = gutils.slice_(face_cntrd_padded_2, axis, *[1,-1])
-            cell_cntrd = -1/16 * (gutils.slice_(face_cntrd_padded, axis, start=2) + gutils.slice_(face_cntrd_padded_2, axis, end=-4)) \
-                        + 9/16 * (np.copy(face_cntrd) + gutils.slice_(face_cntrd_padded, axis, end=-2))
+            cell_cntrd = (
+                -1/16 * (gutils.slice_(face_cntrd_padded, axis, start=2) + gutils.slice_(face_cntrd_padded_2, axis, end=-4))
+                + 9/16 * (face_cntrd + gutils.slice_(face_cntrd_padded, axis, end=-2))
+            )
 
             # Apply Laplacian operator to convert cell-centred values to cell-averaged values (eq. 40)
             cell_avgd = np.copy(cell_cntrd)
-            _axes = _sim_variables.axes
             with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-                jobs = inner_executor.map(gutils.laplacian, repeat(cell_cntrd), repeat(_sim_variables), _axes)
-                for idx, _Bfield in enumerate(jobs):
+                for idx, _Bfield in enumerate(inner_executor.map(gutils.laplacian, repeat(cell_cntrd), repeat(_sim_variables), _axes)):
                     cell_avgd += (_sim_variables.ds[_axes[idx]]**2)/24 * _Bfield
 
         else:
@@ -92,8 +92,7 @@ def inverse_reconstruct(grid, sim_variables):
 
     # Update the grid values with the updated B-field values
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        jobs = executor.map(inversion_per_axis, repeat(grid[...,sim_variables.Bfields]), repeat(sim_variables), axes)
-        for idx, Bfield in enumerate(jobs):
+        for idx, Bfield in enumerate(executor.map(inversion_per_axis, repeat(grid[...,sim_variables.Bfields]), repeat(sim_variables), axes)):
             new_grid[...,5+axes[idx]] = Bfield[...,axes[idx]]
 
     return new_grid
@@ -181,9 +180,7 @@ def reconstruct_transverse(data, sim_variables, axis, method=None):
         def reconstruct_per_interface_pair(interface_pair, _sim_variables, normal_axis):
             intfs = []
             with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-                jobs = inner_executor.map(reconstruct, interface_pair, repeat(_sim_variables), repeat(normal_axis))
-
-                for [wU, wD] in jobs:
+                for wU, wD in inner_executor.map(reconstruct, interface_pair, repeat(_sim_variables), repeat(normal_axis)):
                     # Re-align the interfaces so that cell wall is in between interfaces
                     prim_plus, prim_minus = gutils.slice_(gutils.add_boundary(wD, sim_variables, axis=normal_axis), normal_axis, start=1), gutils.slice_(gutils.add_boundary(wU, sim_variables, axis=normal_axis), normal_axis, end=-1)
 
@@ -197,8 +194,7 @@ def reconstruct_transverse(data, sim_variables, axis, method=None):
         # interfaces = [ 0: (E,W) , 1: (N,S) ]
         interfaces = [data[axis]['interfaces'] for axis in ortho_axes]
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            jobs = executor.map(reconstruct_per_interface_pair, interfaces, repeat(sim_variables), normal_axes)
-            ortho_interfaces = dict(zip(normal_axes, jobs))
+            ortho_interfaces = dict(zip(normal_axes, executor.map(reconstruct_per_interface_pair, interfaces, repeat(sim_variables), normal_axes)))
 
     return ortho_interfaces
 
@@ -288,10 +284,8 @@ def compute_ct_flux(flux, emfs, sim_variables, axis):
         return emf_diff
 
     # Update CT flux in axis; set the other axes fluxes to zero (for summation later)
-    with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-        jobs = inner_executor.map(per_normal_axis, ortho_emfs, repeat(sim_variables), normal_axes)
-
-        flux[...,5+axis] = (-1)**axis * np.diff([emf_flux for emf_flux in jobs], axis=0)
-        flux[...,5+ortho_axes] = 0
+    ct_fluxes = [per_normal_axis(ortho_emf, sim_variables, normal_axis) for ortho_emf, normal_axis in zip(ortho_emfs, normal_axes)]
+    flux[...,5+axis] = (-1)**axis * np.diff(ct_fluxes, axis=0)
+    flux[...,5+ortho_axes] = 0
 
     return flux

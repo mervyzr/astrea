@@ -582,12 +582,10 @@ def variable_inversion_per_axis(variable_form, grid, sim_variables, axis):
 
 # Converting cell-averaged conservative variables <q>_{i,j} <-> cell-averaged primitive variables <w>_{i,j} at higher-order accuracy
 def variable_convert(variable_form, grid, sim_variables):
-    base, expansion = np.copy(grid), np.zeros_like(grid)
+    base, expansion = np.copy(grid), 0
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        jobs = executor.map(variable_inversion_per_axis, repeat(variable_form), repeat(grid), repeat(sim_variables), sim_variables.axes)
-
-        for original_expansion, converted_expansion in jobs:
+        for original_expansion, converted_expansion in executor.map(variable_inversion_per_axis, repeat(variable_form), repeat(grid), repeat(sim_variables), sim_variables.axes):
             base -= original_expansion
             expansion += converted_expansion
 
@@ -595,16 +593,15 @@ def variable_convert(variable_form, grid, sim_variables):
 
 
 # Converting face-averaged conservative variables <q>_{i+1/2,j} <-> face-averaged primitive variables <w>_{i+1/2,j}
+# Looks very similar to variable_convert, doesn't it? Tempting to combine, but don't do it; easier for debugging this way
 def variable_convert_intf(variable_form, grid, sim_variables, axis):
-    base, expansion = np.copy(grid), np.zeros_like(grid)
+    base, expansion = np.copy(grid), 0
 
     if sim_variables.grid_interpolate and sim_variables.multidimensional:
         ortho_axes = sim_variables.axes[sim_variables.axes != axis]
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            jobs = executor.map(variable_inversion_per_axis, repeat(variable_form), repeat(grid), repeat(sim_variables), ortho_axes)
-
-            for original_expansion, converted_expansion in jobs:
+            for original_expansion, converted_expansion in executor.map(variable_inversion_per_axis, repeat(variable_form), repeat(grid), repeat(sim_variables), ortho_axes):
                 base -= original_expansion
                 expansion += converted_expansion
 
@@ -619,56 +616,54 @@ def variable_convert_intf(variable_form, grid, sim_variables, axis):
 # Method convert between point-representation (finite difference) and averaged-representation (finite volume) [ALL AXES]
 # Converting cell-centred variables q_{i,j} <-> cell-averaged variables <q>_{i,j} through a Laplacian (2nd-deriv, 2nd-order) approx. for each axis (up to 4th-order accurate)
 def method_convert_cell(grid_form, grid, sim_variables, axis=None):
-    base = np.copy(grid)
-
     if sim_variables.grid_interpolate:
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            jobs = executor.map(laplacian, repeat(grid), repeat(sim_variables), sim_variables.axes)
+        base = np.copy(grid)
 
-            for idx, expansion in enumerate(jobs):
-                if grid_form.lower().startswith('a'):
-                    # averaged -> point
-                    base -= (sim_variables.ds[sim_variables.axes[idx]]**2)/24 * expansion
-                elif grid_form.lower().startswith('p'):
-                    # point -> averaged
-                    base += (sim_variables.ds[sim_variables.axes[idx]]**2)/24 * expansion
-    return base
+        if grid_form.lower().startswith('a'):
+            coeff = -1  # averaged -> point
+        elif grid_form.lower().startswith('p'):
+            coeff = 1  # point -> averaged
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for idx, expansion in enumerate(executor.map(laplacian, repeat(grid), repeat(sim_variables), sim_variables.axes)):
+                base += coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24 * expansion
+        return base
+    else:
+        return grid
 
 
 # Method convert between point-representation (finite difference) and averaged-representation (finite volume) for interfaces [ORTHOGONAL AXES]
 # Converting face-centred variables q_{i+1/2,j} <-> face-averaged variables <q>_{i+1/2,j} through a Laplacian (2nd-deriv, 2nd-order) approx. (up to 4th-order accurate)
 def method_convert_intf(grid_form, grid, sim_variables, axis):
-    base = np.copy(grid)
-
     if sim_variables.grid_interpolate and sim_variables.multidimensional:
+        base = np.copy(grid)
         ortho_axes = sim_variables.axes[sim_variables.axes != axis]
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            jobs = executor.map(laplacian, repeat(grid), repeat(sim_variables), ortho_axes)
+        if grid_form.lower().startswith('a'):
+            coeff = -1  # averaged -> point
+        elif grid_form.lower().startswith('p'):
+            coeff = 1  # point -> averaged
 
-            for idx, expansion in enumerate(jobs):
-                if grid_form.lower().startswith('a'):
-                    # averaged -> point
-                    base -= (sim_variables.ds[ortho_axes[idx]]**2)/24 * expansion
-                elif grid_form.lower().startswith('p'):
-                    # point -> averaged
-                    base += (sim_variables.ds[ortho_axes[idx]]**2)/24 * expansion
-    return base
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for idx, expansion in enumerate(executor.map(laplacian, repeat(grid), repeat(sim_variables), ortho_axes)):
+                base += coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24 * expansion
+        return base
+    else:
+        return grid
 
 
 # Handler for converting (at higher-order) each +/- interface in each axis from averaged interfaces to point/centred interfaces in the multi-dimensional higher-order schemes
 def approx_face_avg(interfaces, sim_variables, axis):
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        return list(executor.map(method_convert_intf, repeat('avg'), interfaces, repeat(sim_variables), repeat(axis)))
+    return [method_convert_intf('avg', interface, sim_variables, axis) for interface in interfaces]
     
 
 # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation for each orthogonal axis
 def approx_flux_avg(cntrd_fluxes, avgd_fluxes, sim_variables, axis):
     ortho_axes = sim_variables.axes[sim_variables.axes != axis]
+
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        jobs = executor.map(laplacian, repeat(avgd_fluxes), repeat(sim_variables), ortho_axes)
-        for idx, job in enumerate(jobs):
-            cntrd_fluxes -= (sim_variables.ds[ortho_axes[idx]]**2)/24 * job
+        for idx, flux_avg in enumerate(executor.map(laplacian, repeat(avgd_fluxes), repeat(sim_variables), ortho_axes)):
+            cntrd_fluxes -= (sim_variables.ds[ortho_axes[idx]]**2)/24 * flux_avg
     return cntrd_fluxes
 
 
