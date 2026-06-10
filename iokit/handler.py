@@ -182,33 +182,3 @@ def filter_variables(config_variables):
         config_variables[k] = v
 
     return config_variables
-
-
-# Make simulation variables when testing functions in Python REPL; 
-# most functions require sim_variables, so it might be useful to have a function auto-generate one as needed
-def make_sim_variables(file):
-    config_variables = {
-        'seed': -1,
-        'home': '.',
-        'db_path': "static/.db.json",
-        'hdf5': ".astrea_hdf5_temp_-1",
-        'chemistry': False,
-        'tracers': False,
-        'gravity': False,
-        'init': False,
-        'verbose': False,
-        'write_chkpt': False,
-        'test': False,
-        'quiet': False,
-    }
-
-    yaml_variables = param_funcs.load_parameters(file)
-    config_variables.update(yaml_variables)
-
-    config_variables = filter_variables(config_variables)
-
-    from static import tests
-    test_variables = tests.generate_test_conditions(config_variables)
-
-    from io import simulation
-    return simulation.Variables(config_variables, test_variables)
