@@ -1,6 +1,3 @@
-import concurrent.futures
-from itertools import repeat
-
 import numpy as np
 
 from functions import grid as gutils
@@ -55,16 +52,10 @@ def poisson_solver(grid, sim_variables, G=1., eps=1e-6):
     rhos_k = np.fft.fftn(rhos)
 
     # Construct k-vectors for each dimension from FFT
-    compute_k = lambda n, dh: 2 * np.pi * np.fft.fftfreq(n, d=dh)
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        jobs = executor.map(compute_k, cells, ds)
-        kvectors = np.meshgrid(*[kvector for kvector in jobs], indexing='ij')
+    kvectors = np.meshgrid(*[2 * np.pi * np.fft.fftfreq(n, d=dh) for n, dh in zip(cells, ds)], indexing='ij')
 
     # Build higher-order |k|^2 on full grid
-    compute_k2 = lambda kvector, dh: 4/(dh**2) * np.sin(.5* kvector * dh)**2
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        jobs = executor.map(compute_k2, kvectors, ds)
-        rhos_k2 = np.sum([k2 for k2 in jobs], axis=0)
+    rhos_k2 = np.sum([4/(dh**2) * np.sin(.5* kvector * dh)**2 for kvector, dh in zip(kvectors, ds)], axis=0)
 
     # Solve Poisson equation in Fourier space
     phi_k = np.zeros_like(rhos_k, dtype=np.complex128)
@@ -93,11 +84,7 @@ def get_acceleration(potentials, sim_variables):
             padded_phi = gutils.add_boundary(phi, sim_variables, axis=ax)
             return -(gutils.slice_(padded_phi, axis=ax, start=2) - gutils.slice_(padded_phi, axis=ax, end=-2))/(2 * ds[ax])
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        jobs = executor.map(axis_acc, repeat(potentials), axes)
-        g_accs = np.stack([g_acc for g_acc in jobs], axis=0)
-
-    return g_accs
+    return np.stack([axis_acc(potentials, axis) for axis in axes], axis=0)
 
 
 # Update step for gravity with conservative grid, given the timestep dt

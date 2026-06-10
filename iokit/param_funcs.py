@@ -14,8 +14,8 @@ def load_parameters(yaml_file):
     try:
         with open(yaml_file, "r") as f:
             nested_variables = yaml.safe_load(f)
-    except Exception:
-        print(f"{BColours.FAIL}parameters.yml file not found; please run astrea again with the --init option..{BColours.ENDC}")
+    except Exception as e:
+        print(f"{BColours.FAIL}Error with parameters.yml file: {e}..{BColours.ENDC}")
         sys.exit(0)
     else:
         # Remove nested dictionary from config_variables

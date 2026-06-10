@@ -47,8 +47,7 @@ def drive(forcing_field, dt, eigmax, sim_variables, proj='wiener'):
     fourier_field = np.fft.fftn(forcing_field, axes=axes)
 
     # Construct k-vectors for each dimension with FFT
-    kv = [2 * np.pi * np.fft.fftfreq(n, d=dh) for n, dh in zip(cells, ds)]
-    kvectors = np.meshgrid(*kv, indexing='ij')
+    kvectors = np.meshgrid(*[2 * np.pi * np.fft.fftfreq(n, d=dh) for n, dh in zip(cells, ds)], indexing='ij')
 
     # Compute k^2 and protect against division by zero
     k2 = sum(k**2 for k in kvectors)

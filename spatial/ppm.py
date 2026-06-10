@@ -1,6 +1,3 @@
-import concurrent.futures
-from itertools import repeat
-
 import numpy as np
 
 from functions import grid as gutils
@@ -211,9 +208,7 @@ def get_artificial_viscosity(grid_slices, axis, sim_variables, viscosity_determi
     # Calculate face-centred divergence of velocity [eq. 35]
     lambda_d = plus_one - zeroth
     if sim_variables.multidimensional:
-        with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-            jobs = inner_executor.map(per_ortho_axis, repeat(grid_slices), repeat(sim_variables), ortho_axes)
-            lambda_d += np.sum([job for job in jobs], axis=0)
+        lambda_d += np.sum([per_ortho_axis(grid_slices, sim_variables, ortho_axis) for ortho_axis in ortho_axes], axis=0)
 
     # Calculate minimum sound speed
     cs_grid = mfuncs.divide(sim_variables.gamma * zeroth[...,pressure], zeroth[...,rho])
