@@ -68,25 +68,25 @@ def prim_to_cons_numpy(P):
 
     E = p / (GAMMA - 1.0) + kinetic + magnetic
 
-    U[..., 0] = rho
-    U[..., 1] = rho * vx
-    U[..., 2] = rho * vy
-    U[..., 3] = rho * vz
-    U[..., 4] = E
-    U[..., 5] = bx
-    U[..., 6] = by
-    U[..., 7] = bz
+    U[..., IDN] = rho
+    U[..., IVX] = rho * vx
+    U[..., IVY] = rho * vy
+    U[..., IVZ] = rho * vz
+    U[..., IPR] = E
+    U[..., IBX] = bx
+    U[..., IBY] = by
+    U[..., IBZ] = bz
 
     return U
 
 
-@nb.njit(fastmath=True)
+@nb.njit(parallel=True, fastmath=True)
 def prim_to_cons_numba(P, U):
     nx, ny, nz, _ = P.shape
 
-    for i in range(nx):
-        for j in range(ny):
-            for k in range(nz):
+    for i in nb.prange(nx):
+        for j in nb.prange(ny):
+            for k in nb.prange(nz):
 
                 rho = P[i, j, k, IDN]
                 vx  = P[i, j, k, IVX]
@@ -211,24 +211,6 @@ def flux_z_numpy(P):
     )
 
     vdotb = vx*bx + vy*by + vz*bz
-
-    F[..., IDN] = rho * vx
-    F[..., IVX] = rho*vx*vx + ptot - bx*bx
-    F[..., IVY] = rho*vx*vy - bx*by
-    F[..., IVZ] = rho*vx*vz - bx*bz
-    F[..., IPR] = (E + ptot)*vx - bx*vdotb
-    F[..., IBX] = 0.0
-    F[..., IBY] = vy*bx - vx*by
-    F[..., IBZ] = vz*bx - vx*bz
-
-    F[..., IDN] = rho * vy
-    F[..., IVX] = rho*vy*vx - by*bx
-    F[..., IVY] = rho*vy*vy + ptot - by*by
-    F[..., IVZ] = rho*vy*vz - by*bz
-    F[..., IPR] = (E + ptot)*vy - by*vdotb
-    F[..., IBX] = vx*by - vy*bx
-    F[..., IBY] = 0.0
-    F[..., IBZ] = vz*by - vy*bz
 
     F[..., IDN] = rho * vz
     F[..., IVX] = rho*vz*vx - bz*bx
@@ -387,14 +369,14 @@ def cons_to_prim_numpy(U):
 # NUMBA IMPLEMENTATION
 # ------------------------------------------------------------
 
-@nb.njit(fastmath=True)
+@nb.njit(parallel=True, fastmath=True)
 def cons_to_prim_numba(U, P):
 
     nx, ny, nz, _ = U.shape
 
-    for i in range(nx):
-        for j in range(ny):
-            for k in range(nz):
+    for i in nb.prange(nx):
+        for j in nb.prange(ny):
+            for k in nb.prange(nz):
 
                 rho = U[i, j, k, IDN]
 
@@ -423,16 +405,16 @@ def cons_to_prim_numba(U, P):
                 P[i, j, k, IBZ] = bz
 
 
-@nb.njit(fastmath=True)
+@nb.njit(parallel=True, fastmath=True)
 def compute_dt_numba(P, dx):
 
     nx, ny, nz, _ = P.shape
 
     smax = 0.0
 
-    for i in range(nx):
-        for j in range(ny):
-            for k in range(nz):
+    for i in nb.prange(nx):
+        for j in nb.prange(ny):
+            for k in nb.prange(nz):
 
                 rho = P[i, j, k, IDN]
                 p   = P[i, j, k, IPR]
@@ -455,7 +437,7 @@ def compute_dt_numba(P, dx):
     return CFL * dx / smax
 
 
-@nb.njit(fastmath=True)
+@nb.njit(parallel=True, fastmath=True)
 def step_numba(P, dx, dt):
 
     nx, ny, nz, _ = P.shape
@@ -468,9 +450,9 @@ def step_numba(P, dx, dt):
     Unew[:] = U[:]
 
     # x-fluxes
-    for i in range(1, nx):
-        for j in range(ny):
-            for k in range(nz):
+    for i in nb.prange(1, nx):
+        for j in nb.prange(ny):
+            for k in nb.prange(nz):
 
                 rhoL = P[i-1, j, k, IDN]
                 rhoR = P[i, j, k, IDN]
@@ -486,7 +468,7 @@ def step_numba(P, dx, dt):
 
                 a = max(abs(vxL)+csL, abs(vxR)+csR)
 
-                for n in range(NVAR):
+                for n in nb.prange(NVAR):
 
                     FL = U[i-1, j, k, n] * vxL
                     FR = U[i, j, k, n] * vxR
@@ -497,9 +479,9 @@ def step_numba(P, dx, dt):
                     Unew[i,   j, k, n] += dt/dx * flux
 
     # y-fluxes
-    for i in range(nx):
-        for j in range(1, ny):
-            for k in range(nz):
+    for i in nb.prange(nx):
+        for j in nb.prange(1, ny):
+            for k in nb.prange(nz):
 
                 rhoL = P[i, j-1, k, IDN]
                 rhoR = P[i, j, k, IDN]
@@ -515,7 +497,7 @@ def step_numba(P, dx, dt):
 
                 a = max(abs(vyL)+csL, abs(vyR)+csR)
 
-                for n in range(NVAR):
+                for n in nb.prange(NVAR):
 
                     FL = U[i, j-1, k, n] * vyL
                     FR = U[i, j, k, n] * vyR
@@ -526,9 +508,9 @@ def step_numba(P, dx, dt):
                     Unew[i, j,   k, n] += dt/dx * flux
 
     # z-fluxes
-    for i in range(nx):
-        for j in range(ny):
-            for k in range(1, nz):
+    for i in nb.prange(nx):
+        for j in nb.prange(ny):
+            for k in nb.prange(1, nz):
 
                 rhoL = P[i, j, k-1, IDN]
                 rhoR = P[i, j, k, IDN]
@@ -544,7 +526,7 @@ def step_numba(P, dx, dt):
 
                 a = max(abs(vzL)+csL, abs(vzR)+csR)
 
-                for n in range(NVAR):
+                for n in nb.prange(NVAR):
 
                     FL = U[i, j, k-1, n] * vzL
                     FR = U[i, j, k, n] * vzR
