@@ -410,7 +410,7 @@ def compute_dt_numba(P, dx):
 
     nx, ny, nz, _ = P.shape
 
-    smax = 0.0
+    smax = 1e-16
 
     for i in nb.prange(nx):
         for j in nb.prange(ny):
