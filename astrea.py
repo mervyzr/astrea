@@ -6,6 +6,7 @@ import shutil
 import signal
 import warnings
 import traceback
+import tracemalloc
 from pathlib import Path
 from datetime import datetime
 from time import perf_counter, process_time
@@ -86,6 +87,8 @@ def core_run(sim_variables):
     create_chkpt_file = True if sim_variables.write_chkpt else False
 
     ########################
+
+    tracemalloc.start()
 
     while t <= sim_variables.t_end:
         # Transform grid for visualisation (in primitive variables)
@@ -169,6 +172,10 @@ def core_run(sim_variables):
             sim_variables.axes = np.roll(sim_variables.axes, shift=-1)
 
     ########################
+
+            current, peak = tracemalloc.get_traced_memory()
+
+    tracemalloc.stop()
 
 ##############################################################################
 
