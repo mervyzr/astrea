@@ -165,8 +165,6 @@ def run(save=False, title=False):
                         else:
                             plt.show()
 
-                        plt.show()
-
                         plt.cla()
                         plt.clf()
                         plt.close()
@@ -208,7 +206,7 @@ def convert_pressure(grid, gamma, permeability):
 
 # Make figures and axes for plotting
 def make_figure(options, units, dimensions, coordinates, scale_labels=None):
-    if 0 < len(options) < 13:
+    if 0 < len(options) < 15:
         # Set up colours
         colours = plt.rcParams['axes.prop_cycle'].by_key()['color'] * 2
         cmap_colours = {
@@ -361,7 +359,7 @@ def make_figure(options, units, dimensions, coordinates, scale_labels=None):
 
         return fig, ax, {'indexes':indexes, 'names':names, 'labels':labels, 'colours': {'theo':'black', '1d':colours, '2d':twod_colours}}
     else:
-        raise IndexError('Number of variables to plot should be < 13')
+        raise IndexError('Number of variables to plot should be < 15')
 
 
 
