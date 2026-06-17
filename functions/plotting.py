@@ -1172,7 +1172,7 @@ def plot_this(grid, sim_variables, **kwargs):
 
 
 # Plot the power spectrum for turbulence
-def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None):
+def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, sample=None, t=None):
     cells, dimensions, coordinates, ds = sim_variables.cells, sim_variables.dimensions, sim_variables.coordinates, sim_variables.ds
     units = sim_variables.units
 
@@ -1208,6 +1208,9 @@ def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None
 
     ax.set_xlabel(r"$k$")
     ax.set_ylabel(r"$P_\mathrm{kin}(k)$")
+
+    if not sample:
+        sample = slice(1,22)
 
     for datetime in datetimes:
         simulation = hdf5[datetime]
@@ -1278,7 +1281,7 @@ def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, t=None
         ax.loglog(k_bin_centers, power_spectrum, label=label)
 
     # Plot the theoretical line
-    ax.loglog(k_bin_centers[1:22], (E_theo*log_offset)[1:22], color='black', linestyle='--', label=rf'$k^{{{power_law}}}$')
+    ax.loglog(k_bin_centers[sample], (E_theo*log_offset)[1:22], color='black', linestyle='--', label=rf'$k^{{{power_law}}}$')
     ax.legend()
 
     plt.tight_layout()
