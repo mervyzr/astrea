@@ -1216,7 +1216,7 @@ def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, sample
         simulation = hdf5[datetime]
 
         if not t:
-            t = list(simulation.keys())[-1]
+            t = float(list(simulation.keys())[-1])
         grid = simulation[str(t)][:]
 
         density = grid[...,sim_variables.rho]
@@ -1253,7 +1253,7 @@ def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, sample
 
         # Bin the energy spectrum
         # Define bins
-        k_bins = np.linspace(0, int(k.max()), np.mean(cells)//bins)
+        k_bins = np.linspace(0, k.max(), int(np.mean(cells)//bins))
         k_bin_centers = 0.5 * (k_bins[:-1] + k_bins[1:])
         power_spectrum = np.zeros_like(k_bin_centers)
 
@@ -1275,9 +1275,9 @@ def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, sample
         if units != "code":
             t *= sim_variables.constants.plot_scales['time']
             time_label = sim_variables.constants.scale_labels['time'].strip(' []')
-            label = rf"$t = {round(t,4)}{time_label}$, m = {round(m,3)}$"
+            label = rf"$t = {round(t,4)}{time_label}$, $m = {round(m,3)}$"
         else:
-            label = rf"$t = {round(t,4)}$, m = {round(m,3)}$"
+            label = rf"$t = {round(t,4)}$, $m = {round(m,3)}$"
         ax.loglog(k_bin_centers, power_spectrum, label=label)
 
     # Plot the theoretical line
