@@ -1253,7 +1253,7 @@ def plot_turbulence_spectrum(hdf5, sim_variables, bins=8, normalise=True, sample
 
         # Bin the energy spectrum
         # Define bins
-        k_bins = np.linspace(0, k.max(), np.mean(cells)//bins)
+        k_bins = np.linspace(0, int(k.max()), np.mean(cells)//bins)
         k_bin_centers = 0.5 * (k_bins[:-1] + k_bins[1:])
         power_spectrum = np.zeros_like(k_bin_centers)
 
