@@ -280,10 +280,15 @@ def generate_test_conditions(config_variables):
         t_end = .5
         shock_pos = .1
 
+        # Keplerian rotating blob
         if "blob" in config:
             init_cond = np.array([gamma**2,0,0,0,gamma,0,0,0])
-            ambient = np.array([gamma/10,0,0,0,.1,0,0,0])
-            test_specifics = {'beta':1e3, 'eps':1e-6}
+            ambient = np.array([gamma**2/10,0,0,0,gamma/10,0,0,0])
+            test_specifics = {
+                'omega': 2.5, 
+                'B_ampl': .1, 
+                'rotation_axis': [0,0]  # phi, theta (deg)
+            }
         else:
             init_cond = np.array([10,0,0,0,.5,2.5,0,0])
             ambient = np.array([1,0,0,0,.5,2.5,0,0])

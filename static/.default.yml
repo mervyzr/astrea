@@ -3,7 +3,7 @@
 #   Smooth: sine wave, Gaussian, manufactured Euler solution (Euler), circular polarised Alfvén wave (CPAW)
 #   Shocktubes: Sod shock, slow-moving shock, Shu-Osher (OS), Ryu-Jones (RJ), Brio-Wu (BW), Toro 1-5
 #   Blastwaves: Sedov, MHD blast, Noh problem
-#   Vortices: Gresho vortex, MHD vortex, Orszag-Tang vortex, isentropic vortex (IVC)
+#   Vortices: Blob, Gresho vortex, MHD vortex, Orszag-Tang vortex, isentropic vortex (IVC)
 #   Instabilities: (MHD) Kelvin-Helmholtz instability (KHI), (MHD) Rayleigh-Taylor instability (RTI)
 #   Turbulent/random noise: turbulence, blank field
 #   Non-linear MHD: MHD rotor, MHD current, MHD blob

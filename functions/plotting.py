@@ -860,7 +860,7 @@ def plot_total_variation(hdf5, sim_variables, title=False):
 
 # Determines if numerical scheme is conservative to machine precision
 def plot_conservation_equations(hdf5, sim_variables, title=False):
-    options = ["mass", "momentum_x", "total energy"]
+    options = ["mass", "momentums", "total energy"]
     config, subgrid, time_evo, solver, units = sim_variables.config, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver, sim_variables.units
 
     if units != "code":
@@ -898,7 +898,10 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
             elif "mom" in option or (option.startswith("b") or "field" in option):
                 axis = {'x':0, 'y':1, 'z':2}[option[-1]]
                 if "mom" in option:
-                    y_data[idx] = ys[...,1+axis]
+                    if option.endswith(("m","s")):
+                        y_data[idx] = mfuncs.norm(ys[...,sim_variables.momentums])
+                    else:
+                        y_data[idx] = ys[...,1+axis]
                 else:
                     y_data[idx] = ys[...,5+axis]
             else:

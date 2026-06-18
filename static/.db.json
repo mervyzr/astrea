@@ -70,6 +70,7 @@
       "type": "config",
       "category": "vortices",
       "accepted": [
+        "blob",
         "mhd-vortex",
         "orszag-tang",
         "orszag",
@@ -126,9 +127,6 @@
         "mhd-sheet",
         "current",
         "mhd-current",
-        "rotor-blob",
-        "mhd-rotor-blob",
-        "blob",
         "mhd-blob"
       ]
     },

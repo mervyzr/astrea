@@ -30,7 +30,7 @@ class Constants(object):
 
                 density_scale, density_label = 1, r" [$\mathrm{g}/\mathrm{cm}^3$]"
                 velocity_scale, velocity_label = 1e3 * self.kms, " [$10^3$ km/s]"
-                momentum_scale, momentum_label = 1, r" [$\mathrm{g}/(\mathrm{cm}^2 \mathrm{s})$]"
+                momentum_scale, momentum_label = 1, r" [$\mathrm{g}/(\mathrm{cm} \mathrm{s})$]"
 
                 pressure_scale, pressure_label = .1, " [Pa]"
                 energy_scale, energy_label = 1, " [erg]"
@@ -70,7 +70,7 @@ class Constants(object):
 
                 density_scale, density_label = 1, r" [$\mathrm{g}/\mathrm{cm}^3$]"
                 velocity_scale, velocity_label = self.kms, " [km/s]"
-                momentum_scale, momentum_label = 1, r" [$\mathrm{g}/(\mathrm{cm}^2 \mathrm{s})$]"
+                momentum_scale, momentum_label = 1, r" [$\mathrm{g}/(\mathrm{cm} \mathrm{s})$]"
 
                 pressure_scale, pressure_label = .1, " [Pa]"
                 energy_scale, energy_label = 1, " [erg]"
@@ -82,7 +82,7 @@ class Constants(object):
             # Compute physical scaling (CGS) for other derived quantities
             rho0 = m0/L0**3
             v0 = L0/t0
-            mom0 = rho0 * v0
+            mom0 = rho0 * v0 * L0
             P0 = rho0 * v0**2
             e0 = P0
             E0 = e0 * L0**3
@@ -99,7 +99,7 @@ class Constants(object):
                 "time":             t0 / time_scale,            # code -> s -> s/yr/Myr
                 "density":          rho0 / density_scale,       # code -> g/cm3 -> g/cm3
                 "velocity":         v0 / velocity_scale,        # code -> cm/s -> km/s
-                "momentum":         mom0 / momentum_scale,      # code -> g/(cm2 s) -> g/(cm2 s)
+                "momentum":         mom0 / momentum_scale,      # code -> g/(cm s) -> g/(cm s)
                 "pressure":         P0 / pressure_scale,        # code -> dyn/cm3 -> Pa
                 "energy":           E0 / energy_scale,          # code -> erg -> erg
                 "energy density":   e0 / energy_density_scale,  # code -> erg/cm3 -> erg/cm3
@@ -114,7 +114,7 @@ class Constants(object):
                 "velocity":         velocity_label,         # km/s
                 "mass":             mass_label,             # M_sun
                 "density":          density_label,          # g/cm3
-                "momentum":         momentum_label,         # g/(cm2 s)
+                "momentum":         momentum_label,         # g/(cm s)
                 "pressure":         pressure_label,         # Pa
                 "energy":           energy_label,           # erg
                 "energy density":   energy_density_label,   # erg/cm3
