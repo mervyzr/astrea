@@ -466,7 +466,7 @@ def initialise(sim_variables):
                     computational_grid[...,pressure] = ambient[pressure] + mfuncs.smoothing_kernel(init_cond[pressure], x, d=dimensions, mu=x_centre, sigma=sigma)
 
         else:
-            mask = np.where(np.abs(x) <= shock_pos)
+            mask = np.where(x <= shock_pos)
             computational_grid[mask] = init_cond
 
         if config.startswith('m') or "mhd" in config:
