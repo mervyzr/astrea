@@ -165,13 +165,13 @@ def initialise(sim_variables):
 
             elif match(any, ["blob"]):
                 blob = np.where((0 < r) & (r < r0))
-                omega, B_ampl, [phi, theta] = test_specifics['omega'], test_specifics['B_ampl'], test_specifics['rotation_axis']
+                omega, B_ampl, [theta, phi] = test_specifics['omega'], test_specifics['B_ampl'], test_specifics['rotation_axis']
                 smoothing = lambda q: mfuncs.smoothing_kernel(q, r, d=dimensions, sigma=r0) * (2 * np.pi * r0**2)**(dimensions/2)
 
                 computational_grid[...,rho][blob] = smoothing(init_cond[rho])[blob]
                 computational_grid[...,pressure][blob] = (init_cond[pressure] + (init_cond[rho] * omega**2 * r0**2)/3 * (1 - np.exp(-(3*r**2)/(2*r0**2))))[blob]
 
-                omega_hat = np.array([np.sin(phi * np.pi/180) * np.cos(theta * np.pi/180), np.sin(phi * np.pi/180) * np.sin(theta * np.pi/180), np.cos(phi * np.pi/180)])
+                omega_hat = np.array([np.sin(theta*np.pi/180)*np.cos(phi*np.pi/180), np.sin(theta*np.pi/180)*np.sin(phi*np.pi/180), np.cos(theta*np.pi/180)])
                 computational_grid[...,vx][blob] = (-smoothing(omega) * (omega_hat[1]*z - omega_hat[2]*y))[blob]
                 computational_grid[...,vy][blob] = (smoothing(omega) * (omega_hat[2]*x - omega_hat[0]*z))[blob]
                 computational_grid[...,vz][blob] = (smoothing(omega) * (omega_hat[0]*y - omega_hat[1]*x))[blob]

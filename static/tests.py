@@ -287,7 +287,7 @@ def generate_test_conditions(config_variables):
             test_specifics = {
                 'omega': 2.5, 
                 'B_ampl': .1, 
-                'rotation_axis': [0,0]  # phi, theta (deg)
+                'rotation_axis': [0,0]  # theta, phi (deg)
             }
         else:
             init_cond = np.array([10,0,0,0,.5,2.5,0,0])
