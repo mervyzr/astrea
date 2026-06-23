@@ -88,7 +88,7 @@ def core_run(sim_variables):
 
     ########################
 
-    tracemalloc.start()
+    #tracemalloc.start()
 
     while t <= sim_variables.t_end:
         # Transform grid for visualisation (in primitive variables)
@@ -173,9 +173,9 @@ def core_run(sim_variables):
 
     ########################
 
-            current, peak = tracemalloc.get_traced_memory()
+            #current, peak = tracemalloc.get_traced_memory()
 
-    tracemalloc.stop()
+    #tracemalloc.stop()
 
 ##############################################################################
 
