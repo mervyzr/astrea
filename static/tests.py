@@ -277,19 +277,20 @@ def generate_test_conditions(config_variables):
     elif match(any, ["rotor", "blob"]):
         axis_coord = [-.5,.5]
         boundary = "wrap"
-        t_end = .5
-        shock_pos = .1
+        shock_pos = .05
 
         # Keplerian rotating blob
         if "blob" in config:
+            t_end = .25
             init_cond = np.array([gamma**2,0,0,0,gamma,0,0,0])
             ambient = np.array([gamma**2/10,0,0,0,gamma/10,0,0,0])
             test_specifics = {
-                'omega': 2.5, 
+                'omega': 50, 
                 'B_ampl': .1, 
                 'rotation_axis': [0,0]  # theta, phi (deg)
             }
         else:
+            t_end = .5
             init_cond = np.array([10,0,0,0,.5,2.5,0,0])
             ambient = np.array([1,0,0,0,.5,2.5,0,0])
             test_specifics = {'omega':1, 'ring_width':.015}
