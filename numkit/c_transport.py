@@ -100,8 +100,8 @@ def inverse_reconstruct(grid, sim_variables):
 
 # Reconstruct the longitudinal B-fields for each transverse axis
 # Note that this reconstruction is done at the cell INTERFACES, NOT cell CENTRES
-def reconstruct_transverse(data, sim_variables, axis, method=None):
-    ortho_interfaces = {}
+def reconstruct_transverse(interfaces, sim_variables, axis, method=None):
+    normal_interfaces = {}
 
     # Get the orthogonal axes & emfs from the axis being computed
     ortho_axes = np.delete(np.arange(3), axis)
@@ -117,7 +117,7 @@ def reconstruct_transverse(data, sim_variables, axis, method=None):
     # 1D: skips for all axes
     # 2D: only computes for z-axis
     # 3D: computes for all axes
-    if not None in list(map(data.get, ortho_axes)):
+    if not None in list(map(interfaces.get, ortho_axes)):
         """Interpolate the face averages to both corners (upwards & downwards)
         |                                   w(i-1/2)                               w(i+1/2)                                  |
         |--------------------------------------|--------------------------------------|--------------------------------------|
@@ -189,21 +189,20 @@ def reconstruct_transverse(data, sim_variables, axis, method=None):
 
             return intfs
 
-        # Collate interfaces based on ortho_axes
+        # Collate interfaces based on ortho_axes, then reconstruct according to normal_axes
         # e.g. computing emf in z-axis: axis = 2 --> ortho_axes = [0,1], normal_axes = [1,0]
         # interfaces = [ 0: (E,W) , 1: (N,S) ]
-        interfaces = [data[axis]['interfaces'] for axis in ortho_axes]
+        ortho_interfaces = [interfaces[axis] for axis in ortho_axes]
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            ortho_interfaces = dict(zip(normal_axes, executor.map(reconstruct_per_interface_pair, interfaces, repeat(sim_variables), normal_axes)))
+            normal_interfaces = dict(zip(normal_axes, executor.map(reconstruct_per_interface_pair, ortho_interfaces, repeat(sim_variables), normal_axes)))
 
-    return ortho_interfaces
+    return normal_interfaces
 
 
 # Compute the corner/line electric fields wrt to corner/line for each axis [Verma et al., 2018; Mignone & Del Zanna, 2020]
-def compute_emf(ortho_interfaces, alphas, axis, dissipative=False):
+def compute_emf(normal_interfaces, alphas, axis, dissipative=False):
     abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
-
-    axis_data = ortho_interfaces[abscissa]
+    axis_data = normal_interfaces[abscissa]
 
     # DICT KEYS CORRESPOND TO RECONSTRUCTION AXIS
     # For -v x B in x-axis (axis=0, thumb), Bz along y (axis=1, index finger) becomes (E,W) & By along z (axis=2, middle finger) becomes (N,S)

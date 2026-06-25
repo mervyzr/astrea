@@ -15,8 +15,7 @@ def reconstruct(grid, sim_variables, axis):
 
 
 def run(grid, sim_variables, axis):
-    multidimensional, magnetic, ds = sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds
-    data = {}
+    multidimensional, magnetic, ds = sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds[axis]
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
 
@@ -45,14 +44,6 @@ def run(grid, sim_variables, axis):
         except np.linalg.LinAlgError:
             characteristics = np.full_like(padded_intf, .1)
 
-    # Compute eigmax for time stepping limits
-    data['eigmax'] = ds[axis]/numeric.compute_eigmax(characteristics, axis=axis)
-
-    # Compute alphas and save the reconstructed interfaces for CT computation (interface = centre for PCM)
-    if magnetic and multidimensional:
-        data['alphas'] = ct.compute_alphas(characteristics, axis=axis)
-        data['interfaces'] = np.copy(grid), np.copy(grid)
-
     # Calculate the interface-averaged fluxes (pointwise & averaged values are the same for lower-order schemes)
     intf_fluxes_avgd = intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
         'prim_interfaces': (prim_plus, prim_minus),
@@ -63,6 +54,9 @@ def run(grid, sim_variables, axis):
     })
 
     # Compute flux difference for hydrodynamic components
-    data['fluxes'] = np.diff(intf_fluxes_cntrd, axis=axis)/ds[axis]
+    fluxes = np.diff(intf_fluxes_cntrd, axis=axis)/ds
 
-    return data
+    if magnetic and multidimensional:
+        return fluxes, characteristics, (grid, grid)
+    else:
+        return fluxes, characteristics, None

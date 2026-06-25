@@ -71,8 +71,7 @@ def reconstruct(grid, sim_variables, axis):
 
 
 def run(grid, sim_variables, axis, eta=None):
-    multidimensional, magnetic, ds = sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds
-    data = {}
+    multidimensional, magnetic, ds = sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds[axis]
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
 
@@ -106,14 +105,6 @@ def run(grid, sim_variables, axis, eta=None):
         except np.linalg.LinAlgError:
             characteristics = np.full_like(padded_intf_avg, .01)
 
-    # Compute eigmax for time stepping limits
-    data['eigmax'] = ds[axis]/numeric.compute_eigmax(characteristics, axis=axis)
-
-    # Compute alphas and save the reconstructed interfaces for CT computation
-    if magnetic and multidimensional:
-        data['alphas'] = ct.compute_alphas(characteristics, axis=axis)
-        data['interfaces'] = gutils.slice_(prim_plus, axis, start=1), gutils.slice_(prim_minus, axis, end=-1)
-
     # Calculate the interface-averaged fluxes
     intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **{
         'prim_interfaces': (prim_plus, prim_minus),
@@ -146,9 +137,12 @@ def run(grid, sim_variables, axis, eta=None):
         intf_fluxes_cntrd += get_artificial_viscosity((grid, plus_one), axis, sim_variables)
 
     # Compute flux difference for hydrodynamic components
-    data['fluxes'] = np.diff(intf_fluxes_cntrd, axis=axis)/ds[axis]
+    fluxes = np.diff(intf_fluxes_cntrd, axis=axis)/ds
 
-    return data
+    if magnetic and multidimensional:
+        return fluxes, characteristics, (gutils.slice_(prim_plus, axis, start=1), gutils.slice_(prim_minus, axis, end=-1))
+    else:
+        return fluxes, characteristics, None
 
 
 # Calculate the coefficient of the slope flattener for the parabolic interpolants/extrapolants [Colella, 1990]

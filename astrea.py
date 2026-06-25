@@ -174,7 +174,6 @@ def core_run(sim_variables):
     ########################
 
             #current, peak = tracemalloc.get_traced_memory()
-
     #tracemalloc.stop()
 
 ##############################################################################
