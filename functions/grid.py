@@ -621,45 +621,42 @@ def variable_convert_intf(variable_form, grid, sim_variables, axis):
 # Method convert between point-representation (finite difference) and averaged-representation (finite volume) [ALL AXES]
 # Converting cell-centred variables q_{i,j} <-> cell-averaged variables <q>_{i,j} through a Laplacian (2nd-deriv, 2nd-order) approx. for each axis (up to 4th-order accurate)
 def method_convert_cell(grid_form, grid, sim_variables, axis=None):
-    if sim_variables.grid_interpolate:
-        base = np.copy(grid)
+    base = np.copy(grid)
 
-        if grid_form.lower().startswith('a'):
-            coeff = -1  # averaged -> point
-        elif grid_form.lower().startswith('p'):
-            coeff = 1  # point -> averaged
+    if grid_form.lower().startswith('a'):
+        coeff = -1  # averaged -> point
+    elif grid_form.lower().startswith('p'):
+        coeff = 1  # point -> averaged
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            for idx, expansion in enumerate(executor.map(laplacian, repeat(grid), repeat(sim_variables), sim_variables.axes)):
-                base += coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24 * expansion
-        return base
-    else:
-        return grid
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        for idx, expansion in enumerate(executor.map(laplacian, repeat(grid), repeat(sim_variables), sim_variables.axes)):
+            base += coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24 * expansion
+    return base
 
 
 # Method convert between point-representation (finite difference) and averaged-representation (finite volume) for interfaces [ORTHOGONAL AXES]
 # Converting face-centred variables q_{i+1/2,j} <-> face-averaged variables <q>_{i+1/2,j} through a Laplacian (2nd-deriv, 2nd-order) approx. (up to 4th-order accurate)
 def method_convert_intf(grid_form, grid, sim_variables, axis):
-    if sim_variables.grid_interpolate and sim_variables.multidimensional:
-        base = np.copy(grid)
-        ortho_axes = sim_variables.axes[sim_variables.axes != axis]
+    base = np.copy(grid)
+    ortho_axes = sim_variables.axes[sim_variables.axes != axis]
 
-        if grid_form.lower().startswith('a'):
-            coeff = -1  # averaged -> point
-        elif grid_form.lower().startswith('p'):
-            coeff = 1  # point -> averaged
+    if grid_form.lower().startswith('a'):
+        coeff = -1  # averaged -> point
+    elif grid_form.lower().startswith('p'):
+        coeff = 1  # point -> averaged
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            for idx, expansion in enumerate(executor.map(laplacian, repeat(grid), repeat(sim_variables), ortho_axes)):
-                base += coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24 * expansion
-        return base
-    else:
-        return grid
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        for idx, expansion in enumerate(executor.map(laplacian, repeat(grid), repeat(sim_variables), ortho_axes)):
+            base += coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24 * expansion
+    return base
 
 
 # Handler for converting (at higher-order) each +/- interface in each axis from averaged interfaces to point/centred interfaces in the multi-dimensional higher-order schemes
 def approx_face_avg(interfaces, sim_variables, axis):
-    return [method_convert_intf('avg', interface, sim_variables, axis) for interface in interfaces]
+    if sim_variables.grid_interpolate and sim_variables.multidimensional:
+        return [method_convert_intf('avg', interface, sim_variables, axis) for interface in interfaces]
+    else:
+        return list(interfaces)
     
 
 # Compute the 4th-order interface-centred fluxes from the interface-averaged fluxes via higher order approximation for each orthogonal axis
