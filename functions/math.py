@@ -60,3 +60,11 @@ def round_off(value):
         return int(value) + 1
     else:
         return int(value)
+
+
+# Catalan's function (used in mass distribution for spiral galaxies)
+# G = sum_{n=0}^inf{(-1)^n / (2n + 1)^2}
+def catalan(n=1000):
+    _range = np.array(range(1, n+1, 2))**2
+    coeff = np.array(([1,-1] * int(n//4 + n%4))[:len(_range)])
+    return np.sum(coeff/_range)

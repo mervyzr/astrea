@@ -143,7 +143,9 @@
         "sn",
         "tycho",
         "supernova",
-        "supernovae"
+        "supernovae",
+        "dwarf",
+        "dwarf-galaxy"
       ]
     },
     "9": {
@@ -498,20 +500,23 @@
       "category": "plotting",
       "accepted": [
         "density",
-        "rho",
         "d",
         "pressure",
         "p",
         "magneticpressure",
         "magpressure",
-        "magneticp",
-        "magp",
+        "pb",
+        "velocities",
+        "vels",
+        "vs",
         "velocityx",
         "velocityy",
         "velocityz",
         "vx",
         "vy",
         "vz",
+        "bfields",
+        "bs",
         "bfieldx",
         "bfieldy",
         "bfieldz",

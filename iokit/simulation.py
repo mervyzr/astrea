@@ -169,7 +169,7 @@ class Variables(object):
                 self.live_plot = self.save_snaps = self.save_video = False
 
         if (self.save_snaps or self.save_plots or self.save_video) and self.live_plot:
-            print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live_plot interferes with matplotlib.savefig..{BColours.ENDC}")
+            print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live_plot interferes with matplotlib.pyplot.savefig..{BColours.ENDC}")
             self.live_plot = False
 
         if self.save_snaps or self.save_plots or self.save_video or self.save_file:

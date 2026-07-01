@@ -215,13 +215,16 @@ def make_figure(options, units, dimensions, coordinates, scale_labels=None):
             "magnetic pressure": "inferno",
             "total energy": "cividis",
             "internal energy": "PuBuGn",
-            "vels": {"x":"berlin", "y":"managua", "z":"vanimo"},
-            "momentums": {"x":"RdYlBu", "y":"PuOr", "z":"PRGn"},
-            "Bfields": {"x":"RdBu", "y":"BrBG", "z":"PiYG"},
+            "velocities": "seismic",
+            "momentums": "bwr",
+            "Bfields": "Spectral",
             "divergence": "coolwarm",
             "Mach": "magma",
             "mass": "pink",
             "schlieren": "bone",
+            "velocity": {"x":"berlin", "y":"managua", "z":"vanimo"},
+            "momentum": {"x":"RdYlBu", "y":"PuOr", "z":"PRGn"},
+            "Bfield": {"x":"RdBu", "y":"BrBG", "z":"PiYG"},
         }
 
         def make_outputs(name, symbol, unit, colour):
@@ -253,8 +256,10 @@ def make_figure(options, units, dimensions, coordinates, scale_labels=None):
 
             # Momentums
             elif "mom" in _option:
-                axis = _option[-1]
-                return make_outputs("Momentum", rf"$p_{axis}$", "momentum", cmap_colours["momentums"][axis])
+                if _option.endswith("s"):
+                    return make_outputs("Momentum", r"$\| \vec{p} \|$", "momentum", cmap_colours["momentums"])
+                else:
+                    return make_outputs("Momentum", rf"$p_{_option[-1]}$", "momentum", cmap_colours["momentum"][_option[-1]])
 
             # Mass
             elif "mass" in _option:
@@ -266,20 +271,27 @@ def make_figure(options, units, dimensions, coordinates, scale_labels=None):
 
             # Pressure
             elif _option.startswith("p"):
-                return make_outputs("Pressure", r"$P$", "pressure", cmap_colours["pressure"])
+                if "b" in _option:
+                    return make_outputs("Mag. pressure", r"$P_B$", "pressure", cmap_colours["magnetic pressure"])
+                else:
+                    return make_outputs("Pressure", r"$P$", "pressure", cmap_colours["pressure"])
 
             # Velocities
-            elif _option.startswith("v"):
-                axis = _option[-1]
-                return make_outputs("Velocity", rf"$v_{axis}$", "velocity", cmap_colours["vels"][axis])
+            elif "vel" in _option:
+                if _option.endswith("s"):
+                    return make_outputs("Velocity", r"$\| \vec{v} \|$", "velocity", cmap_colours["velocities"])
+                else:
+                    return make_outputs("Velocity", rf"$v_{axis}$", "velocity", cmap_colours["velocity"][_option[-1]])
 
             # Magnetic field/pressure
             elif _option.startswith(("b", "mag")):
                 if "p" in _option:
                     return make_outputs("Mag. pressure", r"$P_B$", "pressure", cmap_colours["magnetic pressure"])
 
-                axis = _option[-1]
-                return make_outputs("Mag. field", rf"$B_{axis}$", "Bfield", cmap_colours["Bfields"][axis])
+                if _option.endswith("s"):
+                    return make_outputs("Mag. field", r"$\| \vec{B} \|$", "Bfield", cmap_colours["Bfields"])
+                else:
+                    return make_outputs("Mag. field", rf"$B_{axis}$", "Bfield", cmap_colours["Bfield"][_option[-1]])
 
             # Divergence
             elif 'div' in _option or 'db' in _option:
@@ -364,12 +376,13 @@ def make_figure(options, units, dimensions, coordinates, scale_labels=None):
 
 
 def make_data(options, grid, dimensions, gamma, permeability, boundary, ds, units, box_volume, slice_axis, slice_3d, plot_scales=None):
-    get_axis = lambda op: {"x":0, "y":1, "z":2}[op[-1]]
+    get_axis = lambda option: {"x":0, "y":1, "z":2}[option[-1]]
     axes = np.array(range(dimensions))
 
     def option_checker(_option, _box_volume, scaling=None):
         _option = _option.lower()
 
+        # Energies
         if "energy" in _option or "temp" in _option or _option.startswith("e"):
             scaler = 'energy'
             if "int" in _option:
@@ -379,27 +392,50 @@ def make_data(options, grid, dimensions, gamma, permeability, boundary, ds, unit
             if "density" in _option:
                 quantity *= grid[...,RHO]
                 scaler += ' density'
+
+        # Pressure
         elif _option.startswith("p"):
-            quantity = grid[...,PRESSURE]
             scaler = 'pressure'
+            if "p" in _option:
+                quantity = .5 * norm2(grid[...,BFIELDS])
+            else:
+                quantity = grid[...,PRESSURE]
+
+        # Velocity and momentums
         elif _option.startswith("v") or "mom" in _option:
-            axis = get_axis(_option)
-            quantity = grid[...,1+axis]
             scaler = 'velocity'
-            if "mom" in _option:
-                quantity *= grid[...,RHO]
-                scaler = 'momentum'
+            if _option.endswith("s"):
+                quantity = grid[...,VELS]
+                if "mom" in _option:
+                    quantity *= grid[...,RHO][...,None]
+                    scaler = 'momentum'
+                quantity = np.sqrt(norm2(quantity))
+            else:
+                axis = get_axis(_option)
+                quantity = grid[...,1+axis]
+                if "mom" in _option:
+                    quantity *= grid[...,RHO]
+                    scaler = 'momentum'
+
+        # Mass
         elif "mass" in _option:
             quantity = grid[...,RHO] * _box_volume
             scaler = 'mass'
+
+        # Bfields and magnetic pressure
         elif _option.startswith("b") or _option.startswith("mag"):
             if "p" in _option:
                 quantity = .5 * norm2(grid[...,BFIELDS])
                 scaler = 'pressure'
             else:
-                axis = get_axis(_option)
-                quantity = grid[...,5+axis]
                 scaler = 'Bfield'
+                if _option.endswith("s"):
+                    quantity = np.sqrt(norm2(grid[...,BFIELDS]))
+                else:
+                    axis = get_axis(_option)
+                    quantity = grid[...,5+axis]
+
+        # Divergence
         elif 'div' in _option or 'db' in _option:
             div_along_axis = lambda ax: slice_(np.diff(add_boundary(grid[...,5+ax], boundary, axis=ax), axis=ax), axis=ax, end=-1)/ds[ax]
             scaler = 'divergence'
@@ -409,9 +445,13 @@ def make_data(options, grid, dimensions, gamma, permeability, boundary, ds, unit
                 #exponent = np.floor(quantity)
             else:
                 quantity = div_along_axis(get_axis(_option))
+
+        # Mach number
         elif "mach" in _option:
             quantity = np.sqrt(divide(norm2(grid[...,VELS]), divide(gamma*grid[...,PRESSURE], grid[...,RHO])))
             scaler = 'Mach'
+
+        # Density
         else:
             quantity = grid[...,RHO]
             scaler = 'density'

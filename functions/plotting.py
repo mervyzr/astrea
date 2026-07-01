@@ -45,13 +45,16 @@ def make_figure(options, sim_variables, variable="normal"):
             "magnetic pressure": "inferno",
             "total energy": "cividis",
             "internal energy": "PuBuGn",
-            "vels": {"x":"berlin", "y":"managua", "z":"vanimo", "s":"seismic"},
-            "momentums": {"x":"RdYlBu", "y":"PuOr", "z":"PRGn", "s":"bwr"},
-            "Bfields": {"x":"RdBu", "y":"BrBG", "z":"PiYG", "s":"Spectral"},
+            "velocities": "seismic",
+            "momentums": "bwr",
+            "Bfields": "Spectral",
             "divergence": "coolwarm",
             "Mach": "magma",
             "mass": "pink",
             "schlieren": "bone",
+            "velocity": {"x":"berlin", "y":"managua", "z":"vanimo"},
+            "momentum": {"x":"RdYlBu", "y":"PuOr", "z":"PRGn"},
+            "Bfield": {"x":"RdBu", "y":"BrBG", "z":"PiYG"},
         }
 
         def make_outputs(name, symbol, unit, colour):
@@ -84,8 +87,10 @@ def make_figure(options, sim_variables, variable="normal"):
 
             # Momentums
             elif "mom" in _option:
-                axis = _option[-1]
-                return make_outputs("Momentum", rf"$p_{axis}$", "momentum", cmap_colours["momentums"][axis])
+                if _option.endswith("s"):
+                    return make_outputs("Momentum", r"$\| \vec{p} \|$", "momentum", cmap_colours["momentums"])
+                else:
+                    return make_outputs("Momentum", rf"$p_{_option[-1]}$", "momentum", cmap_colours["momentum"][_option[-1]])
 
             # Mass
             elif "mass" in _option:
@@ -97,20 +102,27 @@ def make_figure(options, sim_variables, variable="normal"):
 
             # Pressure
             elif _option.startswith("p"):
-                return make_outputs("Pressure", r"$P$", "pressure", cmap_colours["pressure"])
+                if "b" in _option:
+                    return make_outputs("Mag. pressure", r"$P_B$", "pressure", cmap_colours["magnetic pressure"])
+                else:
+                    return make_outputs("Pressure", r"$P$", "pressure", cmap_colours["pressure"])
 
             # Velocities
             elif _option.startswith("v"):
-                axis = _option[-1]
-                return make_outputs("Velocity", rf"$v_{axis}$", "velocity", cmap_colours["vels"][axis])
+                if _option.endswith("s"):
+                    return make_outputs("Velocity", r"$\| \vec{v} \|$", "velocity", cmap_colours["velocities"])
+                else:
+                    return make_outputs("Velocity", rf"$v_{axis}$", "velocity", cmap_colours["velocity"][_option[-1]])
 
             # Magnetic field/pressure
             elif _option.startswith(("b", "mag")):
                 if "p" in _option:
                     return make_outputs("Mag. pressure", r"$P_B$", "pressure", cmap_colours["magnetic pressure"])
 
-                axis = _option[-1]
-                return make_outputs("Mag. field", rf"$B_{axis}$", "Bfield", cmap_colours["Bfields"][axis])
+                if _option.endswith("s"):
+                    return make_outputs("Mag. field", r"$\| \vec{B} \|$", "Bfield", cmap_colours["Bfields"])
+                else:
+                    return make_outputs("Mag. field", rf"$B_{axis}$", "Bfield", cmap_colours["Bfield"][_option[-1]])
 
             # Divergence
             elif 'div' in _option or 'db' in _option:
@@ -209,11 +221,12 @@ def make_figure(options, sim_variables, variable="normal"):
 def make_data(options, grid, sim_variables):
     rho, pressure, vels, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields
     units, box_volume = sim_variables.units, sim_variables.box_volume
-    axes = lambda op: {"x":0, "y":1, "z":2}[op[-1]]
+    get_axis = lambda option: {"x":0, "y":1, "z":2}[option[-1]]
 
     def option_checker(_option, scaling=None):
         _option = _option.lower()
 
+        # Energies
         if "energy" in _option or "temp" in _option or _option.startswith("e"):
             scaler = 'energy'
             if "int" in _option:
@@ -223,27 +236,53 @@ def make_data(options, grid, sim_variables):
             if "density" in _option:
                 quantity *= grid[...,rho]
                 scaler += ' density'
+
+        # Pressure
         elif _option.startswith("p"):
-            quantity = grid[...,pressure]
             scaler = 'pressure'
+            if "b" in _option:
+                quantity = .5 * mfuncs.norm2(grid[...,Bfields])
+            else:
+                quantity = grid[...,pressure]
+
+        # Velocity and momentums
         elif _option.startswith("v") or "mom" in _option:
-            axis = axes(_option)
-            quantity = grid[...,1+axis]
             scaler = 'velocity'
-            if "mom" in _option:
-                quantity *= grid[...,rho]
-                scaler = 'momentum'
+            if _option.endswith("s"):
+                quantity = grid[...,1+sim_variables.axes]
+                if "mom" in _option:
+                    quantity *= grid[...,rho][...,None]
+                    scaler = 'momentum'
+                if sim_variables.live_plot:
+                    quantity = mfuncs.norm(quantity)
+            else:
+                axis = get_axis(_option)
+                quantity = grid[...,1+axis]
+                if "mom" in _option:
+                    quantity *= grid[...,rho]
+                    scaler = 'momentum'
+
+        # Mass
         elif "mass" in _option:
             quantity = grid[...,rho] * box_volume
             scaler = 'mass'
+
+        # Bfields and magnetic pressure
         elif _option.startswith("b") or _option.startswith("mag"):
             if "p" in _option:
                 quantity = .5 * mfuncs.norm2(grid[...,Bfields])
                 scaler = 'pressure'
             else:
-                axis = axes(_option)
-                quantity = grid[...,5+axis]
                 scaler = 'Bfield'
+                if _option.endswith("s"):
+                    quantity = grid[...,5+sim_variables.axes]
+                    if sim_variables.live_plot:
+                        quantity = mfuncs.norm(quantity)
+                else:
+                    axis = get_axis(_option)
+                    quantity = grid[...,5+axis]
+
+        # Divergence
         elif 'div' in _option or 'db' in _option:
             div_along_axis = lambda ax: gutils.slice_(np.diff(gutils.add_boundary(grid[...,5+ax], sim_variables, axis=ax), axis=ax), axis=ax, end=-1)/sim_variables.ds[ax]
             scaler = 'divergence'
@@ -252,10 +291,14 @@ def make_data(options, grid, sim_variables):
                 #quantity = np.log10(quantity)
                 #exponent = np.floor(quantity)
             else:
-                quantity = div_along_axis(axes(_option))
+                quantity = div_along_axis(get_axis(_option))
+
+        # Mach number
         elif "mach" in _option:
             quantity = np.sqrt(mfuncs.divide(mfuncs.norm2(grid[...,vels]), mfuncs.divide(sim_variables.gamma*grid[...,pressure], grid[...,rho])))
             scaler = 'Mach'
+
+        # Density
         else:
             quantity = grid[...,rho]
             scaler = 'density'
@@ -362,7 +405,7 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
 # Function for plotting a snapshot of the grid
 def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
     config, cells, dimensions, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
-    options, units, box_lengths = sim_variables.plot_options, sim_variables.units, sim_variables.box_lengths
+    options, units, box_lengths, coordinates = sim_variables.plot_options, sim_variables.units, sim_variables.box_lengths, sim_variables.coordinates
 
     fig, ax, plot_ = make_figure(options, sim_variables)
     y_data = make_data(options, grid_snapshot, sim_variables)
@@ -393,7 +436,11 @@ def plot_snapshot(grid_snapshot, t, sim_variables, title=False):
         y = y_data[idx]
 
         if multidimensional:
-            graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
+            if y.ndim > 2:
+                graph = ax[_i,_j].imshow(mfuncs.norm(y.T), interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
+                quiver(ax[_i,_j], y, sim_variables)
+            else:
+                graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes(position='right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
@@ -484,7 +531,12 @@ def plot_quantities(hdf5, sim_variables, title=False):
 
         if multidimensional:
             # For single or multiple simulation runs; doesn't make sense to overplot 2D/3D runs over each other, but just do it anyway
-            graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
+            if y.ndim > 2:
+                # Magnitude for base
+                graph = ax[_i,_j].imshow(mfuncs.norm(y.T), interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
+                quiver(ax[_i,_j], y, sim_variables)
+            else:
+                graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes(position='right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
@@ -831,11 +883,18 @@ def plot_total_variation(hdf5, sim_variables, title=False):
             elif option.startswith("p"):
                 y_data[idx] = ys[...,4]
             elif option.startswith("v") or (option.startswith("b") or "field" in option):
-                axis = {'x':0, 'y':1, 'z':2}[option[-1]]
                 if option.startswith("v"):
-                    y_data[idx] = ys[...,1+axis]
+                    if option.endswith("s"):
+                        y_data[idx] = ys[...,1:4]
+                    else:
+                        axis = {'x':0, 'y':1, 'z':2}[option[-1]]
+                        y_data[idx] = ys[...,1+axis]
                 else:
-                    y_data[idx] = ys[...,5+axis]
+                    if option.endswith("s"):
+                        y_data[idx] = ys[...,5:]
+                    else:
+                        axis = {'x':0, 'y':1, 'z':2}[option[-1]]
+                        y_data[idx] = ys[...,5+axis]
             else:
                 y_data[idx] = ys[...,0]
 
@@ -896,14 +955,18 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
             if "energy" in option or "temp" in option:
                 y_data[idx] = ys[...,4]
             elif "mom" in option or (option.startswith("b") or "field" in option):
-                axis = {'x':0, 'y':1, 'z':2}[option[-1]]
                 if "mom" in option:
                     if option.endswith(("m","s")):
                         y_data[idx] = mfuncs.norm(ys[...,sim_variables.momentums])
                     else:
+                        axis = {'x':0, 'y':1, 'z':2}[option[-1]]
                         y_data[idx] = ys[...,1+axis]
                 else:
-                    y_data[idx] = ys[...,5+axis]
+                    if option.endswith("s"):
+                        y_data[idx] = mfuncs.norm(ys[...,sim_variables.Bfields])
+                    else:
+                        axis = {'x':0, 'y':1, 'z':2}[option[-1]]
+                        y_data[idx] = ys[...,5+axis]
             else:
                 y_data[idx] = ys[...,0]
 
@@ -939,7 +1002,7 @@ def plot_conservation_equations(hdf5, sim_variables, title=False):
 # Make a video of entire simulation; video of all plot options or specific variable
 def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
     config, dimensions, multidimensional, subgrid, time_evo, solver = sim_variables.config, sim_variables.dimensions, sim_variables.multidimensional, sim_variables.subgrid, sim_variables.time_evo, sim_variables.solver
-    units, box_lengths = sim_variables.units, sim_variables.box_lengths
+    units, box_lengths, coordinates = sim_variables.units, sim_variables.box_lengths, sim_variables.coordinates
 
     if units != "code":
         length_label = sim_variables.constants.scale_labels['length']
@@ -986,7 +1049,11 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
                         y = y_data[idx]
 
                         if multidimensional:
-                            graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
+                            if y.ndim > 2:
+                                graph = ax[_i,_j].imshow(mfuncs.norm(y.T), interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
+                                quiver(ax[_i,_j], y, sim_variables)
+                            else:
+                                graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
                             divider = make_axes_locatable(ax[_i,_j])
                             cax = divider.append_axes(position='right', size='5%', pad=0.05)
                             fig.colorbar(graph, cax=cax, orientation='vertical')
@@ -1025,7 +1092,11 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
                     if multidimensional:
                         plt.axis('off')
-                        graph = ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
+                        if y_data[idx].ndim > 2:
+                            graph = ax[idx,idx].imshow(mfuncs.norm(y_data[idx].T), interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
+                            quiver(ax[idx,idx], y_data[idx], sim_variables)
+                        else:
+                            graph = ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
                         #graph.set_clim(0, 1)
                     else:
                         x = np.linspace(*box_length, cells[0])
@@ -1067,7 +1138,11 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 
                     if multidimensional:
                         plt.axis('off')
-                        graph = ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][0], origin="lower", extent=extent)
+                        if y_data[idx].ndim > 2:
+                            graph = ax[idx,idx].imshow(mfuncs.norm(y_data[idx].T), interpolation="nearest", cmap=plot_['colours']['2d'][0], origin="lower", extent=extent)
+                            quiver(ax[idx,idx], y_data[idx], sim_variables)
+                        else:
+                            graph = ax[idx,idx].imshow(y_data[idx], interpolation="nearest", cmap=plot_['colours']['2d'][0], origin="lower", extent=extent)
                         #graph.set_clim(0, 1)
                     else:
                         x = np.linspace(*box_length, cells[0])
@@ -1103,7 +1178,7 @@ def make_video(hdf5, sim_variables, vidpath, variable="all", title=False):
 # Function for plotting instance of the grid; insert into any part of the code
 def plot_this(grid, sim_variables, **kwargs):
     cells, dimensions, multidimensional = sim_variables.cells, sim_variables.dimensions, sim_variables.multidimensional
-    options, units, box_lengths = sim_variables.plot_options, sim_variables.units, sim_variables.box_lengths
+    options, units, box_lengths, coordinates = sim_variables.plot_options, sim_variables.units, sim_variables.box_lengths, sim_variables.coordinates
 
     if units != "code":
         length_label = sim_variables.constants.scale_labels['length']
@@ -1143,7 +1218,11 @@ def plot_this(grid, sim_variables, **kwargs):
         y = y_data[idx]
 
         if multidimensional:
-            graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
+            if y.ndim > 2:
+                graph = ax[_i,_j].imshow(mfuncs.norm(y.T), interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
+                quiver(ax[_i,_j], y, sim_variables)
+            else:
+                graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
             divider = make_axes_locatable(ax[_i,_j])
             cax = divider.append_axes(position='right', size='5%', pad=0.05)
             fig.colorbar(graph, cax=cax, orientation='vertical')
@@ -1468,3 +1547,16 @@ def schlieren(quantity, scale=[1,1000], normalise=True):
         #schlieren_log /= I_max
 
     return schlieren_log
+
+
+
+# Quiver overplot for vectors
+def quiver(ax, vectors, sim_variables):
+    phy_grid = lambda _ax: gutils.make_physical_grid(sim_variables.coordinates, sim_variables.cells, _ax)[1]
+    blockview = lambda arr: gutils.blockwise_view(arr, nrows=8, ncols=8)
+    if sim_variables.dimensions > 2:
+        mesh = np.meshgrid(phy_grid(0), phy_grid(1), phy_grid(2), indexing='ij')
+        X, Y = np.take(mesh, sim_variables.slice_3d, axis=sim_variables.slice_axis)
+    else:
+        X, Y = np.meshgrid(phy_grid(0), phy_grid(1), indexing='ij')
+    ax.quiver(blockview(X), blockview(Y), blockview(vectors[0]), blockview(vectors[1]), width=.01, linewidth=.01)

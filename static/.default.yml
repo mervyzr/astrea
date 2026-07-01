@@ -7,7 +7,7 @@
 #   Instabilities: (MHD) Kelvin-Helmholtz instability (KHI), (MHD) Rayleigh-Taylor instability (RTI)
 #   Turbulent/random noise: turbulence, blank field
 #   Non-linear MHD: MHD rotor, MHD current, MHD blob
-#   Astrophysical: Shock cloud, astrophysical jet, MHD torus, supernova (SN)
+#   Astrophysical: Shock cloud, astrophysical jet, MHD torus, supernova (SN), dwarf galaxy
 #   2D Riemann: Yee-Sjögreen (YS), (MHD) Lax-Liu 1-19
 
 physics_parameters:
@@ -36,8 +36,8 @@ runtime_parameters:
   save_file     : false
   plot_style    : default
   # Plot options
-  # : density, pressure, velocity Vx/Vy/Vz, total/internal energy, Mach number,
-  # : magnetic field Bx/By/Bz, magnetic pressure, magnetic divergence divB
+  # : density, pressure, velocities, total/internal energy, Mach number,
+  # : magnetic fields, magnetic pressure, magnetic divergence
   plot_options  :
     - density
     - pressure
