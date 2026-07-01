@@ -21,6 +21,7 @@ RHO, PRESSURE, VELS, BFIELDS = 0, 4, slice(1,4), slice(5,8)
 CELLS_TO_STR = lambda size: rf"$N = {str(size).strip('[]').replace(' ','').replace(',','x')}$"
 
 SAVE_AS_PDF = False
+QUIVER_ON = True
 PLOT_OPTIONS = ['density', 'pressure', 'total energy', 'vx', 'vy', 'vz', 'Bx', 'By', 'Bz']
 
 
@@ -128,7 +129,11 @@ def run(save=False, title=False):
                             y = data[idx]
 
                             if dimensions > 1:
-                                graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
+                                if y.ndim > 2:
+                                    graph = ax[_i,_j].imshow(norm(y.T), interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
+                                    quiver(ax[_i,_j], y, cells, dimensions, coordinates, slice_3d, slice_axis)
+                                else:
+                                    graph = ax[_i,_j].imshow(y, interpolation="nearest", cmap=plot_['colours']['2d'][idx], origin="lower", extent=extent)
                                 divider = make_axes_locatable(ax[_i,_j])
                                 cax = divider.append_axes(position='right', size='5%', pad=0.05)
                                 fig.colorbar(graph, cax=cax, orientation='vertical')
@@ -177,6 +182,9 @@ def run(save=False, title=False):
 def divide(dividend, divisor):
     return np.divide(dividend, divisor, out=np.zeros_like(dividend), where=divisor!=0)
 
+def norm(arr):
+    return np.linalg.norm(arr, axis=-1)
+
 def norm2(arr):
     return np.linalg.norm(arr, axis=-1) ** 2
 
@@ -203,6 +211,31 @@ def add_boundary(grid, mode, stencil=1, axis=0):
 # pressure -> (total) energy density
 def convert_pressure(grid, gamma, permeability):
     return grid[...,PRESSURE]/(gamma-1) + .5*(grid[...,RHO]*norm2(grid[...,VELS])) + .5*(norm2(grid[...,BFIELDS]))/permeability
+
+# Quiver overplot for vectors
+def quiver(ax, vectors, cells, dimensions, coordinates, slice_3d, slice_axis):
+    phy_grid = lambda _ax: make_physical_grid(coordinates, cells, _ax)[1]
+    blockview = lambda arr: blockwise_view(arr, nrows=8, ncols=8)
+    if dimensions > 2:
+        mesh = np.meshgrid(phy_grid(0), phy_grid(1), phy_grid(2), indexing='ij')
+        X, Y = np.take(mesh, slice_3d, axis=slice_axis)
+    else:
+        X, Y = np.meshgrid(phy_grid(0), phy_grid(1), indexing='ij')
+    ax.quiver(blockview(X), blockview(Y), blockview(vectors[0]), blockview(vectors[1]), width=.01, linewidth=.01)
+
+def make_physical_grid(coordinates, cells, idx):
+    start_pos, end_pos = coordinates[idx]
+    dh = np.abs(np.diff(coordinates[idx])[0])/cells[idx]
+    half_cell = .5 * dh
+    return np.average(coordinates[idx]), np.linspace(start_pos-half_cell, end_pos+half_cell, cells[idx]+2)[1:-1]
+
+# Average the submatrices of size (nrows, ncols) in a (h, w) 2D array
+def blockwise_view(arr, nrows, ncols):
+    h, w = arr.shape
+    assert h % nrows == 0, f"{h} rows is not evenly divisible by {nrows}"
+    assert w % ncols == 0, f"{w} cols is not evenly divisible by {ncols}"
+    block_grid = arr.reshape(h//nrows, nrows, -1, ncols).swapaxes(1,2).reshape(-1, nrows, ncols)
+    return np.average(block_grid, axis=(1,2)).reshape(h//nrows, w//ncols)
 
 # Make figures and axes for plotting
 def make_figure(options, units, dimensions, coordinates, scale_labels=None):
@@ -281,7 +314,7 @@ def make_figure(options, units, dimensions, coordinates, scale_labels=None):
                 if _option.endswith("s"):
                     return make_outputs("Velocity", r"$\| \vec{v} \|$", "velocity", cmap_colours["velocities"])
                 else:
-                    return make_outputs("Velocity", rf"$v_{axis}$", "velocity", cmap_colours["velocity"][_option[-1]])
+                    return make_outputs("Velocity", rf"$v_{_option[-1]}$", "velocity", cmap_colours["velocity"][_option[-1]])
 
             # Magnetic field/pressure
             elif _option.startswith(("b", "mag")):
@@ -291,17 +324,16 @@ def make_figure(options, units, dimensions, coordinates, scale_labels=None):
                 if _option.endswith("s"):
                     return make_outputs("Mag. field", r"$\| \vec{B} \|$", "Bfield", cmap_colours["Bfields"])
                 else:
-                    return make_outputs("Mag. field", rf"$B_{axis}$", "Bfield", cmap_colours["Bfield"][_option[-1]])
+                    return make_outputs("Mag. field", rf"$B_{_option[-1]}$", "Bfield", cmap_colours["Bfield"][_option[-1]])
 
             # Divergence
             elif 'div' in _option or 'db' in _option:
-                axis = _option[-1]
-                if axis == "b":
+                if _option[-1] == "b":
                     symbol = r"$\nabla \cdot B$"
                     colour = cmap_colours["divergence"]
                 else:
-                    symbol = rf"$\nabla \cdot B_{axis}$"
-                    colour = cmap_colours["Bfields"][axis]
+                    symbol = rf"$\nabla \cdot B_{_option[-1]}$"
+                    colour = cmap_colours["Bfields"][_option[-1]]
 
                 return make_outputs("Divergence", symbol, "divergence", colour)
 
@@ -409,7 +441,8 @@ def make_data(options, grid, dimensions, gamma, permeability, boundary, ds, unit
                 if "mom" in _option:
                     quantity *= grid[...,RHO][...,None]
                     scaler = 'momentum'
-                quantity = np.sqrt(norm2(quantity))
+                if QUIVER_ON:
+                    quantity = norm(quantity)
             else:
                 axis = get_axis(_option)
                 quantity = grid[...,1+axis]
@@ -430,7 +463,9 @@ def make_data(options, grid, dimensions, gamma, permeability, boundary, ds, unit
             else:
                 scaler = 'Bfield'
                 if _option.endswith("s"):
-                    quantity = np.sqrt(norm2(grid[...,BFIELDS]))
+                    quantity = grid[...,BFIELDS]
+                    if QUIVER_ON:
+                        quantity = norm(quantity)
                 else:
                     axis = get_axis(_option)
                     quantity = grid[...,5+axis]

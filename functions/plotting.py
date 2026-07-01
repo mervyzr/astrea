@@ -21,6 +21,7 @@ from functions.generic import BColours
 ##############################################################################
 
 CELLS_TO_STR = lambda size: rf"$N = {str(size).strip('[]').replace(' ','').replace(',','x')}$"
+QUIVER_ON = True
 
 
 # Make figures and axes for plotting
@@ -112,7 +113,7 @@ def make_figure(options, sim_variables, variable="normal"):
                 if _option.endswith("s"):
                     return make_outputs("Velocity", r"$\| \vec{v} \|$", "velocity", cmap_colours["velocities"])
                 else:
-                    return make_outputs("Velocity", rf"$v_{axis}$", "velocity", cmap_colours["velocity"][_option[-1]])
+                    return make_outputs("Velocity", rf"$v_{_option[-1]}$", "velocity", cmap_colours["velocity"][_option[-1]])
 
             # Magnetic field/pressure
             elif _option.startswith(("b", "mag")):
@@ -122,17 +123,16 @@ def make_figure(options, sim_variables, variable="normal"):
                 if _option.endswith("s"):
                     return make_outputs("Mag. field", r"$\| \vec{B} \|$", "Bfield", cmap_colours["Bfields"])
                 else:
-                    return make_outputs("Mag. field", rf"$B_{axis}$", "Bfield", cmap_colours["Bfield"][_option[-1]])
+                    return make_outputs("Mag. field", rf"$B_{_option[-1]}$", "Bfield", cmap_colours["Bfield"][_option[-1]])
 
             # Divergence
             elif 'div' in _option or 'db' in _option:
-                axis = _option[-1]
-                if axis == "b":
+                if _option[-1] == "b":
                     symbol = r"$\nabla \cdot B$"
                     colour = cmap_colours["divergence"]
                 else:
-                    symbol = rf"$\nabla \cdot B_{axis}$"
-                    colour = cmap_colours["Bfields"][axis]
+                    symbol = rf"$\nabla \cdot B_{_option[-1]}$"
+                    colour = cmap_colours["Bfields"][_option[-1]]
 
                 return make_outputs("Divergence", symbol, "divergence", colour)
 
@@ -253,7 +253,7 @@ def make_data(options, grid, sim_variables):
                 if "mom" in _option:
                     quantity *= grid[...,rho][...,None]
                     scaler = 'momentum'
-                if sim_variables.live_plot:
+                if sim_variables.live_plot or not QUIVER_ON:
                     quantity = mfuncs.norm(quantity)
             else:
                 axis = get_axis(_option)
@@ -276,7 +276,7 @@ def make_data(options, grid, sim_variables):
                 scaler = 'Bfield'
                 if _option.endswith("s"):
                     quantity = grid[...,5+sim_variables.axes]
-                    if sim_variables.live_plot:
+                    if sim_variables.live_plot or not QUIVER_ON:
                         quantity = mfuncs.norm(quantity)
                 else:
                     axis = get_axis(_option)
