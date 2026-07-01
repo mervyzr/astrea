@@ -386,6 +386,16 @@ def generate_test_conditions(config_variables):
             'bottom_right':np.array([1.8887,.12357706,-.92243342,.03880976,6.20869473,.5642,.983,.4915])
             }
 
+    # [Liska & Wendroff, 2003b]
+    elif match(any, ["liska", "wendroff", "implosion"]):
+        axis_coord = [-.3,.3]
+        shock_pos = .15
+        t_end = 1
+        boundary = "wrap"
+        init_cond = np.array([.125,0,0,0,.14,0,0,0])
+        ambient = np.array([1,0,0,0,1,0,0,0])
+        test_specifics = {'angle':45}
+
     # [Lax & Liu, 1998]
     elif match(any, ["lax", "liu", "ll"]):
         axis_coord = [0,1]

@@ -183,6 +183,7 @@ Several (magneto)hydrodynamics tests are in place:
     <li>Noh problem (Noh, 1987)</li>
     <li>Gresho vortex (Gresho & Chan, 1990)</li>
     <li>"Lax-Liu tests" (Lax & Liu, 1998)</li>
+    <li>Liska-Wendroff implosion problem (Liska & Wendroff, 2003b)</li>
     <li>Isentropic vortex (Pang & Wu, 2025)</li>
     <li>Smooth advection wave tests</li>
     <li>Tycho supernova</li>
@@ -294,6 +295,7 @@ Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussi
     <li>LeVeque, R. J. (1992). Numerical Methods for Conservation Laws (2nd ed.). Birkhäuser Basel.</li>
     <li>Levy, D., Puppo, G., & Russo, G. (1999). Central WENO Schemes for Hyperbolic Systems of Conservation Laws. Mathematical Modelling and Numerical Analysis, 33(3), 547-571.</li>
     <li>Levy, D., Puppo, G., & Russo, G. (2000). Compact Central WENO Schemes for Multidimensional Conservation Laws. SIAM Journal on Scientific Computing, 22(2), 656-672.</li>
+    <li>Liska, R., & Wendroff, B. (2003b). Comparison of Several Difference Schemes on 1D and 2D Test Problems for the Euler Equations. SIAM Journal on Scientific Computing, 25(3), 995-1017.</li>
     <li>Machida, M., Hayashi, M. R., & Matsumoto, R. (1999). Global Simulations of Differentially Rotating Magnetized Disks: Formation of Low-β Filaments and Structured Coronae. The Astrophysical Journal, 532, L67-L70.</li>
     <li>Markert, J., Walch, S., & Gassner, G. (2022). A discontinuous Galerkin solver in the <span style="font-variant:small-caps;">flash</span> multiphysics framework. Monthly Notices of the Royal Astronomical Society, 511(3), 4179-4200.</li>
     <li>McCorquodale, P., & Colella, P. (2011). A high-order finite-volume method for conservation laws on locally refined grids. Communications in Applied Mathematics and Computational Science, 6(1), 1–25.</li>

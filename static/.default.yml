@@ -8,7 +8,7 @@
 #   Turbulent/random noise: turbulence, blank field
 #   Non-linear MHD: MHD rotor, MHD current, MHD blob
 #   Astrophysical: Shock cloud, astrophysical jet, MHD torus, supernova (SN), dwarf galaxy
-#   2D Riemann: Yee-Sjögreen (YS), (MHD) Lax-Liu 1-19
+#   2D Riemann: Liska-Wendroff (implosion), Yee-Sjögreen (YS), (MHD) Lax-Liu 1-19
 
 physics_parameters:
   config        : Sedov

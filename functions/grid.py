@@ -325,6 +325,13 @@ def initialise(sim_variables):
                 computational_grid[np.where((x < shock_pos) & (y < shock_pos))] = test_specifics['bottom_left']
                 computational_grid[np.where((x >= shock_pos) & (y < shock_pos))] = test_specifics['bottom_right']
 
+            elif match(any, ["liska", "wendroff", "implosion"]):
+                xr = np.cos(test_specifics['angle'] * np.pi/180)*x + np.sin(test_specifics['angle'] * np.pi/180)*y
+                yr = -np.sin(test_specifics['angle'] * np.pi/180)*x + np.cos(test_specifics['angle'] * np.pi/180)*y
+
+                mask = (np.abs(xr) <= shock_pos) & (np.abs(yr) <= shock_pos)
+                computational_grid[mask] = init_cond
+
             elif match(any, ["orszag", "tang"]) or config == "ot":
                 _x, _y, ampl = test_specifics['norm_factor']*x, test_specifics['norm_factor']*y, test_specifics['ampl']
 
