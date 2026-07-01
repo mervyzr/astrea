@@ -56,7 +56,7 @@ issues = "https://github.com/mervyzr/astrea/issues"
 [tool.setuptools.packages.find]
 include = ["astrea*"]
 exclude = [
-    "saved_data",
+    "data",
     ".vidplots",
     "krome",
 ]

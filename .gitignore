@@ -56,7 +56,7 @@ docs/_build/
 .venv
 .vidplots
 .vscode
-saved_data
+data
 parameters.yml
 *.astrea*
 *.hdf5

@@ -30,7 +30,7 @@ from temporal.temporal import evolve as temporal_evolve
 ##############################################################################
 
 # Globals
-SAVE_DIR = "saved_data"
+SAVE_DIR = "data"
 SEED = np.random.randint(0, 1e8)
 
 # Global settings
