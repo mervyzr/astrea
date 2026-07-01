@@ -19,6 +19,15 @@ def make_physical_grid(coordinates, cells, idx):
     return np.average(coordinates[idx]), np.linspace(start_pos-half_cell, end_pos+half_cell, cells[idx]+2)[1:-1]
 
 
+# Average the submatrices of size (nrows, ncols) in a (h, w) 2D array
+def blockwise_view(arr, nrows, ncols):
+    h, w = arr.shape
+    assert h % nrows == 0, f"{h} rows is not evenly divisible by {nrows}"
+    assert w % ncols == 0, f"{w} cols is not evenly divisible by {ncols}"
+    block_grid = arr.reshape(h//nrows, nrows, -1, ncols).swapaxes(1,2).reshape(-1, nrows, ncols)
+    return np.average(block_grid, axis=(1,2)).reshape(h//nrows, w//ncols)
+
+
 # Initialise the discrete POINTWISE solution array with initial conditions and primitive variables w, and transform into discrete AVERAGES <w>
 # For magnetohydrodynamics, this returns a staggered grid
 @verbose_timer
@@ -132,14 +141,14 @@ def initialise(sim_variables):
 
             elif "torus" in config:
                 r = np.sqrt(x0**2 + y0**2)
-                cA2 = lambda _r: 2 * (test_specifics['polytropeK']/test_specifics['beta']) * (init_cond[rho] * _r**2)**(gamma-1)
+                cA2 = lambda _r: 2 * (test_specifics['K']/test_specifics['beta0']) * (init_cond[rho] * _r**2)**(gamma-1)
                 cs2 = np.sqrt(gamma * init_cond[pressure]/init_cond[rho])
                 torus_phi = -test_specifics['GM']/test_specifics['r0'] + test_specifics['L']**2/(2*test_specifics['r0']**2) + (2*cs2 + gamma*cA2(test_specifics['r0']))/(2*(gamma-1))
 
                 computational_grid[...,rho] = (
                     mfuncs.divide(
                         np.maximum(0, torus_phi + test_specifics['GM']/test_specifics['r0'] - test_specifics['L']**2/(2*r**2)),
-                        test_specifics['polytropeK'] * (gamma/(gamma-1)) * (1 + (r**(2*(gamma-1)))/test_specifics['beta'])
+                        test_specifics['K'] * (gamma/(gamma-1)) * (1 + (r**(2*(gamma-1)))/test_specifics['beta0'])
                     )
                 )**(1/(gamma-1))
                 computational_grid[...,vx] = -np.sqrt(test_specifics['GM']) * (y/r**1.5)
@@ -181,6 +190,13 @@ def initialise(sim_variables):
                 if config.startswith('m'):
                     computational_grid[...,Bx] = -B_ampl * np.sin(y)
                     computational_grid[...,By] = B_ampl * np.sin(2*x)
+
+            elif "dwarf" in config:
+                a, b, Mgas = test_specifics['a'], test_specifics['b'], test_specifics['Mgas']
+
+                rho0 = Mgas / (8 * np.pi * a**2 * b * mfuncs.catalan())
+                rho_profile = rho0 * np.arccos(r/a) * np.arccos(z/b)**2
+                computational_grid[...,rho] = np.maximum(rho_profile, 1)
 
         else:
             ##############################

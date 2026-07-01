@@ -360,6 +360,16 @@ def generate_test_conditions(config_variables):
             axis_coord = [-5,5]
             boundary = "edge"
 
+    # Isothermal 'dwarf galaxy' (non-hydrostatic equilibrium)
+    elif "dwarf" in config:
+        axis_coord = [-1,1]
+        shock_pos = 0
+        t_end = 1
+        boundary = "edge"
+        init_cond = np.array([0,0,0,0,0,0,0,0])
+        ambient = np.array([1e-20,0,0,0,1e-20,0,0,0])
+        test_specifics = {'Mgas':1, 'a':1, 'b':1}
+
     ##############################################
     # 2D Riemann
     ##############################################
