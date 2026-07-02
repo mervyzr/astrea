@@ -390,7 +390,7 @@ def generate_test_conditions(config_variables):
     elif match(any, ["liska", "wendroff", "implosion"]):
         axis_coord = [-.3,.3]
         shock_pos = .15
-        t_end = 1
+        t_end = 3
         boundary = "wrap"
         init_cond = np.array([.125,0,0,0,.14,0,0,0])
         ambient = np.array([1,0,0,0,1,0,0,0])
