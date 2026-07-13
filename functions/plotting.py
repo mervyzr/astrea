@@ -11,8 +11,8 @@ import matplotlib.gridspec as gridspec
 from matplotlib.patches import Circle, Polygon
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+from functions import analytic, fv
 from functions import grid as gutils
-from functions import analytic
 from functions import math as mfuncs
 from functions.generic import BColours
 
@@ -645,7 +645,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
                     _grid = hdf5[ref_datetime][str(ref_time)][:]
                     analytical = analytic.calculate_Euler_analytical(_grid, sim_variables)
                 else:
-                    analytical = gutils.initialise(sim_variables)
+                    analytical = fv.initialise(sim_variables)
                     if config.startswith("sin"):
                         plot_label = rf"{config}$_{{theo}}$"
                     elif config == "cpaw":

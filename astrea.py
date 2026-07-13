@@ -15,7 +15,7 @@ import h5py
 import dotenv
 import numpy as np
 
-from functions import generic, plotting
+from functions import fv, generic, plotting
 from functions import grid as gutils
 from iokit import chkpt_funcs, handler, simulation
 from numkit import c_transport as ct
@@ -43,7 +43,7 @@ def core_run(sim_variables):
     if sim_variables.chkpt_file:
         primitive_grid, t, idx = chkpt_funcs.load_chkpt_file(sim_variables.chkpt_file)
     else:
-        primitive_grid, t, idx = gutils.initialise(sim_variables), 0., 1
+        primitive_grid, t, idx = fv.initialise(sim_variables), 0., 1
 
     convert = ct.convert if sim_variables.magnetic else gutils.convert
 

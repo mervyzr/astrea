@@ -390,12 +390,13 @@ astrea/
 ├── astrea.py               : Core script for running the simulation
 ├── functions
 │   ├── __init__.py
-│   ├── analytic.py   : Analytical solutions to smooth advection wave tests
-│   ├── generic.py    : Generic functions not specific to FVM
-│   ├── grid.py       : Grid functions used for padding, slicing, higher-order interpolations, etc.
-│   ├── math.py       : Math functions, including specialised math functions
-│   ├── numeric.py    : Numerical functions for computing eigenvectors, Jacobian matrices, wavespeeds, etc.
-│   └── plotting.py   : Functions for media, e.g., (live-)plotting, saving videos
+│   ├── analytic.py : Analytical solutions to smooth advection wave tests
+│   ├── generic.py  : Generic functions not specific to FVM
+│   ├── fv.py       : Main finite volume grid initialisation function
+│   ├── grid.py     : Grid functions used for padding, slicing, higher-order interpolations, etc.
+│   ├── math.py     : Math functions, including specialised math functions
+│   ├── numeric.py  : Numerical functions for computing eigenvectors, Jacobian matrices, wavespeeds, etc.
+│   └── plotting.py : Functions for media, e.g., (live-)plotting, saving videos
 ├── iokit
 │   ├── __init__.py
 │   ├── chkpt_funcs.py  : Checkpoint file I/O functions
@@ -416,9 +417,11 @@ astrea/
 │   │   ├── __init__.py
 │   │   ├── abundances.yml  : Initial abundances for chemical species in default network
 │   │   ├── krome_funcs.py  : Functions for building and parsing krome routines
-│   ├── constants.py        : Conversion between code units & CGS units
+│   ├── constants.py        : Physical units
+│   ├── conversions.py      : Conversion between code & CGS units
 │   ├── gravity.py          : Functions for self-gravity (FFT Poisson solver)
 │   ├── tracers.py          : Functions for tracer particles
+│   ├── turbulence.py       : Functions for turbulence driving (Ornstein-Uhlenbeck process)
 ├── spatial
 │   ├── __init__.py
 │   ├── cweno.py    : Central weighted essentially non-oscillatory method (CWENO) [Levy et al., 1999]
@@ -431,19 +434,21 @@ astrea/
 │   ├── wenoz.py    : WENO method with higher-order smoothness indicators (WENO-Z) [Borges et al., 2008]
 ├── static
 │   ├── __init__.py
-│   ├── .db.json        : Database for parameters
-│   ├── .default.yml    : Default parameters file
-│   ├── tests.py        : Initial conditions for (magneto)hydrodynamics tests
+│   ├── .db.json      : Database for parameters
+│   ├── .default.yml  : Default parameters file
+│   ├── tests.py      : Initial conditions for (magneto)hydrodynamics tests
 ├── temporal
 │   ├── __init__.py
-│   ├── euler.py      : Forward Euler (explicit) scheme
-│   ├── rk4.py        : (Standard) Runge-Kutta 3 scheme
-│   ├── ssprk2.py     : Second-order strong stability-preserving scheme [Gottlieb et al., 2009]
-│   ├── ssprk3.py     : Third-order strong stability-preserving schemes [Shu & Osher, 1988; Spiteri & Ruuth, 2002; Gottlieb et al., 2009]
-│   ├── ssprk4.py     : Fourth-order strong stability-preserving schemes [Kraaijevanger, 1991; Ruuth & Spiteri, 2002; Ketcheson, 2008]
-│   ├── ssprk5.py     : Fifth-order strong stability-preserving scheme [Gottlieb et al., 2009]
-│   ├── temporal.py   : Handler for time integration schemes
+│   ├── euler.py    : Forward Euler (explicit) scheme
+│   ├── rk4.py      : (Standard) Runge-Kutta 3 scheme
+│   ├── ssprk2.py   : Second-order strong stability-preserving scheme [Gottlieb et al., 2009]
+│   ├── ssprk3.py   : Third-order strong stability-preserving schemes [Shu & Osher, 1988; Spiteri & Ruuth, 2002; Gottlieb et al., 2009]
+│   ├── ssprk4.py   : Fourth-order strong stability-preserving schemes [Kraaijevanger, 1991; Ruuth & Spiteri, 2002; Ketcheson, 2008]
+│   ├── ssprk5.py   : Fifth-order strong stability-preserving scheme [Gottlieb et al., 2009]
+│   ├── temporal.py : Handler for time integration schemes
 ├── utilities
-│   ├── plot_chkpt.py   : Standalone plotting function for checkpoint files
-│   ├── simvars.py : Standalone function for generating simulation variables for testing individual functions with Python REPL
+│   ├── angular_momentum.py : Standalone functions for angular momentum
+│   ├── plot_chkpt.py       : Standalone plotting function for checkpoint files
+│   ├── sedov_numba.py      : Sedov blast test with numba (experimental)
+│   ├── simvars.py          : Standalone function for generating simulation variables for testing individual functions with Python REPL
 ```

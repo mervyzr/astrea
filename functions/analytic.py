@@ -2,7 +2,7 @@ import scipy as sp
 import numpy as np
 from scipy.special import gamma as gamma_func
 
-from functions import analytic
+from functions import analytic, fv
 from functions import grid as gutils
 from functions import math as mfuncs
 
@@ -29,7 +29,7 @@ def calculate_solution_error(grid, sim_variables, norm):
     if "manufacture" in sim_variables.config or "euler" in sim_variables.config:
         w_theo = analytic.calculate_Euler_analytical(grid, sim_variables)
     else:
-        w_theo = gutils.initialise(sim_variables)
+        w_theo = fv.initialise(sim_variables)
 
     # Energy terms
     E_tot_num, E_tot_theo = mfuncs.divide(gutils.convert_thermo_variable('pressure', w_num, sim_variables), w_num[...,rho]), mfuncs.divide(gutils.convert_thermo_variable('pressure', w_theo, sim_variables), w_theo[...,rho])
