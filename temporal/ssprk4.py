@@ -52,4 +52,5 @@ def run(sevolve_func, grid, fluxes, dt, sim_variables, **kwargs):
         fluxes4 = sevolve_func(k4, sim_variables)
 
         # Computation of 5th register
-        return .517231671970585*k2 + .096059710526147*k3 + .06369246866629*dt*fluxes3 + .386708617503269*k4 + .226007483236906*dt*fluxes4
+        return grid + dt * (.14681187608478657*fluxes + .24848290944497617*fluxes1 + .10425883033198098*fluxes2 + .2744389009013507*fluxes3 + .226007483236906*fluxes4)
+        #return .517231671970585*k2 + .096059710526147*k3 + .06369246866629*dt*fluxes3 + .386708617503269*k4 + .226007483236906*dt*fluxes4
