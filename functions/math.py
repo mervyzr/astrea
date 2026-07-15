@@ -1,3 +1,6 @@
+from math import gcd
+from decimal import Decimal
+
 import numpy as np
 
 ##############################################################################
@@ -68,3 +71,23 @@ def catalan(n=1000):
     _range = np.array(range(1, n+1, 2))**2
     coeff = np.array(([1,-1] * int(n//4 + n%4))[:len(_range)])
     return np.sum(coeff/_range)
+
+
+# Get greatest common denominator (GCD) of decimal (commonly used for the coeff. in the SSP-RK methods)
+def get_fraction(number):
+    if not isinstance(number, str):
+        try:
+            number = str(number)
+        except:
+            raise TypeError
+
+    try:
+        places = abs(Decimal(str(number)).as_tuple().exponent)
+    except:
+        raise ValueError
+    else:
+        denom = 10**places
+        numer = number * denom
+        common = gcd(numer, denom)
+
+        return numer//common, denom//common
