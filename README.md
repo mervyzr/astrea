@@ -4,11 +4,9 @@
 
 <!-- ![GitHub Tag](https://img.shields.io/github/v/tag/mervyzr/astrea) -->
 
-# astrea
+<img src='./static/astrea-profile.png' width=10% alt='profile'>
 
 **_astrea_** (**A**strophysical **S**hockwave and **T**urbulence **RE**search for interstellar **A**pplications) is a multi-dimensional ideal magnetohydrodynamics simulation toy-model finite volume code with an experimental chemical network solver and self-gravity for the purpose of modelling shockwaves and turbulence in the interstellar medium.
-
-<img src='./static/astrea-profile.png' width=10% alt='profile'>
 
 **_This code was originally created as part of my Master's thesis research project at the University of Cologne, under supervision by Prof. Dr. Stefanie Walch-Gassner. The thesis was completed in May 2025._**
 
