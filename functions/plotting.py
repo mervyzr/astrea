@@ -381,9 +381,10 @@ def update_plot(grid_snapshot, t, sim_variables, fig, ax, graphs):
             graph.set_clim([np.min(plot_data[idx]), np.max(plot_data[idx])])
     else:
         for idx, _ax in enumerate(ax.ravel()):
-            graphs[idx].set_ydata(plot_data[idx])
-            _ax.relim()
-            _ax.autoscale_view()
+            if idx < len(graphs):
+                graphs[idx].set_ydata(plot_data[idx])
+                _ax.relim()
+                _ax.autoscale_view()
 
     try:
         fig._suptitle.get_text()
