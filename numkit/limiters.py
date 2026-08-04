@@ -8,7 +8,7 @@ from functions import math as mfuncs
 ##############################################################################
 
 # Calculate minmod (slope) limiter [Derigs et al., 2017]. Returns an array of gradients for each parameter in each cell
-def minmod_limiter(padded_grid, axis):
+def minmod(padded_grid, axis):
     a, b = np.diff(gutils.slice_(padded_grid, axis, end=-1), axis=axis), np.diff(gutils.slice_(padded_grid, axis, start=1), axis=axis)
     arr = np.zeros_like(b)
 
@@ -21,37 +21,37 @@ def minmod_limiter(padded_grid, axis):
 
 
 # Calculate the van Leer/harmonic parameter [van Leer, 1974]
-def vanLeer_limiter(padded_grid, axis):
+def vanLeer(padded_grid, axis):
     r = mfuncs.divide(np.diff(gutils.slice_(padded_grid, axis, end=-1), axis=axis), np.diff(gutils.slice_(padded_grid, axis, start=1), axis=axis))
     return (r + np.abs(r))/(1 + np.abs(r)) * np.diff(gutils.slice_(padded_grid, axis, start=1), axis=axis)
 
 
 # Calculate the Ospre parameter [Waterson & Deconinck, 1995]
-def ospre_limiter(padded_grid, axis):
+def ospre(padded_grid, axis):
     r = mfuncs.divide(np.diff(gutils.slice_(padded_grid, axis, end=-1), axis=axis), np.diff(gutils.slice_(padded_grid, axis, start=1), axis=axis))
     return 1.5 * ((r**2 + r)/(r**2 + r + 1)) * np.diff(gutils.slice_(padded_grid, axis, start=1), axis=axis)
 
 
 # Calculate the van Albada "1" parameter [van Albada, 1982]
-def vanAlbada_one_limiter(padded_grid, axis):
+def vanAlbada_one(padded_grid, axis):
     r = mfuncs.divide(np.diff(gutils.slice_(padded_grid, axis, end=-1), axis=axis), np.diff(gutils.slice_(padded_grid, axis, start=1), axis=axis))
     return (r**2 + r)/(r**2 + 1) * np.diff(gutils.slice_(padded_grid, axis, start=1), axis=axis)
 
 
 # Calculate the Koren parameter [Vreugdenhil & Koren, 1993]
-def koren_limiter(padded_grid, axis):
+def koren(padded_grid, axis):
     r = mfuncs.divide(np.diff(gutils.slice_(padded_grid, axis, end=-1), axis=axis), np.diff(gutils.slice_(padded_grid, axis, start=1), axis=axis))
     return np.maximum(np.zeros_like(r), np.minimum(np.minimum(2*r, (2+r)/3), np.full_like(r,2))) * np.diff(gutils.slice_(padded_grid, axis, start=1), axis=axis)
 
 
 # Calculate the superbee parameter [Roe, 1986]
-def superbee_limiter(padded_grid, axis):
+def superbee(padded_grid, axis):
     r = mfuncs.divide(np.diff(gutils.slice_(padded_grid, axis, end=-1), axis=axis), np.diff(gutils.slice_(padded_grid, axis, start=1), axis=axis))
     return np.maximum(np.zeros_like(r), np.maximum(np.minimum(2*r, np.ones_like(r)), np.minimum(r, np.full_like(r,2)))) * np.diff(gutils.slice_(padded_grid, axis, start=1), axis=axis)
 
 
 # Function for limiting the interface values interpolated from cell centre for PPM [Colella et al., 2011, p. 26; Peterson & Hammett, 2008, eq. 3.33-3.34]
-def interface_limiter(interface, *grid_slices):
+def interface_limit(interface, *grid_slices):
     minus_one, zeroth, plus_one, plus_two = grid_slices
     C = 5/4
 
@@ -82,7 +82,7 @@ def interface_limiter(interface, *grid_slices):
 
 
 # Parabolic extrapolant limiter for PPM [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
-def extrapolant_limiter(grid, sim_variables, axis, *args, **kwargs):
+def extrapolant_limit(grid, sim_variables, axis, *args, **kwargs):
     left_of_centre, right_of_centre = args
     padded_grid, padded_grid_2, padded_interface_2 = kwargs['padded_grid'], kwargs['padded_grid_2'], kwargs['padded_interface_2']
     C = 5/4
@@ -229,3 +229,10 @@ def extrapolant_limiter(grid, sim_variables, axis, *args, **kwargs):
         else:
             wL, wR = left_of_centre, right_of_centre
     return wL, wR
+
+
+# Positivity-preserving limiter [Zhang & Shu, 2010]; reverts to first-order in strong discontinuities
+def zs2010(grid, interface, ratio=.5):
+    mask = np.where(interface < 0)
+    interface[mask] = (grid + ratio * (interface-grid))[mask]
+    return interface

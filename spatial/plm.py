@@ -14,7 +14,7 @@ def reconstruct(grid, sim_variables, axis):
     padded_grid = gutils.add_boundary(grid, sim_variables, axis=axis)
 
     # Apply (TVD) slope limiters
-    limited_values = limiters.minmod_limiter(padded_grid, axis=axis)
+    limited_values = limiters.minmod(padded_grid, axis=axis)
     gradients = .5 * limited_values
 
     """Reconstruct from cell averages to face averages (both sides)

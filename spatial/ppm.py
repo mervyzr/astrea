@@ -41,14 +41,14 @@ def reconstruct(grid, sim_variables, axis):
         # Limit interface values [Peterson & Hammett, 2008, eq. 3.33-3.34]
         padded_interface_2 = np.zeros_like(gutils.add_boundary(right_of_centre, sim_variables, stencil=2, axis=axis))
         limited_wFs = (
-            limiters.interface_limiter(left_of_centre, *(minus_two, minus_one, grid, plus_one)), 
-            limiters.interface_limiter(right_of_centre, *(minus_one, grid, plus_one, plus_two))
+            limiters.interface_limit(left_of_centre, *(minus_two, minus_one, grid, plus_one)), 
+            limiters.interface_limit(right_of_centre, *(minus_one, grid, plus_one, plus_two))
         )
 
     else:
         # Limit interface values [Colella et al., 2011, p. 25-26]
         if sim_variables.ppm_author.casefold().startswith(("colella", "c", "c+")):
-            interface = limiters.interface_limiter(interface, *(minus_one, grid, plus_one, plus_two))
+            interface = limiters.interface_limit(interface, *(minus_one, grid, plus_one, plus_two))
 
         # Define the left and right parabolic extrapolants
         padded_interface_2 = gutils.add_boundary(interface, sim_variables, stencil=2, axis=axis)
@@ -63,7 +63,7 @@ def reconstruct(grid, sim_variables, axis):
     |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
     |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
     """
-    wL, wR = limiters.extrapolant_limiter(grid, sim_variables, axis, *limited_wFs, **{
+    wL, wR = limiters.extrapolant_limit(grid, sim_variables, axis, *limited_wFs, **{
         'padded_grid':padded_grid, 'padded_grid_2':padded_grid_2, 'padded_interface_2':padded_interface_2
         })
 

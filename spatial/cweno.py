@@ -4,7 +4,7 @@ from functions import grid as gutils
 from functions import math as mfuncs
 from functions import numeric
 from numkit import c_transport as ct
-from numkit import solvers
+from numkit import limiters, solvers
 
 ##############################################################################
 # CWENO reconstruction method [Levy et al., 1999, 2000; Verma et al., 2018]
@@ -64,6 +64,10 @@ def reconstruct(grid, sim_variables, axis, power=2):
         + omega(1) * (-plus_one + 5*zeroth + 2*minus_one)
         + omega(2) * (2*plus_two - 7*plus_one + 11*zeroth)
     )
+
+    # Apply positivity limiter to densities
+    wR[...,sim_variables.rho] = limiters.zs2010(grid, wR)[...,sim_variables.rho]
+    wL[...,sim_variables.rho] = limiters.zs2010(grid, wL)[...,sim_variables.rho]
 
     return wL, wR
 
