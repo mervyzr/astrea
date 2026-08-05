@@ -396,8 +396,15 @@ def initialise(sim_variables):
 
             elif "cloud" in config:
                 computational_grid[np.where(x < shock_pos)] = init_cond
-                mask = np.where(((x-.8)**2 + (y-.5)**2) < .15**2)
-                computational_grid[...,rho][mask] = test_specifics['cloud_mass']
+
+                (x0,y0), cloud_r = test_specifics['pos'], test_specifics['radius']
+                r = np.sqrt((x-x0)**2 + (y-y0)**2)
+                mask = np.where(r**2 < cloud_r**2)
+
+                if test_specifics['smoothing']:
+                    computational_grid[...,rho][mask] = ambient[rho] + .5*(test_specifics['mass']-ambient[rho])*(1-np.tanh((r[mask] - cloud_r)/.005))  # top-hat distribution
+                else:
+                    computational_grid[...,rho][mask] = test_specifics['mass']
 
             elif "jet" in config:
                 nozzle = np.where((np.abs(x) < shock_pos) & (y <= (coordinates[1][0] + ds[1])))

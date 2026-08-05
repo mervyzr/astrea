@@ -21,7 +21,7 @@ from functions.generic import BColours
 ##############################################################################
 
 CELLS_TO_STR = lambda size: rf"$N = {str(size).strip('[]').replace(' ','').replace(',','x')}$"
-QUIVER_ON = True
+QUIVER_ON = False
 
 
 # Make figures and axes for plotting

@@ -316,7 +316,7 @@ def generate_test_conditions(config_variables):
         boundary = "edge"
         init_cond = np.array([3.86859,0,0,0,167.345,0,2.1826182,-2.1826182])
         ambient = np.array([1,-11.2536,0,0,1,0,.56418958,.56418958])
-        test_specifics = {'cloud_mass':10}
+        test_specifics = {'mass':10, 'radius':.15, 'pos':[.8,.5], 'smoothing':True}
 
     # [Wu & Shu, 2018]
     elif "jet" in config:
