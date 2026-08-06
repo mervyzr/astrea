@@ -7,7 +7,7 @@ from numkit import c_transport as ct
 from numkit import limiters, solvers
 
 ##############################################################################
-# CWENO reconstruction method [Levy et al., 1999, 2000; Verma et al., 2018]
+# CWENO(Z) reconstruction method [Levy et al., 1999, 2000; Verma et al., 2018; Cravero et al., 2019]
 ##############################################################################
 
 def reconstruct(grid, sim_variables, axis, power=2):
@@ -47,8 +47,21 @@ def reconstruct(grid, sim_variables, axis, power=2):
     )
     SI_k = SI_minus, SI_zero, SI_plus
 
-    # Compute the alpha values [Levy et al., 1999, eq. 3.12]
-    alpha = lambda k: dC_k[k]/(SI_k[k] + eps)**power
+    if sim_variables.subgrid.endswith("z"):
+        SI_opt = (
+            1/4 * (plus_one - minus_one + 1/3*(minus_two - 2*minus_one + 2*plus_one - plus_two))**2
+            + 13/12 * (minus_one - 2*zeroth + plus_one + 1/12*(minus_two - 2*minus_one + 2*plus_one - plus_two))**2
+            + 7/240 * (minus_two - 4*minus_one + 6*zeroth - 4*plus_one + plus_two)**2
+            + 9/80 * (-minus_two + 2*minus_one - 2*plus_one + plus_two)**2
+        )
+        tau = np.abs(SI_opt - np.sum(SI_k, axis=0)/3)
+
+        # Compute the alpha values for CWENOZ [Cravero et al., 2019]
+        alpha = lambda k: dC_k[k] * (1 + (tau/(SI_k[k] + eps))**power)
+
+    else:
+        # Compute the alpha values for CWENO [Levy et al., 1999, eq. 3.12]
+        alpha = lambda k: dC_k[k]/(SI_k[k] + eps)**power
 
     # Compute the non-linear weights [Levy et al., 1999, eq. 3.11]
     omega = lambda k: mfuncs.divide(alpha(k), alpha(0)+alpha(1)+alpha(2))

@@ -46,7 +46,7 @@ def compute_jacobian(grid, sim_variables, axis):
     # Hydrodynamic components
     arr[...,i,j] = vels[...,abscissa][...,None]  # diagonal elements
     arr[...,0,1] = rhos
-    arr[...,1,4] = 1/rhos
+    arr[...,1,4] = mfuncs.divide(np.ones_like(rhos), rhos)
     arr[...,4,1] = gamma * pressures
 
     # Magneto- components
@@ -69,7 +69,7 @@ def compute_Roe_average(interfaces, sim_variables):
 
     plus_interface, minus_interface = interfaces
     avg = np.zeros_like(plus_interface)
-    rho_plus, rho_minus = np.sqrt(plus_interface[...,rho]), np.sqrt(minus_interface[...,rho])
+    rho_plus, rho_minus = mfuncs.sqrt(plus_interface[...,rho]), mfuncs.sqrt(minus_interface[...,rho])
 
     avg[...,rho] = rho_minus * rho_plus
     avg[...,vels] = mfuncs.divide((plus_interface[...,vels] * rho_plus[...,None]) + (minus_interface[...,vels] * rho_minus[...,None]), (rho_minus + rho_plus)[...,None])
@@ -94,24 +94,24 @@ def compute_wavespeeds(grid, sim_variables, axis, waves='all'):
     match = lambda substrings: any(wave in waves for wave in substrings)
 
     if match(['sound', 'fast', 'cff', 'slow', 'css', 'all']) or waves in ['cs', 'a']:
-        sound_speed = np.sqrt(mfuncs.divide(gamma * grid[...,pressure], grid[...,rho]))
+        sound_speed = mfuncs.sqrt(mfuncs.divide(gamma * grid[...,pressure], grid[...,rho]))
         if 'sound' in waves or waves in ['cs', 'a']:
             return sound_speed
     if match(['alfven', 'ca', 'fast', 'cff', 'slow', 'css', 'all']):
         if match(['fast', 'slow', 'all']):
-            alfven_speed_x = mfuncs.divide(grid[...,5+axis], np.sqrt(grid[...,rho] * permeability))
-            alfven_speed = mfuncs.divide(mfuncs.norm(grid[...,Bfields]), np.sqrt(grid[...,rho] * permeability))
+            alfven_speed_x = mfuncs.divide(grid[...,5+axis], mfuncs.sqrt(grid[...,rho] * permeability))
+            alfven_speed = mfuncs.divide(mfuncs.norm(grid[...,Bfields]), mfuncs.sqrt(grid[...,rho] * permeability))
         else:
             if waves.endswith(('x', 'y', 'z')):
-                return mfuncs.divide(grid[...,5+axis], np.sqrt(grid[...,rho] * permeability))
+                return mfuncs.divide(grid[...,5+axis], mfuncs.sqrt(grid[...,rho] * permeability))
             else:
-                return mfuncs.divide(mfuncs.norm(grid[...,Bfields]), np.sqrt(grid[...,rho] * permeability))
+                return mfuncs.divide(mfuncs.norm(grid[...,Bfields]), mfuncs.sqrt(grid[...,rho] * permeability))
     if match(['fast', 'cff', 'all']):
-        fast_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 + np.sqrt((sound_speed**2 + alfven_speed**2)**2 - (2 * sound_speed * alfven_speed_x)**2)))
+        fast_magnetosonic_wave = mfuncs.sqrt(.5 * (sound_speed**2 + alfven_speed**2 + mfuncs.sqrt((sound_speed**2 + alfven_speed**2)**2 - (2 * sound_speed * alfven_speed_x)**2)))
         if waves != 'all':
             return fast_magnetosonic_wave
     if match(['slow', 'css', 'all']):
-        slow_magnetosonic_wave = np.sqrt(.5 * (sound_speed**2 + alfven_speed**2 - np.sqrt((sound_speed**2 + alfven_speed**2)**2 - (2 * sound_speed * alfven_speed_x)**2)))
+        slow_magnetosonic_wave = mfuncs.sqrt(.5 * (sound_speed**2 + alfven_speed**2 - mfuncs.sqrt((sound_speed**2 + alfven_speed**2)**2 - (2 * sound_speed * alfven_speed_x)**2)))
         if waves != 'all':
             return slow_magnetosonic_wave
 
