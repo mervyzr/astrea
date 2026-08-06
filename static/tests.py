@@ -312,7 +312,7 @@ def generate_test_conditions(config_variables):
     elif "cloud" in config:
         axis_coord = [0,2], [0,1]
         shock_pos = 1.2
-        t_end = .1
+        t_end = .2
         boundary = "edge"
         init_cond = np.array([3.86859,0,0,0,167.345,0,2.1826182,-2.1826182])
         ambient = np.array([1,-11.2536,0,0,1,0,.56418958,.56418958])
