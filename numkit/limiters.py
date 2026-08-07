@@ -232,7 +232,6 @@ def extrapolant_limit(grid, sim_variables, axis, *args, **kwargs):
 
 
 # Positivity-preserving limiter [Zhang & Shu, 2010]; reverts to first-order in strong discontinuities
-def zs2010(grid, interface, ratio=.5):
-    mask = np.where(interface < 0)
-    interface[mask] = (grid + ratio * (interface-grid))[mask]
-    return interface
+def zs2010(grid, interface, eps=1e-16):
+    theta = mfuncs.divide(grid-eps, grid-np.min(interface)) if (np.min(interface) < eps) else 1
+    return grid + theta*(interface - grid)
