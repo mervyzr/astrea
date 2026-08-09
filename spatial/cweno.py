@@ -10,7 +10,7 @@ from numkit import limiters, solvers
 # CWENO(Z) reconstruction method [Levy et al., 1999, 2000; Verma et al., 2018; Cravero et al., 2019]
 ##############################################################################
 
-def reconstruct(grid, sim_variables, axis, power=2):
+def reconstruct(grid, sim_variables, axis, power=2, limit=False):
     # Define the frequently used terms
     padded_grid_2 = gutils.add_boundary(grid, sim_variables, stencil=2, axis=axis)
     padded_grid = gutils.slice_(padded_grid_2, axis, *[1,-1])
@@ -78,9 +78,10 @@ def reconstruct(grid, sim_variables, axis, power=2):
         + omega(2) * (2*plus_two - 7*plus_one + 11*zeroth)
     )
 
-    # Apply positivity limiter to densities
-    wR[...,sim_variables.rho] = limiters.zs2010(grid, wR)[...,sim_variables.rho]
-    wL[...,sim_variables.rho] = limiters.zs2010(grid, wL)[...,sim_variables.rho]
+    # Apply positivity-preserving limiter
+    if limit:
+        wR = limiters.w2012(grid, wR, sim_variables)
+        wL = limiters.w2012(grid, wL, sim_variables)
 
     return wL, wR
 
@@ -91,7 +92,7 @@ def run(grid, sim_variables, axis):
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
 
     # CWENO reconstruction [Levy et al., 1999; Verma et al., 2018]
-    wL, wR = reconstruct(grid, sim_variables, axis=axis)
+    wL, wR = reconstruct(grid, sim_variables, axis, limit=True)
 
     # Re-align the interfaces so that cell wall is in between interfaces
     assign_interfaces = ct.assign_interfaces if magnetic else gutils.assign_interfaces

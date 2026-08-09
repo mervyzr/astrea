@@ -2,6 +2,7 @@ import numpy as np
 
 from functions import grid as gutils
 from functions import math as mfuncs
+from numkit import c_transport as ct
 
 ##############################################################################
 # Limiter functions for the interface and cell values
@@ -231,7 +232,38 @@ def extrapolant_limit(grid, sim_variables, axis, *args, **kwargs):
     return wL, wR
 
 
-# Positivity-preserving limiter [Zhang & Shu, 2010]; reverts to first-order in strong discontinuities
-def zs2010(grid, interface, eps=1e-16):
-    theta = mfuncs.divide(grid-eps, grid-np.min(interface)) if (np.min(interface) < eps) else 1
-    return grid + theta*(interface - grid)
+# Positivity-preserving limiter [Zhang & Shu, 2010; Wang et al., 2012]
+def w2012(grid, interface, sim_variables, axis=None, compute_p=False):
+    rho, pressure = sim_variables.rho, sim_variables.pressure
+
+    # Compute positivity-preserving limiter for density [eq. 3.2]
+    #eps = np.minimum(grid[...,rho], 1e-13)
+    #theta_rho = np.minimum(1, np.abs(mfuncs.divide(grid[...,rho]-eps, (grid-interface)[...,rho])))
+    eps = 1e-13
+    theta_rho = mfuncs.divide(grid-eps, grid-np.min(interface))[...,rho] if (np.min(interface) < eps) else 1
+
+    # Compute positivity-preserving limiter for pressure [eq. 3.6-3.7]. Generally not recommended because:
+    # 1. Requires conversion of the modified interface values back to conservative variables and then computing the limiter from there
+    # 2. Even if you force-compute the limiter in primitive variables, this does NOT guarantee that the pressure/energy will be conserved afterwards
+    if compute_p:
+        # Update densities first
+        _intf = np.copy(interface)
+        _intf[...,rho] = grid[...,rho] + theta_rho*(interface - grid)[...,rho]
+
+        # Convert new interface and primitive grid to conservative variables
+        conservative = ct.convert("primitive", grid, sim_variables) if sim_variables.magnetic else gutils.convert("primitive", grid, sim_variables)
+        c_intf = gutils.variable_convert_intf('primitive', _intf, sim_variables, axis)
+
+        # Compute limiter for pressure
+        theta_p = mfuncs.divide(conservative[...,pressure], (conservative-c_intf)[...,pressure])
+
+        # Determine the limited polynomial
+        theta = np.minimum(theta_p, theta_rho)
+        interface[...,rho] = grid[...,rho] + theta*(interface - grid)[...,rho]
+        interface[...,pressure] = grid[...,pressure] + theta*(interface - grid)[...,pressure]
+
+    else:
+        theta = theta_rho
+        interface[...,rho] = grid[...,rho] + theta*(interface - grid)[...,rho]
+
+    return interface

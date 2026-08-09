@@ -32,7 +32,7 @@ def run(grid, sim_variables, axis):
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
 
     # Linear reconstruction [Derigs et al., 2017]
-    wL, wR = reconstruct(grid, sim_variables, axis=axis)
+    wL, wR = reconstruct(grid, sim_variables, axis)
 
     # Re-align the interfaces so that cell wall is in between interfaces
     assign_interfaces = ct.assign_interfaces if magnetic else gutils.assign_interfaces

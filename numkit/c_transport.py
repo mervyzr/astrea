@@ -163,7 +163,7 @@ def reconstruct_transverse(interfaces, sim_variables, axis, method=None):
                 reconstruct = weno.reconstruct
         elif method == "eno":
             if sim_variables.subgrid.endswith("a"):
-                reconstruct = lambda _grid, _sim_variables, _axis: teno.reconstruct(_grid, _sim_variables, _axis, adaptive=True)
+                reconstruct = lambda *args: teno.reconstruct(*args, adaptive=True)
             else:
                 reconstruct = teno.reconstruct
         elif method == "ppm":
