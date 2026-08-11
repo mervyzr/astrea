@@ -50,7 +50,7 @@ def make_figure(options, sim_variables, variable="normal"):
             "momentums": "bwr",
             "Bfields": "bone",
             "divergence": "coolwarm",
-            "Mach": "magma",
+            "Mach": "Spectral",
             "mass": "pink",
             "schlieren": "bone",
             "velocity": {"x":"berlin", "y":"managua", "z":"vanimo"},
