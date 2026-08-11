@@ -49,7 +49,7 @@ def make_figure(options, sim_variables, variable="normal"):
             "velocities": "pink",
             "momentums": "gist_heat",
             "Bfields": "bone",
-            "divergence": "twilight",
+            "divergence": "berlin",
             "Mach": "magma",
             "mass": "gist_earth",
             "schlieren": "gray",
