@@ -394,7 +394,7 @@ astrea/
 │   ├── __init__.py
 │   ├── analytic.py : Analytical solutions to smooth advection wave tests
 │   ├── generic.py  : Generic functions not specific to FVM
-│   ├── fv.py       : Main finite volume grid initialisation function
+│   ├── ginit.py    : Main finite volume grid initialisation function
 │   ├── grid.py     : Grid functions used for padding, slicing, higher-order interpolations, etc.
 │   ├── math.py     : Math functions, including specialised math functions
 │   ├── numeric.py  : Numerical functions for computing eigenvectors, Jacobian matrices, wavespeeds, etc.

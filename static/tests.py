@@ -331,12 +331,12 @@ def generate_test_conditions(config_variables):
     # [Machida et al., 1999]
     elif "torus" in config:
         axis_coord = [-7,7]
-        shock_pos = 0
+        shock_pos = 1
         t_end = 5
         boundary = "edge"
         init_cond = np.array([1e-3,0,0,0,0,0,0,0])
         ambient = np.array([1e-5,0,0,0,0,0,0,0])
-        test_specifics = {'K':.05, 'B_phi':1, 'GM':1, 'L':1, 'r0':1, 'beta0':1}
+        test_specifics = {'K':.05, 'B_phi':1, 'GM':1, 'L':1, 'beta0':1}
 
     # [Markert et al., 2022]
     elif match(any, ["supernova", "tycho"]) or config == "sn":
