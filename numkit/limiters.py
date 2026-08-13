@@ -263,7 +263,6 @@ def w2012(grid, interface, sim_variables, axis=None, compute_p=False):
         interface[...,pressure] = grid[...,pressure] + theta*(interface - grid)[...,pressure]
 
     else:
-        theta = theta_rho
-        interface[...,rho] = grid[...,rho] + theta*(interface - grid)[...,rho]
+        interface[...,rho] = grid[...,rho] + theta_rho*(interface - grid)[...,rho]
 
     return interface
