@@ -19,8 +19,7 @@ from functions import generic, ginit, plotting
 from functions import grid as gutils
 from iokit import chkpt_funcs, handler, simulation
 from numkit import c_transport as ct
-from physics import gravity, tracers, turbulence
-from physics.krome import krome_funcs
+from physics import chemistry, gravity, tracers, turbulence
 from static import tests
 from spatial.spatial import evolve as spatial_evolve
 from temporal.temporal import evolve as temporal_evolve
@@ -65,9 +64,8 @@ def core_run(sim_variables):
     ########################
 
     # Initialise the chemical grid if activated
-    # Abundances can be overriden; accepts a dictionary of atom/molecule/ion name as key and the number densities [1/cm3] or mass fraction [X] as value
     if sim_variables.chemistry:
-        chem_grid = krome_funcs.initialise(sim_variables)
+        chem_grid = chemistry.initialise(sim_variables)
 
     ########################
 
@@ -158,7 +156,7 @@ def core_run(sim_variables):
 
             # Update chemical grid
             if sim_variables.chemistry:
-                chem_grid = krome_funcs.krome_run(chem_grid, grid, dt, sim_variables)
+                chem_grid = chemistry.update(chem_grid, grid, dt, sim_variables)
 
             # Update tracer particles
             if sim_variables.tracers:

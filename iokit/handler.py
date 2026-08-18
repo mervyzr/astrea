@@ -133,18 +133,17 @@ def filter_variables(config_variables):
                 if v <= 0:
                     v = eps
         elif k == "gravity":
-            if isinstance(v, str):
-                if v.lower() not in ['true', '1', 'self', 'ext', 'external']:
+            try:
+                v = bool(int(v))
+            except ValueError:
+                if v.lower() not in ['self', 'ext', 'external']:
                     v = False
-            else:
-                if not isinstance(v, bool):
-                    if isinstance(v, int):
-                        if v not in (0,1):
-                            v = False
-                        else:
-                            v = bool(v)
-                    else:
-                        v = False
+        elif k == "chemistry":
+            try:
+                v = bool(int(v))
+            except ValueError:
+                if v.lower() not in ['krome', 'chimes', 'pychem']:
+                    v = False
         elif k == "plot_options":
             accepted_plot_options, valid, invalid = db.get(params.type == k)['accepted'], [], []
             try:

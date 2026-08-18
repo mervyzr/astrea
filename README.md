@@ -130,19 +130,21 @@ The gravitational acceleration can then be computed as a simple cell-centred dif
 
 ### Chemical network (_experimental_)
 
-The inclusion of the chemical network is _experimental_ and achieved with the <a href='https://www.kromepackage.org' target='_blank'>`krome`</a> package. In order to include a chemical network in the simulation, the `krome` folder has to be placed in the base folder:
+The inclusion of the chemical network is _experimental_ and achieved by default with the <a href='https://www.kromepackage.org' target='_blank'>`krome`</a> package. In order to include a chemical network in the simulation, the `krome` folder has to be placed in the base folder:
 ```bash
 git clone https://bitbucket.org/tgrassi/krome.git
 ```
 
-Additionally, the `--chemistry` option has to be indicated at runtime:
+Additionally, the chemistry and network file options have to be indicated at runtime:
 ```bash
-python3 astrea.py --chemistry --network=/path/to/network_file
+python3 astrea.py --chemistry='krome' --network=/path/to/network_file
 ```
 If no network files are indicated in the runtime options, a custom network file will be used with the following species:
 ```
 HI, HII, H2, CII, CO, O, OH, e-
 ```
+
+There are options to run with the <a href='https://richings.bitbucket.io/chimes/user_guide/index.html' target='_blank'>`CHIMES`</a> and `pychem` (proprietary) modules.
 
 
 <a name="simulation-benchmarks"></a>
@@ -307,6 +309,8 @@ Analytical solutions for the Sod shock-tube test (Pfrommer et al., 2006), Gaussi
     <li>Pfrommer, C., Springel, V., Ensslin, T. A., & Jubelgas, M. (2006). Detecting shock waves in cosmological smoothed particle hydrodynamics simulations. Monthly Notices of the Royal Astronomical Society, 367(1), 113–131.</li>
     <li>Powell, K. G. (1994). An approximate Riemann solver for magnetohydrodynamics (that works in more than one dimension). NASA Technical Reports, NAS 1.26:194902.</li>
     <li>Prince, P. J., & Dormand, J. R. (1981). High order embedded Runge-Kutta formulae. Journal of Computational and Applied Mathematics, 7(1), 67–75.</li>
+    <li>Richings, A. J., Schaye, J., Oppenheimer, B. D. (2014). Non-equilibrium chemistry and cooling in the diffuse interstellar medium - I. Optically thin regime. Monthly Notices of the Royal Astronomical Society, 440(4), 3349-3369.</li>
+    <li>Richings, A. J., Schaye, J., Oppenheimer, B. D. (2014). Non-equilibrium chemistry and cooling in the diffuse interstellar medium - II. Shielded gas. Monthly Notices of the Royal Astronomical Society, 442(3), 2780-2796.</li>
     <li>Roe, P., & Pike, J. (1984). Efficient Conservation and Utilisation of Approximate Riemann Solution. Computing Methods in Applied Science and Engineering, 6, pp. 499-558.</li>
     <li>Roy, C. J., Nelson, C. C., Smith, T. M., & Ober, C. C. (2004). Verification of euler/navier–stokes codes using the method of manufactured solutions. International Journal for Numerical Methods in Fluids, 44(6), 599–620.</li>
     <li>Ryu, D., & Jones, T. W. (1995). Numerical magetohydrodynamics in astrophysics: Algorithm and tests for one-dimensional flow. The Astrophysical Journal, 442, 228.</li>

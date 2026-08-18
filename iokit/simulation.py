@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from collections import namedtuple
 
 import numpy as np
@@ -114,30 +115,22 @@ class Variables(object):
         # Turbulence set-up
         self.turbulence = True if "turb" in self.config else False
 
-        # Chemistry network set-up
+        # Chemistry network set-up; check if folder for chemical code exists
         if self.chemistry:
-            if not self.network:
-                krome_path = os.path.join(self.home, 'physics', 'krome')
+            try:
+                chem_on = bool(int(self.chemistry))
+            except ValueError:
+                if self.chemistry not in ['krome', 'chimes', 'pychem']:
+                    self.chemistry = False
             else:
-                try:
-                    krome_path = [os.path.join(root, dirname) for root, dirs, _ in os.walk(self.home) for dirname in dirs if 'krome' in os.path.join(root, dirname)][0]
-                except IndexError:
-                    print(f"{BColours.WARNING}Chemistry switched on but krome folder cannot be found. Switching off chemistry..{BColours.ENDC}")
-                    krome_path = None
+                if chem_on:
+                    self.chemistry = 'krome'
+            self.chem_path = Path(self.home, 'physics', self.chemistry)
 
-            paths = [self.home, krome_path, self.network]
-            options = [
-                '-iRHS',
-                '-noRecCheck',
-                '-coolFile=data/coolZ.dat',
-                '-cooling=ATOMIC,H2,DUST,Z,CI,OI,CII',
-                '-heating=COMPRESS,PHOTO,CHEM,PHOTODUST'
-            ]
-            self.pykrome, self.species, self.useX = krome_funcs.build_krome(paths, options)
-
-            if self.pykrome == None or self.species == None:
-                print(f"{BColours.WARNING}krome built but cannot be accessed. Switching off chemistry..{BColours.ENDC}")
+            if not Path.is_dir(self.chem_path):
+                print(f"{BColours.WARNING}Chemistry switched on but physics/{self.chemistry} folder cannot be found. Switching off chemistry..{BColours.ENDC}")
                 self.chemistry = False
+                self.chem_path = ''
 
         # Printer functions
         if self.verbose:
