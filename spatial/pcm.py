@@ -2,7 +2,6 @@ import numpy as np
 
 from functions import grid as gutils
 from functions import numeric
-from numkit import c_transport as ct
 from numkit import solvers
 
 ##############################################################################
