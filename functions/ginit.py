@@ -1,9 +1,10 @@
+from multiprocessing import shared_memory
+
 import numpy as np
 
 from functions import math as mfuncs
 from functions import grid as gutils
 from functions.generic import verbose_timer
-from physics import turbulence
 
 ##############################################################################
 # Grid initialisation function
@@ -20,6 +21,9 @@ def initialise(sim_variables):
     axes = sim_variables.axes
 
     match = lambda match_type, substrings: match_type(substring in config for substring in substrings)
+
+    # Create a shared memory array
+    #shared_mem = shared_memory.SharedMemory(name='Grid', size=1024, create=True)
 
 
     computational_grid = np.zeros(list(cells)+[len(ambient),], dtype=float, order='C')
@@ -235,7 +239,7 @@ def initialise(sim_variables):
                 computational_grid[layer] = init_cond
                 computational_grid[...,vy] = test_specifics['ampl'] * np.sin(test_specifics['freq']*np.pi*x/np.diff(coordinates[0]))
                 if test_specifics['perturb']:
-                    perturbations = turbulence.pertubations(computational_grid, test_specifics['ampl'])
+                    perturbations = gutils.pertubations(computational_grid, test_specifics['ampl'])
                     computational_grid[...,(vx,vy)] += perturbations[...,(vx,vy)]
                 if config.startswith('m') or 'mhd' in config:
                     computational_grid[...,Bx] = test_specifics['Bx']
@@ -245,7 +249,7 @@ def initialise(sim_variables):
                 computational_grid[layer] = init_cond
                 computational_grid[...,pressure] = init_cond[pressure] - .1*computational_grid[...,rho]*y
                 if test_specifics['perturb']:
-                    perturbations = turbulence.pertubations(computational_grid, 2*test_specifics['ampl'])
+                    perturbations = gutils.pertubations(computational_grid, 2*test_specifics['ampl'])
                     computational_grid[...,vy] += perturbations[...,vy] * (1 + np.cos(8*np.pi*y/3))
                 else:
                     computational_grid[...,vy] = test_specifics['ampl'] * (1 + np.cos(4*np.pi*x)) * (1 + np.cos(3*np.pi*y))
@@ -403,7 +407,7 @@ def initialise(sim_variables):
                 computational_grid[...,vy][nozzle] = test_specifics['velocity']
                 computational_grid[...,By] *= np.sqrt(10)  # weak: 1, moderate:np.sqrt(10), strong:np.sqrt(1e2), extreme:np.sqrt(1e3)
                 if test_specifics['perturb']:
-                    perturbations = turbulence.pertubations(computational_grid, test_specifics['velocity']/4)
+                    perturbations = gutils.pertubations(computational_grid, test_specifics['velocity']/4)
                     computational_grid[...,(vx,vy)] += perturbations[...,(vx,vy)]
 
             elif match(any, ['circular', 'polarised', 'alfven']) or config == 'cpaw':
@@ -493,9 +497,15 @@ def initialise(sim_variables):
             else:
                 computational_grid[...,rho] += np.random.uniform(-test_specifics['perturb_ampl'], test_specifics['perturb_ampl'], size=(computational_grid.shape))[...,rho]
 
+    # Check if magnetic fields exist
     sim_variables.magnetic = computational_grid[...,sim_variables.Bfields].any()
 
+    # Use grid interpolation for higher-order representation within each cell
     if sim_variables.grid_interpolate:
-        return gutils.method_convert_cell('point', computational_grid, sim_variables)
-    else:
-        return computational_grid
+        computational_grid = gutils.method_convert_cell('point', computational_grid, sim_variables)
+
+    # Pad the grid with guard zones based on the subgrid chosen
+    padding = [(sim_variables.guards,sim_variables.guards)] * (computational_grid.ndim-1) + [(0,0)]
+    computational_grid = np.pad(computational_grid, padding, mode=sim_variables.boundary)
+
+    return computational_grid

@@ -33,7 +33,7 @@ class Variables(object):
         'config', 'cells', 'cfl', 'gamma', 'gravity', 'self_gravity', 'ext_gravity', 'dimensions', 'subgrid', 'time_evo', 'solver',
         'coordinates', 'shock_pos', 't_end', 'boundary', 'test_specifics', 'init_cond', 'ambient', 'ds',
         'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
-        'axes', 'magnetic', 'convert', 'roots', 'weights', 'higher_order', 'grid_interpolate', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
+        'axes', 'magnetic', 'convert', 'guards', 'roots', 'weights', 'higher_order', 'grid_interpolate', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'eps', 'home', 'save_path', 'db_path', 'hdf5', 'timesteps', 'print_status',
         'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test',
         'units', 'constants', 'chemistry', 'network', 'pykrome', 'species', 'abundances', 'tracers', 'nvars',
@@ -87,6 +87,22 @@ class Variables(object):
             if self.subgrid_category == "ppm":
                 self.ppm_author = os.getenv("PPM_AUTHOR", "MC:2011")  # [McCorquodale & Colella, 2011 (MC:2011); Colella et al., 2011 (C+:2011); Peterson & Hammett, 2008 (PH:2008)]
                 self.ppm_dissipate = os.getenv("PPM_DISSIPATE", False)
+
+        # Spatial guard zones options
+        self.guards = 2
+        if self.subgrid_category == "plm":
+            self.guards = 1
+        elif self.subgrid_category == "eno":
+            self.guards = 3
+        else:
+            if self.subgrid_category == "weno":
+                try:
+                    weno_order = int(self.subgrid.replace('-','')[-1])
+                except ValueError:
+                    pass
+                else:
+                    if weno_order > 5:
+                        self.guards = 3
 
         # CT-specific options
         self.ct_dissipative = os.getenv("CT_DISSIPATIVE", False)

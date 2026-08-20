@@ -29,6 +29,7 @@ def write_chkpt_file(grid, t, idx, sim_variables):
         f.attrs['dimensions'] = sim_variables.dimensions
         f.attrs['eps'] = sim_variables.eps
         f.attrs['subgrid'] = sim_variables.subgrid
+        f.attrs['guards'] = sim_variables.guards
         f.attrs['time_evo'] = sim_variables.time_evo
         f.attrs['solver'] = sim_variables.solver
         f.attrs['magnetic'] = sim_variables.magnetic
@@ -80,6 +81,7 @@ def load_chkpt_variables(file):
                 config_variables['dimensions'] = int(f.attrs['dimensions'])
                 config_variables['eps'] = f.attrs['eps']
                 config_variables['subgrid'] = f.attrs['subgrid']
+                config_variables['guards'] = f.attrs['guards']
                 config_variables['time_evo'] = f.attrs['time_evo']
                 config_variables['solver'] = f.attrs['solver']
                 config_variables['magnetic'] = f.attrs['magnetic']

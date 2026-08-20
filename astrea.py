@@ -24,50 +24,34 @@ from static import tests
 from spatial.spatial import evolve as spatial_evolve
 from temporal.temporal import evolve as temporal_evolve
 
-##############################################################################
-# Main script
-##############################################################################
-
 # Globals
 SAVE_DIR = "data"
 SEED = np.random.randint(0, 1e8)
-
-# Global settings
 warnings.filterwarnings('ignore')
 np.set_printoptions(linewidth=1000, edgeitems=4, suppress=True)
 
-# Finite volume simulation
-def core_run(sim_variables):
-    # Initialise or load the discrete solution array with primitive variables <w>
-    if sim_variables.chkpt_file:
-        primitive_grid, t, idx = chkpt_funcs.load_chkpt_file(sim_variables.chkpt_file)
-    else:
-        primitive_grid, t, idx = ginit.initialise(sim_variables), 0., 1
+################################################################################
+# __main__
+################################################################################
 
-    convert = ct.convert if sim_variables.magnetic else gutils.convert
-
+def core_run(grid, sim_variables, t=0., chkpt_idx=1):
     # Convert primitive grid to conservative variables <q>
-    grid = convert("primitive", primitive_grid, sim_variables)
+    convert = ct.convert if sim_variables.magnetic else gutils.convert
+    grid = convert("primitive", grid, sim_variables)
 
-    ########################
+    # ----- Pre-update ---------------------------------------------------------
 
     # Initialise the external source term grid if activateed
     if sim_variables.ext_gravity:
         source_terms = gravity.initialise(sim_variables)
 
-    ########################
-
     # Initialise the turbulent driving field if activateed
     if sim_variables.turbulence:
         forcing_field = turbulence.initialise(sim_variables)
 
-    ########################
-
     # Initialise the chemical grid if activated
     if sim_variables.chemistry:
         chem_grid = chemistry.initialise(sim_variables)
-
-    ########################
 
     # Initialise the tracer particles if activated
     if sim_variables.tracers:
@@ -84,35 +68,40 @@ def core_run(sim_variables):
     chkpt = sim_variables.t_end/sim_variables.checkpoints if sim_variables.checkpoints > 0 else sim_variables.t_end
     create_chkpt_file = True if sim_variables.write_chkpt else False
 
-    ########################
-
     #tracemalloc.start()
 
+    # ----- Update loop --------------------------------------------------------
+
     while t <= sim_variables.t_end:
-        # Transform grid for visualisation (in primitive variables)
-        grid_snapshot = convert("conservative", grid, sim_variables)
+
+        if sim_variables.full_set_required or sim_variables.live_plot or plot_snapshot or create_chkpt_file:
+            # Transform grid for visualisation (in primitive variables)
+            grid_snapshot = convert("conservative", grid, sim_variables)
+
+            # Save each instance of the system at time t, if full_set_required
+            if sim_variables.full_set_required:
+                with h5py.File(sim_variables.hdf5, "a") as f:
+                    dataset = f[sim_variables.access_key].create_dataset(str(float(t)), data=grid_snapshot, compression="gzip", compression_opts=9)
+                    dataset.attrs['t'] = float(t)
+
+            # Live plot or save snapshot; IO will handle the exclusion case
+            if sim_variables.live_plot:
+                plotting.update_plot(grid_snapshot, t, sim_variables, *plotting_params)
+
+            if plot_snapshot:
+                plotting.plot_snapshot(grid_snapshot, t, sim_variables)
+                plot_snapshot = False
+                if sim_variables.tracers:
+                    plotting.plot_tracer_particles(tracer_positions, t, sim_variables)
+
+            if create_chkpt_file:
+                chkpt_funcs.write_chkpt_file(grid_snapshot, t, chkpt_idx, sim_variables)
+                create_chkpt_file = False
 
         ########################
 
-        # Save each instance of the system (primitive variables) at time t, if full_set_required
-        if sim_variables.full_set_required:
-            with h5py.File(sim_variables.hdf5, "a") as f:
-                dataset = f[sim_variables.access_key].create_dataset(str(float(t)), data=grid_snapshot, compression="gzip", compression_opts=9)
-                dataset.attrs['t'] = float(t)
-
-        # Miscellaneous media/print options
         if not sim_variables.quiet:
             sim_variables.print_status(sim_variables, t=t)
-        if sim_variables.live_plot:
-            plotting.update_plot(grid_snapshot, t, sim_variables, *plotting_params)
-        if plot_snapshot:
-            plotting.plot_snapshot(grid_snapshot, t, sim_variables)
-            plot_snapshot = False
-            if sim_variables.tracers:
-                plotting.plot_tracer_particles(tracer_positions, t, sim_variables)
-        if create_chkpt_file:
-            chkpt_funcs.write_chkpt_file(grid_snapshot, t, idx, sim_variables)
-            create_chkpt_file = False
 
         ########################
 
@@ -127,20 +116,18 @@ def core_run(sim_variables):
             dt = sim_variables.cfl * eigmax
 
             # Limit dt to get next checkpoint timing; plot the snapshot or write the checkpoint file at next timestep
-            if t+dt >= chkpt*idx:
-                dt = chkpt*idx - t
+            if t+dt >= chkpt*chkpt_idx:
+                dt = chkpt*chkpt_idx - t
                 if sim_variables.save_snaps:
                     plot_snapshot = True
                 if sim_variables.write_chkpt:
                     create_chkpt_file = True
-                idx += 1
+                chkpt_idx += 1
 
             # Update the solution with the numerical fluxes using iterative methods
             grid = temporal_evolve(spatial_evolve, grid, fluxes, dt, sim_variables)
 
-            ##############################
-            # Post update steps (if any)
-            ##############################
+            # ----- Post-update ------------------------------------------------
 
             # Update conservative grid from gravity
             if sim_variables.gravity:
@@ -162,6 +149,8 @@ def core_run(sim_variables):
             if sim_variables.tracers:
                 tracer_positions = tracers.update(tracer_positions, grid, dt, sim_variables)
 
+            ########################
+
             # Update time step
             t += dt
             sim_variables.timesteps += 1
@@ -169,7 +158,7 @@ def core_run(sim_variables):
             # Roll the order of the axis sweep
             sim_variables.axes = np.roll(sim_variables.axes, shift=-1)
 
-    ########################
+    # ----- End loop -----------------------------------------------------------
 
             #current, peak = tracemalloc.get_traced_memory()
     #tracemalloc.stop()
@@ -258,9 +247,18 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
             sim_variables.print_status(sim_variables, status='init')
 
             ################### CORE ###################
-            lap, cpu_start = perf_counter(), process_time()
-            core_run(sim_variables)
+
+            # Initialise or load the discrete solution array with primitive variables <w>
+            if sim_variables.chkpt_file:
+                grid, t, chkpt_idx = chkpt_funcs.load_chkpt_file(sim_variables.chkpt_file)
+                lap, cpu_start = perf_counter(), process_time()
+                core_run(grid, sim_variables, t, chkpt_idx)
+            else:
+                grid = ginit.initialise(sim_variables)
+                lap, cpu_start = perf_counter(), process_time()
+                core_run(grid, sim_variables)
             elapsed, cpu_elapsed = perf_counter() - lap, process_time() - cpu_start
+
             ################### CORE ###################
 
             # Save attributes after individual run is completed
