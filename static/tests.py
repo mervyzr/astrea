@@ -177,8 +177,8 @@ def generate_test_conditions(config_variables):
         shock_pos = .1
         t_end = 1
         boundary = "edge"
-        init_cond = np.array([1,0,0,0,1e-6,0,0,0])
-        ambient = np.array([16,0,0,0,16/3,0,0,0])
+        init_cond = np.array([16,0,0,0,16/3,0,0,0])
+        ambient = np.array([1,0,0,0,1e-6,0,0,0])
         test_specifics = None
 
     ##############################################
@@ -249,7 +249,7 @@ def generate_test_conditions(config_variables):
         shock_pos = 0
         t_end = 10
         boundary = "edge"
-        init_cond = np.array([2,.0,0,0,2.5,0,0,0])
+        init_cond = np.array([2,0,0,0,2.5,0,0,0])
         ambient = np.array([1,0,0,0,2.5,0,0,0])
         test_specifics = {'perturb':True, 'ampl':.05, 'grav_acc':.1, 'Bx':.05*np.sqrt(np.pi)}
 
