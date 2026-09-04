@@ -38,9 +38,7 @@ def core_run(grid, sim_variables, t=0., chkpt_idx=1):
     # Grid is always loaded with primitive variables; convert primitive grid to conservative variables <q>
     convert = ct.convert if sim_variables.magnetic else gutils.convert
     grid = convert("primitive", grid, sim_variables)
-    grid = convert("primitive", grid, sim_variables)
 
-    # ----- Pre-update ---------------------------------------------------------
     # ----- Pre-update ---------------------------------------------------------
 
     # Initialise the external source term grid if activateed
@@ -71,8 +69,6 @@ def core_run(grid, sim_variables, t=0., chkpt_idx=1):
     create_chkpt_file = True if sim_variables.write_chkpt else False
 
     #tracemalloc.start()
-
-    # ----- Update loop --------------------------------------------------------
 
     # ----- Update loop --------------------------------------------------------
 
@@ -120,19 +116,15 @@ def core_run(grid, sim_variables, t=0., chkpt_idx=1):
             # Limit dt to get next checkpoint timing; plot the snapshot or write the checkpoint file at next timestep
             if t+dt >= chkpt*chkpt_idx:
                 dt = chkpt*chkpt_idx - t
-            if t+dt >= chkpt*chkpt_idx:
-                dt = chkpt*chkpt_idx - t
                 if sim_variables.save_snaps:
                     plot_snapshot = True
                 if sim_variables.write_chkpt:
                     create_chkpt_file = True
                 chkpt_idx += 1
-                chkpt_idx += 1
 
             # Update the solution with the numerical fluxes using iterative methods
             grid = temporal_evolve(spatial_evolve, grid, fluxes, dt, sim_variables)
 
-            # ----- Post-update ------------------------------------------------
             # ----- Post-update ------------------------------------------------
 
             # Update conservative grid from gravity
@@ -164,7 +156,6 @@ def core_run(grid, sim_variables, t=0., chkpt_idx=1):
             # Roll the order of the axis sweep
             sim_variables.axes = np.roll(sim_variables.axes, shift=-1)
 
-    # ----- End loop -----------------------------------------------------------
     # ----- End loop -----------------------------------------------------------
 
             #current, peak = tracemalloc.get_traced_memory()
@@ -258,7 +249,6 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
                 lap, cpu_start = perf_counter(), process_time()
                 core_run(grid, sim_variables)
             elapsed, cpu_elapsed = perf_counter() - lap, process_time() - cpu_start
-
 
             ################### CORE ###################
 

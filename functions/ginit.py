@@ -19,14 +19,7 @@ def initialise(sim_variables):
     ds, axes, coordinates, shock_pos, test_specifics = sim_variables.ds, sim_variables.axes, sim_variables.coordinates, sim_variables.shock_pos, sim_variables.test_specifics
     init_cond, ambient = sim_variables.init_cond, sim_variables.ambient
 
-    # Pad the grid with guard zones based on the subgrid model
-    #padding = [(guard,guard)] * (computational_grid.ndim-1) + [(0,0)]
-    #computational_grid = np.pad(computational_grid, padding, mode=boundary)
-
     match = lambda match_type, substrings: match_type(substring in config for substring in substrings)
-
-    # Create a shared memory array
-    #shared_mem = shared_memory.SharedMemory(name='Grid', size=1024, create=True)
 
 
     computational_grid = np.zeros(list(cells)+[len(ambient),], dtype=float, order='C')
@@ -506,5 +499,9 @@ def initialise(sim_variables):
     # Use higher-order interpolation for averaged values if higher-order scheme is used
     if sim_variables.grid_interpolate:
         computational_grid = gutils.method_convert_cell('point', computational_grid, sim_variables)
+
+    # Pad the grid with guard zones based on the subgrid model
+    #padding = [(guard,guard)] * (computational_grid.ndim-1) + [(0,0)]
+    #computational_grid = np.pad(computational_grid, padding, mode=boundary)
 
     return computational_grid
