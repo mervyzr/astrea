@@ -90,6 +90,7 @@ def run(grid, sim_variables, axis):
     multidimensional, magnetic, ds = sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds[axis]
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
+    needs_jacobian = solvers.needs_jacobian(sim_variables)
 
     # CWENO reconstruction [Levy et al., 1999; Verma et al., 2018]
     wL, wR = reconstruct(grid, sim_variables, axis, limit=True)
@@ -105,18 +106,14 @@ def run(grid, sim_variables, axis):
     # Convert the primitive variables at the interface
     cons_plus, cons_minus = gutils.variable_convert_intf("primitive", prim_plus, sim_variables, axis=axis), gutils.variable_convert_intf("primitive", prim_minus, sim_variables, axis=axis)
 
-    # Compute the fluxes and the Jacobian
+    # Compute the fluxes
     flux_plus, flux_minus = numeric.compute_flux(prim_plus, sim_variables, axis=axis), numeric.compute_flux(prim_minus, sim_variables, axis=axis)
-    jacobian = numeric.compute_jacobian(padded_intf_avg, sim_variables, axis=axis)
 
-    # Resolve characteristics at interfaces
-    try:
-        characteristics = np.linalg.eigvals(jacobian)
-    except np.linalg.LinAlgError:
-        try:
-            characteristics = numeric.compute_characteristics(padded_intf_avg, sim_variables, axis=axis)
-        except np.linalg.LinAlgError:
-            characteristics = np.full_like(padded_intf_avg, .01)
+    # Resolve characteristics at interfaces from the analytic eigenvalues. This replaces a
+    # per-cell np.linalg.eigvals over an (N,N,N,8,8) Jacobian, which cost 2.4 us/cell and
+    # allocated 8 GiB per axis at 256^3 to recover eigenvalues that are known in closed form
+    characteristics = numeric.compute_characteristics(padded_intf_avg, sim_variables, axis=axis)
+    jacobian = numeric.compute_jacobian(padded_intf_avg, sim_variables, axis=axis) if needs_jacobian else None
 
     # Calculate the interface-averaged fluxes
     intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **{
@@ -124,7 +121,7 @@ def run(grid, sim_variables, axis):
         'cons_interfaces': (cons_plus, cons_minus),
         'flux_interfaces': (flux_plus, flux_minus),
         'characteristics': characteristics,
-        'jacobian': gutils.slice_(jacobian, axis, *[1,-1]),
+        'jacobian': gutils.slice_(jacobian, axis, *[1,-1]) if needs_jacobian else None,
     })
 
     # Compute the orthogonal L/R Riemann states and fluxes at higher-order accuracy
@@ -135,7 +132,7 @@ def run(grid, sim_variables, axis):
             'cons_interfaces': gutils.approx_face_avg((cons_plus, cons_minus), sim_variables, axis),
             'flux_interfaces': gutils.approx_face_avg((flux_plus, flux_minus), sim_variables, axis),
             'characteristics': characteristics,
-            'jacobian': gutils.slice_(jacobian, axis, *[1,-1]),
+            'jacobian': gutils.slice_(jacobian, axis, *[1,-1]) if needs_jacobian else None,
         })
 
         # Compute the higher-order fluxes

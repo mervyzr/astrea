@@ -34,6 +34,14 @@ def get_Riemann_solver(sim_variables):
             return calculate_LaxFriedrich_flux
 
 
+# Only the Lax-Wendroff and GFORCE solvers read the Jacobian; every other solver needs
+# nothing more than the wave speeds. Building it is an (N,N,N,8,8) allocation (8 GiB at
+# 256^3, per axis) so it must not be built unless it is actually going to be used.
+def needs_jacobian(sim_variables):
+    solver = get_Riemann_solver(sim_variables)
+    return solver in (calculate_LaxWendroff_flux, calculate_gForce_flux)
+
+
 # (Local) Lax-Friedrich solver (1st-order; highly diffusive) [Lax & Friedrichs, ?; Mignone & Del Zanna, 2021]
 def calculate_LaxFriedrich_flux(axis, sim_variables, **kwargs):
     cons_plus, cons_minus = kwargs["cons_interfaces"]

@@ -30,6 +30,7 @@ def run(grid, sim_variables, axis):
     multidimensional, magnetic, ds = sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds[axis]
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
+    needs_jacobian = solvers.needs_jacobian(sim_variables)
 
     # Linear reconstruction [Derigs et al., 2017]
     wL, wR = reconstruct(grid, sim_variables, axis)
@@ -47,16 +48,11 @@ def run(grid, sim_variables, axis):
 
     # Compute the fluxes and the Jacobian
     flux_plus, flux_minus = numeric.compute_flux(prim_plus, sim_variables, axis=axis), numeric.compute_flux(prim_minus, sim_variables, axis=axis)
-    jacobian = numeric.compute_jacobian(padded_intf_avg, sim_variables, axis=axis)
 
-    # Resolve characteristics at interfaces
-    try:
-        characteristics = np.linalg.eigvals(jacobian)
-    except np.linalg.LinAlgError:
-        try:
-            characteristics = numeric.compute_characteristics(padded_intf_avg, sim_variables, axis=axis)
-        except np.linalg.LinAlgError:
-            characteristics = np.full_like(padded_intf_avg, .01)
+    # Resolve characteristics at interfaces from the analytic eigenvalues rather than an
+    # np.linalg.eigvals over an (N,N,N,8,8) Jacobian; see spatial/cweno.py for the rationale
+    characteristics = numeric.compute_characteristics(padded_intf_avg, sim_variables, axis=axis)
+    jacobian = numeric.compute_jacobian(padded_intf_avg, sim_variables, axis=axis) if needs_jacobian else None
 
     # Calculate the interface-averaged fluxes (pointwise & averaged values are the same for lower-order schemes)
     intf_fluxes_avgd = intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
@@ -64,7 +60,7 @@ def run(grid, sim_variables, axis):
         'cons_interfaces': (cons_plus, cons_minus),
         'flux_interfaces': (flux_plus, flux_minus),
         'characteristics': characteristics,
-        'jacobian': gutils.slice_(jacobian, axis, *[1,-1]),
+        'jacobian': gutils.slice_(jacobian, axis, *[1,-1]) if needs_jacobian else None,
     })
 
     # Compute flux difference for hydrodynamic components
