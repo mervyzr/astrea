@@ -31,20 +31,20 @@ class Variables(object):
         '__dict__',
         'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'gx', 'gy', 'gz', 'energy', 'vels', 'Bfields', 'momentums',
         'config', 'cells', 'cfl', 'gamma', 'gravity', 'self_gravity', 'ext_gravity', 'dimensions', 'subgrid', 'time_evo', 'solver',
-        'coordinates', 'shock_pos', 't_end', 'boundary', 'test_specifics', 'init_cond', 'ambient', 'ds',
+        'coordinates', 'shock_pos', 't_end', 'boundary', 'guards', 'trim', 'test_specifics', 'init_cond', 'ambient', 'ds',
         'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
         'axes', 'magnetic', 'convert', 'roots', 'weights', 'higher_order', 'grid_interpolate', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'eps', 'home', 'save_path', 'db_path', 'hdf5', 'timesteps', 'print_status',
-        'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test',
+        'record_all_steps', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test',
         'units', 'constants', 'chemistry', 'network', 'pykrome', 'species', 'abundances', 'tracers', 'nvars',
     ]
 
     def __init__(self, config_variables, test_variables):
         db, params = TinyDB(config_variables['db_path']), Query()
 
-        # Declare physical variables and their index in the array: [density, vx/px, vy/py, vz/pz, pressure/energy, Bx, By, Bz, source terms]
+        # Declare physical variables and their index in the array: [density, vx/px, vy/py, vz/pz, pressure/energy, Bx, By, Bz]
         self.nvars = 8
-        self.rho, self.vx, self.vy, self.vz, self.pressure, self.Bx, self.By, self.Bz = range(self.nvars)
+        self.IDX = self.rho, self.vx, self.vy, self.vz, self.pressure, self.Bx, self.By, self.Bz = tuple(range(self.nvars))
         self.vels, self.Bfields = slice(1,4), slice(5,8)
         self.energy, self.momentums = self.pressure, self.vels
 
@@ -73,6 +73,22 @@ class Variables(object):
             roots, weights = np.array(list(np.polynomial.legendre.leggauss(5)))/2
             self.roots = roots + .5
             self.weights = weights
+
+        # Generate guard zones based on the subgrid
+        self.guards = 2
+        if self.subgrid_category == "plm":
+            self.guards = 1
+        elif self.subgrid_category == "weno":
+            try:
+                weno_order = int(self.subgrid.replace('-','')[-1])
+            except:
+                pass
+            else:
+                if weno_order > 5:
+                    self.guards = 3
+        elif self.subgrid_category == "eno":
+            self.guards = 3
+        self.trim = (slice(self.guards,-self.guards),)*self.dimensions + (slice(None),)
 
         # Higher-order method options
         self.higher_order = self.grid_interpolate = False
@@ -165,10 +181,7 @@ class Variables(object):
             print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live_plot interferes with matplotlib.pyplot.savefig..{BColours.ENDC}")
             self.live_plot = False
 
-        if self.save_snaps or self.save_plots or self.save_video or self.save_file:
-            self.save_path = ''
-
         self.beautify_1d_plots = os.getenv("BEAUTIFY_1D_PLOTS", False)
         self.save_as_pdf = os.getenv("SAVE_AS_PDF", False)
 
-        self.full_set_required = True if (self.save_plots or self.save_video or self.save_file) else False
+        self.record_all_steps = True if (self.save_plots or self.save_video or self.save_file) else False

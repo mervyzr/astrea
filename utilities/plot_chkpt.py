@@ -84,6 +84,7 @@ def run(save=False, title=False):
                         gamma = float(f.attrs['gamma'])
                         dimensions = int(f.attrs['dimensions'])
                         subgrid = f.attrs['subgrid']
+                        guard = f.attrs['guard']
                         time_evo = f.attrs['time_evo']
                         solver = f.attrs['solver']
                         units = f.attrs['units']

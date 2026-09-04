@@ -186,7 +186,6 @@ Several (magneto)hydrodynamics tests are in place:
     <li>Gresho vortex (Gresho & Chan, 1990)</li>
     <li>"Lax-Liu tests" (Lax & Liu, 1998)</li>
     <li>Liska-Wendroff implosion problem (Liska & Wendroff, 2003b)</li>
-    <li>Isentropic vortex (Pang & Wu, 2025)</li>
     <li>Smooth advection wave tests</li>
     <li>Tycho supernova</li>
     <ul>
@@ -232,6 +231,7 @@ Several (magneto)hydrodynamics tests are in place:
     <li>Magnetised Kelvin-Helmholtz instability</li>
     <li>Magnetised Rayleigh-Taylor instability</li>
     <li>Orszag-Tang vortex (Orszag & Tang, 1998)</li>
+    <li>Isentropic vortex (Pang & Wu, 2025)</li>
     <li>MHD vortex (Balsara, 2004)</li>
     <li>MHD rotor (Balsara & Spicer, 1999)</li>
     <li>MHD torus (Machida et al., 1999)</li>

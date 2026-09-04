@@ -3,7 +3,6 @@ import numpy as np
 from functions import math as mfuncs
 from functions import grid as gutils
 from functions.generic import verbose_timer
-from physics import turbulence
 
 ##############################################################################
 # Grid initialisation function
@@ -15,9 +14,12 @@ from physics import turbulence
 def initialise(sim_variables):
     config, cells, gamma, dimensions, multidimensional = sim_variables.config, sim_variables.cells, sim_variables.gamma, sim_variables.dimensions, sim_variables.multidimensional
     rho, vx, vy, vz, pressure, Bx, By, Bz = sim_variables.rho, sim_variables.vx, sim_variables.vy, sim_variables.vz, sim_variables.pressure, sim_variables.Bx, sim_variables.By, sim_variables.Bz
-    ds, coordinates, shock_pos, test_specifics = sim_variables.ds, sim_variables.coordinates, sim_variables.shock_pos, sim_variables.test_specifics
+    ds, axes, coordinates, shock_pos, test_specifics = sim_variables.ds, sim_variables.axes, sim_variables.coordinates, sim_variables.shock_pos, sim_variables.test_specifics
     init_cond, ambient = sim_variables.init_cond, sim_variables.ambient
-    axes = sim_variables.axes
+
+    # Pad the grid with guard zones based on the subgrid model
+    #padding = [(guard,guard)] * (computational_grid.ndim-1) + [(0,0)]
+    #computational_grid = np.pad(computational_grid, padding, mode=boundary)
 
     match = lambda match_type, substrings: match_type(substring in config for substring in substrings)
 
@@ -48,7 +50,7 @@ def initialise(sim_variables):
                         r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2 + (z-z_centre)**2)
 
                     E, M, t0 = test_specifics['E'], test_specifics['M'], test_specifics['t0']
-                    r0 = 2 * t0 * np.sqrt(gamma * E/M)
+                    r0 = t0 * np.sqrt(gamma * E/M)
                     sim_variables.shock_pos = r0
 
                     rho0 = 25/(21*np.pi) * (E**2)/M * t0**4 * r0**-7
@@ -60,9 +62,7 @@ def initialise(sim_variables):
                     computational_grid[core] = init_cond
                     computational_grid[...,rho][core] += rho0
 
-                    sigma, V = .75 * r0, 4/3 * np.pi * r0**3
-                    e_tot = ambient[pressure]/(gamma-1) + mfuncs.smoothing_kernel(E/V, r, d=dimensions, sigma=sigma)
-                    computational_grid[...,pressure] = (gamma - 1) * e_tot
+                    computational_grid[...,pressure] = ambient[pressure]/(gamma-1) + mfuncs.smoothing_kernel(E, r, d=dimensions, sigma=.75*r0)
 
                     if test_specifics['rotation']:
                         tau0, age = test_specifics['tau0'], test_specifics['age']
@@ -183,7 +183,7 @@ def initialise(sim_variables):
                         r = np.sqrt((x-x_centre)**2 + (y-y_centre)**2)
 
                     E, M, t0 = test_specifics['E'], test_specifics['M'], test_specifics['t0']
-                    r0 = 2 * t0 * np.sqrt(gamma * E/M)
+                    r0 = t0 * np.sqrt(gamma * E/M)
                     sim_variables.shock_pos = r0
 
                     rho0 = 25/(21*np.pi) * (E**2)/M * t0**4 * r0**-7
@@ -195,9 +195,7 @@ def initialise(sim_variables):
                     computational_grid[core] = init_cond
                     computational_grid[...,rho][core] += rho0
 
-                    sigma, A = .75 * r0, np.pi * r0**2
-                    e_tot = ambient[pressure]/(gamma-1) + mfuncs.smoothing_kernel(E/A, r, d=dimensions, sigma=sigma)
-                    computational_grid[...,pressure] = (gamma - 1) * e_tot
+                    computational_grid[...,pressure] = ambient[pressure]/(gamma-1) + mfuncs.smoothing_kernel(E, r, d=dimensions, sigma=.75*r0)
 
                     if test_specifics['rotation']:
                         tau0, age = test_specifics['tau0'], test_specifics['age']
@@ -235,7 +233,7 @@ def initialise(sim_variables):
                 computational_grid[layer] = init_cond
                 computational_grid[...,vy] = test_specifics['ampl'] * np.sin(test_specifics['freq']*np.pi*x/np.diff(coordinates[0]))
                 if test_specifics['perturb']:
-                    perturbations = turbulence.pertubations(computational_grid, test_specifics['ampl'])
+                    perturbations = gutils.pertubations(computational_grid, test_specifics['ampl'])
                     computational_grid[...,(vx,vy)] += perturbations[...,(vx,vy)]
                 if config.startswith('m') or 'mhd' in config:
                     computational_grid[...,Bx] = test_specifics['Bx']
@@ -245,7 +243,7 @@ def initialise(sim_variables):
                 computational_grid[layer] = init_cond
                 computational_grid[...,pressure] = init_cond[pressure] - .1*computational_grid[...,rho]*y
                 if test_specifics['perturb']:
-                    perturbations = turbulence.pertubations(computational_grid, 2*test_specifics['ampl'])
+                    perturbations = gutils.pertubations(computational_grid, 2*test_specifics['ampl'])
                     computational_grid[...,vy] += perturbations[...,vy] * (1 + np.cos(8*np.pi*y/3))
                 else:
                     computational_grid[...,vy] = test_specifics['ampl'] * (1 + np.cos(4*np.pi*x)) * (1 + np.cos(3*np.pi*y))
@@ -272,12 +270,14 @@ def initialise(sim_variables):
 
                 computational_grid[...,pressure] = p0 - 2 + 4*np.log(2)
 
-                computational_grid[...,vx][ring] = (5 - 2*r)[ring]
-                computational_grid[...,vy][ring] = (2*r - 5)[ring]
+                u_phi = 2 - 5*r
+                computational_grid[...,vx][ring] = -(u_phi * y0/r)[ring]
+                computational_grid[...,vy][ring] = (u_phi * x0/r)[ring]
                 computational_grid[...,pressure][ring] = (p0 + (25/2)*r**2 + 4*(1 - 5*r + np.log(5*r)))[ring]
 
-                computational_grid[...,vx][core] = -5
-                computational_grid[...,vy][core] = 5
+                u_phi = 5*r
+                computational_grid[...,vx][core] = -(u_phi * y0/r)[core]
+                computational_grid[...,vy][core] = (u_phi * x0/r)[core]
                 computational_grid[...,pressure][core] = (p0 + (25/2)*r**2)[core]
 
             elif match(any, ['lax', 'liu', 'll']):
@@ -380,9 +380,10 @@ def initialise(sim_variables):
                 computational_grid[...,By][mask] *= -1
 
             elif 'noh' in config:
-                mask = np.where(((x-coordinates[0][0])**2 + (y-coordinates[1][0])**2) > (shock_pos-coordinates[0][0])**2)
-                computational_grid[...,vx][mask] = -np.sin(x-shock_pos)[mask]
-                computational_grid[...,vy][mask] = -np.cos(x-shock_pos)[mask]
+                mask = np.where(r > r0)
+                computational_grid[...,vx][mask] = -(x0/r)[mask]
+                computational_grid[...,vy][mask] = -(y0/r)[mask]
+                computational_grid[r <= r0] = init_cond
 
             elif 'cloud' in config:
                 computational_grid[np.where(x < shock_pos)] = init_cond
@@ -403,7 +404,7 @@ def initialise(sim_variables):
                 computational_grid[...,vy][nozzle] = test_specifics['velocity']
                 computational_grid[...,By] *= np.sqrt(10)  # weak: 1, moderate:np.sqrt(10), strong:np.sqrt(1e2), extreme:np.sqrt(1e3)
                 if test_specifics['perturb']:
-                    perturbations = turbulence.pertubations(computational_grid, test_specifics['velocity']/4)
+                    perturbations = gutils.pertubations(computational_grid, test_specifics['velocity']/4)
                     computational_grid[...,(vx,vy)] += perturbations[...,(vx,vy)]
 
             elif match(any, ['circular', 'polarised', 'alfven']) or config == 'cpaw':
@@ -443,7 +444,7 @@ def initialise(sim_variables):
                     x -= x_centre
 
                 E, M, t0 = test_specifics['E'], test_specifics['M'], test_specifics['t0']
-                r0 = 2 * t0 * np.sqrt(gamma * E/M)
+                r0 = t0 * np.sqrt(gamma * E/M)
                 sim_variables.shock_pos = r0
 
                 rho0 = 25/(21*np.pi) * (E**2)/M * t0**4 * r0**-7
@@ -455,9 +456,7 @@ def initialise(sim_variables):
                 computational_grid[core] = init_cond
                 computational_grid[...,rho][core] += rho0
 
-                sigma, L = .75 * r0, r0
-                e_tot = ambient[pressure]/(gamma-1) + mfuncs.smoothing_kernel(E/L, r, d=dimensions, sigma=sigma)
-                computational_grid[...,pressure] = (gamma - 1) * e_tot
+                computational_grid[...,pressure] = ambient[pressure]/(gamma-1) + mfuncs.smoothing_kernel(E, r, d=dimensions, sigma=.75*r0)
 
             else:
                 mask = np.where(np.abs(x) <= r0)
@@ -493,9 +492,11 @@ def initialise(sim_variables):
             else:
                 computational_grid[...,rho] += np.random.uniform(-test_specifics['perturb_ampl'], test_specifics['perturb_ampl'], size=(computational_grid.shape))[...,rho]
 
+    # Check if magnetic fields present
     sim_variables.magnetic = computational_grid[...,sim_variables.Bfields].any()
 
+    # Use higher-order interpolation for averaged values if higher-order scheme is used
     if sim_variables.grid_interpolate:
-        return gutils.method_convert_cell('point', computational_grid, sim_variables)
-    else:
-        return computational_grid
+        computational_grid = gutils.method_convert_cell('point', computational_grid, sim_variables)
+
+    return computational_grid
