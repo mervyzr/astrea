@@ -307,3 +307,105 @@ def roe_average(plus, minus, out=None):
     _, out_view = _flat(out)
     _roe_average(plus_view, minus_view, out_view)
     return out
+
+
+##############################################################################
+# CWENO(Z) reconstruction
+##############################################################################
+
+@njit(cache=True, inline='always')
+def _stencil_index(i, n, code):
+    """Logical index i, possibly outside [0,n), mapped onto the cell np.pad would have used.
+
+    Covers |i| up to the two-cell halo the five-point stencil needs. wrap is periodic, edge
+    clamps to the boundary cell, reflect mirrors about the boundary cell without repeating it
+    (np.pad's 'reflect', not 'symmetric').
+    """
+    if 0 <= i < n:
+        return i
+    if code == BC_WRAP:
+        return i % n
+    elif code == BC_EDGE:
+        return 0 if i < 0 else n-1
+    else:
+        return -i if i < 0 else 2*(n-1) - i
+
+
+@njit(parallel=True, cache=True)
+def _cweno_reconstruct(g, wl, wr, eps, power, code, wenoz):
+    """CWENO/CWENOZ reconstruction from cell averages to both face averages.
+
+    Levy et al. 1999 eq. 3.11-3.14, with the CWENOZ tau of Cravero et al. 2019. Operand
+    grouping follows the numpy original expression by expression so the result matches it.
+    """
+    left, n, right = g.shape
+    ntiles = (right + _TILE - 1)//_TILE
+
+    # Linear weights dC_k [tbl. 3.1]
+    dc0, dc1, dc2 = 1/6, 2/3, 1/6
+
+    for tile in prange(left * ntiles):
+        l = tile//ntiles
+        r0 = (tile % ntiles) * _TILE
+        r1 = min(r0 + _TILE, right)
+        for i in range(n):
+            im2 = _stencil_index(i-2, n, code)
+            im1 = _stencil_index(i-1, n, code)
+            ip1 = _stencil_index(i+1, n, code)
+            ip2 = _stencil_index(i+2, n, code)
+            for r in range(r0, r1):
+                m2 = g[l, im2, r]
+                m1 = g[l, im1, r]
+                z = g[l, i, r]
+                p1 = g[l, ip1, r]
+                p2 = g[l, ip2, r]
+
+                # Smoothness indicators [eq. 3.14]
+                si0 = 13/12 * (m2 - 2*m1 + z)**2 + 1/4 * (m2 - 4*m1 + 3*z)**2
+                si1 = 13/12 * (m1 - 2*z + p1)**2 + 1/4 * (m1 - p1)**2
+                si2 = 13/12 * (z - 2*p1 + p2)**2 + 1/4 * (3*z - 4*p1 + p2)**2
+
+                if wenoz:
+                    d = m2 - 2*m1 + 2*p1 - p2
+                    si_opt = (
+                        1/4 * (p1 - m1 + 1/3*d)**2
+                        + 13/12 * (m1 - 2*z + p1 + 1/12*d)**2
+                        + 7/240 * (m2 - 4*m1 + 6*z - 4*p1 + p2)**2
+                        + 9/80 * (-m2 + 2*m1 - 2*p1 + p2)**2
+                    )
+                    tau = abs(si_opt - (si0 + si1 + si2)/3)
+                    a0 = dc0 * (1 + (tau/(si0 + eps))**power)
+                    a1 = dc1 * (1 + (tau/(si1 + eps))**power)
+                    a2 = dc2 * (1 + (tau/(si2 + eps))**power)
+                else:
+                    a0 = dc0/(si0 + eps)**power
+                    a1 = dc1/(si1 + eps)**power
+                    a2 = dc2/(si2 + eps)**power
+
+                # Non-linear weights [eq. 3.11]
+                total = a0 + a1 + a2
+                o0 = _guarded_divide(a0, total)
+                o1 = _guarded_divide(a1, total)
+                o2 = _guarded_divide(a2, total)
+
+                # No need to flip the linear weights since dC_k is symmetrical
+                wr[l, i, r] = 1/6 * (
+                    o0 * (2*m2 - 7*m1 + 11*z)
+                    + o1 * (-m1 + 5*z + 2*p1)
+                    + o2 * (2*z + 5*p1 - p2)
+                )
+                wl[l, i, r] = 1/6 * (
+                    o0 * (2*z + 5*m1 - m2)
+                    + o1 * (-p1 + 5*z + 2*m1)
+                    + o2 * (2*p2 - 7*p1 + 11*z)
+                )
+
+
+def cweno_reconstruct(grid, axis, eps, code, power=2, wenoz=False):
+    """Return (wL, wR), the reconstructed left and right face averages along axis."""
+    grid, view = _as_axis_view(grid, axis)
+    wl, wr = np.empty_like(grid), np.empty_like(grid)
+    _, wl_view = _as_axis_view(wl, axis)
+    _, wr_view = _as_axis_view(wr, axis)
+    _cweno_reconstruct(view, wl_view, wr_view, eps, power, code, wenoz)
+    return wl, wr
