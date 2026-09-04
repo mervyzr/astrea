@@ -96,7 +96,7 @@ def generate_test_conditions(config_variables):
     elif match(any, ["ryu", "jones"]) or config == "rj":
         axis_coord = [-.5,.5]
         shock_pos = 0
-        t_end = .15
+        t_end = .2
         boundary = "edge"
         init_cond = np.array([1.08,1.2,.01,.5,.95,1/np.sqrt(np.pi),1.8/np.sqrt(np.pi),1/np.sqrt(np.pi)])
         ambient = np.array([1,0,0,0,1,1/np.sqrt(np.pi),2/np.sqrt(np.pi),1/np.sqrt(np.pi)])
@@ -173,12 +173,12 @@ def generate_test_conditions(config_variables):
         test_specifics = {'ampl':np.sqrt(2*np.pi)}
 
     elif "noh" in config:
-        axis_coord = [0,1]
+        axis_coord = [-1,1]
         shock_pos = .1
-        t_end = 1
+        t_end = .75
         boundary = "edge"
-        init_cond = np.array([1,0,0,0,1e-6,0,0,0])
-        ambient = np.array([16,0,0,0,16/3,0,0,0])
+        init_cond = np.array([16,0,0,0,16/3,0,0,0])
+        ambient = np.array([1,0,0,0,1e-6,0,0,0])
         test_specifics = None
 
     ##############################################
@@ -188,7 +188,7 @@ def generate_test_conditions(config_variables):
     elif "gresho" in config:
         axis_coord = [-.5,.5]
         shock_pos = 0
-        t_end = 1
+        t_end = 0.025
         boundary = "wrap"
         init_cond = np.array([1,0,0,0,0,0,0,0])
         ambient = np.array([1,0,0,0,0,0,0,0])
@@ -249,7 +249,7 @@ def generate_test_conditions(config_variables):
         shock_pos = 0
         t_end = 10
         boundary = "edge"
-        init_cond = np.array([2,.0,0,0,2.5,0,0,0])
+        init_cond = np.array([2,0,0,0,2.5,0,0,0])
         ambient = np.array([1,0,0,0,2.5,0,0,0])
         test_specifics = {'perturb':True, 'ampl':.05, 'grav_acc':.1, 'Bx':.05*np.sqrt(np.pi)}
 
@@ -312,7 +312,7 @@ def generate_test_conditions(config_variables):
     elif "cloud" in config:
         axis_coord = [0,2], [0,1]
         shock_pos = 1.2
-        t_end = .2
+        t_end = .1
         boundary = "edge"
         init_cond = np.array([3.86859,0,0,0,167.345,0,2.1826182,-2.1826182])
         ambient = np.array([1,-11.2536,0,0,1,0,.56418958,.56418958])
@@ -322,7 +322,7 @@ def generate_test_conditions(config_variables):
     elif "jet" in config:
         axis_coord = [-.5,.5]
         shock_pos = .05
-        t_end = .01
+        t_end = .001
         boundary = "edge"
         init_cond = np.array([gamma*.1,0,0,0,1,0,np.sqrt(20),0])
         ambient = np.array([gamma*.1,0,0,0,1,0,np.sqrt(20),0])
@@ -348,7 +348,7 @@ def generate_test_conditions(config_variables):
 
         mode = 'full'  # quadrant/octant or full-sphere mode
         shock_pos = 0
-        t_end = 490
+        t_end = 500
         init_cond = np.array([2.4539e-3,0,0,0,2.1309e-13,0,0,0])
         ambient = np.array([2.4539e-3,0,0,0,2.1309e-13,0,0,0])
         test_specifics = {'E':5.2516e-5, 'M':1.4, 't0':10, 'rotation':rotation, 'tau0':tau0, 'age':age, 'mode':mode}
@@ -390,7 +390,7 @@ def generate_test_conditions(config_variables):
     elif match(any, ["liska", "wendroff", "implosion"]):
         axis_coord = [-.3,.3]
         shock_pos = .15
-        t_end = 3
+        t_end = .1
         boundary = "wrap"
         init_cond = np.array([.125,0,0,0,.14,0,0,0])
         ambient = np.array([1,0,0,0,1,0,0,0])
@@ -404,9 +404,9 @@ def generate_test_conditions(config_variables):
         boundary = "wrap"
 
         if "ll" in config:
-            index = int(config.replace(' ','').split('ll')[-1])
+            index = int(config.replace('-','').split('ll')[-1])
         else:
-            index = int(config.replace(' ','').split('liu')[-1])
+            index = int(config.replace('-','').split('liu')[-1])
 
         if index in [1, 2]:
             init_cond = np.array([.5197,-.7259,0,0,.4,0,0,0])

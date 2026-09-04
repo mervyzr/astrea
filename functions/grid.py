@@ -43,18 +43,18 @@ def slice_(grid, axis, start=0, end=None, step=1, *args):
     return grid[tuple(slc)]
 
 
-# Finite difference derivative (second order) of a padded grid
-# [ W(i+1) - W(i) ] - [ W(i) - W(i-1) ] = W(i+1) - 2W(i) + W(i-1)
-def laplacian(grid, sim_variables, axis):
-    padded_grid = add_boundary(grid, sim_variables, axis=axis)
-    return 1/(sim_variables.ds[axis]**2) * (np.diff(slice_(padded_grid, axis, start=1), axis=axis) - np.diff(slice_(padded_grid, axis, end=-1), axis=axis))
-
-
 # Add boundary conditions
 def add_boundary(grid, sim_variables, stencil=1, axis=0):
     padding = [(0,0)] * grid.ndim
     padding[axis] = (stencil,stencil)
     return np.pad(grid, padding, mode=sim_variables.boundary)
+
+
+# Finite difference derivative (second order) of a padded grid
+# [ W(i+1) - W(i) ] - [ W(i) - W(i-1) ] = W(i+1) - 2W(i) + W(i-1)
+def laplacian(grid, sim_variables, axis):
+    padded_grid = add_boundary(grid, sim_variables, axis=axis)
+    return 1/(sim_variables.ds[axis]**2) * (np.diff(slice_(padded_grid, axis, start=1), axis=axis) - np.diff(slice_(padded_grid, axis, end=-1), axis=axis))
 
 
 # Convert between pressure P and total energy density e_tot; P is also related to the internal energy density e_int: P = (gamma-1) * e_int
@@ -198,3 +198,8 @@ def approx_flux_avg(cntrd_fluxes, avgd_fluxes, sim_variables, axis):
 def assign_interfaces(interfaces, grid, sim_variables, axis):
     wL, wR = interfaces
     return slice_(add_boundary(wL, sim_variables, axis=axis), axis, start=1), slice_(add_boundary(wR, sim_variables, axis=axis), axis, end=-1)
+
+
+# Create a grid of perturbation values
+def pertubations(grid, max_ampl):
+    return np.random.uniform(-max_ampl/2, max_ampl, size=grid.shape)

@@ -71,4 +71,5 @@ physics/krome/build/*.mod
 physics/krome/build/*.o
 physics/krome/build/test
 physics/pychem
+physics/chimes
 KROME_ERROR_REPORT

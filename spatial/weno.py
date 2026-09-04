@@ -150,7 +150,7 @@ def run(grid, sim_variables, axis):
 
     # WENO reconstruction [Jiang & Shu, 1996]
     try:
-        wL, wR = reconstruct(grid, sim_variables, axis, int(subgrid.replace('-','').split("weno")[-1]))
+        wL, wR = reconstruct(grid, sim_variables, axis, int(subgrid.replace('-','')[-1]))
     except ValueError:
         wL, wR = reconstruct(grid, sim_variables, axis)
 

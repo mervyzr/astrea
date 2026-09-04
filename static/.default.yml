@@ -16,8 +16,9 @@ physics_parameters:
   cfl           : .5
   gamma         : 1.4
   dimensions    : 2
-  units         : code
   gravity       : false
+  chemistry     : false
+  units         : code
 
 numerical_parameters:
   # Subgrid models for hydro and mag. components : PCM, PLM, PPM, CWENO, WENO-Z, CWENOZ, WENO-3/5/7, TENO(-AA)

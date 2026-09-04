@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from collections import namedtuple
 
 import numpy as np
@@ -30,20 +31,20 @@ class Variables(object):
         '__dict__',
         'rho', 'vx', 'vy', 'vz', 'pressure', 'Bx', 'By', 'Bz', 'gx', 'gy', 'gz', 'energy', 'vels', 'Bfields', 'momentums',
         'config', 'cells', 'cfl', 'gamma', 'gravity', 'self_gravity', 'ext_gravity', 'dimensions', 'subgrid', 'time_evo', 'solver',
-        'coordinates', 'shock_pos', 't_end', 'boundary', 'test_specifics', 'init_cond', 'ambient', 'ds',
+        'coordinates', 'shock_pos', 't_end', 'boundary', 'guards', 'trim', 'test_specifics', 'init_cond', 'ambient', 'ds',
         'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
-        'axes', 'magnetic', 'convert', 'roots', 'weights', 'higher_order', 'grid_interpolate', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
+        'axes', 'magnetic', 'convert', 'guards', 'roots', 'weights', 'higher_order', 'grid_interpolate', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'eps', 'home', 'save_path', 'db_path', 'hdf5', 'timesteps', 'print_status',
-        'full_set_required', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test',
+        'record_all_steps', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test',
         'units', 'constants', 'chemistry', 'network', 'pykrome', 'species', 'abundances', 'tracers', 'nvars',
     ]
 
     def __init__(self, config_variables, test_variables):
         db, params = TinyDB(config_variables['db_path']), Query()
 
-        # Declare physical variables and their index in the array: [density, vx/px, vy/py, vz/pz, pressure/energy, Bx, By, Bz, source terms]
+        # Declare physical variables and their index in the array: [density, vx/px, vy/py, vz/pz, pressure/energy, Bx, By, Bz]
         self.nvars = 8
-        self.rho, self.vx, self.vy, self.vz, self.pressure, self.Bx, self.By, self.Bz = range(self.nvars)
+        self.IDX = self.rho, self.vx, self.vy, self.vz, self.pressure, self.Bx, self.By, self.Bz = tuple(range(self.nvars))
         self.vels, self.Bfields = slice(1,4), slice(5,8)
         self.energy, self.momentums = self.pressure, self.vels
 
@@ -73,6 +74,22 @@ class Variables(object):
             self.roots = roots + .5
             self.weights = weights
 
+        # Generate guard zones based on the subgrid
+        self.guards = 2
+        if self.subgrid_category == "plm":
+            self.guards = 1
+        elif self.subgrid_category == "weno":
+            try:
+                weno_order = int(self.subgrid.replace('-','')[-1])
+            except:
+                pass
+            else:
+                if weno_order > 5:
+                    self.guards = 3
+        elif self.subgrid_category == "eno":
+            self.guards = 3
+        self.trim = (slice(self.guards,-self.guards),)*self.dimensions + (slice(None),)
+
         # Higher-order method options
         self.higher_order = self.grid_interpolate = False
         if self.subgrid_category in ["ppm", "eno", "weno"]:
@@ -86,6 +103,22 @@ class Variables(object):
             if self.subgrid_category == "ppm":
                 self.ppm_author = os.getenv("PPM_AUTHOR", "MC:2011")  # [McCorquodale & Colella, 2011 (MC:2011); Colella et al., 2011 (C+:2011); Peterson & Hammett, 2008 (PH:2008)]
                 self.ppm_dissipate = os.getenv("PPM_DISSIPATE", False)
+
+        # Spatial guard zones options
+        self.guards = 2
+        if self.subgrid_category == "plm":
+            self.guards = 1
+        elif self.subgrid_category == "eno":
+            self.guards = 3
+        else:
+            if self.subgrid_category == "weno":
+                try:
+                    weno_order = int(self.subgrid.replace('-','')[-1])
+                except ValueError:
+                    pass
+                else:
+                    if weno_order > 5:
+                        self.guards = 3
 
         # CT-specific options
         self.ct_dissipative = os.getenv("CT_DISSIPATIVE", False)
@@ -114,30 +147,22 @@ class Variables(object):
         # Turbulence set-up
         self.turbulence = True if "turb" in self.config else False
 
-        # Chemistry network set-up
+        # Chemistry network set-up; check if folder for chemical code exists
         if self.chemistry:
-            if not self.network:
-                krome_path = os.path.join(self.home, 'physics', 'krome')
+            try:
+                chem_on = bool(int(self.chemistry))
+            except ValueError:
+                if self.chemistry not in ['krome', 'chimes', 'pychem']:
+                    self.chemistry = False
             else:
-                try:
-                    krome_path = [os.path.join(root, dirname) for root, dirs, _ in os.walk(self.home) for dirname in dirs if 'krome' in os.path.join(root, dirname)][0]
-                except IndexError:
-                    print(f"{BColours.WARNING}Chemistry switched on but krome folder cannot be found. Switching off chemistry..{BColours.ENDC}")
-                    krome_path = None
+                if chem_on:
+                    self.chemistry = 'krome'
+            self.chem_path = Path(self.home, 'physics', self.chemistry)
 
-            paths = [self.home, krome_path, self.network]
-            options = [
-                '-iRHS',
-                '-noRecCheck',
-                '-coolFile=data/coolZ.dat',
-                '-cooling=ATOMIC,H2,DUST,Z,CI,OI,CII',
-                '-heating=COMPRESS,PHOTO,CHEM,PHOTODUST'
-            ]
-            self.pykrome, self.species, self.useX = krome_funcs.build_krome(paths, options)
-
-            if self.pykrome == None or self.species == None:
-                print(f"{BColours.WARNING}krome built but cannot be accessed. Switching off chemistry..{BColours.ENDC}")
+            if not Path.is_dir(self.chem_path):
+                print(f"{BColours.WARNING}Chemistry switched on but physics/{self.chemistry} folder cannot be found. Switching off chemistry..{BColours.ENDC}")
                 self.chemistry = False
+                self.chem_path = ''
 
         # Printer functions
         if self.verbose:
@@ -172,10 +197,7 @@ class Variables(object):
             print(f"{BColours.WARNING}Live plot can only be switched on when NOT saving media files because live_plot interferes with matplotlib.pyplot.savefig..{BColours.ENDC}")
             self.live_plot = False
 
-        if self.save_snaps or self.save_plots or self.save_video or self.save_file:
-            self.save_path = ''
-
         self.beautify_1d_plots = os.getenv("BEAUTIFY_1D_PLOTS", False)
         self.save_as_pdf = os.getenv("SAVE_AS_PDF", False)
 
-        self.full_set_required = True if (self.save_plots or self.save_video or self.save_file) else False
+        self.record_all_steps = True if (self.save_plots or self.save_video or self.save_file) else False

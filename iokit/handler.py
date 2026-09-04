@@ -1,6 +1,7 @@
 import sys
 import shutil
 
+import h5py
 import numpy as np
 from tinydb import TinyDB, Query
 
@@ -11,11 +12,12 @@ from iokit import chkpt_funcs, cli_funcs, param_funcs
 # Handler for I/O functions; consolidates and allocates user input
 ##############################################################################
 
-def allocate(seed, basedir, db_path, filename):
+def allocate(seed, basedir, db_path, save_path, filename):
     config_variables = {
         'seed': seed,
         'home': basedir,
         'db_path': db_path,
+        'save_path': save_path,
         'hdf5': filename,
     }
 
@@ -133,18 +135,17 @@ def filter_variables(config_variables):
                 if v <= 0:
                     v = eps
         elif k == "gravity":
-            if isinstance(v, str):
-                if v.lower() not in ['true', '1', 'self', 'ext', 'external']:
+            try:
+                v = bool(int(v))
+            except ValueError:
+                if v.lower() not in ['self', 'ext', 'external']:
                     v = False
-            else:
-                if not isinstance(v, bool):
-                    if isinstance(v, int):
-                        if v not in (0,1):
-                            v = False
-                        else:
-                            v = bool(v)
-                    else:
-                        v = False
+        elif k == "chemistry":
+            try:
+                v = bool(int(v))
+            except ValueError:
+                if v.lower() not in ['krome', 'chimes', 'pychem']:
+                    v = False
         elif k == "plot_options":
             accepted_plot_options, valid, invalid = db.get(params.type == k)['accepted'], [], []
             try:
@@ -182,3 +183,26 @@ def filter_variables(config_variables):
         config_variables[k] = v
 
     return config_variables
+
+
+# Write to hdf5 file
+def write_hdf5(file, sim_variables, *args, **kwargs):
+    with h5py.File(file, "w") as f:
+        f.attrs['datetime'] = kwargs['script_start']
+        f.attrs['seed'] = sim_variables.seed
+        f.attrs['code'] = 'astrea'
+
+
+# Append group (corresponds to one simulation) to hdf5 file
+def append_grp(file, sim_variables, *args, **kwargs):
+    with h5py.File(file, "a") as f:
+        grp = f.create_group(sim_variables.access_key)
+        grp.attrs['config'] = sim_variables.config
+        grp.attrs['cells'] = sim_variables.cells
+        grp.attrs['cfl'] = sim_variables.cfl
+        grp.attrs['gamma'] = sim_variables.gamma
+        grp.attrs['dimensions'] = sim_variables.dimensions
+        grp.attrs['eps'] = sim_variables.eps
+        grp.attrs['subgrid'] = sim_variables.subgrid
+        grp.attrs['time_evo'] = sim_variables.time_evo
+        grp.attrs['solver'] = sim_variables.solver

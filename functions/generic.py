@@ -208,7 +208,7 @@ def print_verbose(sim_variables, t=None, status=''):
             print(f'')
             print(f'{"":>5}OPTS={sys.argv[1:]}')
             print(f'')
-            if sim_variables.chemistry:
+            if sim_variables.chemistry == "krome":
                 print(f'{"":>5}SPECIES={sim_variables.species}')
                 print(f'')
             print(f'{"Config.":>15} :    {sim_variables.config.upper()}')

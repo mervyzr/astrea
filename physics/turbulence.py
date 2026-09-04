@@ -4,11 +4,6 @@ import numpy as np
 # Turbulence and perturbations module
 ##############################################################################
 
-# Create a grid of perturbation values
-def pertubations(grid, max_ampl):
-    return np.random.uniform(-max_ampl/2, max_ampl, size=grid.shape)
-
-
 # Initialise the turbulence driving grid
 def initialise(sim_variables):
     return np.zeros(list(sim_variables.cells)+[sim_variables.dimensions,], dtype=float, order='C')
