@@ -3,6 +3,7 @@ import numpy as np
 from functions import grid as gutils
 from functions import math as mfuncs
 from functions import numeric
+from numkit import kernels
 
 ##############################################################################
 # Approximate linearised and non-linearised Riemann solvers
@@ -66,27 +67,11 @@ def calculate_LaxFriedrich_flux(axis, sim_variables, **kwargs):
     # Local max eigenvalue for each interface (1- or 3-Riemann invariant; shock wave or rarefaction wave)
     local_max_eigvals = np.max(np.abs(characteristics), axis=-1)
 
-    # Local max eigenvalue between consecutive pairs of cells
-    plus = np.maximum(
-        gutils.slice_(local_max_eigvals, axis, start=2),
-        gutils.slice_(local_max_eigvals, axis, *[1,-1]),
+    # Handed to a kernel: the pairwise maxima, their average and the flux expression were six
+    # full-size arrays, and this runs twice per axis per stage. Bit-identical to that form
+    return kernels.lax_friedrich(
+        local_max_eigvals, cons_plus, cons_minus, flux_plus, flux_minus, axis
     )
-    minus = np.maximum(
-        gutils.slice_(local_max_eigvals, axis, *[1,-1]),
-        gutils.slice_(local_max_eigvals, axis, end=-2),
-    )
-
-    # Averaged maximum localised eigenvalue at each interface
-    max_eigvals = .5 * (plus + minus)
-
-    # Built in place: the expression form allocated five full-size temporaries and this runs
-    # twice per axis per stage. Operand order is preserved, so the result is bit-identical
-    out = flux_minus + flux_plus
-    out *= .5
-    dissipation = cons_plus - cons_minus
-    dissipation *= (.5 * max_eigvals)[...,None]
-    out -= dissipation
-    return out
 
 
 # Lax-Wendroff (Richtmyer) solver (2nd-order, Jacobian method; contains overshoots) [Lax & Wendroff, 1960; Mignone & Del Zanna, 2021]
