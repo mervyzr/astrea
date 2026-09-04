@@ -67,21 +67,23 @@ def run(grid, sim_variables, axis):
     assign_interfaces = ct.assign_interfaces if magnetic else gutils.assign_interfaces
     prim_plus, prim_minus = assign_interfaces((wL, wR), grid, sim_variables, axis)
 
-    # Get the average solution between the interfaces at the boundaries
-    intf_avg = numeric.compute_Roe_average((prim_plus, prim_minus), sim_variables)
-    padded_intf_avg = gutils.add_boundary(intf_avg, sim_variables, axis=axis)
-
     # Convert the primitive variables at the interface
     cons_plus, cons_minus = gutils.variable_convert_intf("primitive", prim_plus, sim_variables, axis=axis), gutils.variable_convert_intf("primitive", prim_minus, sim_variables, axis=axis)
 
     # Compute the fluxes
     flux_plus, flux_minus = numeric.compute_flux(prim_plus, sim_variables, axis=axis), numeric.compute_flux(prim_minus, sim_variables, axis=axis)
 
-    # Resolve characteristics at interfaces from the analytic eigenvalues. This replaces a
-    # per-cell np.linalg.eigvals over an (N,N,N,8,8) Jacobian, which cost 2.4 us/cell and
-    # allocated 8 GiB per axis at 256^3 to recover eigenvalues that are known in closed form
-    wavespeeds = numeric.compute_wavespeed_bounds(padded_intf_avg, sim_variables, axis=axis)
-    jacobian = numeric.compute_jacobian(padded_intf_avg, sim_variables, axis=axis) if needs_jacobian else None
+    # Wave speeds at the interfaces from the Roe-averaged state. Only Lax-Wendroff and GFORCE
+    # need the averaged state itself, to build the Jacobian from; every other solver needs
+    # nothing but the wave speeds, so neither it nor its padded copy is materialised
+    if needs_jacobian:
+        intf_avg = numeric.compute_Roe_average((prim_plus, prim_minus), sim_variables)
+        padded_intf_avg = gutils.add_boundary(intf_avg, sim_variables, axis=axis)
+        wavespeeds = numeric.compute_wavespeed_bounds(padded_intf_avg, sim_variables, axis=axis)
+        jacobian = numeric.compute_jacobian(padded_intf_avg, sim_variables, axis=axis)
+    else:
+        wavespeeds = numeric.compute_roe_wavespeed_bounds((prim_plus, prim_minus), sim_variables, axis)
+        jacobian = None
 
     # Calculate the interface-averaged fluxes
     intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **_solver_kwargs(

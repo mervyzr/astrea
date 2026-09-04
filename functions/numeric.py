@@ -110,6 +110,18 @@ def compute_wavespeed_bounds(grid, sim_variables, axis):
     )
 
 
+# Wave speed bounds of the Roe-averaged interface state, boundary-padded along axis
+# Fuses compute_Roe_average -> add_boundary -> compute_wavespeed_bounds. That chain held the
+# averaged state and a padded copy of it, two full-size arrays plus a np.pad, only ever to
+# produce two scalar fields from them.
+def compute_roe_wavespeed_bounds(interfaces, sim_variables, axis):
+    plus, minus = interfaces
+    return kernels.roe_wavespeed_bounds(
+        plus, minus, sim_variables.gamma, sim_variables.constants.mu_0, axis,
+        bool(sim_variables.magnetic), kernels.bc_code(sim_variables),
+    )
+
+
 # Split a wavespeed-bounds array into the normal velocity and the dominant wave speed
 def unpack_wavespeeds(wavespeeds):
     return wavespeeds[...,kernels.WAVESPEED_NORMAL], wavespeeds[...,kernels.WAVESPEED_DOMINANT]
