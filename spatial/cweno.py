@@ -15,7 +15,9 @@ def reconstruct(grid, sim_variables, axis, power=2, limit=False):
     padded_grid_2 = gutils.add_boundary(grid, sim_variables, stencil=2, axis=axis)
     padded_grid = gutils.slice_(padded_grid_2, axis, *[1,-1])
 
-    zeroth = np.copy(grid)
+    # Read-only alias, not a copy. The caller's grid is shared by the concurrent axis
+    # sweeps and this build runs without the GIL, so it must never be mutated here
+    zeroth = grid
     minus_one, minus_two = gutils.slice_(padded_grid, axis, end=-2), gutils.slice_(padded_grid_2, axis, end=-4)
     plus_one, plus_two = gutils.slice_(padded_grid, axis, start=2), gutils.slice_(padded_grid_2, axis, start=4)
 
@@ -57,25 +59,28 @@ def reconstruct(grid, sim_variables, axis, power=2, limit=False):
         tau = np.abs(SI_opt - np.sum(SI_k, axis=0)/3)
 
         # Compute the alpha values for CWENOZ [Cravero et al., 2019]
-        alpha = lambda k: dC_k[k] * (1 + (tau/(SI_k[k] + eps))**power)
+        alpha_k = tuple(dC_k[k] * (1 + (tau/(SI_k[k] + eps))**power) for k in range(3))
 
     else:
         # Compute the alpha values for CWENO [Levy et al., 1999, eq. 3.12]
-        alpha = lambda k: dC_k[k]/(SI_k[k] + eps)**power
+        alpha_k = tuple(dC_k[k]/(SI_k[k] + eps)**power for k in range(3))
 
     # Compute the non-linear weights [Levy et al., 1999, eq. 3.11]
-    omega = lambda k: mfuncs.divide(alpha(k), alpha(0)+alpha(1)+alpha(2))
+    # These were previously a lambda called six times, each call re-evaluating the whole alpha
+    # triple, so the alpha expressions above ran 24 times per reconstruction instead of 3
+    alpha_sum = alpha_k[0] + alpha_k[1] + alpha_k[2]
+    omega = tuple(mfuncs.divide(a, alpha_sum) for a in alpha_k)
 
     # Define the stencils (no need to flip linear weights in non-linear weights since C_k and dC_k are symmetrical)
     wR = 1/6 * (
-        omega(0) * (2*minus_two - 7*minus_one + 11*zeroth)
-        + omega(1) * (-minus_one + 5*zeroth + 2*plus_one)
-        + omega(2) * (2*zeroth + 5*plus_one - plus_two)
+        omega[0] * (2*minus_two - 7*minus_one + 11*zeroth)
+        + omega[1] * (-minus_one + 5*zeroth + 2*plus_one)
+        + omega[2] * (2*zeroth + 5*plus_one - plus_two)
     )
     wL = 1/6 * (
-        omega(0) * (2*zeroth + 5*minus_one - minus_two)
-        + omega(1) * (-plus_one + 5*zeroth + 2*minus_one)
-        + omega(2) * (2*plus_two - 7*plus_one + 11*zeroth)
+        omega[0] * (2*zeroth + 5*minus_one - minus_two)
+        + omega[1] * (-plus_one + 5*zeroth + 2*minus_one)
+        + omega[2] * (2*plus_two - 7*plus_one + 11*zeroth)
     )
 
     # Apply positivity-preserving limiter
@@ -168,7 +173,9 @@ def compute_cweno_interpolant(grid, sim_variables, axis, pos=.5):
     padded_grid_2 = gutils.add_boundary(grid, sim_variables, stencil=2, axis=axis)
     padded_grid = gutils.slice_(padded_grid_2, axis, *[1,-1])
 
-    zeroth = np.copy(grid)
+    # Read-only alias, not a copy. The caller's grid is shared by the concurrent axis
+    # sweeps and this build runs without the GIL, so it must never be mutated here
+    zeroth = grid
     minus_one, minus_two = gutils.slice_(padded_grid, axis, end=-2), gutils.slice_(padded_grid_2, axis, end=-4)
     plus_one, plus_two = gutils.slice_(padded_grid, axis, start=2), gutils.slice_(padded_grid_2, axis, start=4)
 

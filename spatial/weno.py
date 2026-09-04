@@ -16,7 +16,9 @@ def reconstruct(grid, sim_variables, axis, order=5):
     # Define frequently used terms
     padded_grid = gutils.add_boundary(grid, sim_variables, axis=axis)
 
-    zeroth = np.copy(grid)
+    # Read-only alias, not a copy. The caller's grid is shared by the concurrent axis
+    # sweeps and this build runs without the GIL, so it must never be mutated here
+    zeroth = grid
     minus_one, plus_one = gutils.slice_(padded_grid, axis, end=-2), gutils.slice_(padded_grid, axis, start=2)
 
     """WENO reconstruction from cell averages to face averages (both sides) [Jiang & Shu, 1996]
@@ -124,20 +126,27 @@ def reconstruct(grid, sim_variables, axis, order=5):
             )
             b_k = b0, b1, b2
 
-            alpha = lambda gk, k: gk[k]/(b_k[k] + eps)**2
+            # The denominator depends only on the smoothness indicator, so it is shared by
+            # the forward and reversed linear weights. Hoisting it takes the count of these
+            # squarings and divisions from 24 to 3 and 6 per reconstruction
+            denominator_k = tuple((b + eps)**2 for b in b_k)
+            alpha_k = tuple(g_k[k]/denominator_k[k] for k in range(3))
+            inv_alpha_k = tuple(inv_g_k[k]/denominator_k[k] for k in range(3))
 
-            omega = lambda k: mfuncs.divide(alpha(g_k, k), alpha(g_k, 0)+alpha(g_k, 1)+alpha(g_k, 2))
-            inv_omega = lambda k: mfuncs.divide(alpha(inv_g_k, k), alpha(inv_g_k, 0)+alpha(inv_g_k, 1)+alpha(inv_g_k, 2))
+            alpha_sum = alpha_k[0] + alpha_k[1] + alpha_k[2]
+            inv_alpha_sum = inv_alpha_k[0] + inv_alpha_k[1] + inv_alpha_k[2]
+            omega = tuple(mfuncs.divide(a, alpha_sum) for a in alpha_k)
+            inv_omega = tuple(mfuncs.divide(a, inv_alpha_sum) for a in inv_alpha_k)
 
             wR = 1/6 * (
-                omega(0) * (2*minus_two - 7*minus_one + 11*zeroth)
-                + omega(1) * (-minus_one + 5*zeroth + 2*plus_one)
-                + omega(2) * (2*zeroth + 5*plus_one - plus_two)
+                omega[0] * (2*minus_two - 7*minus_one + 11*zeroth)
+                + omega[1] * (-minus_one + 5*zeroth + 2*plus_one)
+                + omega[2] * (2*zeroth + 5*plus_one - plus_two)
             )
             wL = 1/6 * (
-                inv_omega(0) * (2*zeroth + 5*minus_one - minus_two)
-                + inv_omega(1) * (-plus_one + 5*zeroth + 2*minus_one)
-                + inv_omega(2) * (2*plus_two - 7*plus_one + 11*zeroth)
+                inv_omega[0] * (2*zeroth + 5*minus_one - minus_two)
+                + inv_omega[1] * (-plus_one + 5*zeroth + 2*minus_one)
+                + inv_omega[2] * (2*plus_two - 7*plus_one + 11*zeroth)
             )
 
     return wL, wR

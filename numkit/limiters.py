@@ -240,7 +240,16 @@ def w2012(grid, interface, sim_variables, axis=None, compute_p=False):
     #eps = np.minimum(grid[...,rho], 1e-13)
     #theta_rho = np.minimum(1, np.abs(mfuncs.divide(grid[...,rho]-eps, (grid-interface)[...,rho])))
     eps = 1e-16
-    theta_rho = mfuncs.divide(grid-eps, grid-np.min(interface))[...,rho] if (np.min(interface) < eps) else 1
+    # Slice to rho before the arithmetic rather than after. Elementwise ops commute with the
+    # slice, so this is exact, but it avoids building three full 8-variable arrays plus a mask
+    # and then throwing away seven eighths of the result. np.min(interface) was also being
+    # evaluated twice
+    interface_min = np.min(interface)
+    if interface_min < eps:
+        grid_rho = grid[...,rho]
+        theta_rho = mfuncs.divide(grid_rho - eps, grid_rho - interface_min)
+    else:
+        theta_rho = 1
 
     # Compute positivity-preserving limiter for pressure [eq. 3.6-3.7]. Generally not recommended because:
     # 1. Requires conversion of the modified interface values back to conservative variables and then computing the limiter from there
@@ -248,7 +257,7 @@ def w2012(grid, interface, sim_variables, axis=None, compute_p=False):
     if compute_p:
         # Update densities first
         _intf = np.copy(interface)
-        _intf[...,rho] = grid[...,rho] + theta_rho*(interface - grid)[...,rho]
+        _intf[...,rho] = grid[...,rho] + theta_rho*(interface[...,rho] - grid[...,rho])
 
         # Convert new interface and primitive grid to conservative variables
         conservative = ct.convert("primitive", grid, sim_variables) if sim_variables.magnetic else gutils.convert("primitive", grid, sim_variables)
@@ -259,10 +268,10 @@ def w2012(grid, interface, sim_variables, axis=None, compute_p=False):
 
         # Determine the limited polynomial
         theta = np.minimum(theta_p, theta_rho)
-        interface[...,rho] = grid[...,rho] + theta*(interface - grid)[...,rho]
-        interface[...,pressure] = grid[...,pressure] + theta*(interface - grid)[...,pressure]
+        interface[...,rho] = grid[...,rho] + theta*(interface[...,rho] - grid[...,rho])
+        interface[...,pressure] = grid[...,pressure] + theta*(interface[...,pressure] - grid[...,pressure])
 
     else:
-        interface[...,rho] = grid[...,rho] + theta_rho*(interface - grid)[...,rho]
+        interface[...,rho] = grid[...,rho] + theta_rho*(interface[...,rho] - grid[...,rho])
 
     return interface
