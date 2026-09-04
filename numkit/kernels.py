@@ -409,3 +409,147 @@ def cweno_reconstruct(grid, axis, eps, code, power=2, wenoz=False):
     _, wr_view = _as_axis_view(wr, axis)
     _cweno_reconstruct(view, wl_view, wr_view, eps, power, code, wenoz)
     return wl, wr
+
+
+##############################################################################
+# Riemann solver
+##############################################################################
+
+def _as_axis_view_nv(arr, axis, nvars):
+    """View arr as (left, n, right, nvars) around axis, with the components kept trailing."""
+    if not arr.flags.c_contiguous:
+        arr = np.ascontiguousarray(arr)
+    shape = arr.shape
+    left = int(np.prod(shape[:axis])) if axis else 1
+    n = shape[axis]
+    right = int(np.prod(shape[axis+1:-1])) if axis + 1 < len(shape) - 1 else 1
+    return arr, arr.reshape(left, n, right, nvars)
+
+
+@njit(parallel=True, cache=True)
+def _lax_friedrich(eigvals, cons_plus, cons_minus, flux_plus, flux_minus, out):
+    """Local Lax-Friedrich intercell flux.
+
+    eigvals is max|lambda| per cell and is two cells longer than the interface arrays along
+    the sweep axis, so the dissipation coefficient at interface i averages the pairwise maxima
+    on either side of it. Grouping follows the numpy original,
+    .5*(F- + F+) - (q+ - q-)*(.5*a), so the result is bit-identical to it.
+    """
+    left, n, right, nvars = cons_plus.shape
+    for l in prange(left):
+        for i in range(n):
+            for r in range(right):
+                # Local max eigenvalue between consecutive pairs of cells
+                centre = eigvals[l, i+1, r]
+                above = eigvals[l, i+2, r]
+                below = eigvals[l, i, r]
+                plus = above if above > centre else centre
+                minus = centre if centre > below else below
+
+                # Averaged maximum localised eigenvalue at this interface
+                half_max_eigval = .5 * (.5 * (plus + minus))
+                for v in range(nvars):
+                    out[l, i, r, v] = (
+                        (flux_minus[l, i, r, v] + flux_plus[l, i, r, v]) * .5
+                        - (cons_plus[l, i, r, v] - cons_minus[l, i, r, v]) * half_max_eigval
+                    )
+
+
+def lax_friedrich(local_max_eigvals, cons_plus, cons_minus, flux_plus, flux_minus, axis, out=None):
+    """Local Lax-Friedrich flux; local_max_eigvals is max|lambda| per cell, without a component axis."""
+    nvars = cons_plus.shape[-1]
+    cons_plus, cp = _as_axis_view_nv(cons_plus, axis, nvars)
+    _, cm = _as_axis_view_nv(cons_minus, axis, nvars)
+    _, fp = _as_axis_view_nv(flux_plus, axis, nvars)
+    _, fm = _as_axis_view_nv(flux_minus, axis, nvars)
+
+    if not local_max_eigvals.flags.c_contiguous:
+        local_max_eigvals = np.ascontiguousarray(local_max_eigvals)
+    shape = local_max_eigvals.shape
+    left = int(np.prod(shape[:axis])) if axis else 1
+    eig = local_max_eigvals.reshape(left, shape[axis], -1)
+
+    if out is None:
+        out = np.empty_like(cons_plus)
+    _, out_view = _as_axis_view_nv(out, axis, nvars)
+    _lax_friedrich(eig, cp, cm, fp, fm, out_view)
+    return out
+
+
+##############################################################################
+# Multi-axis Laplacian accumulation
+##############################################################################
+# The Taylor-expansion corrections sum a Laplacian over two or three axes into the same
+# destination. Done one axis at a time that is two or three separate streaming passes over the
+# whole grid, and at these sizes each pass already runs at close to memory bandwidth -- so the
+# only way to go faster is to make fewer passes. This visits each cell once and accumulates
+# every requested axis into it.
+#
+# The accumulation stays sequential within a cell (val += term for each axis in turn, in the
+# caller's axis order) rather than summing the terms first, because that is what a sequence of
+# separate passes did and it keeps the result bit-identical.
+
+
+@njit(parallel=True, cache=True)
+def _add_laplacians_4d(base, g, order, scales, invs, count, code):
+    """base += sum over the requested axes of scale * (inv_ds2 * laplacian(g, axis)).
+
+    Arrays are canonical 4D (n0, n1, n2, nv); absent spatial dimensions are length 1.
+
+    The axis dispatch is hoisted above the component loop, so the innermost loop is a clean
+    fixed-stride run over nv that the compiler can vectorise. Putting the dispatch inside it
+    instead measured no faster than one separate pass per axis, which is the whole point of
+    this kernel. base[i,j,k,:] stays in L1 across the axes, so the repeated read-modify-write
+    of it is free relative to the streaming reads of g.
+    """
+    n0, n1, n2, nv = g.shape
+    for i in prange(n0):
+        for j in range(n1):
+            for k in range(n2):
+                for t in range(count):
+                    axis = order[t]
+                    scale = scales[t]
+                    inv = invs[t]
+
+                    if axis == 0:
+                        below, above = _stencil_index(i-1, n0, code), _stencil_index(i+1, n0, code)
+                        for v in range(nv):
+                            centre = g[i, j, k, v]
+                            base[i, j, k, v] += scale * (inv * ((g[above, j, k, v] - centre) - (centre - g[below, j, k, v])))
+                    elif axis == 1:
+                        below, above = _stencil_index(j-1, n1, code), _stencil_index(j+1, n1, code)
+                        for v in range(nv):
+                            centre = g[i, j, k, v]
+                            base[i, j, k, v] += scale * (inv * ((g[i, above, k, v] - centre) - (centre - g[i, below, k, v])))
+                    else:
+                        below, above = _stencil_index(k-1, n2, code), _stencil_index(k+1, n2, code)
+                        for v in range(nv):
+                            centre = g[i, j, k, v]
+                            base[i, j, k, v] += scale * (inv * ((g[i, j, above, v] - centre) - (centre - g[i, j, below, v])))
+
+
+def _as_canonical_4d(arr, ndim_spatial):
+    """View arr as (n0, n1, n2, nv), padding absent spatial dimensions with length 1."""
+    if not arr.flags.c_contiguous:
+        arr = np.ascontiguousarray(arr)
+    shape = list(arr.shape[:ndim_spatial]) + [1]*(3 - ndim_spatial) + [arr.shape[-1]]
+    return arr, arr.reshape(shape)
+
+
+def add_laplacians(base, grid, axes, scales, invs, code, ndim_spatial):
+    """base += sum_a scales[a] * (invs[a] * laplacian(grid, axes[a])), in one pass.
+
+    axes, scales and invs are parallel sequences in the order the caller would have applied
+    them. Returns base.
+    """
+    if not base.flags.c_contiguous:
+        raise ValueError("base must be C-contiguous to be updated in place")
+    grid, grid_view = _as_canonical_4d(grid, ndim_spatial)
+    _, base_view = _as_canonical_4d(base, ndim_spatial)
+    order = np.asarray(axes, dtype=np.int64)
+    _add_laplacians_4d(
+        base_view, grid_view, order,
+        np.asarray(scales, dtype=np.float64), np.asarray(invs, dtype=np.float64),
+        len(order), code,
+    )
+    return base

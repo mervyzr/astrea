@@ -83,6 +83,18 @@ def add_scaled_laplacian(base, grid, sim_variables, axis, scale):
     )
 
 
+# Same, but for several axes at once, in one pass over the grid instead of one pass per axis.
+# At these array sizes a single Laplacian pass already runs at close to memory bandwidth, so
+# the saving is entirely in the number of passes. scales is indexed the same way as axes.
+def add_laplacians(base, grid, sim_variables, axes, scales):
+    return kernels.add_laplacians(
+        base, grid, axes,
+        [float(np.ravel(scale)[0]) for scale in scales],
+        [_inv_ds2(sim_variables, axis) for axis in axes],
+        kernels.bc_code(sim_variables), sim_variables.dimensions,
+    )
+
+
 # Convert between pressure P and total energy density e_tot; P is also related to the internal energy density e_int: P = (gamma-1) * e_int
 # Do note that the energy densities e are related to the energies E: e_tot = rho * E_tot, e_int = rho * E_int
 def convert_thermo_variable(variable, grid, sim_variables):
@@ -147,10 +159,10 @@ def _variable_point_convert_numpy(variable_form, grid, sim_variables):
 # 4th-order accurate). Accumulated straight into base and expansion, and the pointwise
 # conversion is taken as an argument: it depends only on the grid, not on the axis, so
 # computing it inside here meant redoing the whole conversion once per axis.
-def variable_inversion_per_axis(variable_form, grid, sim_variables, axis, base, expansion, converted_avg):
-    scale = (sim_variables.ds[axis]**2)/24
-    add_scaled_laplacian(base, grid, sim_variables, axis, -scale)
-    add_scaled_laplacian(expansion, converted_avg, sim_variables, axis, scale)
+def variable_inversion(variable_form, grid, sim_variables, axes, base, expansion, converted_avg):
+    scales = [(sim_variables.ds[axis]**2)/24 for axis in axes]
+    add_laplacians(base, grid, sim_variables, axes, [-scale for scale in scales])
+    add_laplacians(expansion, converted_avg, sim_variables, axes, scales)
 
 
 # Converting cell-averaged conservative variables <q>_{i,j} <-> cell-averaged primitive variables <w>_{i,j} at higher-order accuracy
@@ -158,8 +170,7 @@ def variable_convert(variable_form, grid, sim_variables):
     base, expansion = np.copy(grid), np.zeros_like(grid)
     converted_avg = variable_point_convert(variable_form, grid, sim_variables)
 
-    for axis in sim_variables.axes:
-        variable_inversion_per_axis(variable_form, grid, sim_variables, axis, base, expansion, converted_avg)
+    variable_inversion(variable_form, grid, sim_variables, sim_variables.axes, base, expansion, converted_avg)
 
     return variable_point_convert(variable_form, base, sim_variables) + expansion
 
@@ -174,8 +185,7 @@ def variable_convert_intf(variable_form, grid, sim_variables, axis):
         expansion = np.zeros_like(grid)
         converted_avg = variable_point_convert(variable_form, grid, sim_variables)
 
-        for axis_ in ortho_axes:
-            variable_inversion_per_axis(variable_form, grid, sim_variables, axis_, base, expansion, converted_avg)
+        variable_inversion(variable_form, grid, sim_variables, ortho_axes, base, expansion, converted_avg)
 
     new_grid = variable_point_convert(variable_form, base, sim_variables) + expansion
 
@@ -195,8 +205,8 @@ def method_convert_cell(grid_form, grid, sim_variables, axis=None):
     elif grid_form.lower().startswith('p'):
         coeff = 1  # point -> averaged
 
-    for idx, axis_ in enumerate(sim_variables.axes):
-        add_scaled_laplacian(base, grid, sim_variables, axis_, coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24)
+    add_laplacians(base, grid, sim_variables, sim_variables.axes,
+                   [coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24 for idx in range(len(sim_variables.axes))])
     return base
 
 
@@ -215,8 +225,8 @@ def method_convert_intf(grid_form, grid, sim_variables, axis):
     # !! which is a different axis whenever ortho_axes != axes[:len(ortho_axes)]. Harmless on a
     # !! uniform grid, wrong when ds differs per axis. Behaviour preserved here deliberately;
     # !! flagged rather than changed because fixing it changes results.
-    for idx, axis_ in enumerate(ortho_axes):
-        add_scaled_laplacian(base, grid, sim_variables, axis_, coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24)
+    add_laplacians(base, grid, sim_variables, ortho_axes,
+                   [coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24 for idx in range(len(ortho_axes))])
     return base
 
 
@@ -232,8 +242,8 @@ def approx_face_avg(interfaces, sim_variables, axis):
 def approx_flux_avg(cntrd_fluxes, avgd_fluxes, sim_variables, axis):
     ortho_axes = sim_variables.axes[sim_variables.axes != axis]
 
-    for idx, axis_ in enumerate(ortho_axes):
-        add_scaled_laplacian(cntrd_fluxes, avgd_fluxes, sim_variables, axis_, -(sim_variables.ds[ortho_axes[idx]]**2)/24)
+    add_laplacians(cntrd_fluxes, avgd_fluxes, sim_variables, ortho_axes,
+                   [-(sim_variables.ds[ortho_axes[idx]]**2)/24 for idx in range(len(ortho_axes))])
     return cntrd_fluxes
 
 
