@@ -8,7 +8,6 @@ from numkit import solvers
 # Piecewise constant reconstruction method (PCM) [Godunov, 1959]
 ##############################################################################
 
-# Reconstruct from averaged cell <w>_{i,j} to averaged interfaces <w>_{i-1/2,j} & <w>_{i+1/2,j} (interface = centre for PCM)
 def reconstruct(grid, sim_variables, axis):
     return grid, grid
 
