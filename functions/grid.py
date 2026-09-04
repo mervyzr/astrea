@@ -115,7 +115,21 @@ def convert(variable_form, grid, sim_variables):
 
 
 # Pointwise (exact) conversion of conservative variables q <-> primitive variables w (up to 2nd-order accurate)
+# Handed to a per-cell kernel, which keeps every intermediate in a register. The numpy form
+# below made four full-grid passes -- np.copy, convert_thermo_variable, mfuncs.divide and
+# mfuncs.norm2 -- and this is one of the hottest functions in the RHS. Results agree to 1-2
+# ulp rather than exactly, because mfuncs.norm2 is an einsum that contracts with FMA and so
+# rounds differently from a sequential sum; the kernel is the more accurate of the two.
 def variable_point_convert(variable_form, grid, sim_variables):
+    if grid.shape[-1] == sim_variables.nvars:
+        return kernels.point_convert(
+            variable_form, grid, sim_variables.gamma, sim_variables.constants.mu_0
+        )
+    return _variable_point_convert_numpy(variable_form, grid, sim_variables)
+
+
+# Reference implementation, kept for anything not carrying the full nvars components
+def _variable_point_convert_numpy(variable_form, grid, sim_variables):
     rho, pressure, energy, vels, momentums = sim_variables.rho, sim_variables.pressure, sim_variables.energy, sim_variables.vels, sim_variables.momentums
     arr = np.copy(grid)
 
@@ -128,22 +142,24 @@ def variable_point_convert(variable_form, grid, sim_variables):
     return arr
 
 
-# Variable inversion using the conversion of the grid (base) and the Taylor expansion terms (expansion) through a Laplacian (2nd-deriv, 2nd-order) approx. for each axis (up to 4th-order accurate)
-def variable_inversion_per_axis(variable_form, grid, sim_variables, axis):
-    original_expansion = (sim_variables.ds[axis]**2)/24 * laplacian(grid, sim_variables, axis)
-    converted_avg = variable_point_convert(variable_form, grid, sim_variables)
-    converted_expansion = (sim_variables.ds[axis]**2)/24 * laplacian(converted_avg, sim_variables, axis)
-    return original_expansion, converted_expansion
+# Variable inversion using the conversion of the grid (base) and the Taylor expansion terms
+# (expansion) through a Laplacian (2nd-deriv, 2nd-order) approx. for each axis (up to
+# 4th-order accurate). Accumulated straight into base and expansion, and the pointwise
+# conversion is taken as an argument: it depends only on the grid, not on the axis, so
+# computing it inside here meant redoing the whole conversion once per axis.
+def variable_inversion_per_axis(variable_form, grid, sim_variables, axis, base, expansion, converted_avg):
+    scale = (sim_variables.ds[axis]**2)/24
+    add_scaled_laplacian(base, grid, sim_variables, axis, -scale)
+    add_scaled_laplacian(expansion, converted_avg, sim_variables, axis, scale)
 
 
 # Converting cell-averaged conservative variables <q>_{i,j} <-> cell-averaged primitive variables <w>_{i,j} at higher-order accuracy
 def variable_convert(variable_form, grid, sim_variables):
-    base, expansion = np.copy(grid), 0
+    base, expansion = np.copy(grid), np.zeros_like(grid)
+    converted_avg = variable_point_convert(variable_form, grid, sim_variables)
 
     for axis in sim_variables.axes:
-        original_expansion, converted_expansion = variable_inversion_per_axis(variable_form, grid, sim_variables, axis)
-        base -= original_expansion
-        expansion += converted_expansion
+        variable_inversion_per_axis(variable_form, grid, sim_variables, axis, base, expansion, converted_avg)
 
     return variable_point_convert(variable_form, base, sim_variables) + expansion
 
@@ -155,11 +171,11 @@ def variable_convert_intf(variable_form, grid, sim_variables, axis):
 
     if sim_variables.grid_interpolate and sim_variables.multidimensional:
         ortho_axes = sim_variables.axes[sim_variables.axes != axis]
+        expansion = np.zeros_like(grid)
+        converted_avg = variable_point_convert(variable_form, grid, sim_variables)
 
         for axis_ in ortho_axes:
-            original_expansion, converted_expansion = variable_inversion_per_axis(variable_form, grid, sim_variables, axis_)
-            base -= original_expansion
-            expansion += converted_expansion
+            variable_inversion_per_axis(variable_form, grid, sim_variables, axis_, base, expansion, converted_avg)
 
     new_grid = variable_point_convert(variable_form, base, sim_variables) + expansion
 
