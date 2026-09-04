@@ -2,6 +2,7 @@ import numpy as np
 
 from functions import grid as gutils
 from functions import math as mfuncs
+from functions import numeric
 from spatial import pcm, plm, ppm, weno, cweno, wenoz, teno
 
 ##############################################################################
@@ -28,8 +29,9 @@ def convert(variable, grid, sim_variables):
 
 
 # Compute the maximum(+) & minimum(-) eigenvalues for alpha+ and alpha- respectively for each axis; used in the compute_emf function
-def compute_alphas(characteristics, axis):
-    local_values = np.max(characteristics, axis=-1), np.min(characteristics, axis=-1)
+def compute_alphas(wavespeeds, axis):
+    normal, dominant = numeric.unpack_wavespeeds(wavespeeds)
+    local_values = normal + dominant, normal - dominant
     local_funcs = np.maximum, np.minimum
 
     def compute_plus_minus(_axis, func, localised_eigenvalues):

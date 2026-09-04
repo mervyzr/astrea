@@ -51,7 +51,7 @@ def run(grid, sim_variables, axis):
 
     # Resolve characteristics at interfaces from the analytic eigenvalues rather than an
     # np.linalg.eigvals over an (N,N,N,8,8) Jacobian; see spatial/cweno.py for the rationale
-    characteristics = numeric.compute_characteristics(padded_intf_avg, sim_variables, axis=axis)
+    wavespeeds = numeric.compute_wavespeed_bounds(padded_intf_avg, sim_variables, axis=axis)
     jacobian = numeric.compute_jacobian(padded_intf_avg, sim_variables, axis=axis) if needs_jacobian else None
 
     # Calculate the interface-averaged fluxes (pointwise & averaged values are the same for lower-order schemes)
@@ -59,7 +59,7 @@ def run(grid, sim_variables, axis):
         'prim_interfaces': (prim_plus, prim_minus),
         'cons_interfaces': (cons_plus, cons_minus),
         'flux_interfaces': (flux_plus, flux_minus),
-        'characteristics': characteristics,
+        'wavespeeds': wavespeeds,
         'jacobian': gutils.slice_(jacobian, axis, *[1,-1]) if needs_jacobian else None,
     })
 
@@ -67,6 +67,6 @@ def run(grid, sim_variables, axis):
     fluxes = np.diff(intf_fluxes_cntrd, axis=axis)/ds
 
     if magnetic and multidimensional:
-        return fluxes, characteristics, (gutils.slice_(prim_plus, axis, start=1), gutils.slice_(prim_minus, axis, end=-1))
+        return fluxes, wavespeeds, (gutils.slice_(prim_plus, axis, start=1), gutils.slice_(prim_minus, axis, end=-1))
     else:
-        return fluxes, characteristics, None
+        return fluxes, wavespeeds, None

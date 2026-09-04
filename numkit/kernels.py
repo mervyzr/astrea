@@ -553,3 +553,64 @@ def add_laplacians(base, grid, axes, scales, invs, code, ndim_spatial):
         len(order), code,
     )
     return base
+
+
+##############################################################################
+# Wave speed bounds
+##############################################################################
+# Every consumer of the characteristic spectrum only ever reduces it to the signed extremes
+# along the last axis -- compute_eigmax, the Lax-Friedrich and HLL solvers, and the CT alphas.
+# Those extremes are available in closed form: the fast magnetosonic speed dominates the whole
+# seven-wave set (cFF^2 = (X + sqrt(X^2 - Y))/2 with X = cs^2 + cA^2 and Y = (2 cs cAx)^2, and
+# cAx <= cA gives sqrt(X^2 - Y) >= |cs^2 - cA^2|, hence cFF >= max(cs, cA)), so
+#
+#     max = uN + c,   min = uN - c,   max|.| = |uN| + c
+#
+# and the last of those is exact in IEEE because negation is. Carrying two scalar fields
+# instead of five or seven avoids building the spectrum at all -- it was assembled with
+# np.array(...).transpose(...), whose last axis then had stride N^3, making the reduction over
+# it maximally cache-hostile.
+
+WAVESPEED_NORMAL, WAVESPEED_DOMINANT = 0, 1  # component layout of the returned array
+
+
+@njit(parallel=True, cache=True)
+def _wavespeed_bounds(grid, out, gamma, permeability, axis, magnetic):
+    """out[...,0] = normal velocity, out[...,1] = dominant wave speed along axis."""
+    ncells = grid.shape[0]
+    for c in prange(ncells):
+        rho = grid[c, 0]
+        pressure = grid[c, 4]
+
+        # mfuncs.sqrt clamps at zero; mfuncs.divide yields the 1/eps sentinel on a zero divisor
+        cs2 = _guarded_divide(gamma * pressure, rho)
+        sound_speed = np.sqrt(cs2) if cs2 > 0. else 0.
+
+        out[c, WAVESPEED_NORMAL] = grid[c, 1+axis]
+
+        if not magnetic:
+            out[c, WAVESPEED_DOMINANT] = sound_speed
+            continue
+
+        bx, by, bz = grid[c, 5], grid[c, 6], grid[c, 7]
+        rho_mu = rho * permeability
+        root_rho_mu = np.sqrt(rho_mu) if rho_mu > 0. else 0.
+
+        b2 = bx*bx + by*by + bz*bz
+        b_norm = np.sqrt(b2) if b2 > 0. else 0.
+        alfven = _guarded_divide(b_norm, root_rho_mu)
+        alfven_x = _guarded_divide(grid[c, 5+axis], root_rho_mu)
+
+        total = sound_speed*sound_speed + alfven*alfven
+        discriminant = total*total - (2 * sound_speed * alfven_x)**2
+        root = np.sqrt(discriminant) if discriminant > 0. else 0.
+        fast = .5 * (total + root)
+        out[c, WAVESPEED_DOMINANT] = np.sqrt(fast) if fast > 0. else 0.
+
+
+def wavespeed_bounds(grid, gamma, permeability, axis, magnetic):
+    """(..., 2) array of [normal velocity, dominant wave speed] for each cell."""
+    grid, view = _flat(grid)
+    out = np.empty(grid.shape[:-1] + (2,), dtype=grid.dtype)
+    _wavespeed_bounds(view, out.reshape(-1, 2), gamma, permeability, axis, magnetic)
+    return out
