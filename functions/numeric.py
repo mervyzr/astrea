@@ -2,13 +2,23 @@ import numpy as np
 
 from functions import grid as gutils
 from functions import math as mfuncs
+from numkit import kernels
 
 ##############################################################################
 # Functions for constructing objects such as eigenvectors, Jacobian and flux terms
 ##############################################################################
 
 # Make flux as a function of cell-averaged (primitive) variables
+# Per-cell, so handed to a kernel; the numpy form allocated one full-size array per component
+# expression. Agrees to 1-2 ulp, from the FMA contraction in mfuncs.norm2.
 def compute_flux(grid, sim_variables, axis):
+    if grid.shape[-1] == sim_variables.nvars:
+        return kernels.flux(grid, sim_variables.gamma, sim_variables.constants.mu_0, axis)
+    return _compute_flux_numpy(grid, sim_variables, axis)
+
+
+# Reference implementation
+def _compute_flux_numpy(grid, sim_variables, axis):
     abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
     gamma, permeability = sim_variables.gamma, sim_variables.constants.mu_0
 
@@ -65,6 +75,15 @@ def compute_jacobian(grid, sim_variables, axis):
 
 # Calculate the Roe-averaged primitive variables at the interface from the minus- & plus-interface states for use in Roe solver in order to better capture shocks [Roe & Pike, 1984; Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
 def compute_Roe_average(interfaces, sim_variables):
+    plus, minus = interfaces
+    if plus.shape[-1] == sim_variables.nvars:
+        # Per-cell; verified bit-identical to the numpy form below
+        return kernels.roe_average(plus, minus)
+    return _compute_Roe_average_numpy(interfaces, sim_variables)
+
+
+# Reference implementation
+def _compute_Roe_average_numpy(interfaces, sim_variables):
     rho, pressure, vels, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields
 
     plus_interface, minus_interface = interfaces
