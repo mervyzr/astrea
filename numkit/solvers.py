@@ -63,7 +63,15 @@ def calculate_LaxFriedrich_flux(axis, sim_variables, **kwargs):
 
     # Averaged maximum localised eigenvalue at each interface
     max_eigvals = .5 * (plus + minus)
-    return .5*(flux_minus+flux_plus) - .5*max_eigvals[...,None]*(cons_plus-cons_minus)
+
+    # Built in place: the expression form allocated five full-size temporaries and this runs
+    # twice per axis per stage. Operand order is preserved, so the result is bit-identical
+    out = flux_minus + flux_plus
+    out *= .5
+    dissipation = cons_plus - cons_minus
+    dissipation *= (.5 * max_eigvals)[...,None]
+    out -= dissipation
+    return out
 
 
 # Lax-Wendroff (Richtmyer) solver (2nd-order, Jacobian method; contains overshoots) [Lax & Wendroff, 1960; Mignone & Del Zanna, 2021]
