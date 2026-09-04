@@ -1,3 +1,5 @@
+from multiprocessing import shared_memory
+
 import numpy as np
 
 from functions import math as mfuncs
@@ -22,6 +24,9 @@ def initialise(sim_variables):
     #computational_grid = np.pad(computational_grid, padding, mode=boundary)
 
     match = lambda match_type, substrings: match_type(substring in config for substring in substrings)
+
+    # Create a shared memory array
+    #shared_mem = shared_memory.SharedMemory(name='Grid', size=1024, create=True)
 
 
     computational_grid = np.zeros(list(cells)+[len(ambient),], dtype=float, order='C')
@@ -234,6 +239,7 @@ def initialise(sim_variables):
                 computational_grid[...,vy] = test_specifics['ampl'] * np.sin(test_specifics['freq']*np.pi*x/np.diff(coordinates[0]))
                 if test_specifics['perturb']:
                     perturbations = gutils.pertubations(computational_grid, test_specifics['ampl'])
+                    perturbations = gutils.pertubations(computational_grid, test_specifics['ampl'])
                     computational_grid[...,(vx,vy)] += perturbations[...,(vx,vy)]
                 if config.startswith('m') or 'mhd' in config:
                     computational_grid[...,Bx] = test_specifics['Bx']
@@ -243,6 +249,7 @@ def initialise(sim_variables):
                 computational_grid[layer] = init_cond
                 computational_grid[...,pressure] = init_cond[pressure] - .1*computational_grid[...,rho]*y
                 if test_specifics['perturb']:
+                    perturbations = gutils.pertubations(computational_grid, 2*test_specifics['ampl'])
                     perturbations = gutils.pertubations(computational_grid, 2*test_specifics['ampl'])
                     computational_grid[...,vy] += perturbations[...,vy] * (1 + np.cos(8*np.pi*y/3))
                 else:
@@ -404,6 +411,7 @@ def initialise(sim_variables):
                 computational_grid[...,vy][nozzle] = test_specifics['velocity']
                 computational_grid[...,By] *= np.sqrt(10)  # weak: 1, moderate:np.sqrt(10), strong:np.sqrt(1e2), extreme:np.sqrt(1e3)
                 if test_specifics['perturb']:
+                    perturbations = gutils.pertubations(computational_grid, test_specifics['velocity']/4)
                     perturbations = gutils.pertubations(computational_grid, test_specifics['velocity']/4)
                     computational_grid[...,(vx,vy)] += perturbations[...,(vx,vy)]
 

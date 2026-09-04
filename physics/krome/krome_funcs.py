@@ -11,7 +11,7 @@ from functions import grid as gutils
 from functions import math as mfuncs
 from functions.generic import BColours
 from numkit import c_transport as ct
-from physics import constants, turbulence
+from physics import constants
 
 ##############################################################################
 # Functions for krome routines
@@ -199,7 +199,7 @@ def initialise(sim_variables, perturb=False):
 
                 # Add a small perturbation to the initial abundances by 2 orders of magnitude (1%)
                 if perturb:
-                    perturbations = turbulence.pertubations(chem_grid, abundance)
+                    perturbations = gutils.pertubations(chem_grid, abundance)
                     chem_grid[mol_idx,...] += perturbations
 
     return chem_grid
