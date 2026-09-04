@@ -10,6 +10,22 @@ from numkit import limiters, solvers
 # CWENO(Z) reconstruction method [Levy et al., 1999, 2000; Verma et al., 2018; Cravero et al., 2019]
 ##############################################################################
 
+
+# Build the Riemann-solver keyword arguments, skipping anything the configured solver does not
+# read. approx_face_avg costs two full-size arrays and four Laplacians per pair per axis, so
+# for a solver like Lax-Friedrich that never touches prim_interfaces it is pure waste.
+def _solver_kwargs(sim_variables, axis, characteristics, jacobian, prim, cons, flux, face_avg=False):
+    inputs = solvers.solver_inputs(sim_variables)
+    kwargs = {'characteristics': characteristics}
+
+    for key, pair in (("prim", prim), ("cons", cons), ("flux", flux)):
+        if key in inputs:
+            kwargs[f'{key}_interfaces'] = gutils.approx_face_avg(pair, sim_variables, axis) if face_avg else pair
+
+    if "jacobian" in inputs:
+        kwargs['jacobian'] = gutils.slice_(jacobian, axis, *[1,-1])
+    return kwargs
+
 def reconstruct(grid, sim_variables, axis, power=2, limit=False):
     # Define the frequently used terms
     padded_grid_2 = gutils.add_boundary(grid, sim_variables, stencil=2, axis=axis)
@@ -121,24 +137,19 @@ def run(grid, sim_variables, axis):
     jacobian = numeric.compute_jacobian(padded_intf_avg, sim_variables, axis=axis) if needs_jacobian else None
 
     # Calculate the interface-averaged fluxes
-    intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **{
-        'prim_interfaces': (prim_plus, prim_minus),
-        'cons_interfaces': (cons_plus, cons_minus),
-        'flux_interfaces': (flux_plus, flux_minus),
-        'characteristics': characteristics,
-        'jacobian': gutils.slice_(jacobian, axis, *[1,-1]) if needs_jacobian else None,
-    })
+    intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **_solver_kwargs(
+        sim_variables, axis, characteristics, jacobian,
+        (prim_plus, prim_minus), (cons_plus, cons_minus), (flux_plus, flux_minus),
+    ))
 
     # Compute the orthogonal L/R Riemann states and fluxes at higher-order accuracy
     if multidimensional:
         # Calculate the interface-centred fluxes
-        intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
-            'prim_interfaces': gutils.approx_face_avg((prim_plus, prim_minus), sim_variables, axis),
-            'cons_interfaces': gutils.approx_face_avg((cons_plus, cons_minus), sim_variables, axis),
-            'flux_interfaces': gutils.approx_face_avg((flux_plus, flux_minus), sim_variables, axis),
-            'characteristics': characteristics,
-            'jacobian': gutils.slice_(jacobian, axis, *[1,-1]) if needs_jacobian else None,
-        })
+        intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **_solver_kwargs(
+            sim_variables, axis, characteristics, jacobian,
+            (prim_plus, prim_minus), (cons_plus, cons_minus), (flux_plus, flux_minus),
+            face_avg=True,
+        ))
 
         # Compute the higher-order fluxes
         intf_fluxes_cntrd = gutils.approx_flux_avg(intf_fluxes_cntrd, intf_fluxes_avgd, sim_variables, axis)
