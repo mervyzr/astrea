@@ -97,13 +97,31 @@ def _compute_Roe_average_numpy(interfaces, sim_variables):
     return avg
 
 
+# Signed and absolute extremes of the characteristic spectrum, in closed form
+# Every consumer of the spectrum only ever reduces it to its extremes along the last axis, and
+# those are uN +/- c with c the dominant (fast magnetosonic, or sound) speed. Returning the two
+# scalar fields [uN, c] instead of five or seven wave speeds avoids assembling the spectrum,
+# which was built as np.array(...).transpose(...) and so had stride N^3 on the axis that was
+# then reduced over. Exactly equal to the spectrum's extremes for hydrodynamics; equal to
+# within roundoff for MHD, where cFF is recovered from a slightly different expression.
+def compute_wavespeed_bounds(grid, sim_variables, axis):
+    return kernels.wavespeed_bounds(
+        grid, sim_variables.gamma, sim_variables.constants.mu_0, axis, bool(sim_variables.magnetic)
+    )
+
+
+# Split a wavespeed-bounds array into the normal velocity and the dominant wave speed
+def unpack_wavespeeds(wavespeeds):
+    return wavespeeds[...,kernels.WAVESPEED_NORMAL], wavespeeds[...,kernels.WAVESPEED_DOMINANT]
+
+
 # Compute the max eigenvalues for calculating the time evolution
-# Taking the elementwise maximum over consecutive pairs along `axis` and then reducing covers
-# every element of the array (element 0 appears in the first pair, element n-1 in the last), so
-# the pairwise stage cannot change the global maximum. Reducing directly is therefore exact and
-# avoids three full-size temporaries.
-def compute_eigmax(characteristics, axis=None):
-    return np.max(np.abs(characteristics))
+# max|uN +/- c| is exactly |uN| + c, since negation is exact in IEEE. Taking the elementwise
+# maximum over consecutive pairs along an axis before reducing, as this used to, cannot change
+# the global maximum either, because every element appears in at least one pair.
+def compute_eigmax(wavespeeds, axis=None):
+    normal, dominant = unpack_wavespeeds(wavespeeds)
+    return np.max(np.abs(normal) + dominant)
 
 
 # Compute wavespeeds for a grid

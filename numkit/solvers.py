@@ -62,10 +62,10 @@ def needs_jacobian(sim_variables):
 def calculate_LaxFriedrich_flux(axis, sim_variables, **kwargs):
     cons_plus, cons_minus = kwargs["cons_interfaces"]
     flux_plus, flux_minus = kwargs["flux_interfaces"]
-    characteristics = kwargs["characteristics"]
+    normal, dominant = numeric.unpack_wavespeeds(kwargs["wavespeeds"])
 
     # Local max eigenvalue for each interface (1- or 3-Riemann invariant; shock wave or rarefaction wave)
-    local_max_eigvals = np.max(np.abs(characteristics), axis=-1)
+    local_max_eigvals = np.abs(normal) + dominant
 
     # Handed to a kernel: the pairwise maxima, their average and the flux expression were six
     # full-size arrays, and this runs twice per axis per stage. Bit-identical to that form
@@ -78,10 +78,10 @@ def calculate_LaxFriedrich_flux(axis, sim_variables, **kwargs):
 def calculate_LaxWendroff_flux(axis, sim_variables, **kwargs):
     cons_plus, cons_minus = kwargs["cons_interfaces"]
     flux_plus, flux_minus = kwargs["flux_interfaces"]
-    characteristics = kwargs["characteristics"]
+    normal, dominant = numeric.unpack_wavespeeds(kwargs["wavespeeds"])
     jacobian = kwargs["jacobian"]
 
-    local_max_eigvals = np.max(np.abs(characteristics), axis=-1)
+    local_max_eigvals = np.abs(normal) + dominant
     plus = np.maximum(
         gutils.slice_(local_max_eigvals, axis, start=2),
         gutils.slice_(local_max_eigvals, axis, *[1,-1]),
@@ -105,9 +105,9 @@ def calculate_gForce_flux(axis, sim_variables, **kwargs):
 def calculate_HLL_flux(axis, sim_variables, **kwargs):
     cons_plus, cons_minus = kwargs["cons_interfaces"]
     flux_plus, flux_minus = kwargs["flux_interfaces"]
-    characteristics = kwargs["characteristics"]
+    normal, dominant = numeric.unpack_wavespeeds(kwargs["wavespeeds"])
 
-    local_max_eigvals, local_min_eigvals = np.max(characteristics, axis=-1), np.min(characteristics, axis=-1)
+    local_max_eigvals, local_min_eigvals = normal + dominant, normal - dominant
     max_eigvals, min_eigvals = gutils.slice_(local_max_eigvals, axis, *[1,-1]), gutils.slice_(local_min_eigvals, axis, *[1,-1])
     alpha_plus, alpha_minus = np.maximum(0, max_eigvals)[...,None], -np.minimum(0, min_eigvals)[...,None]
 

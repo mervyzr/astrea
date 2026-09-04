@@ -52,7 +52,7 @@ def evolve(grid, sim_variables, first_stage=False):
         # Compute additional dissipation for PPM, if active
         run_args = (ppm.get_flattening_coeff(primitive, sim_variables),)
 
-    fluxes, characteristics, interfaces = zip(*(
+    fluxes, wavespeeds, interfaces = zip(*(
         runner(primitive, sim_variables, axis, *run_args) for axis in axes
     ))
 
@@ -60,7 +60,7 @@ def evolve(grid, sim_variables, first_stage=False):
     # Magnetohydrodynamics computation
     if magnetic and multidimensional:
         # Compute alphas for CT computation
-        alphas = {ax:ct.compute_alphas(characteristics[idx], axis=ax) for idx, ax in enumerate(axes)}
+        alphas = {ax:ct.compute_alphas(wavespeeds[idx], axis=ax) for idx, ax in enumerate(axes)}
 
         # Magnetic transverse interfaces reconstructed along orthogonal axis/axes; use the averaged (+) & (-) values
         axis_interfaces = dict(zip(axes, interfaces))
@@ -89,7 +89,7 @@ def evolve(grid, sim_variables, first_stage=False):
 
     if first_stage:
         # Compute the maximum eigenvalues from each axis for determining the full time step
-        eigmax = np.min([ds[ax]/numeric.compute_eigmax(characteristics[idx], axis=ax) for idx, ax in enumerate(axes)])
+        eigmax = np.min([ds[ax]/numeric.compute_eigmax(wavespeeds[idx], axis=ax) for idx, ax in enumerate(axes)])
         return total_flux, eigmax
     else:
         return total_flux
