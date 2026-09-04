@@ -1,6 +1,3 @@
-import concurrent.futures
-from itertools import repeat
-
 import numpy as np
 
 from functions import math as mfuncs
@@ -8,6 +5,14 @@ from functions import math as mfuncs
 ##############################################################################
 # Grid functions used throughout the finite volume code
 ##############################################################################
+# These helpers used to fan each of their 2-3 orthogonal-axis tasks out to a fresh
+# ThreadPoolExecutor, while themselves being called from the concurrent axis sweeps in
+# spatial.evolve. That was ~60 pool creations per RHS evaluation for tasks that are pure
+# memory bandwidth, so it oversubscribed the cores and multiplied the transient footprint by
+# the number of orthogonal axes. executor.map yields in order, so plain loops are exact.
+# Numba's threading layer on this platform is workqueue, which aborts the process if a
+# parallel kernel is entered from more than one Python thread, so these also have to be
+# serial before any fused kernel can be called from here.
 
 # Create a physical grid for a single axis
 def make_physical_grid(coordinates, cells, idx):
@@ -114,10 +119,10 @@ def variable_inversion_per_axis(variable_form, grid, sim_variables, axis):
 def variable_convert(variable_form, grid, sim_variables):
     base, expansion = np.copy(grid), 0
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        for original_expansion, converted_expansion in executor.map(variable_inversion_per_axis, repeat(variable_form), repeat(grid), repeat(sim_variables), sim_variables.axes):
-            base -= original_expansion
-            expansion += converted_expansion
+    for axis in sim_variables.axes:
+        original_expansion, converted_expansion = variable_inversion_per_axis(variable_form, grid, sim_variables, axis)
+        base -= original_expansion
+        expansion += converted_expansion
 
     return variable_point_convert(variable_form, base, sim_variables) + expansion
 
@@ -130,10 +135,10 @@ def variable_convert_intf(variable_form, grid, sim_variables, axis):
     if sim_variables.grid_interpolate and sim_variables.multidimensional:
         ortho_axes = sim_variables.axes[sim_variables.axes != axis]
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            for original_expansion, converted_expansion in executor.map(variable_inversion_per_axis, repeat(variable_form), repeat(grid), repeat(sim_variables), ortho_axes):
-                base -= original_expansion
-                expansion += converted_expansion
+        for axis_ in ortho_axes:
+            original_expansion, converted_expansion = variable_inversion_per_axis(variable_form, grid, sim_variables, axis_)
+            base -= original_expansion
+            expansion += converted_expansion
 
     new_grid = variable_point_convert(variable_form, base, sim_variables) + expansion
 
@@ -153,9 +158,8 @@ def method_convert_cell(grid_form, grid, sim_variables, axis=None):
     elif grid_form.lower().startswith('p'):
         coeff = 1  # point -> averaged
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        for idx, expansion in enumerate(executor.map(laplacian, repeat(grid), repeat(sim_variables), sim_variables.axes)):
-            base += coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24 * expansion
+    for idx, axis_ in enumerate(sim_variables.axes):
+        base += coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24 * laplacian(grid, sim_variables, axis_)
     return base
 
 
@@ -170,9 +174,12 @@ def method_convert_intf(grid_form, grid, sim_variables, axis):
     elif grid_form.lower().startswith('p'):
         coeff = 1  # point -> averaged
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        for idx, expansion in enumerate(executor.map(laplacian, repeat(grid), repeat(sim_variables), ortho_axes)):
-            base += coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24 * expansion
+    # !! The Laplacian is taken along ortho_axes but ds is indexed by sim_variables.axes[idx],
+    # !! which is a different axis whenever ortho_axes != axes[:len(ortho_axes)]. Harmless on a
+    # !! uniform grid, wrong when ds differs per axis. Behaviour preserved here deliberately;
+    # !! flagged rather than changed because fixing it changes results.
+    for idx, axis_ in enumerate(ortho_axes):
+        base += coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24 * laplacian(grid, sim_variables, axis_)
     return base
 
 
@@ -188,9 +195,8 @@ def approx_face_avg(interfaces, sim_variables, axis):
 def approx_flux_avg(cntrd_fluxes, avgd_fluxes, sim_variables, axis):
     ortho_axes = sim_variables.axes[sim_variables.axes != axis]
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        for idx, flux_avg in enumerate(executor.map(laplacian, repeat(avgd_fluxes), repeat(sim_variables), ortho_axes)):
-            cntrd_fluxes -= (sim_variables.ds[ortho_axes[idx]]**2)/24 * flux_avg
+    for idx, axis_ in enumerate(ortho_axes):
+        cntrd_fluxes -= (sim_variables.ds[ortho_axes[idx]]**2)/24 * laplacian(avgd_fluxes, sim_variables, axis_)
     return cntrd_fluxes
 
 

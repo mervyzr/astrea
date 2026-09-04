@@ -34,12 +34,27 @@ def get_Riemann_solver(sim_variables):
             return calculate_LaxFriedrich_flux
 
 
-# Only the Lax-Wendroff and GFORCE solvers read the Jacobian; every other solver needs
-# nothing more than the wave speeds. Building it is an (N,N,N,8,8) allocation (8 GiB at
-# 256^3, per axis) so it must not be built unless it is actually going to be used.
+# Which of the interface quantities each solver actually reads. The multidimensional runners
+# feed the solver a second time with face-averaged inputs, and each of those is built by
+# gutils.approx_face_avg out of two full-size arrays and four Laplacians per axis. The default
+# Lax-Friedrich solver never looks at prim_interfaces, so building it is pure waste; likewise
+# the Jacobian, an (N,N,N,8,8) allocation (8 GiB per axis at 256^3), is read by only two of
+# the eight solvers. Keep these in step with the kwargs each function below unpacks.
+SOLVER_INPUTS = {}
+
+
+def _declare_inputs(solver, *inputs):
+    SOLVER_INPUTS[solver] = frozenset(inputs)
+    return solver
+
+
+# What the configured solver needs; 'prim', 'cons', 'flux' and 'jacobian'
+def solver_inputs(sim_variables):
+    return SOLVER_INPUTS[get_Riemann_solver(sim_variables)]
+
+
 def needs_jacobian(sim_variables):
-    solver = get_Riemann_solver(sim_variables)
-    return solver in (calculate_LaxWendroff_flux, calculate_gForce_flux)
+    return "jacobian" in solver_inputs(sim_variables)
 
 
 # (Local) Lax-Friedrich solver (1st-order; highly diffusive) [Lax & Friedrichs, ?; Mignone & Del Zanna, 2021]
@@ -426,3 +441,17 @@ def calculate_ES_flux(axis, sim_variables, **kwargs):
     dissipation = abs_A @ entropy_vector[...,None]
 
     return ec_flux + .5 * dissipation.reshape(len(entropy_vector), len(entropy_vector[0]))
+
+
+##############################################################################
+# Declared interface requirements per solver (see SOLVER_INPUTS above)
+##############################################################################
+
+_declare_inputs(calculate_LaxFriedrich_flux, "cons", "flux")
+_declare_inputs(calculate_LaxWendroff_flux, "cons", "flux", "jacobian")
+_declare_inputs(calculate_gForce_flux, "cons", "flux", "jacobian")
+_declare_inputs(calculate_HLL_flux, "cons", "flux")
+_declare_inputs(calculate_HLLC_flux, "prim", "cons", "flux")
+_declare_inputs(calculate_HLLD_flux, "prim", "cons", "flux")
+_declare_inputs(calculate_DOTS_flux, "cons", "flux")
+_declare_inputs(calculate_ES_flux, "prim")

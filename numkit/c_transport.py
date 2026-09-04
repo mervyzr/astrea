@@ -1,6 +1,3 @@
-import concurrent.futures
-from itertools import repeat
-
 import numpy as np
 
 from functions import grid as gutils
@@ -65,9 +62,8 @@ def inverse_reconstruct(grid, sim_variables):
             # Approximate the face-averaged values to face-centred values with orthogonal axes (eq. 38)
             if _sim_variables.grid_interpolate and _sim_variables.multidimensional:
                 ortho_axes = _sim_variables.axes[_sim_variables.axes != axis]
-                with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-                    for idx, ortho_Bfield in enumerate(inner_executor.map(gutils.laplacian, repeat(_Bfields), repeat(_sim_variables), ortho_axes)):
-                        face_cntrd -= (_sim_variables.ds[ortho_axes[idx]]**2)/24 * ortho_Bfield
+                for idx, ortho_axis in enumerate(ortho_axes):
+                    face_cntrd -= (_sim_variables.ds[ortho_axes[idx]]**2)/24 * gutils.laplacian(_Bfields, _sim_variables, ortho_axis)
 
             # Interpolate the face-centred values to cell-centred values with axis (eq. 39)
             face_cntrd_padded_2 = gutils.add_boundary(face_cntrd, _sim_variables, stencil=2, axis=axis)
@@ -79,9 +75,8 @@ def inverse_reconstruct(grid, sim_variables):
 
             # Apply Laplacian operator to convert cell-centred values to cell-averaged values (eq. 40)
             cell_avgd = np.copy(cell_cntrd)
-            with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-                for idx, _Bfield in enumerate(inner_executor.map(gutils.laplacian, repeat(cell_cntrd), repeat(_sim_variables), _axes)):
-                    cell_avgd += (_sim_variables.ds[_axes[idx]]**2)/24 * _Bfield
+            for idx, _axis in enumerate(_axes):
+                cell_avgd += (_sim_variables.ds[_axes[idx]]**2)/24 * gutils.laplacian(cell_cntrd, _sim_variables, _axis)
 
         else:
             # Arithmetic averaging for lower-order schemes
@@ -91,9 +86,10 @@ def inverse_reconstruct(grid, sim_variables):
         return cell_avgd
 
     # Update the grid values with the updated B-field values
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        for idx, Bfield in enumerate(executor.map(inversion_per_axis, repeat(grid[...,sim_variables.Bfields]), repeat(sim_variables), axes)):
-            new_grid[...,5+axes[idx]] = Bfield[...,axes[idx]]
+    Bfields = grid[...,sim_variables.Bfields]
+    for idx, axis in enumerate(axes):
+        Bfield = inversion_per_axis(Bfields, sim_variables, axis)
+        new_grid[...,5+axes[idx]] = Bfield[...,axes[idx]]
 
     return new_grid
 
@@ -179,13 +175,14 @@ def reconstruct_transverse(interfaces, sim_variables, axis, method=None):
         # Therefore for each normal axis, there will be 4 reconstructed corners/lines (2D/3D)
         def reconstruct_per_interface_pair(interface_pair, _sim_variables, normal_axis):
             intfs = []
-            with concurrent.futures.ThreadPoolExecutor() as inner_executor:
-                for wU, wD in inner_executor.map(reconstruct, interface_pair, repeat(_sim_variables), repeat(normal_axis)):
-                    # Re-align the interfaces so that cell wall is in between interfaces
-                    prim_plus, prim_minus = gutils.slice_(gutils.add_boundary(wD, sim_variables, axis=normal_axis), normal_axis, start=1), gutils.slice_(gutils.add_boundary(wU, sim_variables, axis=normal_axis), normal_axis, end=-1)
+            for interface in interface_pair:
+                wU, wD = reconstruct(interface, _sim_variables, normal_axis)
 
-                    # Append only the upwind corners/lines to list
-                    intfs.append([gutils.slice_(prim_plus, normal_axis, start=1), gutils.slice_(prim_minus, normal_axis, start=1)])
+                # Re-align the interfaces so that cell wall is in between interfaces
+                prim_plus, prim_minus = gutils.slice_(gutils.add_boundary(wD, sim_variables, axis=normal_axis), normal_axis, start=1), gutils.slice_(gutils.add_boundary(wU, sim_variables, axis=normal_axis), normal_axis, end=-1)
+
+                # Append only the upwind corners/lines to list
+                intfs.append([gutils.slice_(prim_plus, normal_axis, start=1), gutils.slice_(prim_minus, normal_axis, start=1)])
 
             return intfs
 
@@ -193,8 +190,10 @@ def reconstruct_transverse(interfaces, sim_variables, axis, method=None):
         # e.g. computing emf in z-axis: axis = 2 --> ortho_axes = [0,1], normal_axes = [1,0]
         # interfaces = [ 0: (E,W) , 1: (N,S) ]
         ortho_interfaces = [interfaces[axis] for axis in ortho_axes]
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            normal_interfaces = dict(zip(normal_axes, executor.map(reconstruct_per_interface_pair, ortho_interfaces, repeat(sim_variables), normal_axes)))
+        normal_interfaces = {
+            normal_axis: reconstruct_per_interface_pair(ortho_interface, sim_variables, normal_axis)
+            for ortho_interface, normal_axis in zip(ortho_interfaces, normal_axes)
+        }
 
     return normal_interfaces
 
