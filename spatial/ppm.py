@@ -14,9 +14,9 @@ from numkit import limiters, solvers
 # Build the Riemann-solver keyword arguments, skipping anything the configured solver does not
 # read. approx_face_avg costs two full-size arrays and four Laplacians per pair per axis, so
 # for a solver like Lax-Friedrich that never touches prim_interfaces it is pure waste.
-def _solver_kwargs(sim_variables, axis, characteristics, jacobian, prim, cons, flux, face_avg=False):
+def _solver_kwargs(sim_variables, axis, wavespeeds, jacobian, prim, cons, flux, face_avg=False):
     inputs = solvers.solver_inputs(sim_variables)
-    kwargs = {'characteristics': characteristics}
+    kwargs = {'wavespeeds': wavespeeds}
 
     for key, pair in (("prim", prim), ("cons", cons), ("flux", flux)):
         if key in inputs:
@@ -114,12 +114,12 @@ def run(grid, sim_variables, axis, eta=None):
 
     # Resolve characteristics at interfaces from the analytic eigenvalues rather than an
     # np.linalg.eigvals over an (N,N,N,8,8) Jacobian; see spatial/cweno.py for the rationale
-    characteristics = numeric.compute_characteristics(padded_intf_avg, sim_variables, axis=axis)
+    wavespeeds = numeric.compute_wavespeed_bounds(padded_intf_avg, sim_variables, axis=axis)
     jacobian = numeric.compute_jacobian(padded_intf_avg, sim_variables, axis=axis) if needs_jacobian else None
 
     # Calculate the interface-averaged fluxes
     intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **_solver_kwargs(
-        sim_variables, axis, characteristics, jacobian,
+        sim_variables, axis, wavespeeds, jacobian,
         (prim_plus, prim_minus), (cons_plus, cons_minus), (flux_plus, flux_minus),
     ))
 
@@ -127,7 +127,7 @@ def run(grid, sim_variables, axis, eta=None):
     if multidimensional:
         # Calculate the interface-centred fluxes
         intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **_solver_kwargs(
-            sim_variables, axis, characteristics, jacobian,
+            sim_variables, axis, wavespeeds, jacobian,
             (prim_plus, prim_minus), (cons_plus, cons_minus), (flux_plus, flux_minus),
             face_avg=True,
         ))
@@ -147,9 +147,9 @@ def run(grid, sim_variables, axis, eta=None):
     fluxes = np.diff(intf_fluxes_cntrd, axis=axis)/ds
 
     if magnetic and multidimensional:
-        return fluxes, characteristics, (gutils.slice_(prim_plus, axis, start=1), gutils.slice_(prim_minus, axis, end=-1))
+        return fluxes, wavespeeds, (gutils.slice_(prim_plus, axis, start=1), gutils.slice_(prim_minus, axis, end=-1))
     else:
-        return fluxes, characteristics, None
+        return fluxes, wavespeeds, None
 
 
 # Calculate the coefficient of the slope flattener for the parabolic interpolants/extrapolants [Colella, 1990]
