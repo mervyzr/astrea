@@ -28,7 +28,9 @@ def reconstruct(grid, sim_variables, axis, q=6, C_T=1e-7, adaptive=False):
     padded_grid_2 = gutils.add_boundary(grid, sim_variables, stencil=2, axis=axis)
     padded_grid = gutils.slice_(padded_grid_2, axis, *[1,-1])
 
-    zeroth = np.copy(grid)
+    # Read-only alias, not a copy. The caller's grid is shared by the concurrent axis
+    # sweeps and this build runs without the GIL, so it must never be mutated here
+    zeroth = grid
     minus_one, minus_two = gutils.slice_(padded_grid, axis, end=-2), gutils.slice_(padded_grid_2, axis, end=-4)
     plus_one, plus_two = gutils.slice_(padded_grid, axis, start=2), gutils.slice_(padded_grid_2, axis, start=4)
 
@@ -95,22 +97,33 @@ def reconstruct(grid, sim_variables, axis, q=6, C_T=1e-7, adaptive=False):
         C_T = 10**-np.floor(beta)
 
     # Compute the smoothness measure with the sharp cutoff function
-    delta_k = lambda gk, k: np.where(mfuncs.divide(gamma_k(k), gamma_k(0) + gamma_k(1) + gamma_k(2)) < C_T, 0., gk[k])
+    # gamma_k and the cutoff test depend only on the smoothness indicators, not on the linear
+    # weights. These used to be lambdas nested three deep -- omega called delta_k four times,
+    # and each delta_k called gamma_k four times -- so gamma_k was evaluated 128 times per
+    # reconstruction rather than 3
+    gamma_vals = tuple(gamma_k(k) for k in range(3))
+    gamma_sum = gamma_vals[0] + gamma_vals[1] + gamma_vals[2]
+    below_cutoff = tuple(mfuncs.divide(g, gamma_sum) < C_T for g in gamma_vals)
+
+    delta_k = tuple(np.where(below_cutoff[k], 0., g_k[k]) for k in range(3))
+    inv_delta_k = tuple(np.where(below_cutoff[k], 0., inv_g_k[k]) for k in range(3))
 
     # Compute the non-linear weights
-    omega = lambda k: mfuncs.divide(delta_k(g_k, k), delta_k(g_k, 0) + delta_k(g_k, 1) + delta_k(g_k, 2))
-    inv_omega = lambda k: mfuncs.divide(delta_k(inv_g_k, k), delta_k(inv_g_k, 0) + delta_k(inv_g_k, 1) + delta_k(inv_g_k, 2))
+    delta_sum = delta_k[0] + delta_k[1] + delta_k[2]
+    inv_delta_sum = inv_delta_k[0] + inv_delta_k[1] + inv_delta_k[2]
+    omega = tuple(mfuncs.divide(d, delta_sum) for d in delta_k)
+    inv_omega = tuple(mfuncs.divide(d, inv_delta_sum) for d in inv_delta_k)
 
     # Define the stencils
     wR = 1/6 * (
-        omega(0) * (-minus_one + 5*zeroth + 2*plus_one)
-        + omega(1) * (2*zeroth + 5*plus_one - plus_two)
-        + omega(2) * (2*minus_two - 7*minus_one + 11*zeroth)
+        omega[0] * (-minus_one + 5*zeroth + 2*plus_one)
+        + omega[1] * (2*zeroth + 5*plus_one - plus_two)
+        + omega[2] * (2*minus_two - 7*minus_one + 11*zeroth)
     )
     wL = 1/6 * (
-        inv_omega(0) * (-plus_one + 5*zeroth + 2*minus_one)
-        + inv_omega(1) * (2*plus_two - 7*plus_one + 11*zeroth)
-        + inv_omega(2) * (2*zeroth + 5*minus_one - minus_two)
+        inv_omega[0] * (-plus_one + 5*zeroth + 2*minus_one)
+        + inv_omega[1] * (2*plus_two - 7*plus_one + 11*zeroth)
+        + inv_omega[2] * (2*zeroth + 5*minus_one - minus_two)
     )
 
     return wL, wR

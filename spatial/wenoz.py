@@ -17,7 +17,9 @@ def reconstruct(grid, sim_variables, axis, power=1):
     padded_grid_2 = gutils.add_boundary(grid, sim_variables, stencil=2, axis=axis)
     padded_grid = gutils.slice_(padded_grid_2, axis, *[1,-1])
 
-    zeroth = np.copy(grid)
+    # Read-only alias, not a copy. The caller's grid is shared by the concurrent axis
+    # sweeps and this build runs without the GIL, so it must never be mutated here
+    zeroth = grid
     minus_one, minus_two = gutils.slice_(padded_grid, axis, end=-2), gutils.slice_(padded_grid_2, axis, end=-4)
     plus_one, plus_two = gutils.slice_(padded_grid, axis, start=2), gutils.slice_(padded_grid_2, axis, start=4)
 
@@ -47,22 +49,30 @@ def reconstruct(grid, sim_variables, axis, power=1):
     inv_g_k = g_k[::-1]
 
     # Compute the alpha values
-    alpha = lambda gk, k: gk[k] * (1 + (np.abs(b0-b2)/(b_k[k]+eps))**power)
+    # tau and the smoothness factor are independent of the linear weights, so they are shared
+    # by the forward and reversed sets. Previously these were a lambda called eight times, each
+    # call re-evaluating the whole alpha triple: 24 evaluations of np.abs(b0-b2) instead of 1
+    tau = np.abs(b0-b2)
+    factor_k = tuple(1 + (tau/(b + eps))**power for b in b_k)
+    alpha_k = tuple(g_k[k] * factor_k[k] for k in range(3))
+    inv_alpha_k = tuple(inv_g_k[k] * factor_k[k] for k in range(3))
 
     # Compute the non-linear weights
-    omega = lambda k: mfuncs.divide(alpha(g_k, k), alpha(g_k, 0)+alpha(g_k, 1)+alpha(g_k, 2))
-    inv_omega = lambda k: mfuncs.divide(alpha(inv_g_k, k), alpha(inv_g_k, 0)+alpha(inv_g_k, 1)+alpha(inv_g_k, 2))
+    alpha_sum = alpha_k[0] + alpha_k[1] + alpha_k[2]
+    inv_alpha_sum = inv_alpha_k[0] + inv_alpha_k[1] + inv_alpha_k[2]
+    omega = tuple(mfuncs.divide(a, alpha_sum) for a in alpha_k)
+    inv_omega = tuple(mfuncs.divide(a, inv_alpha_sum) for a in inv_alpha_k)
 
     # Define the stencils
     wR = 1/6 * (
-        omega(0) * (2*minus_two - 7*minus_one + 11*zeroth)
-        + omega(1) * (-minus_one + 5*zeroth + 2*plus_one)
-        + omega(2) * (2*zeroth + 5*plus_one - plus_two)
+        omega[0] * (2*minus_two - 7*minus_one + 11*zeroth)
+        + omega[1] * (-minus_one + 5*zeroth + 2*plus_one)
+        + omega[2] * (2*zeroth + 5*plus_one - plus_two)
     )
     wL = 1/6 * (
-        inv_omega(0) * (2*zeroth + 5*minus_one - minus_two)
-        + inv_omega(1) * (-plus_one + 5*zeroth + 2*minus_one)
-        + inv_omega(2) * (2*plus_two - 7*plus_one + 11*zeroth)
+        inv_omega[0] * (2*zeroth + 5*minus_one - minus_two)
+        + inv_omega[1] * (-plus_one + 5*zeroth + 2*minus_one)
+        + inv_omega[2] * (2*plus_two - 7*plus_one + 11*zeroth)
     )
 
     return wL, wR

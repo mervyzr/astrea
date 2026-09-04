@@ -69,7 +69,12 @@ def evolve(grid, sim_variables, first_stage=False):
             fluxes = tuple(executor.map(ct.compute_ct_flux, fluxes, repeat(emfs), repeat(sim_variables), axes))
 
     # Calculate the total fluxes through all upwind surfaces [F(i+1/2,j,k) - F(i-1/2,j,k)]/dx, [G(i,j+1/2,k) - G(i,j-1/2,k)]/dy, [H(i,j,k+1/2) - H(i,j,k-1/2)]/dz
-    total_flux = -np.sum(fluxes, axis=0)
+    # Accumulated in place: np.sum over a tuple of arrays first stacks them into a
+    # (naxes,N,N,N,8) temporary, 3 GiB at 256^3, and then allocates the negation on top.
+    # Negation is exact so ((-a)-b)-c is bit-identical to -((a+b)+c)
+    total_flux = -fluxes[0]
+    for flux in fluxes[1:]:
+        total_flux -= flux
 
     if first_stage:
         # Compute the maximum eigenvalues from each axis for determining the full time step
