@@ -614,3 +614,86 @@ def wavespeed_bounds(grid, gamma, permeability, axis, magnetic):
     out = np.empty(grid.shape[:-1] + (2,), dtype=grid.dtype)
     _wavespeed_bounds(view, out.reshape(-1, 2), gamma, permeability, axis, magnetic)
     return out
+
+
+@njit(parallel=True, cache=True)
+def _roe_wavespeed_bounds(plus, minus, out, gamma, permeability, axis, magnetic, code):
+    """Roe average at each interface, then its wave speed bounds, in one pass.
+
+    out is two cells longer than the interface arrays along the sweep axis: output index i
+    corresponds to interface index i-1, resolved through the boundary condition, which is what
+    add_boundary(stencil=1) produced as a separate padded copy.
+    """
+    left, n, right, nvars = plus.shape
+    for l in prange(left):
+        for i in range(n + 2):
+            src = _stencil_index(i - 1, n, code)
+            for r in range(right):
+                # Roe average [Roe & Pike, 1984]; mfuncs.sqrt clamps at zero. Note the
+                # weighting is asymmetric between velocity and field components, as in the
+                # numpy original
+                rp = plus[l, src, r, 0]
+                rm = minus[l, src, r, 0]
+                root_plus = np.sqrt(rp) if rp > 0. else 0.
+                root_minus = np.sqrt(rm) if rm > 0. else 0.
+                total_root = root_minus + root_plus
+
+                rho = root_minus * root_plus
+                pressure = _guarded_divide(
+                    root_plus*plus[l, src, r, 4] + root_minus*minus[l, src, r, 4], total_root
+                )
+                normal = _guarded_divide(
+                    plus[l, src, r, 1+axis]*root_plus + minus[l, src, r, 1+axis]*root_minus,
+                    total_root,
+                )
+
+                cs2 = _guarded_divide(gamma * pressure, rho)
+                sound_speed = np.sqrt(cs2) if cs2 > 0. else 0.
+
+                out[l, i, r, WAVESPEED_NORMAL] = normal
+
+                if not magnetic:
+                    out[l, i, r, WAVESPEED_DOMINANT] = sound_speed
+                    continue
+
+                bn = _guarded_divide(
+                    plus[l, src, r, 5+axis]*root_minus + minus[l, src, r, 5+axis]*root_plus,
+                    total_root,
+                )
+                b2 = 0.
+                for v in range(5, 8):
+                    b = _guarded_divide(
+                        plus[l, src, r, v]*root_minus + minus[l, src, r, v]*root_plus, total_root
+                    )
+                    b2 += b*b
+
+                rho_mu = rho * permeability
+                root_rho_mu = np.sqrt(rho_mu) if rho_mu > 0. else 0.
+                b_norm = np.sqrt(b2) if b2 > 0. else 0.
+                alfven = _guarded_divide(b_norm, root_rho_mu)
+                alfven_x = _guarded_divide(bn, root_rho_mu)
+
+                combined = sound_speed*sound_speed + alfven*alfven
+                discriminant = combined*combined - (2 * sound_speed * alfven_x)**2
+                root = np.sqrt(discriminant) if discriminant > 0. else 0.
+                fast = .5 * (combined + root)
+                out[l, i, r, WAVESPEED_DOMINANT] = np.sqrt(fast) if fast > 0. else 0.
+
+
+def roe_wavespeed_bounds(plus, minus, gamma, permeability, axis, magnetic, code):
+    """Wave speed bounds of the Roe-averaged interface state, boundary-padded along axis.
+
+    Replaces compute_Roe_average -> add_boundary -> compute_wavespeed_bounds, which held two
+    full-size arrays and a np.pad copy to produce two scalar fields.
+    """
+    nvars = plus.shape[-1]
+    plus, plus_view = _as_axis_view_nv(plus, axis, nvars)
+    _, minus_view = _as_axis_view_nv(minus, axis, nvars)
+
+    shape = list(plus.shape)
+    shape[axis] += 2
+    shape[-1] = 2
+    out = np.empty(shape, dtype=plus.dtype)
+    _, out_view = _as_axis_view_nv(out, axis, 2)
+    _roe_wavespeed_bounds(plus_view, minus_view, out_view, gamma, permeability, axis, magnetic, code)
+    return out
