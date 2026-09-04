@@ -79,10 +79,12 @@ def compute_Roe_average(interfaces, sim_variables):
 
 
 # Compute the max eigenvalues for calculating the time evolution
-def compute_eigmax(characteristics, axis):
-    local_max_eigvals = np.max(np.abs(characteristics), axis=-1)
-    max_eigvals = np.maximum(gutils.slice_(local_max_eigvals, axis, end=-1), gutils.slice_(local_max_eigvals, axis, start=1))
-    return np.max(max_eigvals)
+# Taking the elementwise maximum over consecutive pairs along `axis` and then reducing covers
+# every element of the array (element 0 appears in the first pair, element n-1 in the last), so
+# the pairwise stage cannot change the global maximum. Reducing directly is therefore exact and
+# avoids three full-size temporaries.
+def compute_eigmax(characteristics, axis=None):
+    return np.max(np.abs(characteristics))
 
 
 # Compute wavespeeds for a grid
