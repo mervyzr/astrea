@@ -63,7 +63,7 @@ def inverse_reconstruct(grid, sim_variables):
             if _sim_variables.grid_interpolate and _sim_variables.multidimensional:
                 ortho_axes = _sim_variables.axes[_sim_variables.axes != axis]
                 for idx, ortho_axis in enumerate(ortho_axes):
-                    face_cntrd -= (_sim_variables.ds[ortho_axes[idx]]**2)/24 * gutils.laplacian(_Bfields, _sim_variables, ortho_axis)
+                    gutils.add_scaled_laplacian(face_cntrd, _Bfields, _sim_variables, ortho_axis, -(_sim_variables.ds[ortho_axes[idx]]**2)/24)
 
             # Interpolate the face-centred values to cell-centred values with axis (eq. 39)
             face_cntrd_padded_2 = gutils.add_boundary(face_cntrd, _sim_variables, stencil=2, axis=axis)
@@ -76,7 +76,7 @@ def inverse_reconstruct(grid, sim_variables):
             # Apply Laplacian operator to convert cell-centred values to cell-averaged values (eq. 40)
             cell_avgd = np.copy(cell_cntrd)
             for idx, _axis in enumerate(_axes):
-                cell_avgd += (_sim_variables.ds[_axes[idx]]**2)/24 * gutils.laplacian(cell_cntrd, _sim_variables, _axis)
+                gutils.add_scaled_laplacian(cell_avgd, cell_cntrd, _sim_variables, _axis, (_sim_variables.ds[_axes[idx]]**2)/24)
 
         else:
             # Arithmetic averaging for lower-order schemes
