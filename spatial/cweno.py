@@ -4,7 +4,7 @@ from functions import grid as gutils
 from functions import math as mfuncs
 from functions import numeric
 from numkit import c_transport as ct
-from numkit import limiters, solvers
+from numkit import kernels, limiters, solvers
 
 ##############################################################################
 # CWENO(Z) reconstruction method [Levy et al., 1999, 2000; Verma et al., 2018; Cravero et al., 2019]
@@ -27,79 +27,26 @@ def _solver_kwargs(sim_variables, axis, characteristics, jacobian, prim, cons, f
     return kwargs
 
 def reconstruct(grid, sim_variables, axis, power=2, limit=False):
-    # Define the frequently used terms
-    padded_grid_2 = gutils.add_boundary(grid, sim_variables, stencil=2, axis=axis)
-    padded_grid = gutils.slice_(padded_grid_2, axis, *[1,-1])
-
-    # Read-only alias, not a copy. The caller's grid is shared by the concurrent axis
-    # sweeps and this build runs without the GIL, so it must never be mutated here
-    zeroth = grid
-    minus_one, minus_two = gutils.slice_(padded_grid, axis, end=-2), gutils.slice_(padded_grid_2, axis, end=-4)
-    plus_one, plus_two = gutils.slice_(padded_grid, axis, start=2), gutils.slice_(padded_grid_2, axis, start=4)
-
-    # Define the empirical parameters for Eq. 3.12
-    eps = sim_variables.eps
-
     """CWENO reconstruction from cell averages to face averages (both sides) [Verma et al., 2018]
+
     |                        w(i-1/2)                    w(i+1/2)                       |
     |<--         i-1         -->|<--          i          -->|<--         i+1         -->|
     |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
     |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |   w+(i+1/2)   w-(i+3/2)   |
+
+    Handed to a kernel: the numpy form held the five stencil slices, three smoothness
+    indicators, three alphas, three weights and both outputs live at once, roughly fifteen
+    full-size arrays, and it was the single largest remaining cost in the RHS. Verified
+    bit-identical to that form for CWENO and CWENOZ over 1/2/3 dimensions, every axis and all
+    three boundary modes.
     """
-    # Define the linear weights C_k (5th-order & 4th-order accurate) [tbl. 3.1]
-    C_k = 3/16, 5/8, 3/16
-    dC_k = 1/6, 2/3, 1/6
-
-    # Determine the smoothness indicators (O(dx^4) at critical points but O(1) at discontinuities) [eq. 3.14]
-    SI_minus = (
-        13/12 * (minus_two - 2*minus_one + zeroth)**2
-        + 1/4 * (minus_two - 4*minus_one + 3*zeroth)**2
-    )
-    SI_zero = (
-        13/12 * (minus_one - 2*zeroth + plus_one)**2
-        + 1/4 * (minus_one - plus_one)**2
-    )
-    SI_plus = (
-        13/12 * (zeroth - 2*plus_one + plus_two)**2
-        + 1/4 * (3*zeroth - 4*plus_one + plus_two)**2
-    )
-    SI_k = SI_minus, SI_zero, SI_plus
-
-    if sim_variables.subgrid.endswith("z"):
-        SI_opt = (
-            1/4 * (plus_one - minus_one + 1/3*(minus_two - 2*minus_one + 2*plus_one - plus_two))**2
-            + 13/12 * (minus_one - 2*zeroth + plus_one + 1/12*(minus_two - 2*minus_one + 2*plus_one - plus_two))**2
-            + 7/240 * (minus_two - 4*minus_one + 6*zeroth - 4*plus_one + plus_two)**2
-            + 9/80 * (-minus_two + 2*minus_one - 2*plus_one + plus_two)**2
-        )
-        tau = np.abs(SI_opt - np.sum(SI_k, axis=0)/3)
-
-        # Compute the alpha values for CWENOZ [Cravero et al., 2019]
-        alpha_k = tuple(dC_k[k] * (1 + (tau/(SI_k[k] + eps))**power) for k in range(3))
-
-    else:
-        # Compute the alpha values for CWENO [Levy et al., 1999, eq. 3.12]
-        alpha_k = tuple(dC_k[k]/(SI_k[k] + eps)**power for k in range(3))
-
-    # Compute the non-linear weights [Levy et al., 1999, eq. 3.11]
-    # These were previously a lambda called six times, each call re-evaluating the whole alpha
-    # triple, so the alpha expressions above ran 24 times per reconstruction instead of 3
-    alpha_sum = alpha_k[0] + alpha_k[1] + alpha_k[2]
-    omega = tuple(mfuncs.divide(a, alpha_sum) for a in alpha_k)
-
-    # Define the stencils (no need to flip linear weights in non-linear weights since C_k and dC_k are symmetrical)
-    wR = 1/6 * (
-        omega[0] * (2*minus_two - 7*minus_one + 11*zeroth)
-        + omega[1] * (-minus_one + 5*zeroth + 2*plus_one)
-        + omega[2] * (2*zeroth + 5*plus_one - plus_two)
-    )
-    wL = 1/6 * (
-        omega[0] * (2*zeroth + 5*minus_one - minus_two)
-        + omega[1] * (-plus_one + 5*zeroth + 2*minus_one)
-        + omega[2] * (2*plus_two - 7*plus_one + 11*zeroth)
+    wL, wR = kernels.cweno_reconstruct(
+        grid, axis, sim_variables.eps, kernels.bc_code(sim_variables),
+        power=power, wenoz=sim_variables.subgrid.endswith("z"),
     )
 
-    # Apply positivity-preserving limiter
+    # Apply positivity-preserving limiter. Left out of the kernel because it keys off a global
+    # minimum over the reconstructed array, so it cannot be known until reconstruction is done
     if limit:
         wR = limiters.w2012(grid, wR, sim_variables)
         wL = limiters.w2012(grid, wL, sim_variables)
