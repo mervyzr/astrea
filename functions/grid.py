@@ -1,6 +1,7 @@
 import numpy as np
 
 from functions import math as mfuncs
+from numkit import kernels
 
 ##############################################################################
 # Grid functions used throughout the finite volume code
@@ -57,9 +58,29 @@ def add_boundary(grid, sim_variables, stencil=1, axis=0):
 
 # Finite difference derivative (second order) of a padded grid
 # [ W(i+1) - W(i) ] - [ W(i) - W(i-1) ] = W(i+1) - 2W(i) + W(i-1)
-def laplacian(grid, sim_variables, axis):
-    padded_grid = add_boundary(grid, sim_variables, axis=axis)
-    return 1/(sim_variables.ds[axis]**2) * (np.diff(slice_(padded_grid, axis, start=1), axis=axis) - np.diff(slice_(padded_grid, axis, end=-1), axis=axis))
+# Handed to a kernel rather than expressed in numpy. The numpy form allocated five full-size
+# arrays per call (the np.pad copy, two np.diff results, the subtraction and the scaling) and
+# this is the single most-called function in the RHS -- 72 of the 84 np.pad calls per
+# spatial.evolve came from here. Verified bit-identical to the previous implementation for
+# 1/2/3 dimensions, every axis and all three boundary modes.
+def laplacian(grid, sim_variables, axis, out=None):
+    return kernels.scaled_laplacian(
+        grid, axis, _inv_ds2(sim_variables, axis), kernels.bc_code(sim_variables), out=out
+    )
+
+
+# 1/ds^2 for an axis as a plain float; sim_variables.ds holds length-1 arrays
+def _inv_ds2(sim_variables, axis):
+    return float(np.ravel(1/(sim_variables.ds[axis]**2))[0])
+
+
+# scale * laplacian(grid) accumulated straight into base, allocating nothing. Kept as two
+# separate multiplications (scale, then 1/ds^2) to match the numpy callers exactly.
+def add_scaled_laplacian(base, grid, sim_variables, axis, scale):
+    return kernels.add_scaled_laplacian(
+        base, grid, axis, float(np.ravel(scale)[0]),
+        _inv_ds2(sim_variables, axis), kernels.bc_code(sim_variables),
+    )
 
 
 # Convert between pressure P and total energy density e_tot; P is also related to the internal energy density e_int: P = (gamma-1) * e_int
@@ -159,7 +180,7 @@ def method_convert_cell(grid_form, grid, sim_variables, axis=None):
         coeff = 1  # point -> averaged
 
     for idx, axis_ in enumerate(sim_variables.axes):
-        base += coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24 * laplacian(grid, sim_variables, axis_)
+        add_scaled_laplacian(base, grid, sim_variables, axis_, coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24)
     return base
 
 
@@ -179,7 +200,7 @@ def method_convert_intf(grid_form, grid, sim_variables, axis):
     # !! uniform grid, wrong when ds differs per axis. Behaviour preserved here deliberately;
     # !! flagged rather than changed because fixing it changes results.
     for idx, axis_ in enumerate(ortho_axes):
-        base += coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24 * laplacian(grid, sim_variables, axis_)
+        add_scaled_laplacian(base, grid, sim_variables, axis_, coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24)
     return base
 
 
@@ -196,7 +217,7 @@ def approx_flux_avg(cntrd_fluxes, avgd_fluxes, sim_variables, axis):
     ortho_axes = sim_variables.axes[sim_variables.axes != axis]
 
     for idx, axis_ in enumerate(ortho_axes):
-        cntrd_fluxes -= (sim_variables.ds[ortho_axes[idx]]**2)/24 * laplacian(avgd_fluxes, sim_variables, axis_)
+        add_scaled_laplacian(cntrd_fluxes, avgd_fluxes, sim_variables, axis_, -(sim_variables.ds[ortho_axes[idx]]**2)/24)
     return cntrd_fluxes
 
 
