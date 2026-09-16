@@ -185,14 +185,23 @@ def calculate_HLLD_flux(axis, sim_variables, **kwargs):
     sL_star, sR_star = sM - mfuncs.divide(np.abs(bL[...,axis]), np.sqrt(rhoL_star)), sM + mfuncs.divide(np.abs(bR[...,axis]), np.sqrt(rhoR_star))
     pT_star = mfuncs.divide(rhoR*pTL*(sR-vecR[...,axis]) - rhoL*pTR*(sL-vecL[...,axis]) + rhoL*rhoR*(sR-vecR[...,axis])*(sL-vecL[...,axis])*(vecR[...,axis]-vecL[...,axis]), rhoR*(sR-vecR[...,axis]) - rhoL*(sL-vecL[...,axis]))
 
-    vyL_star = vecL[...,ordinate] - prim_minus[...,Bx]*bL[...,ordinate]*mfuncs.divide(sM-vecL[...,axis], rhoL*(sL-vecL[...,axis])*(sL-sM) - prim_minus[...,Bx]**2)
-    vyR_star = vecR[...,ordinate] - prim_plus[...,Bx]*bR[...,ordinate]*mfuncs.divide(sM-vecR[...,axis], rhoR*(sR-vecR[...,axis])*(sR-sM) - prim_plus[...,Bx]**2)
-    vzL_star = vecL[...,applicate] - prim_minus[...,Bx]*bL[...,applicate]*mfuncs.divide(sM-vecL[...,axis], rhoL*(sL-vecL[...,axis])*(sL-sM) - prim_minus[...,Bx]**2)
-    vzR_star = vecR[...,applicate] - prim_plus[...,Bx]*bR[...,applicate]*mfuncs.divide(sM-vecR[...,axis], rhoR*(sR-vecR[...,axis])*(sR-sM) - prim_plus[...,Bx]**2)
-    ByL_star = bL[...,ordinate] * mfuncs.divide(rhoL*(sL-vecL[...,axis])**2 - prim_minus[...,Bx]**2, rhoL*(sL-vecL[...,axis])*(sL-sM) - prim_minus[...,Bx]**2)
-    ByR_star = bR[...,ordinate] * mfuncs.divide(rhoR*(sR-vecR[...,axis])**2 - prim_plus[...,Bx]**2, rhoR*(sR-vecR[...,axis])*(sR-sM) - prim_plus[...,Bx]**2)
-    BzL_star = bL[...,applicate] * mfuncs.divide(rhoL*(sL-vecL[...,axis])**2 - prim_minus[...,Bx]**2, rhoL*(sL-vecL[...,axis])*(sL-sM) - prim_minus[...,Bx]**2)
-    BzR_star = bR[...,applicate] * mfuncs.divide(rhoR*(sR-vecR[...,axis])**2 - prim_plus[...,Bx]**2, rhoR*(sR-vecR[...,axis])*(sR-sM) - prim_plus[...,Bx]**2)
+    denom = rhoL * (sL - vecL[...,axis]) * (sL - sM) - prim_minus[...,Bx]**2
+    mask = np.where(mfuncs.divide(np.abs(denom), prim_minus[...,Bx]) < 1e-4)
+    vyL_star, vzL_star = vecL[...,ordinate], vecL[...,applicate]
+    ByL_star, BzL_star = bL[...,ordinate], bL[...,applicate]
+    vyL_star[mask] = vyL_star[mask] - (prim_minus[...,Bx]*bL[...,ordinate]*mfuncs.divide(sM-vecL[...,axis], denom))[mask]
+    vzL_star[mask] = vzL_star[mask] - (prim_minus[...,Bx]*bL[...,applicate]*mfuncs.divide(sM-vecL[...,axis], denom))[mask]
+    ByL_star[mask] = ByL_star[mask] * (mfuncs.divide(rhoL * (sL - vecL[...,axis]) * (sL - vecL[...,axis]) - prim_minus[...,Bx]**2, denom))[mask]
+    BzL_star[mask] = BzL_star[mask] * (mfuncs.divide(rhoL * (sL - vecL[...,axis]) * (sL - vecL[...,axis]) - prim_minus[...,Bx]**2, denom))[mask]
+
+    denom = rhoR * (sR - vecR[...,axis]) * (sR - sM) - prim_plus[...,Bx]**2
+    mask = np.where(mfuncs.divide(np.abs(denom), prim_plus[...,Bx]) < 1e-4)
+    vyR_star, vzR_star = vecR[...,ordinate], vecR[...,applicate]
+    ByR_star, BzR_star = bR[...,ordinate], bR[...,applicate]
+    vyR_star[mask] = vyR_star[mask] - (prim_plus[...,Bx]*bR[...,ordinate]*mfuncs.divide(sM-vecR[...,axis], denom))[mask]
+    vzR_star[mask] = vzR_star[mask] - (prim_plus[...,Bx]*bR[...,applicate]*mfuncs.divide(sM-vecR[...,axis], denom))[mask]
+    ByR_star[mask] = ByR_star[mask] * (mfuncs.divide(rhoR * (sR - vecR[...,axis]) * (sR - vecR[...,axis]) - prim_plus[...,Bx]**2, denom))[mask]
+    BzR_star[mask] = BzR_star[mask] * (mfuncs.divide(rhoR * (sR - vecR[...,axis]) * (sR - vecR[...,axis]) - prim_plus[...,Bx]**2, denom))[mask]
 
     qL_star, qR_star = np.zeros_like(qL), np.zeros_like(qR)
     qL_star[...,rho], qR_star[...,rho] = rhoL_star, rhoR_star
