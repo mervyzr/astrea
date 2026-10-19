@@ -1,4 +1,3 @@
-import os
 import sys
 import datetime
 import platform
@@ -47,7 +46,7 @@ def get_gpu_info():
         util = pynvml.nvmlDeviceGetUtilizationRates(handle)
         temp = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
         uuid = pynvml.nvmlDeviceGetUUID(handle)
-        name = pynvml.nvmlDeviceGetName(handle).decode("utf-8")
+        name = pynvml.nvmlDeviceGetName(handle)
 
         list_gpus.append((
             i,                      # GPU id
