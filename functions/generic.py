@@ -141,7 +141,7 @@ def print_verbose(sim_variables, t=None, status=''):
 
         print(f'  astrea code, branch:remotes/origin/{git.Repo(sim_variables.home).active_branch.name}')
         print(f'  Python version {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}-{sys.version_info.releaselevel}')
-        print(f'  PYTHON_PATH={os.environ["_"]}')
+        print(f'  PYTHON_PATH={sys.executable}')
 
         if sys_info:
             print('='*30, 'System Information', '='*30)

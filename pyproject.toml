@@ -19,7 +19,7 @@ dependencies = [
     "h5py",
     "matplotlib",
     "numpy>=2.0.0",
-    "nvidia-ml-py3",
+    "nvidia-ml-py",
     "psutil",
     "pycairo",
     "python-dotenv",
