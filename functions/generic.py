@@ -1,6 +1,8 @@
+import os
 import sys
 import datetime
 import platform
+import subprocess
 from time import perf_counter
 from datetime import datetime, timedelta
 
@@ -34,6 +36,37 @@ def get_size(_bytes):
         if _bytes < factor:
             return f"{_bytes:.2f}{unit}B"
         _bytes /= factor
+
+
+def get_cpu_model():
+    os_type = platform.system()
+
+    try:
+        if os_type == "Windows":
+            # Query Windows Management Instrumentation (WMI)
+            command = "wmic cpu get name"
+            output = subprocess.check_output(command, shell=True).decode().strip()
+            lines = [line.strip() for line in output.split('\n') if line.strip()]
+            if len(lines) > 1:
+                return lines[1]
+
+        elif os_type == "Darwin":  # macOS
+            # Query the system control hardware utilities
+            command = ["sysctl", "-n", "machdep.cpu.brand_string"]
+            return subprocess.check_output(command).decode().strip()
+
+        elif os_type == "Linux":
+            # Parse the standard virtual file system
+            if os.path.exists("/proc/cpuinfo"):
+                with open("/proc/cpuinfo", "r") as f:
+                    for line in f:
+                        if "model name" in line:
+                            return line.split(":", 1)[1].strip()
+
+    except Exception as e:
+        return f"Error retrieving CPU details: {e}"
+
+    return platform.processor() or "Unknown CPU"
 
 
 def get_gpu_info():
@@ -154,6 +187,7 @@ def print_verbose(sim_variables, t=None, status=''):
 
         if cpu_info:
             print('='*30, 'CPU Information', '='*30)
+            print(f'{"Processor name":>15} :    {get_cpu_model()}')
             print(f'{"Physical cores":>15} :    {psutil.cpu_count(logical=False)}')
             print(f'{"Total cores":>15} :    {psutil.cpu_count(logical=True)}')
             #print(f' {"Threads per core":>20} :    {psutil.cpu_count()/psutil.cpu_count(logical=False)}')
