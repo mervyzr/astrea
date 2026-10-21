@@ -10,9 +10,7 @@ from numkit import limiters, solvers
 # CWENO(Z) reconstruction method [Levy et al., 1999, 2000; Verma et al., 2018; Cravero et al., 2019]
 ##############################################################################
 
-def reconstruct(grid, sim_variables, axis, power=2, limit=False):
-    gauss = sim_variables.gauss_quadrature
-
+def reconstruct(grid, sim_variables, axis, power=2, limit=False, gauss=False):
     # Define the frequently used terms
     padded_grid_2 = gutils.add_boundary(grid, sim_variables, stencil=2, axis=axis)
     padded_grid = gutils.slice_(padded_grid_2, axis, *[1,-1])
@@ -196,7 +194,7 @@ def gauss_interfaces(interfaces, sim_variables, ortho_axes, weight=1):
     if len(ortho_axes) == 0:
         yield weight, interfaces
     else:
-        gauss_points = [reconstruct(interface, sim_variables, ortho_axes[0], limit=True) for interface in interfaces]
+        gauss_points = [reconstruct(interface, sim_variables, ortho_axes[0], limit=True, gauss=True) for interface in interfaces]
         for gauss_interface in zip(*gauss_points):
             yield from gauss_interfaces(gauss_interface, sim_variables, ortho_axes[1:], .5*weight)
 
