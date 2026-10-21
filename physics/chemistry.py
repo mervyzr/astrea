@@ -1,5 +1,6 @@
 import os
 import ctypes
+import importlib.util
 from pathlib import Path
 
 import numpy as np
@@ -10,6 +11,7 @@ from functions.generic import BColours
 from functions.generic import verbose_timer
 from numkit import c_transport as ct
 from physics import constants
+from physics import pychem_funcs
 from physics.krome import krome_funcs
 
 ##############################################################################
@@ -18,9 +20,15 @@ from physics.krome import krome_funcs
 
 # Initialise the chemistry grid
 def initialise(sim_variables):
+    chem_grid = None
 
     if sim_variables.chemistry == "pychem":
-        pass
+        # flchem has to be built & installed for the Python running astrea (physics/pychem/setup)
+        if importlib.util.find_spec("flchem") is None:
+            print(f"{BColours.WARNING}pychem (flchem) cannot be imported. Switching off chemistry..{BColours.ENDC}")
+            sim_variables.chemistry = False
+        else:
+            chem_grid = pychem_funcs.initialise(sim_variables)
 
     elif sim_variables.chemistry == "chimes":
         pass
@@ -50,10 +58,11 @@ def initialise(sim_variables):
 
 
 # Update chemical grid within the timestep dt, requires conservative grid info
+@verbose_timer
 def update(chemical_grid, grid, dt, sim_variables):
 
     if sim_variables.chemistry == "pychem":
-        pass
+        return pychem_funcs.pychem_run(chemical_grid, grid, dt, sim_variables)
 
     elif sim_variables.chemistry == "chimes":
         pass
