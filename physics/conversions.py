@@ -16,6 +16,9 @@ class Constants(object):
             for name, value in constants.items():
                 setattr(self, name, value)
 
+        # Code -> CGS scaling for physics modules that need physical units (e.g. chemistry); code units are taken as CGS
+        self.cgs_scales = {"length": 1., "time": 1., "density": 1., "pressure": 1.}
+
         if units != "code":
             if units == 'custom':
                 # Set up physical scaling (code -> CGS)
@@ -91,6 +94,8 @@ class Constants(object):
                 B0 = v0 * np.sqrt(self.mu_0*rho0)
             else:
                 B0 = np.sqrt(4*np.pi*rho0 * v0**2 * L0**3)
+
+            self.cgs_scales = {"length": L0, "time": t0, "density": rho0, "pressure": P0}
 
             # Save plot scaling values and scale labels
             self.plot_scales = {

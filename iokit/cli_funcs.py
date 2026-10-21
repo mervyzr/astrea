@@ -56,8 +56,8 @@ def parse_CLI(db_path):
     parser.add_argument('--file', dest='chkpt_file', metavar='', type=str, default='', help='(absolute) path to astrea checkpoint file')
     parser.add_argument('--tracers', help='switch on tracer particles in the simulation', action='store_true')
 
-    parser.add_argument('--network', metavar='', type=str.lower, default='', help='(absolute) path to chemical network file')
-    parser.add_argument('--abundances', metavar='', type=str.lower, default='', help='(absolute) path to (.yml) file for initial abundances of chemical species')
+    parser.add_argument('--network', metavar='', type=str, default='', help='(absolute) path to chemical network file')
+    parser.add_argument('--abundances', metavar='', type=str, default='', help='(absolute) path to (.yml) file for initial abundances of chemical species')
 
     parser.add_argument('--init', default=argparse.SUPPRESS, help=argparse.SUPPRESS, action='store_true')
 

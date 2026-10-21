@@ -169,6 +169,9 @@ class Variables(object):
                 self.chemistry = False
                 self.chem_path = ''
 
+        # Feed back the chemical heating/cooling into the energy (pychem only)
+        self.chem_cooling = os.getenv("CHEM_COOLING", False)
+
         # Printer functions
         if self.verbose:
             self.print_status = generic.print_verbose

@@ -139,7 +139,7 @@ def core_run(grid, sim_variables, t=0., chkpt_idx=1):
                 grid = turbulence.update(grid, forcing_field, dt, sim_variables)
                 forcing_field = turbulence.drive(forcing_field, dt, eigmax, sim_variables)
 
-            # Update chemical grid
+            # Update chemical grid (and the energy of the conservative grid if CHEM_COOLING is set)
             if sim_variables.chemistry:
                 chem_grid = chemistry.update(chem_grid, grid, dt, sim_variables)
 
