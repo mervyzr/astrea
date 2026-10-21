@@ -332,17 +332,24 @@ def _stencil_index(i, n, code):
 
 
 @njit(parallel=True, cache=True)
-def _cweno_reconstruct(g, wl, wr, eps, power, code, wenoz):
+def _cweno_reconstruct(g, wl, wr, eps, power, code, wenoz, gauss, nvars, positive0, positive1):
     """CWENO/CWENOZ reconstruction from cell averages to both face averages.
 
     Levy et al. 1999 eq. 3.11-3.14, with the CWENOZ tau of Cravero et al. 2019. Operand
     grouping follows the numpy original expression by expression so the result matches it.
+
+    With gauss, wl/wr get the values at the Gauss-Legendre points x = ∓1/(2√3) instead, where the curvature terms
+    vanish; components positive0/positive1 (-1 for none) are kept positive there [Zhang & Shu, 2010].
     """
     left, n, right = g.shape
     ntiles = (right + _TILE - 1)//_TILE
 
-    # Linear weights dC_k [tbl. 3.1]
-    dc0, dc1, dc2 = 1/6, 2/3, 1/6
+    # Linear weights dC_k [tbl. 3.1], exact for cubics at the faces, or at the Gauss points
+    if gauss:
+        dc0, dc1, dc2 = 7/36, 11/18, 7/36
+    else:
+        dc0, dc1, dc2 = 1/6, 2/3, 1/6
+    gauss_divisor = 2*np.sqrt(3.)
 
     for tile in prange(left * ntiles):
         l = tile//ntiles
@@ -388,6 +395,22 @@ def _cweno_reconstruct(g, wl, wr, eps, power, code, wenoz):
                 o1 = _guarded_divide(a1, total)
                 o2 = _guarded_divide(a2, total)
 
+                if gauss:
+                    offset = .5 * (
+                        o0 * (m2 - 4*m1 + 3*z)
+                        + o1 * (p1 - m1)
+                        + o2 * (-3*z + 4*p1 - p2)
+                    ) / gauss_divisor
+
+                    # The variables are the innermost dimension
+                    component = r % nvars
+                    if component == positive0 or component == positive1:
+                        offset *= min(1., _guarded_divide(max(z - eps, 0.), abs(offset)))
+
+                    wl[l, i, r] = z - offset
+                    wr[l, i, r] = z + offset
+                    continue
+
                 # No need to flip the linear weights since dC_k is symmetrical
                 wr[l, i, r] = 1/6 * (
                     o0 * (2*m2 - 7*m1 + 11*z)
@@ -401,13 +424,15 @@ def _cweno_reconstruct(g, wl, wr, eps, power, code, wenoz):
                 )
 
 
-def cweno_reconstruct(grid, axis, eps, code, power=2, wenoz=False):
-    """Return (wL, wR), the reconstructed left and right face averages along axis."""
+def cweno_reconstruct(grid, axis, eps, code, power=2, wenoz=False, gauss=False, positive=()):
+    """Return (wL, wR), the reconstructed left and right face averages along axis.
+    With gauss, the lower/upper Gauss-point values instead, with up to two `positive` components kept positive."""
     grid, view = _as_axis_view(grid, axis)
     wl, wr = np.empty_like(grid), np.empty_like(grid)
     _, wl_view = _as_axis_view(wl, axis)
     _, wr_view = _as_axis_view(wr, axis)
-    _cweno_reconstruct(view, wl_view, wr_view, eps, power, code, wenoz)
+    positive0, positive1 = (tuple(positive) + (-1, -1))[:2]
+    _cweno_reconstruct(view, wl_view, wr_view, eps, power, code, wenoz, gauss, grid.shape[-1], positive0, positive1)
     return wl, wr
 
 

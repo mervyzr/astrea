@@ -240,16 +240,9 @@ def w2012(grid, interface, sim_variables, axis=None, compute_p=False):
     #eps = np.minimum(grid[...,rho], 1e-13)
     #theta_rho = np.minimum(1, np.abs(mfuncs.divide(grid[...,rho]-eps, (grid-interface)[...,rho])))
     eps = 1e-16
-    # Slice to rho before the arithmetic rather than after. Elementwise ops commute with the
-    # slice, so this is exact, but it avoids building three full 8-variable arrays plus a mask
-    # and then throwing away seven eighths of the result. np.min(interface) was also being
-    # evaluated twice
-    interface_min = np.min(interface)
-    if interface_min < eps:
-        grid_rho = grid[...,rho]
-        theta_rho = mfuncs.divide(grid_rho - eps, grid_rho - interface_min)
-    else:
-        theta_rho = 1
+    # Limit only the faces whose own density is below eps (a global minimum over all variables made this 1st-order)
+    grid_rho, interface_rho = grid[...,rho], interface[...,rho]
+    theta_rho = np.where(interface_rho < eps, np.clip(mfuncs.divide(grid_rho - eps, grid_rho - interface_rho), 0, 1), 1)
 
     # Compute positivity-preserving limiter for pressure [eq. 3.6-3.7]. Generally not recommended because:
     # 1. Requires conversion of the modified interface values back to conservative variables and then computing the limiter from there
