@@ -240,7 +240,7 @@ def w2012(grid, interface, sim_variables, axis=None, compute_p=False):
     #eps = np.minimum(grid[...,rho], 1e-13)
     #theta_rho = np.minimum(1, np.abs(mfuncs.divide(grid[...,rho]-eps, (grid-interface)[...,rho])))
     eps = 1e-16
-    theta_rho = mfuncs.divide(grid-eps, grid-np.min(interface))[...,rho] if (np.min(interface) < eps) else 1
+    theta_rho = np.where(interface[...,rho] < eps, np.clip(mfuncs.divide(grid[...,rho]-eps, grid[...,rho]-interface[...,rho]), 0, 1), 1)
 
     # Compute positivity-preserving limiter for pressure [eq. 3.6-3.7]. Generally not recommended because:
     # 1. Requires conversion of the modified interface values back to conservative variables and then computing the limiter from there

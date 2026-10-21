@@ -116,11 +116,12 @@ def run(grid, sim_variables, axis, eta=None):
 
     # Compute the orthogonal L/R Riemann states and fluxes at higher-order accuracy
     if multidimensional:
-        # Calculate the interface-centred fluxes
+        # Calculate the interface-centred fluxes; the physical fluxes are evaluated from the interface-centred states
+        prim_cntrd = gutils.approx_face_avg((prim_plus, prim_minus), sim_variables, axis)
         intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
-            'prim_interfaces': gutils.approx_face_avg((prim_plus, prim_minus), sim_variables, axis),
+            'prim_interfaces': prim_cntrd,
             'cons_interfaces': gutils.approx_face_avg((cons_plus, cons_minus), sim_variables, axis),
-            'flux_interfaces': gutils.approx_face_avg((flux_plus, flux_minus), sim_variables, axis),
+            'flux_interfaces': [numeric.compute_flux(prim, sim_variables, axis=axis) for prim in prim_cntrd],
             'characteristics': characteristics,
             'jacobian': gutils.slice_(jacobian, axis, *[1,-1]),
         })

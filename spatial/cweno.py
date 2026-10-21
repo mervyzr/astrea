@@ -11,6 +11,8 @@ from numkit import limiters, solvers
 ##############################################################################
 
 def reconstruct(grid, sim_variables, axis, power=2, limit=False):
+    gauss = sim_variables.gauss_quadrature
+
     # Define the frequently used terms
     padded_grid_2 = gutils.add_boundary(grid, sim_variables, stencil=2, axis=axis)
     padded_grid = gutils.slice_(padded_grid_2, axis, *[1,-1])
@@ -31,6 +33,8 @@ def reconstruct(grid, sim_variables, axis, power=2, limit=False):
     # Define the linear weights C_k (5th-order & 4th-order accurate) [tbl. 3.1]
     C_k = 3/16, 5/8, 3/16
     dC_k = 1/6, 2/3, 1/6
+    if gauss:
+        dC_k = 7/36, 11/18, 7/36
 
     # Determine the smoothness indicators (O(dx^4) at critical points but O(1) at discontinuities) [eq. 3.14]
     SI_minus = (
@@ -66,28 +70,45 @@ def reconstruct(grid, sim_variables, axis, power=2, limit=False):
     # Compute the non-linear weights [Levy et al., 1999, eq. 3.11]
     omega = lambda k: mfuncs.divide(alpha(k), alpha(0)+alpha(1)+alpha(2))
 
-    # Define the stencils (no need to flip linear weights in non-linear weights since C_k and dC_k are symmetrical)
-    wR = 1/6 * (
-        omega(0) * (2*minus_two - 7*minus_one + 11*zeroth)
-        + omega(1) * (-minus_one + 5*zeroth + 2*plus_one)
-        + omega(2) * (2*zeroth + 5*plus_one - plus_two)
-    )
-    wL = 1/6 * (
-        omega(0) * (2*zeroth + 5*minus_one - minus_two)
-        + omega(1) * (-plus_one + 5*zeroth + 2*minus_one)
-        + omega(2) * (2*plus_two - 7*plus_one + 11*zeroth)
-    )
+    # Reconstruct to the 2-point Gauss-Legendre points instead of the interfaces. Each parabola is P_k(x) = <w> + B_k*x + C_k*(x^2 - 1/12) in cell units,
+    # so the curvature terms vanish at x = ±1/(2√3) and only the weighted slope is needed; the mean of the two point values is <w> itself
+    if gauss:
+        offset = .5 * (
+              omega(0) * (minus_two - 4*minus_one + 3*zeroth)
+            + omega(1) * (plus_one - minus_one)
+            + omega(2) * (-3*zeroth + 4*plus_one - plus_two)
+        ) / (2*np.sqrt(3))
 
-    # Apply positivity-preserving limiter
-    if limit:
-        wR = limiters.w2012(grid, wR, sim_variables)
-        wL = limiters.w2012(grid, wL, sim_variables)
+        # Apply positivity-preserving limiter at both Gauss points
+        if limit:
+            offset[...,sim_variables.rho] *= np.minimum(1, mfuncs.divide(np.maximum(zeroth[...,sim_variables.rho] - eps, 0), np.abs(offset[...,sim_variables.rho])))
+            offset[...,sim_variables.pressure] *= np.minimum(1, mfuncs.divide(np.maximum(zeroth[...,sim_variables.pressure] - eps, 0), np.abs(offset[...,sim_variables.pressure])))
+
+        wL, wR = zeroth-offset, zeroth+offset
+
+    else:
+        # Define the stencils (no need to flip linear weights in non-linear weights since C_k and dC_k are symmetrical)
+        wR = 1/6 * (
+            omega(0) * (2*minus_two - 7*minus_one + 11*zeroth)
+            + omega(1) * (-minus_one + 5*zeroth + 2*plus_one)
+            + omega(2) * (2*zeroth + 5*plus_one - plus_two)
+        )
+        wL = 1/6 * (
+            omega(0) * (2*zeroth + 5*minus_one - minus_two)
+            + omega(1) * (-plus_one + 5*zeroth + 2*minus_one)
+            + omega(2) * (2*plus_two - 7*plus_one + 11*zeroth)
+        )
+
+        # Apply positivity-preserving limiter at interface
+        if limit:
+            wL, wR = limiters.w2012(grid, wL, sim_variables), limiters.w2012(grid, wR, sim_variables)
 
     return wL, wR
 
 
 def run(grid, sim_variables, axis):
     multidimensional, magnetic, ds = sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds[axis]
+    gauss = sim_variables.gauss_quadrature
 
     Riemann_solver = solvers.get_Riemann_solver(sim_variables)
 
@@ -102,11 +123,7 @@ def run(grid, sim_variables, axis):
     intf_avg = numeric.compute_Roe_average((prim_plus, prim_minus), sim_variables)
     padded_intf_avg = gutils.add_boundary(intf_avg, sim_variables, axis=axis)
 
-    # Convert the primitive variables at the interface
-    cons_plus, cons_minus = gutils.variable_convert_intf("primitive", prim_plus, sim_variables, axis=axis), gutils.variable_convert_intf("primitive", prim_minus, sim_variables, axis=axis)
-
-    # Compute the fluxes and the Jacobian
-    flux_plus, flux_minus = numeric.compute_flux(prim_plus, sim_variables, axis=axis), numeric.compute_flux(prim_minus, sim_variables, axis=axis)
+    # Compute the Jacobian
     jacobian = numeric.compute_jacobian(padded_intf_avg, sim_variables, axis=axis)
 
     # Resolve characteristics at interfaces
@@ -118,31 +135,51 @@ def run(grid, sim_variables, axis):
         except np.linalg.LinAlgError:
             characteristics = np.full_like(padded_intf_avg, .01)
 
-    # Calculate the interface-averaged fluxes
-    intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **{
-        'prim_interfaces': (prim_plus, prim_minus),
-        'cons_interfaces': (cons_plus, cons_minus),
-        'flux_interfaces': (flux_plus, flux_minus),
-        'characteristics': characteristics,
-        'jacobian': gutils.slice_(jacobian, axis, *[1,-1]),
-    })
+    if multidimensional and gauss:
+        # Integrate the point-wise fluxes over the interface with the tensor-product Gauss-Legendre quadrature, instead of the Laplacian corrections below
+        # The characteristics (from the interface averages) are shared by all Gauss points
+        intf_fluxes_cntrd = 0
+        for weight, (gauss_plus, gauss_minus) in gauss_interfaces((prim_plus, prim_minus), sim_variables, sim_variables.axes[sim_variables.axes != axis]):
+            intf_fluxes_cntrd += weight * Riemann_solver(axis, sim_variables, **{
+                'prim_interfaces': (gauss_plus, gauss_minus),
+                'cons_interfaces': (gutils.variable_point_convert("primitive", gauss_plus, sim_variables), gutils.variable_point_convert("primitive", gauss_minus, sim_variables)),
+                'flux_interfaces': (numeric.compute_flux(gauss_plus, sim_variables, axis=axis), numeric.compute_flux(gauss_minus, sim_variables, axis=axis)),
+                'characteristics': characteristics,
+                'jacobian': gutils.slice_(jacobian, axis, *[1,-1]),
+            })
+    else:
+        # Convert the primitive variables at the interface
+        cons_plus, cons_minus = gutils.variable_convert_intf("primitive", prim_plus, sim_variables, axis=axis), gutils.variable_convert_intf("primitive", prim_minus, sim_variables, axis=axis)
 
-    # Compute the orthogonal L/R Riemann states and fluxes at higher-order accuracy
-    if multidimensional:
-        # Calculate the interface-centred fluxes
-        intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
-            'prim_interfaces': gutils.approx_face_avg((prim_plus, prim_minus), sim_variables, axis),
-            'cons_interfaces': gutils.approx_face_avg((cons_plus, cons_minus), sim_variables, axis),
-            'flux_interfaces': gutils.approx_face_avg((flux_plus, flux_minus), sim_variables, axis),
+        # Compute the fluxes
+        flux_plus, flux_minus = numeric.compute_flux(prim_plus, sim_variables, axis=axis), numeric.compute_flux(prim_minus, sim_variables, axis=axis)
+
+        # Calculate the interface-averaged fluxes
+        intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **{
+            'prim_interfaces': (prim_plus, prim_minus),
+            'cons_interfaces': (cons_plus, cons_minus),
+            'flux_interfaces': (flux_plus, flux_minus),
             'characteristics': characteristics,
             'jacobian': gutils.slice_(jacobian, axis, *[1,-1]),
         })
 
-        # Compute the higher-order fluxes
-        intf_fluxes_cntrd = gutils.approx_flux_avg(intf_fluxes_cntrd, intf_fluxes_avgd, sim_variables, axis)
-    else:
-        # Orthogonal Laplacian in 1d is zero
-        intf_fluxes_cntrd = intf_fluxes_avgd
+        # Compute the orthogonal L/R Riemann states and fluxes at higher-order accuracy
+        if multidimensional:
+            # Calculate the interface-centred fluxes; the physical fluxes are evaluated from the interface-centred states (converting F(<w>) instead is only 2nd-order accurate)
+            prim_cntrd = gutils.approx_face_avg((prim_plus, prim_minus), sim_variables, axis)
+            intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
+                'prim_interfaces': prim_cntrd,
+                'cons_interfaces': gutils.approx_face_avg((cons_plus, cons_minus), sim_variables, axis),
+                'flux_interfaces': [numeric.compute_flux(prim, sim_variables, axis=axis) for prim in prim_cntrd],
+                'characteristics': characteristics,
+                'jacobian': gutils.slice_(jacobian, axis, *[1,-1]),
+            })
+
+            # Compute the higher-order fluxes
+            intf_fluxes_cntrd = gutils.approx_flux_avg(intf_fluxes_cntrd, intf_fluxes_avgd, sim_variables, axis)
+        else:
+            # Orthogonal Laplacian in 1d is zero
+            intf_fluxes_cntrd = intf_fluxes_avgd
 
     # Compute flux difference for hydrodynamic components
     fluxes = np.diff(intf_fluxes_cntrd, axis=axis)/ds
@@ -151,6 +188,17 @@ def run(grid, sim_variables, axis):
         return fluxes, characteristics, (gutils.slice_(prim_plus, axis, start=1), gutils.slice_(prim_minus, axis, end=-1))
     else:
         return fluxes, characteristics, None
+
+
+# Reconstruct the interface-averaged (+) & (-) states to the tensor-product Gauss-Legendre points on the interface, one orthogonal axis at a time
+# Generates the quadrature weight with the (+) & (-) point values at each Gauss point (2 points in 2D, 4 in 3D), so the fluxes can be accumulated one point at a time
+def gauss_interfaces(interfaces, sim_variables, ortho_axes, weight=1):
+    if len(ortho_axes) == 0:
+        yield weight, interfaces
+    else:
+        gauss_points = [reconstruct(interface, sim_variables, ortho_axes[0], limit=True) for interface in interfaces]
+        for gauss_interface in zip(*gauss_points):
+            yield from gauss_interfaces(gauss_interface, sim_variables, ortho_axes[1:], .5*weight)
 
 
 # [Levy et al., 1999]

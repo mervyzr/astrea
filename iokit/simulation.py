@@ -33,7 +33,7 @@ class Variables(object):
         'config', 'cells', 'cfl', 'gamma', 'gravity', 'self_gravity', 'ext_gravity', 'dimensions', 'subgrid', 'time_evo', 'solver',
         'coordinates', 'shock_pos', 't_end', 'boundary', 'guards', 'trim', 'test_specifics', 'init_cond', 'ambient', 'ds',
         'checkpoints', 'live_plot', 'save_snaps', 'save_plots', 'save_video', 'save_file', 'plot_style', 'plot_options',
-        'axes', 'magnetic', 'convert', 'guards', 'roots', 'weights', 'higher_order', 'grid_interpolate', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
+        'axes', 'magnetic', 'convert', 'guards', 'roots', 'weights', 'higher_order', 'grid_interpolate', 'gauss_quadrature', 'multidimensional', 'config_category', 'subgrid_category', 'solver_category',
         'seed', 'now', 'elapsed', 'access_key', 'datetime', 'eps', 'home', 'save_path', 'db_path', 'hdf5', 'timesteps', 'print_status',
         'record_all_steps', 'write_chkpt', 'chkpt_file', 'quiet', 'verbose', 'test',
         'units', 'constants', 'chemistry', 'network', 'pykrome', 'species', 'abundances', 'tracers', 'nvars',
@@ -74,6 +74,13 @@ class Variables(object):
             self.roots = roots + .5
             self.weights = weights
 
+        # Axes options
+        self.multidimensional = self.dimensions >= 2
+        self.axes = np.array(range(self.dimensions))
+        if self.dimensions > 2:
+            self.slice_axis = 2  # z-axis
+            self.slice_3d = int(self.cells[self.slice_axis]/2)
+
         # Generate guard zones based on the subgrid
         self.guards = 2
         if self.subgrid_category == "plm":
@@ -91,13 +98,18 @@ class Variables(object):
         self.trim = (slice(self.guards,-self.guards),)*self.dimensions + (slice(None),)
 
         # Higher-order method options
-        self.higher_order = self.grid_interpolate = False
+        self.higher_order = self.grid_interpolate = self.gauss_quadrature = False
         if self.subgrid_category in ["ppm", "eno", "weno"]:
             self.higher_order = self.grid_interpolate = True
 
-            # WENO-Z can use point representation
-            if self.subgrid_category == "weno" and (self.subgrid.endswith("z")):
-                self.grid_interpolate = False
+            if self.subgrid_category == "weno":
+                # WENO-Z can use point representation
+                if self.subgrid.endswith("z"):
+                    self.grid_interpolate = False
+
+                # CWENO can integrate the multidimensional interface fluxes with Gauss-Legendre quadrature instead of midpoint approx. (Simpson's rule)
+                if self.subgrid.startswith("c") and self.multidimensional:
+                    self.gauss_quadrature = True
 
             # PPM-specific options
             if self.subgrid_category == "ppm":
@@ -122,13 +134,6 @@ class Variables(object):
 
         # CT-specific options
         self.ct_dissipative = os.getenv("CT_DISSIPATIVE", False)
-
-        # Axes options
-        self.multidimensional = self.dimensions >= 2
-        self.axes = np.array(range(self.dimensions))
-        if self.dimensions > 2:
-            self.slice_axis = 2  # z-axis
-            self.slice_3d = int(self.cells[self.slice_axis]/2)
 
         # Gravity set-up
         self.self_gravity = self.ext_gravity = False

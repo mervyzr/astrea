@@ -172,7 +172,7 @@ def method_convert_intf(grid_form, grid, sim_variables, axis):
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         for idx, expansion in enumerate(executor.map(laplacian, repeat(grid), repeat(sim_variables), ortho_axes)):
-            base += coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24 * expansion
+            base += coeff * (sim_variables.ds[ortho_axes[idx]]**2)/24 * expansion
     return base
 
 
@@ -190,7 +190,7 @@ def approx_flux_avg(cntrd_fluxes, avgd_fluxes, sim_variables, axis):
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         for idx, flux_avg in enumerate(executor.map(laplacian, repeat(avgd_fluxes), repeat(sim_variables), ortho_axes)):
-            cntrd_fluxes -= (sim_variables.ds[ortho_axes[idx]]**2)/24 * flux_avg
+            cntrd_fluxes += (sim_variables.ds[ortho_axes[idx]]**2)/24 * flux_avg
     return cntrd_fluxes
 
 
