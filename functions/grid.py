@@ -221,12 +221,8 @@ def method_convert_intf(grid_form, grid, sim_variables, axis):
     elif grid_form.lower().startswith('p'):
         coeff = 1  # point -> averaged
 
-    # !! The Laplacian is taken along ortho_axes but ds is indexed by sim_variables.axes[idx],
-    # !! which is a different axis whenever ortho_axes != axes[:len(ortho_axes)]. Harmless on a
-    # !! uniform grid, wrong when ds differs per axis. Behaviour preserved here deliberately;
-    # !! flagged rather than changed because fixing it changes results.
     add_laplacians(base, grid, sim_variables, ortho_axes,
-                   [coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24 for idx in range(len(ortho_axes))])
+                   [coeff * (sim_variables.ds[ortho_axes[idx]]**2)/24 for idx in range(len(ortho_axes))])
     return base
 
 
@@ -243,7 +239,7 @@ def approx_flux_avg(cntrd_fluxes, avgd_fluxes, sim_variables, axis):
     ortho_axes = sim_variables.axes[sim_variables.axes != axis]
 
     add_laplacians(cntrd_fluxes, avgd_fluxes, sim_variables, ortho_axes,
-                   [-(sim_variables.ds[ortho_axes[idx]]**2)/24 for idx in range(len(ortho_axes))])
+                   [(sim_variables.ds[ortho_axes[idx]]**2)/24 for idx in range(len(ortho_axes))])
     return cntrd_fluxes
 
 

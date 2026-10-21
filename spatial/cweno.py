@@ -13,20 +13,29 @@ from numkit import kernels, limiters, solvers
 
 # Build the Riemann-solver keyword arguments, skipping anything the configured solver does not
 # read. approx_face_avg costs two full-size arrays and four Laplacians per pair per axis, so
-# for a solver like Lax-Friedrich that never touches prim_interfaces it is pure waste.
+# nothing is converted that the solver will not use.
 def _solver_kwargs(sim_variables, axis, wavespeeds, jacobian, prim, cons, flux, face_avg=False):
     inputs = solvers.solver_inputs(sim_variables)
     kwargs = {'wavespeeds': wavespeeds}
 
+    if face_avg:
+        # Fluxes are evaluated from the interface-centred states; converting F(<w>) is only 2nd-order accurate
+        if "prim" in inputs or "flux" in inputs:
+            prim = gutils.approx_face_avg(prim, sim_variables, axis)
+        if "cons" in inputs:
+            cons = gutils.approx_face_avg(cons, sim_variables, axis)
+        if "flux" in inputs:
+            flux = [numeric.compute_flux(state, sim_variables, axis=axis) for state in prim]
+
     for key, pair in (("prim", prim), ("cons", cons), ("flux", flux)):
         if key in inputs:
-            kwargs[f'{key}_interfaces'] = gutils.approx_face_avg(pair, sim_variables, axis) if face_avg else pair
+            kwargs[f'{key}_interfaces'] = pair
 
     if "jacobian" in inputs:
         kwargs['jacobian'] = gutils.slice_(jacobian, axis, *[1,-1])
     return kwargs
 
-def reconstruct(grid, sim_variables, axis, power=2, limit=False):
+def reconstruct(grid, sim_variables, axis, power=2, limit=False, gauss=False):
     """CWENO reconstruction from cell averages to face averages (both sides) [Verma et al., 2018]
 
     |                        w(i-1/2)                    w(i+1/2)                       |
@@ -39,15 +48,17 @@ def reconstruct(grid, sim_variables, axis, power=2, limit=False):
     full-size arrays, and it was the single largest remaining cost in the RHS. Verified
     bit-identical to that form for CWENO and CWENOZ over 1/2/3 dimensions, every axis and all
     three boundary modes.
+
+    With gauss, the values at the 2-point Gauss-Legendre points of each cell instead (see gauss_interfaces).
     """
     wL, wR = kernels.cweno_reconstruct(
         grid, axis, sim_variables.eps, kernels.bc_code(sim_variables),
         power=power, wenoz=sim_variables.subgrid.endswith("z"),
+        gauss=gauss, positive=(sim_variables.rho, sim_variables.pressure) if (gauss and limit) else (),
     )
 
-    # Apply positivity-preserving limiter. Left out of the kernel because it keys off a global
-    # minimum over the reconstructed array, so it cannot be known until reconstruction is done
-    if limit:
+    # Apply positivity-preserving limiter at the interfaces (the kernel does it at the Gauss points)
+    if limit and not gauss:
         wR = limiters.w2012(grid, wR, sim_variables)
         wL = limiters.w2012(grid, wL, sim_variables)
 
@@ -67,12 +78,6 @@ def run(grid, sim_variables, axis):
     assign_interfaces = ct.assign_interfaces if magnetic else gutils.assign_interfaces
     prim_plus, prim_minus = assign_interfaces((wL, wR), grid, sim_variables, axis)
 
-    # Convert the primitive variables at the interface
-    cons_plus, cons_minus = gutils.variable_convert_intf("primitive", prim_plus, sim_variables, axis=axis), gutils.variable_convert_intf("primitive", prim_minus, sim_variables, axis=axis)
-
-    # Compute the fluxes
-    flux_plus, flux_minus = numeric.compute_flux(prim_plus, sim_variables, axis=axis), numeric.compute_flux(prim_minus, sim_variables, axis=axis)
-
     # Wave speeds at the interfaces from the Roe-averaged state. Only Lax-Wendroff and GFORCE
     # need the averaged state itself, to build the Jacobian from; every other solver needs
     # nothing but the wave speeds, so neither it nor its padded copy is materialised
@@ -85,26 +90,48 @@ def run(grid, sim_variables, axis):
         wavespeeds = numeric.compute_roe_wavespeed_bounds((prim_plus, prim_minus), sim_variables, axis)
         jacobian = None
 
-    # Calculate the interface-averaged fluxes
-    intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **_solver_kwargs(
-        sim_variables, axis, wavespeeds, jacobian,
-        (prim_plus, prim_minus), (cons_plus, cons_minus), (flux_plus, flux_minus),
-    ))
+    if multidimensional and sim_variables.gauss_quadrature:
+        # Integrate the point-wise fluxes over the interface with Gauss-Legendre quadrature instead of the Laplacian
+        # corrections below; the wave speeds from the interface averages are shared by all Gauss points
+        inputs = solvers.solver_inputs(sim_variables)
+        intf_fluxes_cntrd = 0
+        for weight, gauss_interface in gauss_interfaces((prim_plus, prim_minus), sim_variables, sim_variables.axes[sim_variables.axes != axis]):
+            gauss_cons = [gutils.variable_point_convert("primitive", state, sim_variables) for state in gauss_interface] if "cons" in inputs else None
+            gauss_flux = [numeric.compute_flux(state, sim_variables, axis=axis) for state in gauss_interface] if "flux" in inputs else None
+            gauss_fluxes = Riemann_solver(axis, sim_variables, **_solver_kwargs(
+                sim_variables, axis, wavespeeds, jacobian, gauss_interface, gauss_cons, gauss_flux,
+            ))
 
-    # Compute the orthogonal L/R Riemann states and fluxes at higher-order accuracy
-    if multidimensional:
-        # Calculate the interface-centred fluxes
-        intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **_solver_kwargs(
+            # Weighted in place, so no full-size temporary is made per point
+            gauss_fluxes *= weight
+            intf_fluxes_cntrd += gauss_fluxes
+    else:
+        # Convert the primitive variables at the interface
+        cons_plus, cons_minus = gutils.variable_convert_intf("primitive", prim_plus, sim_variables, axis=axis), gutils.variable_convert_intf("primitive", prim_minus, sim_variables, axis=axis)
+
+        # Compute the fluxes
+        flux_plus, flux_minus = numeric.compute_flux(prim_plus, sim_variables, axis=axis), numeric.compute_flux(prim_minus, sim_variables, axis=axis)
+
+        # Calculate the interface-averaged fluxes
+        intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **_solver_kwargs(
             sim_variables, axis, wavespeeds, jacobian,
             (prim_plus, prim_minus), (cons_plus, cons_minus), (flux_plus, flux_minus),
-            face_avg=True,
         ))
 
-        # Compute the higher-order fluxes
-        intf_fluxes_cntrd = gutils.approx_flux_avg(intf_fluxes_cntrd, intf_fluxes_avgd, sim_variables, axis)
-    else:
-        # Orthogonal Laplacian in 1d is zero
-        intf_fluxes_cntrd = intf_fluxes_avgd
+        # Compute the orthogonal L/R Riemann states and fluxes at higher-order accuracy
+        if multidimensional:
+            # Calculate the interface-centred fluxes
+            intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **_solver_kwargs(
+                sim_variables, axis, wavespeeds, jacobian,
+                (prim_plus, prim_minus), (cons_plus, cons_minus), (flux_plus, flux_minus),
+                face_avg=True,
+            ))
+
+            # Compute the higher-order fluxes
+            intf_fluxes_cntrd = gutils.approx_flux_avg(intf_fluxes_cntrd, intf_fluxes_avgd, sim_variables, axis)
+        else:
+            # Orthogonal Laplacian in 1d is zero
+            intf_fluxes_cntrd = intf_fluxes_avgd
 
     # Compute flux difference for hydrodynamic components
     fluxes = np.diff(intf_fluxes_cntrd, axis=axis)/ds
@@ -113,6 +140,17 @@ def run(grid, sim_variables, axis):
         return fluxes, wavespeeds, (gutils.slice_(prim_plus, axis, start=1), gutils.slice_(prim_minus, axis, end=-1))
     else:
         return fluxes, wavespeeds, None
+
+
+# Reconstruct the interface-averaged (+) & (-) states to the tensor-product Gauss-Legendre points on the interface, one orthogonal axis at a time
+# Generates the quadrature weight with the (+) & (-) point values at each Gauss point (2 points in 2D, 4 in 3D), so the fluxes can be accumulated one point at a time
+def gauss_interfaces(interfaces, sim_variables, ortho_axes, weight=1):
+    if len(ortho_axes) == 0:
+        yield weight, interfaces
+    else:
+        gauss_points = [reconstruct(interface, sim_variables, ortho_axes[0], limit=True, gauss=True) for interface in interfaces]
+        for gauss_interface in zip(*gauss_points):
+            yield from gauss_interfaces(gauss_interface, sim_variables, ortho_axes[1:], .5*weight)
 
 
 # [Levy et al., 1999]

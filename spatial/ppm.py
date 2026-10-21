@@ -13,14 +13,23 @@ from numkit import limiters, solvers
 
 # Build the Riemann-solver keyword arguments, skipping anything the configured solver does not
 # read. approx_face_avg costs two full-size arrays and four Laplacians per pair per axis, so
-# for a solver like Lax-Friedrich that never touches prim_interfaces it is pure waste.
+# nothing is converted that the solver will not use.
 def _solver_kwargs(sim_variables, axis, wavespeeds, jacobian, prim, cons, flux, face_avg=False):
     inputs = solvers.solver_inputs(sim_variables)
     kwargs = {'wavespeeds': wavespeeds}
 
+    if face_avg:
+        # Fluxes are evaluated from the interface-centred states; converting F(<w>) is only 2nd-order accurate
+        if "prim" in inputs or "flux" in inputs:
+            prim = gutils.approx_face_avg(prim, sim_variables, axis)
+        if "cons" in inputs:
+            cons = gutils.approx_face_avg(cons, sim_variables, axis)
+        if "flux" in inputs:
+            flux = [numeric.compute_flux(state, sim_variables, axis=axis) for state in prim]
+
     for key, pair in (("prim", prim), ("cons", cons), ("flux", flux)):
         if key in inputs:
-            kwargs[f'{key}_interfaces'] = gutils.approx_face_avg(pair, sim_variables, axis) if face_avg else pair
+            kwargs[f'{key}_interfaces'] = pair
 
     if "jacobian" in inputs:
         kwargs['jacobian'] = gutils.slice_(jacobian, axis, *[1,-1])
