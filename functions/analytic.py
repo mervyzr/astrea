@@ -56,7 +56,7 @@ def calculate_solution_error(grid, sim_variables, norm):
         if norm <= 0:
             solution_errors = normalising_factor * np.sum(np.abs(w_num-w_theo), axis=tuple(axes))
         else:
-            solution_errors = normalising_factor * (np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(axes)))**(1/norm)
+            solution_errors = (normalising_factor * np.sum(np.abs(w_num-w_theo)**norm, axis=tuple(axes)))**(1/norm)
 
     return {
         'density': solution_errors[...,rho],

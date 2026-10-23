@@ -201,7 +201,7 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
 
     # Generate the grid size; if using --test, then a list of increasing power-2 grid sizes is automatically generated
     if sim_variables.test:
-        _range = 2**np.arange(3,11)
+        _range = 2**np.arange(4,11)
         if sim_variables.multidimensional:
             _range = _range[:-2]
         grid_sizes = np.array([_range,] * sim_variables.dimensions).T
@@ -230,6 +230,7 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
             sim_variables.now = now
             sim_variables.cells = grid_size
             sim_variables.ds = {ax: np.abs(np.diff(sim_variables.coordinates[ax]))/grid_size[ax] for ax in range(len(grid_size))}
+            sim_variables.timesteps = 0
 
             # Save simulation variables into HDF5 file
             if sim_variables.record_all_steps:
@@ -251,6 +252,8 @@ def run(seed=SEED, save_dir=SAVE_DIR) -> None:
             elapsed, cpu_elapsed = perf_counter() - lap, process_time() - cpu_start
 
             ################### CORE ###################
+
+            sim_variables.axes = np.array(range(sim_variables.dimensions))
 
             # Save attributes after individual run is completed
             sim_variables.elapsed, sim_variables.cpu_elapsed = elapsed, cpu_elapsed

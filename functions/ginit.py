@@ -83,7 +83,7 @@ def initialise(sim_variables):
                 computational_grid[...,rho] = mfuncs.sine_func(r, test_specifics)
 
             elif config.startswith('gauss'):
-                computational_grid[...,rho] = mfuncs.gauss_func(r, test_specifics)
+                computational_grid[...,rho] = mfuncs.gauss_func((x0, y0, z0), [np.diff(coordinates[ax])[0] for ax in range(3)], test_specifics)
 
             elif match(any, ['manufacture', 'euler']):
                 Lx, Ly, Lz = np.diff(coordinates[0]), np.diff(coordinates[1]), np.diff(coordinates[2])
@@ -216,7 +216,7 @@ def initialise(sim_variables):
                 computational_grid[...,rho] = mfuncs.sine_func(r, test_specifics)
 
             elif config.startswith('gauss'):
-                computational_grid[...,rho] = mfuncs.gauss_func(r, test_specifics)
+                computational_grid[...,rho] = mfuncs.gauss_func((x0, y0), [np.diff(coordinates[ax])[0] for ax in range(2)], test_specifics)
 
             elif match(any, ['manufacture', 'euler']):
                 Lx, Ly = np.diff(coordinates[0]), np.diff(coordinates[1])
@@ -478,7 +478,7 @@ def initialise(sim_variables):
         elif config.startswith('sin'):
             computational_grid[...,rho] = mfuncs.sine_func(x, test_specifics)
         elif config.startswith('gauss'):
-            computational_grid[...,rho] = mfuncs.gauss_func(x-test_specifics['peak_pos'], test_specifics)
+            computational_grid[...,rho] = mfuncs.gauss_func((x-test_specifics['peak_pos'],), [np.diff(coordinates[0])[0]], test_specifics)
         elif match(any, ['manufacture', 'euler']):
                 Lx = np.diff(coordinates[0])
                 freq = test_specifics['freq']

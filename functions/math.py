@@ -7,12 +7,13 @@ import numpy as np
 # Math functions
 ##############################################################################
 
-# Generic Gaussian function
-def gauss_func(r, test_specifics):
-    return test_specifics['y_offset'] + test_specifics['ampl']*np.exp(-(r**2)/test_specifics['fwhm'])
+# Generic Gaussian function, summed over the periodic images of the domain (per axis) so it stays smooth across periodic boundaries
+def gauss_func(offsets, lengths, test_specifics):
+    images = [sum(np.exp(-(offset - m*length)**2/test_specifics['fwhm']) for m in (-1, 0, 1)) for offset, length in zip(offsets, lengths)]
+    return test_specifics['y_offset'] + test_specifics['ampl']*np.prod(images, axis=0)
 
 
-# Generic sin function
+# Generic sine function
 def sine_func(r, test_specifics):
     return test_specifics['y_offset'] + test_specifics['ampl']*np.sin(test_specifics['freq']*np.pi*r)
 
