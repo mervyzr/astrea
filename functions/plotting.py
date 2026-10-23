@@ -664,7 +664,7 @@ def plot_quantities(hdf5, sim_variables, title=False):
                                 extent=extent, 
                                 levels=np.linspace(np.min(y_theo[idx]), np.max(y_theo[idx]), 5),
                             )
-                        except ValueError:
+                        except Exception as e:
                             pass
                 else:
                     x = np.linspace(*box_length, cells[0])
