@@ -1,5 +1,3 @@
-from multiprocessing import shared_memory
-
 import numpy as np
 
 from functions import math as mfuncs
@@ -499,9 +497,5 @@ def initialise(sim_variables):
     # Use higher-order interpolation for averaged values if higher-order scheme is used
     if sim_variables.grid_interpolate:
         computational_grid = gutils.method_convert_cell('point', computational_grid, sim_variables)
-
-    # Pad the grid with guard zones based on the subgrid model
-    #padding = [(guard,guard)] * (computational_grid.ndim-1) + [(0,0)]
-    #computational_grid = np.pad(computational_grid, padding, mode=boundary)
 
     return computational_grid

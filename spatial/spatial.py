@@ -8,15 +8,6 @@ from spatial import pcm, plm, ppm, weno, cweno, wenoz, teno
 ##############################################################################
 # Collates and controls space evolution
 ##############################################################################
-# The axis sweeps used to run concurrently on a ThreadPoolExecutor. They are serial now, for
-# two reasons. Their temporaries were co-resident, which set the peak footprint at roughly
-# three times one sweep's working set -- measured 74x the state array with three threads
-# against 34x with one, i.e. the difference between 256^3 fitting in 64 GB and not. And the
-# reconstruction now calls numba kernels, whose threading layer here is workqueue, which is
-# not thread safe and aborts the process if a parallel kernel is entered from more than one
-# Python thread. The parallelism moved inside the kernels, where it is over cells rather than
-# over three axes, so there is more of it available than there was.
-
 
 # Pick the per-axis reconstruction routine for the configured subgrid model
 def get_runner(sim_variables):
@@ -80,9 +71,6 @@ def evolve(grid, sim_variables, first_stage=False):
         )
 
     # Calculate the total fluxes through all upwind surfaces [F(i+1/2,j,k) - F(i-1/2,j,k)]/dx, [G(i,j+1/2,k) - G(i,j-1/2,k)]/dy, [H(i,j,k+1/2) - H(i,j,k-1/2)]/dz
-    # Accumulated in place: np.sum over a tuple of arrays first stacks them into a
-    # (naxes,N,N,N,8) temporary, 3 GiB at 256^3, and then allocates the negation on top.
-    # Negation is exact so ((-a)-b)-c is bit-identical to -((a+b)+c)
     total_flux = -fluxes[0]
     for flux in fluxes[1:]:
         total_flux -= flux

@@ -31,9 +31,7 @@ def nan_to_num(arr, eps=1e-16):
 # For handling division-by-zero warnings during array divisions
 # !! MONITOR THE PHYSICS WHEN USING THIS; ZEROS IN DIVISOR MIGHT MEAN YOUR CODE IS INCORRECT !!
 # The result buffer is left uninitialised and only the masked-out (zero-divisor) entries are
-# written afterwards. Pre-filling it with 1/eps, as this used to, wrote a full-size buffer that
-# was then almost entirely overwritten: measured 3.4x slower, and this is called ~100 times per
-# timestep on full grids. Pass out= to write into an existing buffer.
+# written afterwards. Pass out= to write into an existing buffer.
 def divide(dividend, divisor, eps=1e-16, out=None):
     dividend, divisor = np.real(dividend), np.real(divisor)
 
@@ -65,16 +63,11 @@ def sqrt(arr):
 
 
 # For handling norms; typically would always be using the last axis
-# einsum rather than np.linalg.norm: measured 5.1x faster on a full grid. np.linalg.norm
-# rescales to avoid intermediate overflow, which only matters for |arr| > ~1e154 and so
-# cannot arise for physical states here.
 def norm(arr):
     return np.sqrt(norm2(arr))
 
 
 # Same as norm, but returns the squared value
-# Note this is the primitive: squaring np.linalg.norm took a square root and then undid it,
-# which is both slower and less accurate than summing the squares directly.
 def norm2(arr):
     return np.einsum('...i,...i->...', arr, arr)
 
