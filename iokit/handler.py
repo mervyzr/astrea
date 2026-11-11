@@ -62,16 +62,19 @@ def check_init(basedir):
     try:
         import git
         import h5py
-        import yaml
-        import numpy
-        import scipy
-        import tinydb
-        import dotenv
-        import pynvml
-        import skimage
-        import tabulate
         import matplotlib
+        import numba
+        import numpy
+        import pynvml
+        import psutil
+        import pycairo
+        import dotenv
+        import yaml
+        import skimage
+        import scipy
+        import tabulate
         import threadpoolctl
+        import tinydb
     except Exception:
         print(f"{BColours.FAIL}Unable to import some modules. Check if installation is installed properly!{BColours.ENDC}")
     else:

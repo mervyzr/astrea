@@ -66,10 +66,7 @@ utilities/*.png
 utilities/*.pdf
 
 # chemistry files
-!physics/krome/build
-physics/krome/build/*.mod
-physics/krome/build/*.o
-physics/krome/build/test
+physics/krome/build
 physics/pychem
 physics/chimes
 KROME_ERROR_REPORT

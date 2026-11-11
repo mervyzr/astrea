@@ -6,7 +6,6 @@ import shutil
 import signal
 import warnings
 import traceback
-import tracemalloc
 from pathlib import Path
 from datetime import datetime
 from time import perf_counter, process_time
@@ -67,8 +66,6 @@ def core_run(grid, sim_variables, t=0., chkpt_idx=1):
     # Activates only when checkpoints > 0; checkpoints still required to be > 0 for simulation to run
     chkpt = sim_variables.t_end/sim_variables.checkpoints if sim_variables.checkpoints > 0 else sim_variables.t_end
     create_chkpt_file = True if sim_variables.write_chkpt else False
-
-    #tracemalloc.start()
 
     # ----- Update loop --------------------------------------------------------
 
@@ -158,8 +155,6 @@ def core_run(grid, sim_variables, t=0., chkpt_idx=1):
 
     # ----- End loop -----------------------------------------------------------
 
-            #current, peak = tracemalloc.get_traced_memory()
-    #tracemalloc.stop()
 
 ##############################################################################
 
