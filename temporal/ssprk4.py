@@ -1,5 +1,3 @@
-import numpy as np
-
 ##############################################################################
 # (Strong stability-preserving) Runge-Kutta 4 time integration (4th-order)
 ##############################################################################
@@ -11,26 +9,24 @@ def run(sevolve_func, grid, fluxes, dt, sim_variables, **kwargs):
         register = 5
 
     if register == 10:
-        # Evolve system by SSP-RK (10,4) method (4th-order) [Ketcheson, 2008]
+        # Evolve system by SSP-RK (10,4) method (4th-order) [Ketcheson, 2008, low-storage form]
         # SSP coeff = 6, effective SSP coeff = 0.6
+        k = grid + 1/6*dt*fluxes
+
         # Computation of i-th registers (i = 1,2,3,4)
-        k = np.copy(grid)
-        for _ in range(5):
-            k += 1/6*dt*fluxes
-            fluxes = sevolve_func(k, sim_variables)
+        for _ in range(4):
+            k += 1/6*dt*sevolve_func(k, sim_variables)
 
         # Computation of 5th register
-        k5 = 3/5*grid + 6/15*k + 1/15*dt*fluxes
-        fluxes = sevolve_func(k5, sim_variables)
+        k5 = 1/25*grid + 9/25*k
+        k = 15*k5 - 5*k
 
         # Computation of i-th registers (i = 6,7,8,9)
-        _k = np.copy(k5)
         for _ in range(4):
-            _k += 1/6*dt*fluxes
-            fluxes = sevolve_func(_k, sim_variables)
+            k += 1/6*dt*sevolve_func(k, sim_variables)
 
-        # Computation of 10th register
-        return -11/35*grid + 5/7*k5 + 3/5*_k + 1/10*dt*fluxes
+        # Computation of the 10th stage
+        return k5 + 3/5*k + 1/10*dt*sevolve_func(k, sim_variables)
 
     else:
         # Evolve system by SSP-RK (5,4) method (4th-order) [Kraaijevanger, 1991; Spiteri & Ruuth, 2002; Gottlieb et al., 2008]
