@@ -67,7 +67,7 @@ def check_init(basedir):
         import numpy
         import pynvml
         import psutil
-        import pycairo
+        import cairo
         import dotenv
         import yaml
         import skimage
