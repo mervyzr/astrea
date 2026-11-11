@@ -35,237 +35,84 @@ def get_Riemann_solver(sim_variables):
             return calculate_LaxFriedrich_flux
 
 
-# Which of the interface quantities each solver actually reads. The multidimensional runners
-# feed the solver a second time with face-averaged inputs, and each of those is built by
-# gutils.approx_face_avg out of two full-size arrays and four Laplacians per axis. The default
-# Lax-Friedrich solver never looks at prim_interfaces, so building it is pure waste; likewise
-# the Jacobian, an (N,N,N,8,8) allocation (8 GiB per axis at 256^3), is read by only two of
-# the eight solvers. Keep these in step with the kwargs each function below unpacks.
-SOLVER_INPUTS = {}
+# Compute fluxes from the (plus, minus) interface states
+def riemann_flux(axis, sim_variables, wavespeeds, prim, cons=None, convert=None):
+    Riemann_solver = get_Riemann_solver(sim_variables)
+
+    if cons is None:
+        if convert is None:
+            convert = lambda state: gutils.variable_convert_intf("primitive", state, sim_variables, axis=axis)
+        cons = [convert(state) for state in prim]
+
+    return Riemann_solver(axis, sim_variables, wavespeeds=wavespeeds, prim_interfaces=prim, cons_interfaces=cons)
 
 
-def _declare_inputs(solver, *inputs):
-    SOLVER_INPUTS[solver] = frozenset(inputs)
-    return solver
+# Interface fluxes of the higher-order schemes: the solver on the face-averaged states, with the transverse face-centred states combined into the higher-order face-averaged flux
+def higher_order_flux(axis, sim_variables, wavespeeds, prim):
+    cons = [gutils.variable_convert_intf("primitive", state, sim_variables, axis=axis) for state in prim]
+
+    # Calculate the interface-averaged fluxes
+    intf_fluxes_avgd = riemann_flux(axis, sim_variables, wavespeeds, prim, cons=cons)
+    if not sim_variables.multidimensional:
+        # Orthogonal Laplacian in 1d is zero
+        return intf_fluxes_avgd
+
+    # Fluxes are evaluated from the interface-centred states; converting F(<w>) is only 2nd-order accurate
+    prim = gutils.approx_face_avg(prim, sim_variables, axis)
+    cons = gutils.approx_face_avg(cons, sim_variables, axis)
+    intf_fluxes_cntrd = riemann_flux(axis, sim_variables, wavespeeds, prim, cons=cons)
+
+    # Compute the higher-order fluxes
+    return gutils.approx_flux_avg(intf_fluxes_cntrd, intf_fluxes_avgd, sim_variables, axis)
 
 
-# What the configured solver needs; 'prim', 'cons', 'flux' and 'jacobian'
-def solver_inputs(sim_variables):
-    return SOLVER_INPUTS[get_Riemann_solver(sim_variables)]
-
-
-def needs_jacobian(sim_variables):
-    return "jacobian" in solver_inputs(sim_variables)
+# Arguments shared by the kernel-backed solvers
+def _kernel_args(sim_variables, kwargs):
+    return kwargs["prim_interfaces"], kwargs["cons_interfaces"], sim_variables.gamma, sim_variables.constants.mu_0
 
 
 # (Local) Lax-Friedrich solver (1st-order; highly diffusive) [Lax & Friedrichs, ?; Mignone & Del Zanna, 2021]
 def calculate_LaxFriedrich_flux(axis, sim_variables, **kwargs):
-    cons_plus, cons_minus = kwargs["cons_interfaces"]
-    flux_plus, flux_minus = kwargs["flux_interfaces"]
-    normal, dominant = numeric.unpack_wavespeeds(kwargs["wavespeeds"])
-
-    # Local max eigenvalue for each interface (1- or 3-Riemann invariant; shock wave or rarefaction wave)
-    local_max_eigvals = np.abs(normal) + dominant
-
-    # Handed to a kernel: the pairwise maxima, their average and the flux expression were six
-    # full-size arrays, and this runs twice per axis per stage. Bit-identical to that form
-    return kernels.lax_friedrich(
-        local_max_eigvals, cons_plus, cons_minus, flux_plus, flux_minus, axis
-    )
+    prim, cons, gamma, permeability = _kernel_args(sim_variables, kwargs)
+    return kernels.lax_friedrich(prim, cons, kwargs["wavespeeds"], gamma, permeability, axis)
 
 
-# Lax-Wendroff (Richtmyer) solver (2nd-order, Jacobian method; contains overshoots) [Lax & Wendroff, 1960; Mignone & Del Zanna, 2021]
+# Lax-Wendroff (Richtmyer two-step) solver (2nd-order; contains oscillations) [Lax & Wendroff, 1960; Mignone & Del Zanna, 2021, eq. 48]
+# F = F(U^LW) with U^LW = (U- + U+)/2 - (tau/2)(F+ - F-), and tau = 1/a for the local maximum signal speed a
 def calculate_LaxWendroff_flux(axis, sim_variables, **kwargs):
-    cons_plus, cons_minus = kwargs["cons_interfaces"]
-    flux_plus, flux_minus = kwargs["flux_interfaces"]
-    normal, dominant = numeric.unpack_wavespeeds(kwargs["wavespeeds"])
-    jacobian = kwargs["jacobian"]
-
-    local_max_eigvals = np.abs(normal) + dominant
-    plus = np.maximum(
-        gutils.slice_(local_max_eigvals, axis, start=2),
-        gutils.slice_(local_max_eigvals, axis, *[1,-1]),
-    )
-    minus = np.maximum(
-        gutils.slice_(local_max_eigvals, axis, *[1,-1]),
-        gutils.slice_(local_max_eigvals, axis, end=-2),
-    )
-    max_eigvals = .5 * (plus + minus)
-
-    return .5*(flux_minus+flux_plus) - .5*((cons_plus-cons_minus) * max_eigvals[...,None]) + .5*(jacobian * (cons_plus-cons_minus)[...,None])[...,0]
+    prim, cons, gamma, permeability = _kernel_args(sim_variables, kwargs)
+    return kernels.gforce(prim, cons, kwargs["wavespeeds"], gamma, permeability, axis, weight=1.)
 
 
-# GFORCE solver [Toro & Titarev, 2006; Mignone & Del Zanna, 2021]
+# GFORCE solver [Toro & Titarev, 2006; Mignone & Del Zanna, 2021, eq. 47-49]
+# omega*F^LW + (1-omega)*F^LF with omega = 1/(1+c) for the Courant number c (to keep it monotone)
 def calculate_gForce_flux(axis, sim_variables, **kwargs):
-    wg = 1/(1+sim_variables.cfl)
-    return wg*calculate_LaxWendroff_flux(axis, sim_variables, **kwargs) + (1-wg)*calculate_LaxFriedrich_flux(axis, sim_variables, **kwargs)
+    prim, cons, gamma, permeability = _kernel_args(sim_variables, kwargs)
+    return kernels.gforce(prim, cons, kwargs["wavespeeds"], gamma, permeability, axis, weight=1/(1+sim_variables.cfl))
 
 
 # HLL Riemann solver [Harten, Lax & van Leer, 1983]
 def calculate_HLL_flux(axis, sim_variables, **kwargs):
-    cons_plus, cons_minus = kwargs["cons_interfaces"]
-    flux_plus, flux_minus = kwargs["flux_interfaces"]
-    normal, dominant = numeric.unpack_wavespeeds(kwargs["wavespeeds"])
-
-    local_max_eigvals, local_min_eigvals = normal + dominant, normal - dominant
-    max_eigvals, min_eigvals = gutils.slice_(local_max_eigvals, axis, *[1,-1]), gutils.slice_(local_min_eigvals, axis, *[1,-1])
-    alpha_plus, alpha_minus = np.maximum(0, max_eigvals)[...,None], -np.minimum(0, min_eigvals)[...,None]
-
-    return mfuncs.divide((flux_minus*alpha_plus + flux_plus*alpha_minus) - (alpha_plus*alpha_minus*(cons_plus-cons_minus)), alpha_plus+alpha_minus)
+    prim, cons, gamma, permeability = _kernel_args(sim_variables, kwargs)
+    return kernels.hll(prim, cons, kwargs["wavespeeds"], gamma, permeability, axis)
 
 
 # HLLC Riemann solver [Fleischmann et al., 2020]
 def calculate_HLLC_flux(axis, sim_variables, low_mach=False, **kwargs):
-    Ma_limit = .1
-    rho, pressure, gamma = sim_variables.rho, sim_variables.pressure, sim_variables.gamma
-    energy = pressure
-
-    prim_plus, prim_minus = kwargs["prim_interfaces"]
-    cons_plus, cons_minus = kwargs["cons_interfaces"]
-    flux_plus, flux_minus = kwargs["flux_interfaces"]
-
-    """The convention here uses L & R states, i.e. L state = w-, R state = w+
-        |                        w(i-1/2)                    w(i+1/2)                       |
-        |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
-        |   w_R(i-1)     w_L(i-1)   |   w_R(i)         w_L(i)   |   w_R(i+1)     w_L(i+1)   |
-    --> |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
-    """
-    rhoL, uL, pL, qL = prim_minus[...,rho], prim_minus[...,1+axis], prim_minus[...,pressure], cons_minus
-    rhoR, uR, pR, qR = prim_plus[...,rho], prim_plus[...,1+axis], prim_plus[...,pressure], cons_plus
-
-    # Compute the wavespeeds
-    cs_L = numeric.compute_wavespeeds(prim_minus, sim_variables, axis, waves='cs')
-    cs_R = numeric.compute_wavespeeds(prim_plus, sim_variables, axis, waves='cs')
-    sL = np.minimum(0, np.minimum(uL, uR) - np.maximum(cs_L, cs_R))
-    sR = np.maximum(0, np.maximum(uL, uR) + np.maximum(cs_L, cs_R))
-    sM = mfuncs.divide(pL - pR + rhoR*uR*(sR-uR) - rhoL*uL*(sL-uL), rhoR*(sR-uR) - rhoL*(sL-uL))
-
-    # Calculate the intermediate states
-    coeffL, coeffR = mfuncs.divide(sL-uL, sL-sM), mfuncs.divide(sR-uR, sR-sM)
-    qL_star, qR_star = qL * coeffL[...,None], qR * coeffR[...,None]
-    qL_star[...,1+axis], qR_star[...,1+axis] = rhoL * coeffL * sM, rhoR * coeffR * sM
-    qL_star[...,energy] = qL_star[...,energy] + coeffL*(sM-uL)*(rhoL*sM + mfuncs.divide(pL, sL-uL))
-    qR_star[...,energy] = qR_star[...,energy] + coeffR*(sM-uR)*(rhoR*sM + mfuncs.divide(pR, sR-uR))
-
-    fLs_star, fRs_star = np.copy(flux_minus), np.copy(flux_plus)
-    fLs_star, fRs_star = fLs_star + (qL_star-qL) * sL[...,None], fRs_star + (qR_star-qR) * sR[...,None]
-
-    # Modification to HLLC solver for low Mach shocks [Fleischmann et al., 2020]
-    if low_mach:
-        cL, cR = np.sqrt(mfuncs.divide(gamma*pL, rhoL)), np.sqrt(mfuncs.divide(gamma*pR, rhoR))
-        Ma_local = np.maximum(np.abs(mfuncs.divide(uL,cL)), np.abs(mfuncs.divide(uR,cR)))
-        phi = np.sin(.5 * np.pi * np.minimum(1, Ma_local/Ma_limit))
-        sL = phi * sL
-        sR = phi * sR
-
-    # Calculate the flux
-    flux = np.copy(flux_plus)
-    flux[(sL <= 0) & (0 < sM)] = fLs_star[(sL <= 0) & (0 < sM)]
-    flux[(sM <= 0) & (0 <= sR)] = fRs_star[(sM <= 0) & (0 <= sR)]
-    flux[sR < 0] = flux_plus[sR < 0]
-    return flux
+    prim, cons, gamma, permeability = _kernel_args(sim_variables, kwargs)
+    return kernels.hllc(prim, cons, gamma, permeability, axis, low_mach=low_mach)
 
 
 # HLLD Riemann solver [Miyoshi & Kusano, 2005]
 def calculate_HLLD_flux(axis, sim_variables, **kwargs):
-    axes = (axis + np.array(range(3)))%3
-    abscissa, ordinate, applicate = axes
-    Bx, By, Bz = 5 + axes
-    momx, momy, momz = 1 + axes
-
-    rho, pressure, vels, Bfields, energy, momentums = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields, sim_variables.energy, sim_variables.momentums
-
-    prim_plus, prim_minus = kwargs["prim_interfaces"]
-    cons_plus, cons_minus = kwargs["cons_interfaces"]
-    flux_plus, flux_minus = kwargs["flux_interfaces"]
-
-    """The convention here uses L & R states, i.e. L state = w-, R state = w+
-        |                        w(i-1/2)                    w(i+1/2)                       |
-        |-->         i-1         <--|-->          i          <--|-->         i+1         <--|
-        |   w_R(i-1)     w_L(i-1)   |   w_R(i)         w_L(i)   |   w_R(i+1)     w_L(i+1)   |
-    --> |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
-    """
-    rhoL, vecL, pL, bL, qL = prim_minus[...,rho], prim_minus[...,vels], prim_minus[...,pressure], prim_minus[...,Bfields], cons_minus
-    rhoR, vecR, pR, bR, qR = prim_plus[...,rho], prim_plus[...,vels], prim_plus[...,pressure], prim_plus[...,Bfields], cons_plus
-    pTL, pTR = pL + .5*mfuncs.norm2(bL), pR + .5*mfuncs.norm2(bR)
-
-    # Compute the wavespeeds
-    cFF_L = numeric.compute_wavespeeds(prim_minus, sim_variables, axis, waves='cff')
-    cFF_R = numeric.compute_wavespeeds(prim_plus, sim_variables, axis, waves='cff')
-    sL = np.minimum(0, np.minimum(vecL[...,abscissa], vecR[...,abscissa]) - np.maximum(cFF_L, cFF_R))
-    sR = np.maximum(0, np.maximum(vecL[...,abscissa], vecR[...,abscissa]) + np.maximum(cFF_L, cFF_R))
-    sM = mfuncs.divide(pTL - pTR + rhoR*vecR[...,axis]*(sR-vecR[...,axis]) - rhoL*vecL[...,axis]*(sL-vecL[...,axis]), rhoR*(sR-vecR[...,axis]) - rhoL*(sL-vecL[...,axis]))
-
-    # Calculate the star states
-    rhoL_star, rhoR_star = rhoL * mfuncs.divide(sL-vecL[...,axis], sL-sM), rhoR * mfuncs.divide(sR-vecR[...,axis], sR-sM)
-    sL_star, sR_star = sM - mfuncs.divide(np.abs(bL[...,axis]), np.sqrt(rhoL_star)), sM + mfuncs.divide(np.abs(bR[...,axis]), np.sqrt(rhoR_star))
-    pT_star = mfuncs.divide(rhoR*pTL*(sR-vecR[...,axis]) - rhoL*pTR*(sL-vecL[...,axis]) + rhoL*rhoR*(sR-vecR[...,axis])*(sL-vecL[...,axis])*(vecR[...,axis]-vecL[...,axis]), rhoR*(sR-vecR[...,axis]) - rhoL*(sL-vecL[...,axis]))
-
-    denom = rhoL * (sL - vecL[...,axis]) * (sL - sM) - prim_minus[...,Bx]**2
-    mask = np.where(mfuncs.divide(np.abs(denom), prim_minus[...,Bx]) < 1e-4)
-    vyL_star, vzL_star = vecL[...,ordinate], vecL[...,applicate]
-    ByL_star, BzL_star = bL[...,ordinate], bL[...,applicate]
-    vyL_star[mask] = vyL_star[mask] - (prim_minus[...,Bx]*bL[...,ordinate]*mfuncs.divide(sM-vecL[...,axis], denom))[mask]
-    vzL_star[mask] = vzL_star[mask] - (prim_minus[...,Bx]*bL[...,applicate]*mfuncs.divide(sM-vecL[...,axis], denom))[mask]
-    ByL_star[mask] = ByL_star[mask] * (mfuncs.divide(rhoL * (sL - vecL[...,axis]) * (sL - vecL[...,axis]) - prim_minus[...,Bx]**2, denom))[mask]
-    BzL_star[mask] = BzL_star[mask] * (mfuncs.divide(rhoL * (sL - vecL[...,axis]) * (sL - vecL[...,axis]) - prim_minus[...,Bx]**2, denom))[mask]
-
-    denom = rhoR * (sR - vecR[...,axis]) * (sR - sM) - prim_plus[...,Bx]**2
-    mask = np.where(mfuncs.divide(np.abs(denom), prim_plus[...,Bx]) < 1e-4)
-    vyR_star, vzR_star = vecR[...,ordinate], vecR[...,applicate]
-    ByR_star, BzR_star = bR[...,ordinate], bR[...,applicate]
-    vyR_star[mask] = vyR_star[mask] - (prim_plus[...,Bx]*bR[...,ordinate]*mfuncs.divide(sM-vecR[...,axis], denom))[mask]
-    vzR_star[mask] = vzR_star[mask] - (prim_plus[...,Bx]*bR[...,applicate]*mfuncs.divide(sM-vecR[...,axis], denom))[mask]
-    ByR_star[mask] = ByR_star[mask] * (mfuncs.divide(rhoR * (sR - vecR[...,axis]) * (sR - vecR[...,axis]) - prim_plus[...,Bx]**2, denom))[mask]
-    BzR_star[mask] = BzR_star[mask] * (mfuncs.divide(rhoR * (sR - vecR[...,axis]) * (sR - vecR[...,axis]) - prim_plus[...,Bx]**2, denom))[mask]
-
-    qL_star, qR_star = np.zeros_like(qL), np.zeros_like(qR)
-    qL_star[...,rho], qR_star[...,rho] = rhoL_star, rhoR_star
-    qL_star[...,momx], qR_star[...,momx] = rhoL * sM, rhoR * sM
-    qL_star[...,momy], qR_star[...,momy] = rhoL * vyL_star, rhoR * vyR_star
-    qL_star[...,momz], qR_star[...,momz] = rhoL * vzL_star, rhoR * vzR_star
-    qL_star[...,Bx], qR_star[...,Bx] = np.copy(qL[...,Bx]), np.copy(qR[...,Bx])
-    qL_star[...,By], qR_star[...,By] = ByL_star, ByR_star
-    qL_star[...,Bz], qR_star[...,Bz] = BzL_star, BzR_star
-    qL_star[...,energy] = mfuncs.divide(qL[...,energy]*(sL-vecL[...,axis]) - pTL*vecL[...,axis] + pT_star*sM + prim_minus[...,Bx]*(np.sum(vecL*bL, axis=-1) - np.sum(mfuncs.divide(qL_star[...,momentums], rhoL[...,None])*qL_star[...,Bfields], axis=-1)), sL-sM)
-    qR_star[...,energy] = mfuncs.divide(qR[...,energy]*(sR-vecR[...,axis]) - pTR*vecR[...,axis] + pT_star*sM + prim_plus[...,Bx]*(np.sum(vecR*bR, axis=-1) - np.sum(mfuncs.divide(qR_star[...,momentums], rhoR[...,None])*qR_star[...,Bfields], axis=-1)), sR-sM)
-
-    fLs_star, fRs_star = np.copy(flux_minus), np.copy(flux_plus)
-    fLs_star, fRs_star = fLs_star + (qL_star - qL) * sL[...,None], fRs_star + (qR_star - qR) * sR[...,None]
-
-    # Calculate the double-star states
-    vy_starstar = mfuncs.divide(vyL_star*np.sqrt(rhoL_star) + vyR_star*np.sqrt(rhoR_star) + np.sign(prim_plus[...,Bx])*(ByR_star-ByL_star), np.sqrt(rhoL_star) + np.sqrt(rhoR_star))
-    vz_starstar = mfuncs.divide(vzL_star*np.sqrt(rhoL_star) + vzR_star*np.sqrt(rhoR_star) + np.sign(prim_plus[...,Bx])*(BzR_star-BzL_star), np.sqrt(rhoL_star) + np.sqrt(rhoR_star))
-    By_starstar = mfuncs.divide(ByR_star*np.sqrt(rhoL_star) + ByL_star*np.sqrt(rhoR_star) + np.sign(prim_plus[...,Bx])*(vyR_star-vyL_star)*np.sqrt(rhoL_star*rhoR_star), np.sqrt(rhoL_star) + np.sqrt(rhoR_star))
-    Bz_starstar = mfuncs.divide(BzR_star*np.sqrt(rhoL_star) + BzL_star*np.sqrt(rhoR_star) + np.sign(prim_plus[...,Bx])*(vzR_star-vzL_star)*np.sqrt(rhoL_star*rhoR_star), np.sqrt(rhoL_star) + np.sqrt(rhoR_star))
-
-    qL_starstar, qR_starstar = np.zeros_like(qL), np.zeros_like(qR)
-    qL_starstar[...,rho], qR_starstar[...,rho] = rhoL_star, rhoR_star
-    qL_starstar[...,momx], qR_starstar[...,momx] = rhoL_star * sM, rhoR_star * sM
-    qL_starstar[...,momy], qR_starstar[...,momy] = rhoL_star * vy_starstar, rhoR_star * vy_starstar
-    qL_starstar[...,momz], qR_starstar[...,momz] = rhoL_star * vz_starstar, rhoR_star * vz_starstar
-    qL_starstar[...,Bx], qR_starstar[...,Bx] = np.copy(qL_star[...,Bx]), np.copy(qR_star[...,Bx])
-    qL_starstar[...,By], qR_starstar[...,By] = By_starstar, By_starstar
-    qL_starstar[...,Bz], qR_starstar[...,Bz] = Bz_starstar, Bz_starstar
-    qL_starstar[...,energy] = np.copy(qL_star[...,energy] - np.sqrt(rhoL_star)*np.sign(prim_plus[...,Bx])*(np.sum(mfuncs.divide(qL_star[...,momentums], rhoL[...,None])*qL_star[...,Bfields], axis=-1) - np.sum(mfuncs.divide(qL_starstar[...,momentums], rhoL_star[...,None])*qL_starstar[...,Bfields], axis=-1)))
-    qR_starstar[...,energy] = np.copy(qR_star[...,energy] + np.sqrt(rhoR_star)*np.sign(prim_plus[...,Bx])*(np.sum(mfuncs.divide(qR_star[...,momentums], rhoR[...,None])*qR_star[...,Bfields], axis=-1) - np.sum(mfuncs.divide(qR_starstar[...,momentums], rhoR_star[...,None])*qR_starstar[...,Bfields], axis=-1)))
-
-    fLs_starstar, fRs_starstar = np.copy(fLs_star), np.copy(fRs_star)
-    fLs_starstar, fRs_starstar = fLs_starstar + (qL_starstar - qL_star) * sL_star[...,None], fRs_starstar + (qR_starstar - qR_star) * sR_star[...,None]
-
-    flux = np.copy(flux_minus)
-    flux[(sL <= 0) & (0 < sL_star)] = fLs_star[(sL <= 0) & (0 < sL_star)]
-    flux[(sL_star <= 0) & (0 < sM)] = fLs_starstar[(sL_star <= 0) & (0 < sM)]
-    flux[(sM <= 0) & (0 < sR_star)] = fRs_starstar[(sM <= 0) & (0 < sR_star)]
-    flux[(sR_star <= 0) & (0 <= sR)] = fRs_star[(sR_star <= 0) & (0 <= sR)]
-    flux[sR < 0] = flux_plus[sR < 0]
-    return flux
+    prim, cons, gamma, permeability = _kernel_args(sim_variables, kwargs)
+    return kernels.hlld(prim, cons, gamma, permeability, axis)
 
 
 # Osher-Solomon(-Dumbser-Toro) Riemann solver [Dumbser & Toro, 2011]
 def calculate_DOTS_flux(axis, sim_variables, **kwargs):
     cons_plus, cons_minus = kwargs["cons_interfaces"]
-    flux_plus, flux_minus = kwargs["flux_interfaces"]
+    flux_plus, flux_minus = [numeric.compute_flux(state, sim_variables, axis=axis) for state in kwargs["prim_interfaces"]]
     roots, weights = sim_variables.roots, sim_variables.weights
 
     # Define the path integral for the Osher-Solomon dissipation term
@@ -435,17 +282,3 @@ def calculate_ES_flux(axis, sim_variables, **kwargs):
     dissipation = abs_A @ entropy_vector[...,None]
 
     return ec_flux + .5 * dissipation.reshape(len(entropy_vector), len(entropy_vector[0]))
-
-
-##############################################################################
-# Declared interface requirements per solver (see SOLVER_INPUTS above)
-##############################################################################
-
-_declare_inputs(calculate_LaxFriedrich_flux, "cons", "flux")
-_declare_inputs(calculate_LaxWendroff_flux, "cons", "flux", "jacobian")
-_declare_inputs(calculate_gForce_flux, "cons", "flux", "jacobian")
-_declare_inputs(calculate_HLL_flux, "cons", "flux")
-_declare_inputs(calculate_HLLC_flux, "prim", "cons", "flux")
-_declare_inputs(calculate_HLLD_flux, "prim", "cons", "flux")
-_declare_inputs(calculate_DOTS_flux, "cons", "flux")
-_declare_inputs(calculate_ES_flux, "prim")
