@@ -4,38 +4,18 @@ from functions import grid as gutils
 from functions import math as mfuncs
 from functions import numeric
 from numkit import c_transport as ct
-from numkit import limiters, solvers
+from numkit import kernels, limiters, solvers
 
 ##############################################################################
 # Piecewise parabolic reconstruction method (PPM) [Colella & Woodward, 1984; McCorquodale & Colella, 2011; Felker & Stone, 2018]
 ##############################################################################
 
 
-# Build the Riemann-solver keyword arguments, skipping anything the configured solver does not
-# read. approx_face_avg costs two full-size arrays and four Laplacians per pair per axis, so
-# nothing is converted that the solver will not use.
-def _solver_kwargs(sim_variables, axis, wavespeeds, jacobian, prim, cons, flux, face_avg=False):
-    inputs = solvers.solver_inputs(sim_variables)
-    kwargs = {'wavespeeds': wavespeeds}
-
-    if face_avg:
-        # Fluxes are evaluated from the interface-centred states; converting F(<w>) is only 2nd-order accurate
-        if "prim" in inputs or "flux" in inputs:
-            prim = gutils.approx_face_avg(prim, sim_variables, axis)
-        if "cons" in inputs:
-            cons = gutils.approx_face_avg(cons, sim_variables, axis)
-        if "flux" in inputs:
-            flux = [numeric.compute_flux(state, sim_variables, axis=axis) for state in prim]
-
-    for key, pair in (("prim", prim), ("cons", cons), ("flux", flux)):
-        if key in inputs:
-            kwargs[f'{key}_interfaces'] = pair
-
-    if "jacobian" in inputs:
-        kwargs['jacobian'] = gutils.slice_(jacobian, axis, *[1,-1])
-    return kwargs
-
 def reconstruct(grid, sim_variables, axis):
+    if sim_variables.ppm_author.casefold().startswith("m"):
+        staggered = 5 + sim_variables.axes if sim_variables.magnetic else ()
+        return kernels.ppm_reconstruct(grid, axis, kernels.get_bci(sim_variables), staggered=staggered)
+
     # Pad array with boundary; PPM requires additional ghost cells
     padded_grid_2 = gutils.add_boundary(grid, sim_variables, stencil=2, axis=axis)
     padded_grid = gutils.slice_(padded_grid_2, axis, *[1,-1])
@@ -98,9 +78,6 @@ def reconstruct(grid, sim_variables, axis):
 def run(grid, sim_variables, axis, eta=None):
     multidimensional, magnetic, ds = sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds[axis]
 
-    Riemann_solver = solvers.get_Riemann_solver(sim_variables)
-    needs_jacobian = solvers.needs_jacobian(sim_variables)
-
     # Parabolic piecewise reconstruction [McCorquodale & Colella, 2011; Colella et al., 2011; Peterson & Hammett, 2008]
     wL, wR = reconstruct(grid, sim_variables, axis)
     if sim_variables.ppm_dissipate:
@@ -111,52 +88,19 @@ def run(grid, sim_variables, axis, eta=None):
     assign_interfaces = ct.assign_interfaces if magnetic else gutils.assign_interfaces
     prim_plus, prim_minus = assign_interfaces((wL, wR), grid, sim_variables, axis)
 
-    # Convert the primitive variables at the interface
-    cons_plus, cons_minus = gutils.variable_convert_intf("primitive", prim_plus, sim_variables, axis=axis), gutils.variable_convert_intf("primitive", prim_minus, sim_variables, axis=axis)
+    # Compute the wavespeeds
+    wavespeeds = numeric.compute_interface_wavespeed_bounds((prim_plus, prim_minus), sim_variables, axis)
 
-    # Compute the fluxes and the Jacobian
-    flux_plus, flux_minus = numeric.compute_flux(prim_plus, sim_variables, axis=axis), numeric.compute_flux(prim_minus, sim_variables, axis=axis)
-
-    # Wave speeds at the interfaces from the Roe-averaged state. Only Lax-Wendroff and GFORCE
-    # need the averaged state itself, to build the Jacobian from; every other solver needs
-    # nothing but the wave speeds, so neither it nor its padded copy is materialised
-    if needs_jacobian:
-        intf_avg = numeric.compute_Roe_average((prim_plus, prim_minus), sim_variables)
-        padded_intf_avg = gutils.add_boundary(intf_avg, sim_variables, axis=axis)
-        wavespeeds = numeric.compute_wavespeed_bounds(padded_intf_avg, sim_variables, axis=axis)
-        jacobian = numeric.compute_jacobian(padded_intf_avg, sim_variables, axis=axis)
-    else:
-        wavespeeds = numeric.compute_roe_wavespeed_bounds((prim_plus, prim_minus), sim_variables, axis)
-        jacobian = None
-
-    # Calculate the interface-averaged fluxes
-    intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **_solver_kwargs(
-        sim_variables, axis, wavespeeds, jacobian,
-        (prim_plus, prim_minus), (cons_plus, cons_minus), (flux_plus, flux_minus),
-    ))
-
-    # Compute the orthogonal L/R Riemann states and fluxes at higher-order accuracy
-    if multidimensional:
-        # Calculate the interface-centred fluxes
-        intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **_solver_kwargs(
-            sim_variables, axis, wavespeeds, jacobian,
-            (prim_plus, prim_minus), (cons_plus, cons_minus), (flux_plus, flux_minus),
-            face_avg=True,
-        ))
-
-        # Compute the higher-order fluxes
-        intf_fluxes_cntrd = gutils.approx_flux_avg(intf_fluxes_cntrd, intf_fluxes_avgd, sim_variables, axis)
-    else:
-        # Orthogonal Laplacian in 1d is zero
-        intf_fluxes_cntrd = intf_fluxes_avgd
+    # Interface fluxes, at higher order from the face-centred states in multiple dimensions
+    intf_fluxes = solvers.higher_order_flux(axis, sim_variables, wavespeeds, (prim_plus, prim_minus))
 
     # Add additional dissipation for strong shocks, if switched on (should not apply for mag. fields) [McCorquodale & Colella, 2011]
     if sim_variables.ppm_dissipate:
         plus_one = gutils.slice_(gutils.add_boundary(grid, sim_variables, axis=axis), axis, start=2)
-        intf_fluxes_cntrd += get_artificial_viscosity((grid, plus_one), axis, sim_variables)
+        intf_fluxes += get_artificial_viscosity((grid, plus_one), axis, sim_variables)
 
     # Compute flux difference for hydrodynamic components
-    fluxes = np.diff(intf_fluxes_cntrd, axis=axis)/ds
+    fluxes = np.diff(intf_fluxes, axis=axis)/ds
 
     if magnetic and multidimensional:
         return fluxes, wavespeeds, (gutils.slice_(prim_plus, axis, start=1), gutils.slice_(prim_minus, axis, end=-1))

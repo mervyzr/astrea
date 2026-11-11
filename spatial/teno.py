@@ -1,10 +1,9 @@
 import numpy as np
 
 from functions import grid as gutils
-from functions import math as mfuncs
 from functions import numeric
 from numkit import c_transport as ct
-from numkit import solvers
+from numkit import kernels, solvers
 
 ##############################################################################
 # TENO reconstruction method [Fu et al., 2016; Fu, 2021]
@@ -12,153 +11,31 @@ from numkit import solvers
 
 # Very sensitive to higher resolutions
 
-# Build the Riemann-solver keyword arguments, skipping anything the configured solver does not
-# read. approx_face_avg costs two full-size arrays and four Laplacians per pair per axis, so
-# nothing is converted that the solver will not use.
-def _solver_kwargs(sim_variables, axis, wavespeeds, jacobian, prim, cons, flux, face_avg=False):
-    inputs = solvers.solver_inputs(sim_variables)
-    kwargs = {'wavespeeds': wavespeeds}
+# Linear weights by number of candidate stencils; note the arrangement vs. WENO: i, i+1, i-1, i+2, i-2, i+3, i-3, ...
+LINEAR_WEIGHTS = {
+    3: (1,),
+    4: (3/6, 3/6),
+    5: (6/10, 3/10, 1/10),
+    6: (9/20, 6/20, 1/20, 4/20),
+    7: (18/35, 9/35, 3/35, 4/35, 1/35),
+    8: (30/70, 18/70, 4/70, 12/70, 1/70, 5/70),
+}
 
-    if face_avg:
-        # Fluxes are evaluated from the interface-centred states; converting F(<w>) is only 2nd-order accurate
-        if "prim" in inputs or "flux" in inputs:
-            prim = gutils.approx_face_avg(prim, sim_variables, axis)
-        if "cons" in inputs:
-            cons = gutils.approx_face_avg(cons, sim_variables, axis)
-        if "flux" in inputs:
-            flux = [numeric.compute_flux(state, sim_variables, axis=axis) for state in prim]
-
-    for key, pair in (("prim", prim), ("cons", cons), ("flux", flux)):
-        if key in inputs:
-            kwargs[f'{key}_interfaces'] = pair
-
-    if "jacobian" in inputs:
-        kwargs['jacobian'] = gutils.slice_(jacobian, axis, *[1,-1])
-    return kwargs
 
 def reconstruct(grid, sim_variables, axis, q=6, C_T=1e-7, adaptive=False):
-    eps = 1e-40
-
-    # Note the arrangements vs. WENO: i, i+1, i-1, i+2, i-2, i+3, i-3, ...
-    linear_weights = {
-        3: (1,),
-        4: (3/6, 3/6),
-        5: (6/10, 3/10, 1/10),
-        6: (9/20, 6/20, 1/20, 4/20),
-        7: (18/35, 9/35, 3/35, 4/35, 1/35),
-        8: (30/70, 18/70, 4/70, 12/70, 1/70, 5/70),
-    }
-
-    # Define frequently used terms
-    padded_grid_2 = gutils.add_boundary(grid, sim_variables, stencil=2, axis=axis)
-    padded_grid = gutils.slice_(padded_grid_2, axis, *[1,-1])
-
-    # Read-only alias, not a copy. The caller's grid is shared by the concurrent axis
-    # sweeps and this build runs without the GIL, so it must never be mutated here
-    zeroth = grid
-    minus_one, minus_two = gutils.slice_(padded_grid, axis, end=-2), gutils.slice_(padded_grid_2, axis, end=-4)
-    plus_one, plus_two = gutils.slice_(padded_grid, axis, start=2), gutils.slice_(padded_grid_2, axis, start=4)
-
-    if adaptive:
-        padded_grid_3 = gutils.add_boundary(grid, sim_variables, stencil=3, axis=axis)
-        _, plus_three = gutils.slice_(padded_grid_3, axis, end=-6), gutils.slice_(padded_grid_3, axis, start=6)
-
-    """TENO reconstruction from cell averages to face averages (both sides)
+    """TENO reconstruction from cell averages to face averages (both sides) [Fu et al., 2016; Fu, 2021]
     |                        w(i-1/2)                    w(i+1/2)                       |
     |<--         i-1         -->|<--          i          -->|<--         i+1         -->|
     |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
     |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |   w+(i+1/2)   w-(i+3/2)   |
     """
-    # Determine the smoothness indicators: i, i+1, i-1
-    b0 = (
-        13/12 * (minus_one - 2*zeroth + plus_one)**2
-        + 1/4 * (minus_one - plus_one)**2
+    return kernels.teno_reconstruct(
+        grid, axis, kernels.get_bci(sim_variables), LINEAR_WEIGHTS[5], q=q, C_T=C_T, adaptive=adaptive,
     )
-    b1 = (
-        13/12 * (zeroth - 2*plus_one + plus_two)**2
-        + 1/4 * (3*zeroth - 4*plus_one + plus_two)**2
-    )
-    b2 = (
-        13/12 * (minus_two - 2*minus_one + zeroth)**2
-        + 1/4 * (minus_two - 4*minus_one + 3*zeroth)**2
-    )
-    b_k = b0, b1, b2
-
-    # Define the linear weights
-    g_k = linear_weights[5]
-    inv_g_k = g_k[::-1]
-
-    # Compute the scale separation
-    if adaptive:
-        gamma_k = lambda k: (1/(b_k[k]+eps))**7
-    else:
-        gamma_k = lambda k: (1 + np.abs(b2 - b1)/(b_k[k]+eps))**q
-
-    # Compute the adaptive cutoff threshold [Fu, 2021]
-    if adaptive:
-        C_r, alpha_1, alpha_2 = .265, 14, 6.4
-        eta_j = lambda stencil: (
-            (np.abs(
-                2 * (stencil[2]-stencil[1]) * (stencil[1]-stencil[0])
-                ) + eps
-            )/(
-                (stencil[2]-stencil[1])**2 + (stencil[1]-stencil[0])**2
-                + eps
-            )
-        )
-        eta = np.minimum(
-            np.minimum(
-                eta_j((minus_two, minus_two, zeroth)),
-                eta_j((minus_one, zeroth, plus_one))
-            ),
-            np.minimum(
-                eta_j((zeroth, plus_one, plus_two)),
-                eta_j((plus_one, plus_two, plus_three))
-            )
-        )
-        m = 1 - np.minimum(1, eta/C_r)
-        g_m = (1 + 4*m) * (1 - m)**4
-        beta = alpha_1 - alpha_2*(1-g_m)
-        C_T = 10**-np.floor(beta)
-
-    # Compute the smoothness measure with the sharp cutoff function
-    # gamma_k and the cutoff test depend only on the smoothness indicators, not on the linear
-    # weights. These used to be lambdas nested three deep -- omega called delta_k four times,
-    # and each delta_k called gamma_k four times -- so gamma_k was evaluated 128 times per
-    # reconstruction rather than 3
-    gamma_vals = tuple(gamma_k(k) for k in range(3))
-    gamma_sum = gamma_vals[0] + gamma_vals[1] + gamma_vals[2]
-    below_cutoff = tuple(mfuncs.divide(g, gamma_sum) < C_T for g in gamma_vals)
-
-    delta_k = tuple(np.where(below_cutoff[k], 0., g_k[k]) for k in range(3))
-    inv_delta_k = tuple(np.where(below_cutoff[k], 0., inv_g_k[k]) for k in range(3))
-
-    # Compute the non-linear weights
-    delta_sum = delta_k[0] + delta_k[1] + delta_k[2]
-    inv_delta_sum = inv_delta_k[0] + inv_delta_k[1] + inv_delta_k[2]
-    omega = tuple(mfuncs.divide(d, delta_sum) for d in delta_k)
-    inv_omega = tuple(mfuncs.divide(d, inv_delta_sum) for d in inv_delta_k)
-
-    # Define the stencils
-    wR = 1/6 * (
-        omega[0] * (-minus_one + 5*zeroth + 2*plus_one)
-        + omega[1] * (2*zeroth + 5*plus_one - plus_two)
-        + omega[2] * (2*minus_two - 7*minus_one + 11*zeroth)
-    )
-    wL = 1/6 * (
-        inv_omega[0] * (-plus_one + 5*zeroth + 2*minus_one)
-        + inv_omega[1] * (2*plus_two - 7*plus_one + 11*zeroth)
-        + inv_omega[2] * (2*zeroth + 5*minus_one - minus_two)
-    )
-
-    return wL, wR
 
 
 def run(grid, sim_variables, axis):
     subgrid, multidimensional, magnetic, ds = sim_variables.subgrid, sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds[axis]
-
-    Riemann_solver = solvers.get_Riemann_solver(sim_variables)
-    needs_jacobian = solvers.needs_jacobian(sim_variables)
 
     # TENO reconstruction [Fu et al., 2016]
     if subgrid.endswith("a"):
@@ -170,47 +47,14 @@ def run(grid, sim_variables, axis):
     assign_interfaces = ct.assign_interfaces if magnetic else gutils.assign_interfaces
     prim_plus, prim_minus = assign_interfaces((wL, wR), grid, sim_variables, axis)
 
-    # Convert the primitive variables at the interface
-    cons_plus, cons_minus = gutils.variable_convert_intf("primitive", prim_plus, sim_variables, axis=axis), gutils.variable_convert_intf("primitive", prim_minus, sim_variables, axis=axis)
+    # Compute the wavespeeds
+    wavespeeds = numeric.compute_interface_wavespeed_bounds((prim_plus, prim_minus), sim_variables, axis)
 
-    # Compute the fluxes and the Jacobian
-    flux_plus, flux_minus = numeric.compute_flux(prim_plus, sim_variables, axis=axis), numeric.compute_flux(prim_minus, sim_variables, axis=axis)
-
-    # Wave speeds at the interfaces from the Roe-averaged state. Only Lax-Wendroff and GFORCE
-    # need the averaged state itself, to build the Jacobian from; every other solver needs
-    # nothing but the wave speeds, so neither it nor its padded copy is materialised
-    if needs_jacobian:
-        intf_avg = numeric.compute_Roe_average((prim_plus, prim_minus), sim_variables)
-        padded_intf_avg = gutils.add_boundary(intf_avg, sim_variables, axis=axis)
-        wavespeeds = numeric.compute_wavespeed_bounds(padded_intf_avg, sim_variables, axis=axis)
-        jacobian = numeric.compute_jacobian(padded_intf_avg, sim_variables, axis=axis)
-    else:
-        wavespeeds = numeric.compute_roe_wavespeed_bounds((prim_plus, prim_minus), sim_variables, axis)
-        jacobian = None
-
-    # Calculate the interface-averaged fluxes
-    intf_fluxes_avgd = Riemann_solver(axis, sim_variables, **_solver_kwargs(
-        sim_variables, axis, wavespeeds, jacobian,
-        (prim_plus, prim_minus), (cons_plus, cons_minus), (flux_plus, flux_minus),
-    ))
-
-    # Compute the orthogonal L/R Riemann states and fluxes at higher-order accuracy
-    if multidimensional:
-        # Calculate the interface-centred fluxes
-        intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **_solver_kwargs(
-            sim_variables, axis, wavespeeds, jacobian,
-            (prim_plus, prim_minus), (cons_plus, cons_minus), (flux_plus, flux_minus),
-            face_avg=True,
-        ))
-
-        # Compute the higher-order fluxes
-        intf_fluxes_cntrd = gutils.approx_flux_avg(intf_fluxes_cntrd, intf_fluxes_avgd, sim_variables, axis)
-    else:
-        # Orthogonal Laplacian in 1d is zero
-        intf_fluxes_cntrd = intf_fluxes_avgd
+    # Interface fluxes, at higher order from the face-centred states in multiple dimensions
+    intf_fluxes = solvers.higher_order_flux(axis, sim_variables, wavespeeds, (prim_plus, prim_minus))
 
     # Compute flux difference for hydrodynamic components
-    fluxes = np.diff(intf_fluxes_cntrd, axis=axis)/ds
+    fluxes = np.diff(intf_fluxes, axis=axis)/ds
 
     if magnetic and multidimensional:
         return fluxes, wavespeeds, (gutils.slice_(prim_plus, axis, start=1), gutils.slice_(prim_minus, axis, end=-1))

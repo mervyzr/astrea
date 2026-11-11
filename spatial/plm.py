@@ -3,34 +3,24 @@ import numpy as np
 from functions import grid as gutils
 from functions import numeric
 from numkit import c_transport as ct
-from numkit import limiters, solvers
+from numkit import kernels, solvers
 
 ##############################################################################
 # Piecewise linear reconstruction method (PLM) [van Leer, 1979]
 ##############################################################################
 
 def reconstruct(grid, sim_variables, axis):
-    # Pad array with boundary
-    padded_grid = gutils.add_boundary(grid, sim_variables, axis=axis)
-
-    # Apply (TVD) slope limiters
-    limited_values = limiters.minmod(padded_grid, axis=axis)
-    gradients = .5 * limited_values
-
-    """Reconstruct from cell averages to face averages (both sides)
+    """Reconstruct from cell averages to face averages (both sides), with the minmod-limited slope
     |                        w(i-1/2)                    w(i+1/2)                       |
     |<--         i-1         -->|<--          i          -->|<--         i+1         -->|
     |   w_L(i-1)     w_R(i-1)   |   w_L(i)         w_R(i)   |   w_L(i+1)     w_R(i+1)   |
     |   w+(i-3/2)   w-(i-1/2)   |   w+(i-1/2)   w-(i+1/2)   |  w+(i+1/2)    w-(i+3/2)   |
     """
-    return grid - gradients, grid + gradients
+    return kernels.plm_reconstruct(grid, axis, kernels.get_bci(sim_variables))
 
 
 def run(grid, sim_variables, axis):
     multidimensional, magnetic, ds = sim_variables.multidimensional, sim_variables.magnetic, sim_variables.ds[axis]
-
-    Riemann_solver = solvers.get_Riemann_solver(sim_variables)
-    needs_jacobian = solvers.needs_jacobian(sim_variables)
 
     # Linear reconstruction [Derigs et al., 2017]
     wL, wR = reconstruct(grid, sim_variables, axis)
@@ -39,32 +29,14 @@ def run(grid, sim_variables, axis):
     assign_interfaces = ct.assign_interfaces if magnetic else gutils.assign_interfaces
     prim_plus, prim_minus = assign_interfaces((wL, wR), grid, sim_variables, axis)
 
-    # Get the average solution between the interfaces at the boundaries
-    intf_avg = .5 * (prim_plus + prim_minus)
-    padded_intf_avg = gutils.add_boundary(intf_avg, sim_variables, axis=axis)
-
-    # Convert the primitive variables at the interface
-    cons_plus, cons_minus = gutils.variable_convert_intf("primitive", prim_plus, sim_variables, axis=axis), gutils.variable_convert_intf("primitive", prim_minus, sim_variables, axis=axis)
-
-    # Compute the fluxes and the Jacobian
-    flux_plus, flux_minus = numeric.compute_flux(prim_plus, sim_variables, axis=axis), numeric.compute_flux(prim_minus, sim_variables, axis=axis)
-
-    # Resolve characteristics at interfaces from the analytic eigenvalues rather than an
-    # np.linalg.eigvals over an (N,N,N,8,8) Jacobian; see spatial/cweno.py for the rationale
-    wavespeeds = numeric.compute_wavespeed_bounds(padded_intf_avg, sim_variables, axis=axis)
-    jacobian = numeric.compute_jacobian(padded_intf_avg, sim_variables, axis=axis) if needs_jacobian else None
+    # Compute the wavespeeds
+    wavespeeds = numeric.compute_interface_wavespeed_bounds((prim_plus, prim_minus), sim_variables, axis, roe=False)
 
     # Calculate the interface-averaged fluxes (pointwise & averaged values are the same for lower-order schemes)
-    intf_fluxes_avgd = intf_fluxes_cntrd = Riemann_solver(axis, sim_variables, **{
-        'prim_interfaces': (prim_plus, prim_minus),
-        'cons_interfaces': (cons_plus, cons_minus),
-        'flux_interfaces': (flux_plus, flux_minus),
-        'wavespeeds': wavespeeds,
-        'jacobian': gutils.slice_(jacobian, axis, *[1,-1]) if needs_jacobian else None,
-    })
+    intf_fluxes = solvers.riemann_flux(axis, sim_variables, wavespeeds, (prim_plus, prim_minus))
 
     # Compute flux difference for hydrodynamic components
-    fluxes = np.diff(intf_fluxes_cntrd, axis=axis)/ds
+    fluxes = np.diff(intf_fluxes, axis=axis)/ds
 
     if magnetic and multidimensional:
         return fluxes, wavespeeds, (gutils.slice_(prim_plus, axis, start=1), gutils.slice_(prim_minus, axis, end=-1))
