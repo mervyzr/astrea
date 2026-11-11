@@ -393,7 +393,7 @@ astrea/
 ├── README.md
 ├── pyproject.toml
 ├── __init__.py
-├── astrea.py               : Core script for running the simulation
+├── astrea.py       : Core script for running the simulation
 ├── functions
 │   ├── __init__.py
 │   ├── analytic.py : Analytical solutions to smooth advection wave tests
@@ -408,21 +408,22 @@ astrea/
 │   ├── chkpt_funcs.py  : Checkpoint file I/O functions
 │   ├── cli_funcs.py    : User input I/O functions
 │   ├── handler.py      : Consolidator for all I/O functions; implements priority list for user input
-│   ├── simulation.py   : Functions for generating simulation variables
 │   ├── param_funcs.py  : Parameter file I/O functions
+│   ├── simulation.py   : Functions for generating simulation variables
 ├── numkit
 │   ├── __init__.py
 │   ├── c_transport.py  : Functions for the constrained transport implementation
+│   ├── kernels.py      : Kernel functions for cell-wise computations
 │   ├── limiters.py     : Implements slope limiters for the reconstructed states
 │   ├── solvers.py      : Contains the various Riemann solvers
 ├── parameters.yml      : Parameters for the simulation (not tracked by git)
 ├── physics
 │   ├── __init__.py
 │   ├── krome
-│   │   ├── build           : Build for default chemical network
 │   │   ├── __init__.py
 │   │   ├── abundances.yml  : Initial abundances for chemical species in default network
 │   │   ├── krome_funcs.py  : Functions for building and parsing krome routines
+│   ├── chemistry.py        : Helper functions to prepare for chemical network
 │   ├── constants.py        : Physical units
 │   ├── conversions.py      : Conversion between code & CGS units
 │   ├── gravity.py          : Functions for self-gravity (FFT Poisson solver)
@@ -455,6 +456,5 @@ astrea/
 ├── utilities
 │   ├── angular_momentum.py : Standalone functions for angular momentum
 │   ├── plot_chkpt.py       : Standalone plotting function for checkpoint files
-│   ├── sedov_numba.py      : Sedov blast test with numba (experimental)
 │   ├── simvars.py          : Standalone function for generating simulation variables for testing individual functions with Python REPL
 ```
