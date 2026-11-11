@@ -1,6 +1,5 @@
 import numpy as np
 
-from functions import grid as gutils
 from functions import math as mfuncs
 from numkit import kernels
 
@@ -8,17 +7,15 @@ from numkit import kernels
 # Functions for constructing objects such as eigenvectors, Jacobian and flux terms
 ##############################################################################
 
-# Make flux as a function of cell-averaged (primitive) variables
-# Per-cell, so handed to a kernel; the numpy form allocated one full-size array per component
-# expression. Agrees to 1-2 ulp, from the FMA contraction in mfuncs.norm2.
+# Make flux as a function of cell-averaged (primitive) variables per cell
 def compute_flux(grid, sim_variables, axis):
     if grid.shape[-1] == sim_variables.nvars:
         return kernels.flux(grid, sim_variables.gamma, sim_variables.constants.mu_0, axis)
-    return _compute_flux_numpy(grid, sim_variables, axis)
+    return _compute_flux_vectorised(grid, sim_variables, axis)
 
 
 # Reference implementation
-def _compute_flux_numpy(grid, sim_variables, axis):
+def _compute_flux_vectorised(grid, sim_variables, axis):
     abscissa, ordinate, applicate = (axis + np.array(range(3)))%3
     gamma, permeability = sim_variables.gamma, sim_variables.constants.mu_0
 
@@ -73,17 +70,17 @@ def compute_jacobian(grid, sim_variables, axis):
     return arr
 
 
-# Calculate the Roe-averaged primitive variables at the interface from the minus- & plus-interface states for use in Roe solver in order to better capture shocks [Roe & Pike, 1984; Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
+# Calculate the Roe-averaged primitive variables at the interface from the minus- & plus-interface states per cell.
+# For use in Roe solver in order to better capture shocks [Roe & Pike, 1984; Brio & Wu, 1988; LeVeque, 2002; Stone et al., 2008]
 def compute_Roe_average(interfaces, sim_variables):
     plus, minus = interfaces
     if plus.shape[-1] == sim_variables.nvars:
-        # Per-cell; verified bit-identical to the numpy form below
         return kernels.roe_average(plus, minus)
-    return _compute_Roe_average_numpy(interfaces, sim_variables)
+    return _compute_Roe_average_vectorised(interfaces, sim_variables)
 
 
 # Reference implementation
-def _compute_Roe_average_numpy(interfaces, sim_variables):
+def _compute_Roe_average_vectorised(interfaces, sim_variables):
     rho, pressure, vels, Bfields = sim_variables.rho, sim_variables.pressure, sim_variables.vels, sim_variables.Bfields
 
     plus_interface, minus_interface = interfaces
@@ -97,42 +94,33 @@ def _compute_Roe_average_numpy(interfaces, sim_variables):
     return avg
 
 
-# Signed and absolute extremes of the characteristic spectrum, in closed form
-# Every consumer of the spectrum only ever reduces it to its extremes along the last axis, and
-# those are uN +/- c with c the dominant (fast magnetosonic, or sound) speed. Returning the two
-# scalar fields [uN, c] instead of five or seven wave speeds avoids assembling the spectrum,
-# which was built as np.array(...).transpose(...) and so had stride N^3 on the axis that was
-# then reduced over. Exactly equal to the spectrum's extremes for hydrodynamics; equal to
-# within roundoff for MHD, where cFF is recovered from a slightly different expression.
+# Compute the bounded wavespeeds from the Riemann fan; here it is the maximum wavespeed
 def compute_wavespeed_bounds(grid, sim_variables, axis):
     return kernels.wavespeed_bounds(
         grid, sim_variables.gamma, sim_variables.constants.mu_0, axis, bool(sim_variables.magnetic)
     )
 
 
-# Wave speed bounds of the Roe-averaged interface state, boundary-padded along axis
-# Fuses compute_Roe_average -> add_boundary -> compute_wavespeed_bounds. That chain held the
-# averaged state and a padded copy of it, two full-size arrays plus a np.pad, only ever to
-# produce two scalar fields from them.
-def compute_roe_wavespeed_bounds(interfaces, sim_variables, axis):
+# Wave speed bounds of the averaged interface state (Roe average or arithmetic)
+def compute_interface_wavespeed_bounds(interfaces, sim_variables, axis, roe=True):
     plus, minus = interfaces
-    return kernels.roe_wavespeed_bounds(
+    return kernels.interface_wavespeed_bounds(
         plus, minus, sim_variables.gamma, sim_variables.constants.mu_0, axis,
-        bool(sim_variables.magnetic), kernels.bc_code(sim_variables),
+        bool(sim_variables.magnetic), kernels.get_bci(sim_variables), roe=roe,
     )
 
 
-# Split a wavespeed-bounds array into the normal velocity and the dominant wave speed
-def unpack_wavespeeds(wavespeeds):
-    return wavespeeds[...,kernels.WAVESPEED_NORMAL], wavespeeds[...,kernels.WAVESPEED_DOMINANT]
+# Wave speed bounds of the arithmetic mean of neighbouring cells along each axis
+def compute_cell_wavespeed_bounds(grid, sim_variables, axis):
+    return kernels.cell_wavespeed_bounds(
+        grid, sim_variables.gamma, sim_variables.constants.mu_0, axis,
+        bool(sim_variables.magnetic), kernels.get_bci(sim_variables),
+    )
 
 
 # Compute the max eigenvalues for calculating the time evolution
-# max|uN +/- c| is exactly |uN| + c, since negation is exact in IEEE. Taking the elementwise
-# maximum over consecutive pairs along an axis before reducing, as this used to, cannot change
-# the global maximum either, because every element appears in at least one pair.
 def compute_eigmax(wavespeeds, axis=None):
-    normal, dominant = unpack_wavespeeds(wavespeeds)
+    normal, dominant = wavespeeds[...,0], wavespeeds[...,1]
     return np.max(np.abs(normal) + dominant)
 
 
@@ -149,7 +137,7 @@ def compute_wavespeeds(grid, sim_variables, axis, waves='all'):
         if 'sound' in waves or waves in ['cs', 'a']:
             return sound_speed
     if match(['alfven', 'ca', 'fast', 'cff', 'slow', 'css', 'all']):
-        if match(['fast', 'slow', 'all']):
+        if match(['fast', 'cff', 'slow', 'css', 'all']):
             alfven_speed_x = mfuncs.divide(grid[...,5+axis], mfuncs.sqrt(grid[...,rho] * permeability))
             alfven_speed = mfuncs.divide(mfuncs.norm(grid[...,Bfields]), mfuncs.sqrt(grid[...,rho] * permeability))
         else:

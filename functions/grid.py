@@ -4,16 +4,13 @@ from functions import math as mfuncs
 from numkit import kernels
 
 ##############################################################################
-# Grid functions used throughout the finite volume code
+# Grid functions used throughout the finite volume code.
+#
+# numba's threading layer on this platform is workqueue, which aborts the 
+# process if a parallel kernel is entered from more than one Python thread, so
+# these also have to be serial before any fused kernel can be called from here
 ##############################################################################
-# These helpers used to fan each of their 2-3 orthogonal-axis tasks out to a fresh
-# ThreadPoolExecutor, while themselves being called from the concurrent axis sweeps in
-# spatial.evolve. That was ~60 pool creations per RHS evaluation for tasks that are pure
-# memory bandwidth, so it oversubscribed the cores and multiplied the transient footprint by
-# the number of orthogonal axes. executor.map yields in order, so plain loops are exact.
-# Numba's threading layer on this platform is workqueue, which aborts the process if a
-# parallel kernel is entered from more than one Python thread, so these also have to be
-# serial before any fused kernel can be called from here.
+
 
 # Create a physical grid for a single axis
 def make_physical_grid(coordinates, cells, idx):
@@ -49,49 +46,42 @@ def slice_(grid, axis, start=0, end=None, step=1, *args):
     return grid[tuple(slc)]
 
 
-# Add boundary conditions
-def add_boundary(grid, sim_variables, stencil=1, axis=0):
+# Add boundary conditions; sides scales the padding at the (low, high) ends
+def add_boundary(grid, sim_variables, stencil=1, axis=0, sides=(1,1)):
     padding = [(0,0)] * grid.ndim
-    padding[axis] = (stencil,stencil)
+    padding[axis] = (stencil*sides[0], stencil*sides[1])
     return np.pad(grid, padding, mode=sim_variables.boundary)
 
 
 # Finite difference derivative (second order) of a padded grid
 # [ W(i+1) - W(i) ] - [ W(i) - W(i-1) ] = W(i+1) - 2W(i) + W(i-1)
-# Handed to a kernel rather than expressed in numpy. The numpy form allocated five full-size
-# arrays per call (the np.pad copy, two np.diff results, the subtraction and the scaling) and
-# this is the single most-called function in the RHS -- 72 of the 84 np.pad calls per
-# spatial.evolve came from here. Verified bit-identical to the previous implementation for
-# 1/2/3 dimensions, every axis and all three boundary modes.
 def laplacian(grid, sim_variables, axis, out=None):
     return kernels.scaled_laplacian(
-        grid, axis, _inv_ds2(sim_variables, axis), kernels.bc_code(sim_variables), out=out
+        grid, axis, _inv_ds2(sim_variables, axis), kernels.get_bci(sim_variables), out=out
     )
 
 
-# 1/ds^2 for an axis as a plain float; sim_variables.ds holds length-1 arrays
+# 1/ds^2 for an axis as a plain float
 def _inv_ds2(sim_variables, axis):
     return float(np.ravel(1/(sim_variables.ds[axis]**2))[0])
 
 
-# scale * laplacian(grid) accumulated straight into base, allocating nothing. Kept as two
-# separate multiplications (scale, then 1/ds^2) to match the numpy callers exactly.
+# scale * laplacian(grid) accumulated straight into base, allocating nothing
 def add_scaled_laplacian(base, grid, sim_variables, axis, scale):
     return kernels.add_scaled_laplacian(
         base, grid, axis, float(np.ravel(scale)[0]),
-        _inv_ds2(sim_variables, axis), kernels.bc_code(sim_variables),
+        _inv_ds2(sim_variables, axis), kernels.get_bci(sim_variables)
     )
 
 
-# Same, but for several axes at once, in one pass over the grid instead of one pass per axis.
-# At these array sizes a single Laplacian pass already runs at close to memory bandwidth, so
-# the saving is entirely in the number of passes. scales is indexed the same way as axes.
+# Add Laplacians in one pass over all grid axes instead of one pass per axis.
+# At these array sizes a single Laplacian pass already runs at close to memory bandwidth, so the saving is entirely in the number of passes. scales is indexed the same way as axes.
 def add_laplacians(base, grid, sim_variables, axes, scales):
     return kernels.add_laplacians(
         base, grid, axes,
         [float(np.ravel(scale)[0]) for scale in scales],
         [_inv_ds2(sim_variables, axis) for axis in axes],
-        kernels.bc_code(sim_variables), sim_variables.dimensions,
+        kernels.get_bci(sim_variables), sim_variables.dimensions
     )
 
 
@@ -126,22 +116,18 @@ def convert(variable_form, grid, sim_variables):
     return converter(variable_form, grid, sim_variables)
 
 
-# Pointwise (exact) conversion of conservative variables q <-> primitive variables w (up to 2nd-order accurate)
-# Handed to a per-cell kernel, which keeps every intermediate in a register. The numpy form
-# below made four full-grid passes -- np.copy, convert_thermo_variable, mfuncs.divide and
-# mfuncs.norm2 -- and this is one of the hottest functions in the RHS. Results agree to 1-2
-# ulp rather than exactly, because mfuncs.norm2 is an einsum that contracts with FMA and so
-# rounds differently from a sequential sum; the kernel is the more accurate of the two.
+# Pointwise (exact) conversion of conservative variables q <-> primitive variables w (up to 2nd-order accurate).
+# Handed to a per-cell kernel, which keeps every intermediate in a register
 def variable_point_convert(variable_form, grid, sim_variables):
     if grid.shape[-1] == sim_variables.nvars:
         return kernels.point_convert(
             variable_form, grid, sim_variables.gamma, sim_variables.constants.mu_0
         )
-    return _variable_point_convert_numpy(variable_form, grid, sim_variables)
+    return _variable_point_convert_vectorised(variable_form, grid, sim_variables)
 
 
-# Reference implementation, kept for anything not carrying the full nvars components
-def _variable_point_convert_numpy(variable_form, grid, sim_variables):
+# Reference implementation
+def _variable_point_convert_vectorised(variable_form, grid, sim_variables):
     rho, pressure, energy, vels, momentums = sim_variables.rho, sim_variables.pressure, sim_variables.energy, sim_variables.vels, sim_variables.momentums
     arr = np.copy(grid)
 
@@ -154,11 +140,8 @@ def _variable_point_convert_numpy(variable_form, grid, sim_variables):
     return arr
 
 
-# Variable inversion using the conversion of the grid (base) and the Taylor expansion terms
-# (expansion) through a Laplacian (2nd-deriv, 2nd-order) approx. for each axis (up to
-# 4th-order accurate). Accumulated straight into base and expansion, and the pointwise
-# conversion is taken as an argument: it depends only on the grid, not on the axis, so
-# computing it inside here meant redoing the whole conversion once per axis.
+# Variable inversion using the conversion of the grid (base) and the Taylor expansion terms (expansion) through a Laplacian (2nd-deriv, 2nd-order) approx. for each axis (up to 4th-order accurate).
+# Accumulated straight into base and expansion
 def variable_inversion(variable_form, grid, sim_variables, axes, base, expansion, converted_avg):
     scales = [(sim_variables.ds[axis]**2)/24 for axis in axes]
     add_laplacians(base, grid, sim_variables, axes, [-scale for scale in scales])
@@ -171,22 +154,23 @@ def variable_convert(variable_form, grid, sim_variables):
     converted_avg = variable_point_convert(variable_form, grid, sim_variables)
 
     variable_inversion(variable_form, grid, sim_variables, sim_variables.axes, base, expansion, converted_avg)
+    new_grid = variable_point_convert(variable_form, base, sim_variables) + expansion
 
-    return variable_point_convert(variable_form, base, sim_variables) + expansion
+    return new_grid
 
 
 # Converting face-averaged conservative variables <q>_{i+1/2,j} <-> face-averaged primitive variables <w>_{i+1/2,j}
 # Looks very similar to variable_convert, doesn't it? Tempting to combine, but don't do it; easier for debugging this way
 def variable_convert_intf(variable_form, grid, sim_variables, axis):
-    base, expansion = np.copy(grid), 0
+    if not (sim_variables.grid_interpolate and sim_variables.multidimensional):
+        return variable_point_convert(variable_form, grid, sim_variables)
 
-    if sim_variables.grid_interpolate and sim_variables.multidimensional:
-        ortho_axes = sim_variables.axes[sim_variables.axes != axis]
-        expansion = np.zeros_like(grid)
-        converted_avg = variable_point_convert(variable_form, grid, sim_variables)
+    base = np.copy(grid)
+    ortho_axes = sim_variables.axes[sim_variables.axes != axis]
+    expansion = np.zeros_like(grid)
+    converted_avg = variable_point_convert(variable_form, grid, sim_variables)
 
-        variable_inversion(variable_form, grid, sim_variables, ortho_axes, base, expansion, converted_avg)
-
+    variable_inversion(variable_form, grid, sim_variables, ortho_axes, base, expansion, converted_avg)
     new_grid = variable_point_convert(variable_form, base, sim_variables) + expansion
 
     if sim_variables.magnetic:
@@ -205,8 +189,10 @@ def method_convert_cell(grid_form, grid, sim_variables, axis=None):
     elif grid_form.lower().startswith('p'):
         coeff = 1  # point -> averaged
 
-    add_laplacians(base, grid, sim_variables, sim_variables.axes,
-                   [coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24 for idx in range(len(sim_variables.axes))])
+    add_laplacians(
+        base, grid, sim_variables, sim_variables.axes,
+        [coeff * (sim_variables.ds[sim_variables.axes[idx]]**2)/24 for idx in range(len(sim_variables.axes))]
+    )
     return base
 
 
@@ -221,8 +207,10 @@ def method_convert_intf(grid_form, grid, sim_variables, axis):
     elif grid_form.lower().startswith('p'):
         coeff = 1  # point -> averaged
 
-    add_laplacians(base, grid, sim_variables, ortho_axes,
-                   [coeff * (sim_variables.ds[ortho_axes[idx]]**2)/24 for idx in range(len(ortho_axes))])
+    add_laplacians(
+        base, grid, sim_variables, ortho_axes,
+        [coeff * (sim_variables.ds[ortho_axes[idx]]**2)/24 for idx in range(len(ortho_axes))]
+    )
     return base
 
 
@@ -238,15 +226,17 @@ def approx_face_avg(interfaces, sim_variables, axis):
 def approx_flux_avg(cntrd_fluxes, avgd_fluxes, sim_variables, axis):
     ortho_axes = sim_variables.axes[sim_variables.axes != axis]
 
-    add_laplacians(cntrd_fluxes, avgd_fluxes, sim_variables, ortho_axes,
-                   [(sim_variables.ds[ortho_axes[idx]]**2)/24 for idx in range(len(ortho_axes))])
+    add_laplacians(
+        cntrd_fluxes, avgd_fluxes, sim_variables, ortho_axes,
+        [(sim_variables.ds[ortho_axes[idx]]**2)/24 for idx in range(len(ortho_axes))]
+    )
     return cntrd_fluxes
 
 
 # Re-align the interfaces so that cell wall is in between interfaces
 def assign_interfaces(interfaces, grid, sim_variables, axis):
     wL, wR = interfaces
-    return slice_(add_boundary(wL, sim_variables, axis=axis), axis, start=1), slice_(add_boundary(wR, sim_variables, axis=axis), axis, end=-1)
+    return add_boundary(wL, sim_variables, axis=axis, sides=(0,1)), add_boundary(wR, sim_variables, axis=axis, sides=(1,0))
 
 
 # Create a grid of perturbation values

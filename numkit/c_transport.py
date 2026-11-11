@@ -13,9 +13,9 @@ from spatial import pcm, plm, ppm, weno, cweno, wenoz, teno
 def assign_interfaces(interfaces, grid, sim_variables, axis):
     prim_plus, prim_minus = gutils.assign_interfaces(interfaces, grid, sim_variables, axis)
 
-    padded_grid = gutils.add_boundary(grid, sim_variables, axis=axis)
-    prim_plus[...,5+axis] = gutils.slice_(padded_grid, axis, end=-1)[...,5+axis]
-    prim_minus[...,5+axis] = gutils.slice_(padded_grid, axis, start=1)[...,5+axis]
+    padded_field = gutils.add_boundary(grid[...,5+axis], sim_variables, axis=axis)
+    prim_plus[...,5+axis] = gutils.slice_(padded_field, axis, end=-1)
+    prim_minus[...,5+axis] = gutils.slice_(padded_field, axis, start=1)
 
     return prim_plus, prim_minus
 
@@ -30,7 +30,7 @@ def convert(variable, grid, sim_variables):
 
 # Compute the maximum(+) & minimum(-) eigenvalues for alpha+ and alpha- respectively for each axis; used in the compute_emf function
 def compute_alphas(wavespeeds, axis):
-    normal, dominant = numeric.unpack_wavespeeds(wavespeeds)
+    normal, dominant = wavespeeds[...,0], wavespeeds[...,1]
     local_values = normal + dominant, normal - dominant
     local_funcs = np.maximum, np.minimum
 
@@ -264,8 +264,7 @@ def compute_emf(normal_interfaces, alphas, axis, dissipative=False):
 
 
 # Compute constrained transport flux using corner/line emfs [Mignone & Del Zanna, 2020]
-# The hydro fluxes are unaltered. The magnetic fluxes are computed for each axis and automatically allocated,
-# while setting the other axes to zero
+# The hydro fluxes are unaltered. The magnetic fluxes are computed for each axis and automatically allocated, while setting the other axes to zero
 def compute_ct_flux(flux, emfs, sim_variables, axis):
     # Get the orthogonal axes & emfs from the axis being computed
     ortho_axes = np.delete(np.arange(3), axis)
